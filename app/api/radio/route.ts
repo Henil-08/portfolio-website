@@ -16,7 +16,12 @@ const Body = z.object({
 });
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
+// Each Groq model has its own free-tier quota, so falling back on 429 keeps answers flowing.
+const MODELS = [
+  process.env.GROQ_MODEL || "openai/gpt-oss-120b",
+  "llama-3.3-70b-versatile",
+  "llama-3.1-8b-instant",
+].filter((m, i, a) => a.indexOf(m) === i);
 const DAILY_CAP = Number(process.env.RADIO_DAILY_CAP ?? 800);
 
 const text = (body: string, status = 200) =>
@@ -26,39 +31,48 @@ export async function POST(req: Request) {
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return text("That message didn't come through. Try something shorter.", 400);
   const { messages, voice } = parsed.data;
-  if (messages.at(-1)?.role !== "user") return text("Need a question to answer.", 400);
+  const last = messages.at(-1);
+  if (last?.role !== "user") return text("Need a question to answer.", 400);
 
   const ip = clientIp(req);
   if (!hit(`m:${ip}`, 8, 60_000) || !hit(`d:${ip}`, 60, 86_400_000)) {
     return text("Box box. You've hit the question limit for now. Email Henil instead: henil.gajjar2102@gmail.com", 429);
   }
   if (!hit("global", DAILY_CAP, 86_400_000)) {
-    return text("The radio's on its daily limit. The page has everything, or email henil.gajjar2102@gmail.com", 429);
+    return text("The radio's on its daily limit. Everything's in the world, or email henil.gajjar2102@gmail.com", 429);
   }
 
   const key = process.env.GROQ_API_KEY;
-  if (!key) {
-    return text("Radio's offline in this build. Everything I'd tell you is on the page, or try /resume.");
-  }
+  if (!key) return text("Radio's offline in this build. Everything I'd tell you is in the world, or try the resume.");
 
-  const upstream = await fetch(GROQ_URL, {
-    method: "POST",
-    headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-    body: JSON.stringify({
-      model: MODEL,
-      stream: true,
-      temperature: voice === "radio" ? 0.8 : 0.5,
-      max_tokens: voice === "radio" ? 160 : 320,
-      messages: [{ role: "system", content: systemPrompt(voice) }, ...messages],
-    }),
-    signal: req.signal,
-  }).catch(() => null);
+  const system = systemPrompt(voice, messages.filter((m) => m.role === "user").map((m) => m.content).join(" "));
+  let upstream: Response | null = null;
+  for (const model of MODELS) {
+    const reasoning = model.startsWith("openai/gpt-oss");
+    upstream = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        model,
+        stream: true,
+        temperature: voice === "radio" ? 0.8 : 0.5,
+        // Reasoning models spend part of the budget thinking, so give them room.
+        max_completion_tokens: (voice === "radio" ? 180 : 360) + (reasoning ? 400 : 0),
+        ...(reasoning ? { reasoning_effort: "low" } : {}),
+        messages: [{ role: "system", content: system }, ...messages.slice(-6)],
+      }),
+      signal: req.signal,
+    }).catch(() => null);
+    if (upstream?.ok && upstream.body) break;
+    if (upstream) console.warn(`groq ${model} -> ${upstream.status}`);
+    if (upstream && upstream.status !== 429 && upstream.status < 500) break;
+  }
 
   if (!upstream?.ok || !upstream.body) {
     return text("We've lost telemetry with the model. Try again in a moment.", 502);
   }
 
-  // Groq streams OpenAI-style SSE. Forward only the text deltas.
+  // Groq streams OpenAI-style SSE. Forward only the answer text, never the reasoning.
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
   let buffer = "";
@@ -69,8 +83,9 @@ export async function POST(req: Request) {
         const lines = buffer.split("\n");
         buffer = lines.pop() ?? "";
         for (const line of lines) {
-          const data = line.replace(/^data: ?/, "").trim();
-          if (!data || data === "[DONE]" || !line.startsWith("data:")) continue;
+          if (!line.startsWith("data:")) continue;
+          const data = line.slice(5).trim();
+          if (!data || data === "[DONE]") continue;
           try {
             const delta = JSON.parse(data).choices?.[0]?.delta?.content;
             if (delta) controller.enqueue(encoder.encode(delta));
