@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { ask, type ChatMessage } from "@/lib/ask";
 import { setState, useWorld } from "@/components/world/store";
-import { radioSay, squelch } from "@/components/world/sound";
+import { radioBeep, radioSpeak } from "@/components/world/sound";
 import { Spark } from "./Intro";
 
 const starters = ["What does he do at Waters?", "Best project?", "Is he good with agents?", "Why hire him?"];
@@ -32,7 +32,7 @@ export default function Ask() {
     const next: ChatMessage[] = [...msgs, { role: "user", content: question }];
     setMsgs([...next, { role: "assistant", content: "" }]);
     setBusy(true);
-    if (radio) squelch();
+    if (radio) radioBeep();
     let reply = "";
     try {
       await ask(next, radio ? "radio" : "terminal", (c) => {
@@ -44,7 +44,7 @@ export default function Ask() {
       setMsgs([...next, { role: "assistant", content: reply }]);
     }
     setBusy(false);
-    if (radio) radioSay(reply);
+    if (radio) radioSpeak(reply);
   };
 
   return (

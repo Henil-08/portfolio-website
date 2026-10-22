@@ -6,10 +6,8 @@ import * as THREE from "three";
 import { carState } from "./carState";
 import { enterZone, getState, leaveZone, setState } from "./store";
 import { zones, type Zone } from "./layout";
-import { input } from "./input";
-import { engineUpdate, engineStop } from "./sound";
 
-const OFFSET = new THREE.Vector3(13, 17, 17);
+const OFFSET = new THREE.Vector3(10.5, 12.5, 14);
 const look = new THREE.Vector3();
 const want = new THREE.Vector3();
 const tmp = new THREE.Vector3();
@@ -86,11 +84,11 @@ export function Sun() {
 
   return (
     <>
-      <hemisphereLight args={["#fff4e0", "#7fbf5a", 1.25]} />
+      <hemisphereLight args={["#fbf7f0", "#b7b0a2", 0.55]} />
       <directionalLight
         ref={light}
-        intensity={2.6}
-        color="#fff1d6"
+        intensity={2.4}
+        color="#fff4e6"
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-34}
@@ -113,9 +111,9 @@ export function Sky() {
         side: THREE.BackSide,
         depthWrite: false,
         uniforms: {
-          top: { value: new THREE.Color("#7cc8f2") },
-          mid: { value: new THREE.Color("#cdeefb") },
-          bottom: { value: new THREE.Color("#fff3dc") },
+          top: { value: new THREE.Color("#b9c9d3") },
+          mid: { value: new THREE.Color("#e6e4df") },
+          bottom: { value: new THREE.Color("#d8d2c8") },
         },
         vertexShader: `varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
         fragmentShader: `uniform vec3 top; uniform vec3 mid; uniform vec3 bottom; varying vec3 vP;
@@ -145,8 +143,6 @@ export function ZoneWatcher() {
   const t = useRef(0);
   useFrame((_, dt) => {
     const s = getState();
-    if (s.phase === "world") engineUpdate(carState.speed, input.forward);
-    else engineStop();
 
     t.current += dt;
     if (t.current < 0.1 || s.phase !== "world") return;
