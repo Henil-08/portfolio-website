@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #07080a;
+  --color-carbon: #0f1115;
+  --color-panel: #14171c;
+  --color-line: #23272f;
+  --color-mute: #8a909c;
+  --color-chalk: #eceef2;
+  --color-red: #e10600;
+  --color-purple: #b14cff; /* fastest lap */
+  --color-green: #19d27a; /* personal best */
+  --color-amber: #ffc531;
+  --color-cyan: #36d6ff;
+
+  --font-display: var(--font-titillium), system-ui, sans-serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  background: var(--color-ink);
+  color: var(--color-chalk);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-red);
+  color: white;
+}
+
+/* Kerb stripe used as a section divider */
+.kerb {
+  height: 6px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--color-red) 0 24px,
+    #f4f4f4 24px 48px
+  );
+}
+
+/* Subtle carbon-fibre weave */
+.carbon {
+  background-color: var(--color-carbon);
+  background-image:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.025) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.025) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.025) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.025) 75%);
+  background-size: 6px 6px;
+}
+
+.caret::after {
+  content: "";
+  display: inline-block;
+  width: 0.55em;
+  height: 1.1em;
+  margin-left: 2px;
+  vertical-align: -0.2em;
+  background: currentColor;
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media print {
+  html,
+  body {
+    background: white;
+    color: black;
+  }
+}
