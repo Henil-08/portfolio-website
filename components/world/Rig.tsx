@@ -84,11 +84,11 @@ export function Sun() {
 
   return (
     <>
-      <hemisphereLight args={["#fbf7f0", "#b7b0a2", 0.55]} />
+      <hemisphereLight args={["#f4efe6", "#8f8a80", 0.35]} />
       <directionalLight
         ref={light}
-        intensity={2.4}
-        color="#fff4e6"
+        intensity={1.9}
+        color="#fff1e0"
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-34}

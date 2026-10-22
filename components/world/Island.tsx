@@ -158,11 +158,11 @@ export default function Island() {
 
       {/* Plaza where the car starts */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 3]} receiveShadow>
-        <circleGeometry args={[9, 48]} />
-        <meshStandardMaterial color={C.cream} roughness={0.9} />
+        <circleGeometry args={[9, 64]} />
+        <meshStandardMaterial color={C.greyLight} roughness={0.75} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 3]}>
-        <ringGeometry args={[8.4, 9, 48]} />
+        <ringGeometry args={[8.75, 9, 64]} />
         <meshStandardMaterial color={C.red} roughness={0.8} />
       </mesh>
 

@@ -23,14 +23,14 @@ export default function World() {
       shadows
       dpr={[1, fancy ? 1.75 : 1.25]}
       camera={{ fov: 34, near: 0.5, far: 1200, position: [90, 60, 40] }}
-      gl={{ antialias: !fancy, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0 }}
+      gl={{ antialias: !fancy, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.82 }}
       className="!fixed inset-0"
     >
       <PerformanceMonitor onDecline={() => setFancy(false)} />
       <fog attach="fog" args={["#e6e4df", 110, 300]} />
       {fancy && <SoftShadows size={22} samples={10} focus={0.6} />}
       {/* Studio environment for reflections on the car paint and glass. No network HDRs. */}
-      <Environment resolution={256} frames={1}>
+      <Environment resolution={256} frames={1} environmentIntensity={0.55}>
         <Lightformer intensity={2.2} position={[0, 12, 0]} rotation-x={Math.PI / 2} scale={[30, 30, 1]} color="#ffffff" />
         <Lightformer intensity={1.4} position={[-18, 4, 8]} rotation-y={Math.PI / 2} scale={[20, 6, 1]} color="#fff3e6" />
         <Lightformer intensity={1.1} position={[18, 4, -8]} rotation-y={-Math.PI / 2} scale={[20, 6, 1]} color="#e8f0ff" />

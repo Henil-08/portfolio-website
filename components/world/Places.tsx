@@ -84,7 +84,7 @@ const TRACK_SAMPLES = trackCurve.getSpacedPoints(160);
 // ------------------------------------------------------------ dynamic props
 
 function Letters() {
-  const colors = [C.red, C.yellow, C.blue, C.teal, C.purple];
+  const colors = [C.red, C.white, C.white, C.white, C.white];
   return (
     <>
       {LETTERS.chars.map((ch, i) => (
