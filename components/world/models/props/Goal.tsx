@@ -14,7 +14,7 @@ const W = 4;
 const H = 1.8;
 const D = 1.5;
 const HB = 1.2; // back height
-const PR = 0.08;
+const PR = 0.065;
 const ZF = D / 2;
 const ZB = -D / 2;
 
@@ -38,7 +38,7 @@ function Net() {
   const cords = useMemo(() => {
     const list: { a: THREE.Vector3; b: THREE.Vector3 }[] = [];
     const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
-    const step = 0.3;
+    const step = 0.25;
     // back
     for (let x = -W / 2 + step; x < W / 2 - 0.01; x += step) list.push({ a: v(x, 0, ZB), b: v(x, HB, ZB) });
     for (let y = step; y < HB; y += step) list.push({ a: v(-W / 2, y, ZB), b: v(W / 2, y, ZB) });
@@ -70,14 +70,14 @@ function Net() {
     cords.forEach(({ a, b }, i) => {
       o.position.copy(a).add(b).multiplyScalar(0.5);
       o.quaternion.setFromUnitVectors(up, b.clone().sub(a).normalize());
-      o.scale.set(0.03, a.distanceTo(b), 0.03);
+      o.scale.set(0.018, a.distanceTo(b), 0.018);
       o.updateMatrix();
       m.setMatrixAt(i, o.matrix);
     });
     m.instanceMatrix.needsUpdate = true;
   }, [cords]);
   return (
-    <instancedMesh ref={ref} args={[unitBox(), mat(C.white, { r: 0.8 }), cords.length]} castShadow receiveShadow />
+    <instancedMesh ref={ref} args={[unitBox(), mat(C.white, { r: 0.6 }), cords.length]} castShadow receiveShadow />
   );
 }
 
@@ -98,10 +98,10 @@ function sheetGeo() {
   });
 }
 
-/** Football goal frame with a cord net. Opening faces +Z. */
+/** Football goal: clean white posts, light grey back frame and a fine cord net. Opening faces +Z. */
 export function Goal(props: GroupProps) {
-  const white = mat(C.white, { r: 0.45 });
-  const back = mat(C.metal, { r: 0.5 });
+  const white = mat(C.white, { r: 0.28 });
+  const back = mat(C.greyLight, { r: 0.35, m: 0.2 });
   return (
     <group {...props}>
       <Bar a={[-W / 2, 0, ZF]} b={[-W / 2, H, ZF]} m={white} />
@@ -115,7 +115,7 @@ export function Goal(props: GroupProps) {
       <Bar a={[-W / 2, 0.02, ZF]} b={[-W / 2, 0.02, ZB]} m={back} />
       <Bar a={[W / 2, 0.02, ZF]} b={[W / 2, 0.02, ZB]} m={back} />
       <Net />
-      <mesh geometry={sheetGeo()} material={mat(C.white, { o: 0.18, side: THREE.DoubleSide })} />
+      <mesh geometry={sheetGeo()} material={mat(C.white, { o: 0.1, side: THREE.DoubleSide })} />
       {/* white goal line and six-yard box hint on the grass */}
       <mesh geometry={unitBox()} scale={[W + 0.4, 0.02, 0.1]} position={[0, 0.01, ZF]} material={mat(C.white, { r: 0.8 })} receiveShadow />
     </group>

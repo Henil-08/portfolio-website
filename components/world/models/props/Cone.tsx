@@ -40,22 +40,25 @@ function bandGeo(y0: number, y1: number) {
   });
 }
 
-/** Traffic cone, orange with a white reflective band, on a square rubber base. */
+function collarGeo() {
+  return geo("cone-collar", () => {
+    const g = new THREE.CylinderGeometry(R0 + 0.03, R0 + 0.04, BASE - 0.02, 28);
+    g.translate(0, 0.035 + (BASE - 0.02) / 2, 0);
+    return g;
+  });
+}
+
+/** Traffic cone: safety orange body with two retro-reflective white bands, on a square black base. */
 export function Cone(props: GroupProps) {
+  const white = mat(C.white, { r: 0.28 });
   return (
     <group {...props}>
-      <RoundedBox
-        args={[0.44, BASE, 0.44]}
-        radius={0.02}
-        smoothness={2}
-        position={[0, BASE / 2, 0]}
-        material={mat(C.ink, { r: 0.9 })}
-        castShadow
-        receiveShadow
-      />
+      <RoundedBox args={[0.44, 0.035, 0.44]} radius={0.012} smoothness={2} position={[0, 0.0175, 0]} material={mat(C.black, { r: 0.8 })} castShadow receiveShadow />
+      <mesh geometry={collarGeo()} material={mat(C.black, { r: 0.75 })} castShadow receiveShadow />
       <group position={[0, BASE - 0.005, 0]}>
-        <mesh geometry={bodyGeo()} material={mat(C.orange, { r: 0.55 })} castShadow receiveShadow />
-        <mesh geometry={bandGeo(0.2, 0.3)} material={mat(C.white, { r: 0.4 })} castShadow />
+        <mesh geometry={bodyGeo()} material={mat(C.orange, { r: 0.4 })} castShadow receiveShadow />
+        <mesh geometry={bandGeo(0.14, 0.21)} material={white} castShadow />
+        <mesh geometry={bandGeo(0.28, 0.33)} material={white} castShadow />
       </group>
     </group>
   );

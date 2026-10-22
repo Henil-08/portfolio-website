@@ -5,7 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { C } from "../../palette";
-import { lowSphere, mat, unitCyl, type GroupProps } from "./shared";
+import { mat, unitCyl, type GroupProps } from "./shared";
 
 const POLE = 3.6;
 const FW = 1.3;
@@ -37,10 +37,15 @@ export function Flag({ color = C.red, speed = 1, ...props }: GroupProps & { colo
   });
   return (
     <group {...props}>
-      <mesh geometry={unitCyl()} scale={[0.2, 0.12, 0.2]} position={[0, 0.06, 0]} material={mat(C.ink, { r: 0.8 })} castShadow receiveShadow />
-      <mesh geometry={unitCyl()} scale={[0.055, POLE, 0.055]} position={[0, POLE / 2, 0]} material={mat(C.metal, { r: 0.35, m: 0.4 })} castShadow />
-      <mesh geometry={lowSphere()} scale={0.11} position={[0, POLE + 0.06, 0]} material={mat(C.yellow, { r: 0.35, m: 0.5 })} castShadow />
-      <mesh ref={ref} geometry={geometry} position={[0.05, POLE - FH / 2 - 0.1, 0]} material={mat(color, { r: 0.8, side: THREE.DoubleSide })} castShadow />
+      <mesh geometry={unitCyl()} scale={[0.2, 0.05, 0.2]} position={[0, 0.025, 0]} material={mat(C.ink, { r: 0.45, m: 0.2 })} castShadow receiveShadow />
+      <mesh geometry={unitCyl()} scale={[0.08, 0.12, 0.08]} position={[0, 0.1, 0]} material={mat(C.ink, { r: 0.45, m: 0.2 })} castShadow />
+      <mesh geometry={unitCyl()} scale={[0.04, POLE, 0.04]} position={[0, POLE / 2, 0]} material={mat(C.metal, { r: 0.3, m: 0.5 })} castShadow />
+      <mesh geometry={unitCyl()} scale={[0.055, 0.06, 0.055]} position={[0, POLE + 0.03, 0]} material={mat(C.ink, { r: 0.4, m: 0.2 })} castShadow />
+      {/* two clips on the halyard */}
+      {[POLE - 0.12, POLE - 0.1 - FH].map((y) => (
+        <mesh key={y} geometry={unitCyl()} scale={[0.05, 0.03, 0.05]} position={[0, y, 0]} material={mat(C.ink, { r: 0.4 })} />
+      ))}
+      <mesh ref={ref} geometry={geometry} position={[0.04, POLE - FH / 2 - 0.1, 0]} material={mat(color, { r: 0.65, side: THREE.DoubleSide })} castShadow />
     </group>
   );
 }

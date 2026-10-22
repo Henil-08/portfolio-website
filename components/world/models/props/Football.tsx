@@ -37,9 +37,9 @@ function ballGeo() {
     const g = new THREE.IcosahedronGeometry(BALL_R, 14);
     const pos = g.getAttribute("position");
     const colors = new Float32Array(pos.count * 3);
-    const black = new THREE.Color(C.ink);
+    const black = new THREE.Color(C.charcoal);
     const white = new THREE.Color(C.white);
-    const seam = new THREE.Color(C.metal);
+    const seam = new THREE.Color(C.greyLight);
     const a = new THREE.Vector3();
     const b = new THREE.Vector3();
     const c = new THREE.Vector3();
@@ -74,11 +74,11 @@ function ballGeo() {
   });
 }
 
-/** Classic black and white football, r=0.35. */
+/** Classic black and white football, r=0.35, glossy match-ball finish. */
 export function Football(props: GroupProps) {
   return (
     <group {...props}>
-      <mesh geometry={ballGeo()} material={mat(C.white, { r: 0.45, vc: true })} castShadow receiveShadow />
+      <mesh geometry={ballGeo()} material={mat(C.white, { r: 0.32, vc: true })} castShadow receiveShadow />
     </group>
   );
 }

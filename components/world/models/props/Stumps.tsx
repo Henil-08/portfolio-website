@@ -39,6 +39,14 @@ function bandGeo(y: number) {
   });
 }
 
+function thinBandGeo(y: number) {
+  return geo(`stump-thin-${y}`, () => {
+    const g = new THREE.CylinderGeometry(STUMP_R + 0.005, STUMP_R + 0.005, 0.015, 20, 1, true);
+    g.translate(0, y, 0);
+    return g;
+  });
+}
+
 function bailGeo() {
   return geo("bail", () => {
     const g = new THREE.CapsuleGeometry(0.03, BAIL_LEN - 0.06, 4, 12);
@@ -47,12 +55,13 @@ function bailGeo() {
   });
 }
 
-/** A single chunky stump (cream wood with a red sponsor band). */
+/** A single stump: lacquered off-white with a red sponsor band and a charcoal pin line. */
 export function Stump(props: GroupProps) {
   return (
     <group {...props}>
-      <mesh geometry={stumpGeo()} material={mat(C.cream, { r: 0.6 })} castShadow receiveShadow />
-      <mesh geometry={bandGeo(0.52)} material={mat(C.red, { r: 0.6 })} castShadow />
+      <mesh geometry={stumpGeo()} material={mat(C.cream, { r: 0.35 })} castShadow receiveShadow />
+      <mesh geometry={bandGeo(0.52)} material={mat(C.red, { r: 0.35 })} castShadow />
+      <mesh geometry={thinBandGeo(0.465)} material={mat(C.ink, { r: 0.4 })} />
     </group>
   );
 }
@@ -61,7 +70,7 @@ export function Stump(props: GroupProps) {
 export function Bail(props: GroupProps) {
   return (
     <group {...props}>
-      <mesh geometry={bailGeo()} material={mat(C.wood, { r: 0.6 })} castShadow receiveShadow />
+      <mesh geometry={bailGeo()} material={mat(C.wood, { r: 0.4 })} castShadow receiveShadow />
     </group>
   );
 }
@@ -97,7 +106,7 @@ export function CricketPitch(props: GroupProps) {
         geometry={unitBox()}
         scale={[PITCH_W, 0.02, PITCH_L]}
         position={[0, 0.0, 0]}
-        material={mat(C.sand, { r: 0.95 })}
+        material={mat(C.sand, { r: 0.9 })}
         receiveShadow
       />
       {/* a slightly darker worn strip down the middle */}
@@ -105,7 +114,7 @@ export function CricketPitch(props: GroupProps) {
         geometry={unitBox()}
         scale={[1.0, 0.02, PITCH_L - 4]}
         position={[0, 0.003, 0]}
-        material={mat(C.hoodie, { r: 0.95 })}
+        material={mat(C.rock, { r: 0.9 })}
         receiveShadow
       />
       {lines.map(([x, z, w, d], i) => (
@@ -114,7 +123,7 @@ export function CricketPitch(props: GroupProps) {
           geometry={unitBox()}
           scale={[w, 0.02, d]}
           position={[x, 0.006, z]}
-          material={mat(C.white, { r: 0.7 })}
+          material={mat(C.white, { r: 0.6 })}
           receiveShadow
         />
       ))}

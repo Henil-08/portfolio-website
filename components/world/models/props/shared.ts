@@ -1,12 +1,14 @@
 // Shared, cached materials and geometries for the props. Every prop pulls from
 // these so a scene with fifty cones still has one cone material.
+// Look: premium designer-toy diorama. Satin plastic (r ~0.45), painted resin
+// (r ~0.6), gloss (r ~0.25). Small precise bevels, no wobbly blobs.
 import * as THREE from "three";
 import type { ThreeElements } from "@react-three/fiber";
 
 export type GroupProps = ThreeElements["group"];
 
 type MatOpts = {
-  /** roughness, default 0.75 */
+  /** roughness, default 0.5 (satin plastic) */
   r?: number;
   /** metalness, default 0.05 */
   m?: number;
@@ -30,7 +32,7 @@ export function mat(color: string, o: MatOpts = {}): THREE.MeshStandardMaterial 
   if (!m) {
     m = new THREE.MeshStandardMaterial({
       color,
-      roughness: o.r ?? 0.75,
+      roughness: o.r ?? 0.5,
       metalness: o.m ?? 0.05,
       flatShading: o.flat ?? false,
       side: o.side ?? THREE.FrontSide,

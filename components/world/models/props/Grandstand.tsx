@@ -3,12 +3,13 @@
 // roof posts at x = +-5.1, z = -2.45 (r=0.15) if you want them.
 "use client";
 
-import { RoundedBox, Text } from "@react-three/drei";
+import { RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { C } from "../../palette";
-import { geo, mat, rng, unitBox, unitCyl, type GroupProps } from "./shared";
+import { Label } from "./Label";
+import { geo, mat, rng, unitBox, type GroupProps } from "./shared";
 
 const W = 10;
 const ROWS = 4;
@@ -17,20 +18,21 @@ const STEP_D = 0.95;
 const PER_ROW = 16;
 const Z0 = 1.6; // front edge of the first tier
 
-const SHIRTS = [C.red, C.yellow, C.blue, C.teal, C.purple, C.orange, C.pink, C.white, C.jacketBlack, C.redDark];
-const SKINS = [C.skin, C.skinShade, C.hoodie, "#f1c9a5", "#8d5a3b"];
+// restrained crowd: mostly team kit (red / white / charcoal) with a few greys
+const SHIRTS = [C.red, C.red, C.white, C.white, C.white, C.charcoal, C.charcoal, C.greyLight, C.grey, C.redDark];
+const SKINS = [C.skin, C.skinShade, "#e3b48f", "#a8714f", "#7c5038"];
 
 function bodyGeo() {
   return geo("fan-body", () => {
-    const g = new THREE.CapsuleGeometry(0.17, 0.2, 4, 10);
-    g.translate(0, 0.27, 0);
+    const g = new THREE.CapsuleGeometry(0.15, 0.2, 6, 14);
+    g.translate(0, 0.25, 0);
     return g;
   });
 }
 function headGeo() {
   return geo("fan-head", () => {
-    const g = new THREE.SphereGeometry(0.15, 14, 10);
-    g.translate(0, 0.66, 0);
+    const g = new THREE.SphereGeometry(0.12, 18, 12);
+    g.translate(0, 0.62, 0);
     return g;
   });
 }
@@ -45,13 +47,13 @@ function Crowd({ cheer }: { cheer: boolean }) {
     const list: Fan[] = [];
     for (let row = 0; row < ROWS; row++) {
       for (let i = 0; i < PER_ROW; i++) {
-        if (r() < 0.06) continue; // a few empty seats
+        if (r() < 0.08) continue; // a few empty seats
         list.push({
-          x: -W / 2 + 0.45 + (i + 0.5) * ((W - 0.9) / PER_ROW) + (r() - 0.5) * 0.12,
+          x: -W / 2 + 0.45 + (i + 0.5) * ((W - 0.9) / PER_ROW),
           y: (row + 1) * STEP_H,
           z: Z0 - row * STEP_D - STEP_D * 0.45,
           phase: r() * Math.PI * 2,
-          s: 0.9 + r() * 0.22,
+          s: 0.95 + r() * 0.1,
         });
       }
     }
@@ -70,9 +72,9 @@ function Crowd({ cheer }: { cheer: boolean }) {
   const o = useMemo(() => new THREE.Object3D(), []);
   const place = (t: number) => {
     fans.forEach((f, i) => {
-      const hop = cheer ? Math.max(0, Math.sin(t * 7 + f.phase)) * 0.22 : 0;
+      const hop = cheer ? Math.max(0, Math.sin(t * 5 + f.phase)) * 0.08 : 0;
       o.position.set(f.x, f.y + hop, f.z);
-      o.rotation.set(0, Math.sin(f.phase) * 0.3, cheer ? Math.sin(t * 5 + f.phase) * 0.12 : 0);
+      o.rotation.set(0, Math.sin(f.phase) * 0.15, 0);
       o.scale.setScalar(f.s);
       o.updateMatrix();
       bodies.current?.setMatrixAt(i, o.matrix);
@@ -87,15 +89,18 @@ function Crowd({ cheer }: { cheer: boolean }) {
   });
   return (
     <>
-      <instancedMesh ref={bodies} args={[bodyGeo(), mat(C.white, { r: 0.75 }), fans.length]} castShadow receiveShadow />
-      <instancedMesh ref={heads} args={[headGeo(), mat(C.white, { r: 0.7 }), fans.length]} castShadow />
+      <instancedMesh ref={bodies} args={[bodyGeo(), mat(C.white, { r: 0.45 }), fans.length]} castShadow receiveShadow />
+      <instancedMesh ref={heads} args={[headGeo(), mat(C.white, { r: 0.45 }), fans.length]} castShadow />
     </>
   );
 }
 
-/** Small grandstand: tiered seats, an instanced cute crowd (~50 fans) and a canopy roof. */
+/** Modern grandstand: white stepped tiers, grey/red seats, a tidy instanced crowd and a cantilever roof. */
 export function Grandstand({ cheer = false, ...props }: GroupProps & { cheer?: boolean }) {
-  const tierCols = [C.blue, C.teal, C.blue, C.teal];
+  const white = mat(C.white, { r: 0.3 });
+  const red = mat(C.red, { r: 0.35 });
+  const ink = mat(C.ink, { r: 0.45, m: 0.1 });
+  const steel = mat(C.metal, { r: 0.3, m: 0.5 });
   const backZ = Z0 - ROWS * STEP_D;
   const roofY = ROWS * STEP_H + 2.7;
   return (
@@ -105,51 +110,56 @@ export function Grandstand({ cheer = false, ...props }: GroupProps & { cheer?: b
         <group key={row}>
           <RoundedBox
             args={[W, (row + 1) * STEP_H, STEP_D + 0.02]}
-            radius={0.06}
+            radius={0.03}
             smoothness={2}
             position={[0, ((row + 1) * STEP_H) / 2, Z0 - row * STEP_D - STEP_D / 2]}
-            material={mat(C.wall, { r: 0.8 })}
+            material={white}
             castShadow
             receiveShadow
           />
-          {/* colored seat strip */}
+          {/* seat strip: charcoal, the top row in team red */}
           <RoundedBox
-            args={[W - 0.3, 0.12, 0.4]}
-            radius={0.05}
+            args={[W - 0.3, 0.1, 0.36]}
+            radius={0.03}
             smoothness={2}
             position={[0, (row + 1) * STEP_H + 0.04, Z0 - row * STEP_D - STEP_D * 0.62]}
-            material={mat(tierCols[row], { r: 0.6 })}
+            material={row === ROWS - 1 ? red : mat(C.greyDark, { r: 0.45 })}
             castShadow
             receiveShadow
           />
+          {/* riser shadow line */}
+          <mesh geometry={unitBox()} scale={[W - 0.02, 0.03, 0.01]} position={[0, (row + 1) * STEP_H - 0.06, Z0 - row * STEP_D + 0.012]} material={mat(C.greyLight, { r: 0.5 })} />
         </group>
       ))}
       <Crowd cheer={cheer} />
-      {/* back wall */}
-      <RoundedBox args={[W + 0.4, roofY, 0.25]} radius={0.08} smoothness={2} position={[0, roofY / 2, backZ - 0.12]} material={mat(C.red, { r: 0.65 })} castShadow receiveShadow />
-      {/* front rail */}
-      <RoundedBox args={[W, 0.5, 0.14]} radius={0.06} smoothness={2} position={[0, 0.25, Z0 + 0.12]} material={mat(C.ink, { r: 0.6 })} castShadow receiveShadow />
-      <Text position={[0, 0.27, Z0 + 0.2]} fontSize={0.3} fontWeight="bold" color={C.yellow} anchorX="center" anchorY="middle" letterSpacing={0.15}>
-        GO HENIL GO
-      </Text>
-      {/* roof: posts + sloped canopy with stripes */}
+      {/* back wall: charcoal with a red band */}
+      <RoundedBox args={[W + 0.4, roofY, 0.25]} radius={0.03} smoothness={2} position={[0, roofY / 2, backZ - 0.12]} material={ink} castShadow receiveShadow />
+      <mesh geometry={unitBox()} scale={[W + 0.42, 0.18, 0.26]} position={[0, roofY - 0.6, backZ - 0.12]} material={red} />
+      {/* side fins */}
       {[-1, 1].map((s) => (
-        <mesh key={s} geometry={unitCyl()} scale={[0.15, roofY, 0.15]} position={[s * (W / 2 + 0.1), roofY / 2, backZ + 0.1]} material={mat(C.metal, { r: 0.4, m: 0.3 })} castShadow />
+        <RoundedBox key={s} args={[0.12, ROWS * STEP_H + 0.4, ROWS * STEP_D + 0.4]} radius={0.03} smoothness={2} position={[s * (W / 2 + 0.06), (ROWS * STEP_H + 0.4) / 2, Z0 - (ROWS * STEP_D) / 2 + 0.1]} material={white} castShadow receiveShadow />
       ))}
-      <group position={[0, roofY, backZ + 1.2]} rotation={[-0.14, 0, 0]}>
-        {Array.from({ length: 8 }, (_, i) => (
-          <RoundedBox
-            key={i}
-            args={[(W + 1) / 8 + 0.005, 0.18, 2.8]}
-            radius={0.07}
-            smoothness={2}
-            position={[-(W + 1) / 2 + ((W + 1) / 8) * (i + 0.5), 0, 0]}
-            material={mat(i % 2 ? C.white : C.red, { r: 0.65 })}
-            castShadow
-            receiveShadow
-          />
-        ))}
-        <mesh geometry={unitBox()} scale={[W + 1.1, 0.3, 0.12]} position={[0, -0.05, 1.42]} material={mat(C.yellow, { r: 0.6 })} castShadow />
+      {/* front balustrade: white broadcast banner with a red tab */}
+      <mesh geometry={unitBox()} scale={[W, 0.5, 0.08]} position={[0, 0.25, Z0 + 0.1]} material={white} castShadow receiveShadow />
+      <mesh geometry={unitBox()} scale={[1.2, 0.5, 0.085]} position={[-W / 2 + 0.6, 0.25, Z0 + 0.1]} material={red} />
+      <Label position={[-W / 2 + 0.6, 0.26, Z0 + 0.15]} fontSize={0.2} color={C.white} letterSpacing={0.08}>
+        HG
+      </Label>
+      <Label position={[-W / 2 + 1.5, 0.29, Z0 + 0.15]} anchorX="left" fontSize={0.26} color={C.ink} letterSpacing={0.1}>
+        GO HENIL GO
+      </Label>
+      <Label position={[W / 2 - 0.3, 0.27, Z0 + 0.15]} anchorX="right" fontSize={0.09} color={C.greyDark} letterSpacing={0.3}>
+        MAIN GRANDSTAND · T1
+      </Label>
+      <mesh geometry={unitBox()} scale={[W, 0.03, 0.09]} position={[0, 0.03, Z0 + 0.1]} material={red} />
+      {/* cantilever roof: thin white blade on slim steel posts at the back */}
+      {[-1, 1].map((s) => (
+        <mesh key={s} geometry={unitBox()} scale={[0.14, roofY, 0.14]} position={[s * (W / 2 + 0.1), roofY / 2, backZ + 0.1]} material={steel} castShadow />
+      ))}
+      <group position={[0, roofY, backZ + 1.2]} rotation={[-0.1, 0, 0]}>
+        <RoundedBox args={[W + 1, 0.14, 2.8]} radius={0.03} smoothness={2} material={white} castShadow receiveShadow />
+        <mesh geometry={unitBox()} scale={[W + 1.02, 0.2, 0.06]} position={[0, -0.02, 1.4]} material={red} />
+        <mesh geometry={unitBox()} scale={[W, 0.02, 0.1]} position={[0, -0.08, 0.9]} material={mat(C.white, { glow: 0.8 })} />
       </group>
     </group>
   );

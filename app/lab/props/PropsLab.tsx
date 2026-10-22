@@ -1,8 +1,9 @@
 "use client";
 
-import { OrbitControls } from "@react-three/drei";
+import { ContactShadows, Environment, Lightformer, OrbitControls } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { useLayoutEffect, type ReactNode } from "react";
+import * as THREE from "three";
 import { C } from "@/components/world/palette";
 import * as P from "@/components/world/models/props";
 
@@ -54,7 +55,12 @@ const ENTRIES: Entry[] = [
   {
     name: "billboard",
     r: 2.2,
-    el: <P.Billboard title="Machine Learning" subtitle="models that ship" accent={C.blue} index={1} />,
+    el: (
+      <>
+        <P.Billboard title="2021" subtitle="The solar car" accent={C.red} index={1} position={[-1.8, 0, 0]} />
+        <P.Billboard title="SIDE QUEST" subtitle="AI for chips" accent={C.teal} position={[1.8, 0, 0]} scale={0.75} />
+      </>
+    ),
   },
   { name: "garage", r: 6.5, el: <P.Garage /> },
   { name: "lab", r: 5, el: <P.Lab /> },
@@ -83,7 +89,7 @@ const ENTRIES: Entry[] = [
     el: (
       <>
         {(["H", "E", "N", "I", "L"] as const).map((ch, i) => (
-          <P.Letter key={ch} char={ch} color={[C.red, C.yellow, C.blue, C.teal, C.purple][i]} position={[-3.4 + [0, 1.6, 3.15, 4.4, 5.4][i], 0, 0]} />
+          <P.Letter key={ch} char={ch} color={i === 0 ? C.red : C.white} position={[-3.6 + i * 1.8, 0, 0]} />
         ))}
       </>
     ),
@@ -130,7 +136,32 @@ function Rig({ r, cam, cy, single }: { r: number; cam: string; cy: number; singl
   return <OrbitControls makeDefault target={[0, cy, 0]} />;
 }
 
-export default function PropsLab({ view, cam }: { view: string; cam: string }) {
+// Studio light rig: soft key, rim and fill panels baked into an env map (no network).
+function Studio() {
+  return (
+    <Environment resolution={256} frames={1}>
+      <Lightformer form="rect" intensity={2.4} color="#fff6ea" position={[0, 6, 2]} rotation={[-Math.PI / 2.2, 0, 0]} scale={[10, 6, 1]} />
+      <Lightformer form="rect" intensity={1.4} color="#ffffff" position={[-6, 2, 3]} rotation={[0, Math.PI / 2.5, 0]} scale={[4, 6, 1]} />
+      <Lightformer form="rect" intensity={1.1} color="#eef2ff" position={[6, 2.5, -2]} rotation={[0, -Math.PI / 2.5, 0]} scale={[4, 6, 1]} />
+      <Lightformer form="ring" intensity={0.8} color="#ffffff" position={[0, 3, -6]} scale={3} />
+      <Lightformer form="rect" intensity={0.35} color="#d8d2c8" position={[0, -2, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[20, 20, 1]} />
+    </Environment>
+  );
+}
+
+export default function PropsLab({
+  view,
+  cam,
+  bg = "studio",
+  env = true,
+  tm = "aces",
+}: {
+  view: string;
+  cam: string;
+  bg?: string;
+  env?: boolean;
+  tm?: string;
+}) {
   const single = ENTRIES.find((e) => e.name === view);
   const list = single
     ? [single]
@@ -142,15 +173,24 @@ export default function PropsLab({ view, cam }: { view: string; cam: string }) {
   const { items, R } = single ? { items: [{ e: single, x: 0, z: 0 }], R: single.r } : layout(list);
   const cy = single ? (single.cy ?? single.r * 0.45) : 0;
   const sh = Math.max(12, R * 1.3);
+  // ACES matches the game (R3F default); ?tm=agx for a softer studio look
+  const backdrop = "#dcd8d1";
+  const floor = bg === "grass" ? C.grass : "#d6d2cb";
   return (
-    <div style={{ position: "fixed", inset: 0, background: C.cream }}>
-      <Canvas shadows dpr={[1, 2]} camera={{ fov: 40, near: 0.1, far: 800 }}>
-        <color attach="background" args={[C.cream]} />
-        <fog attach="fog" args={[C.cream, R * 6 + 20, R * 12 + 60]} />
-        <hemisphereLight args={["#fff4e0", C.grassDark, 1.1]} />
+    <div style={{ position: "fixed", inset: 0, background: backdrop }}>
+      <Canvas
+        shadows="soft"
+        dpr={[1, 2]}
+        camera={{ fov: 40, near: 0.1, far: 800 }}
+        gl={{ toneMapping: tm === "agx" ? THREE.AgXToneMapping : THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0 }}
+      >
+        <color attach="background" args={[backdrop]} />
+        <fog attach="fog" args={[backdrop, R * 6 + 20, R * 12 + 60]} />
+        {env && <Studio />}
+        <hemisphereLight args={["#fff6ec", "#b8b2a8", env ? 0.5 : 1.2]} />
         <directionalLight
           position={[sh * 0.6, sh * 1.4, sh * 0.8]}
-          intensity={2.2}
+          intensity={env ? 1.8 : 2.4}
           color="#fff0d8"
           castShadow
           shadow-mapSize={[2048, 2048]}
@@ -164,8 +204,9 @@ export default function PropsLab({ view, cam }: { view: string; cam: string }) {
         />
         <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
           <circleGeometry args={[R * 3 + 20, 64]} />
-          <meshStandardMaterial color={C.grass} roughness={0.95} />
+          <meshStandardMaterial color={floor} roughness={0.92} />
         </mesh>
+        {single && <ContactShadows position={[0, 0.003, 0]} opacity={0.35} scale={R * 5 + 4} blur={2.5} far={R + 2} />}
         {items.map(({ e, x, z }) => (
           <group key={e.name} position={[x, 0, z]}>
             {e.el}
@@ -174,7 +215,7 @@ export default function PropsLab({ view, cam }: { view: string; cam: string }) {
         <Rig r={R} cam={cam} cy={cy} single={!!single} />
       </Canvas>
       <div style={{ position: "fixed", left: 12, top: 10, font: "600 13px system-ui", color: C.ink, opacity: 0.6 }}>
-        props lab · {view} · {cam}
+        props lab · {view} · {cam} · {bg}{env ? "" : " · no env"}
       </div>
     </div>
   );
