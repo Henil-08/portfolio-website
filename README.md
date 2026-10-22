@@ -1,36 +1,23 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# henil.dev
 
-## Getting Started
+My portfolio. It opens with a terminal where Claude tells you who I am, then turns into an F1 pit wall: my story told in laps, work history on a timing tower, and a 3D car you can drive around a circuit where each corner is a chapter.
 
-First, run the development server:
+- `/` the pit wall: terminal intro, story, work, projects, AI playbook, side quest, research, contact
+- `/drive` a playable 3D circuit (React Three Fiber)
+- `/resume` one page, no animations, prints well
+- `/api/radio` streaming answers about me from Groq, as Claude in the terminal or as my race engineer on team radio
+- `/mcp` an MCP server. `claude mcp add --transport http henil https://<site>/mcp`
+
+## Run it
 
 ```bash
+npm install
+cp .env.example .env.local   # add a GROQ_API_KEY for live answers
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+All content lives in `content/`. Edit those files and the page, the resume, the radio and the MCP server all update together.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Next.js 16, React 19, Tailwind 4, React Three Fiber, Framer Motion, Groq. Deployed as a Docker container behind Caddy on Oracle Cloud. See [deploy/DEPLOY.md](deploy/DEPLOY.md).
