@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { profile, stats } from "@/content/profile";
 import { experience, education } from "@/content/experience";
-import { projects } from "@/content/projects";
+import { DOMAINS, projects } from "@/content/projects";
 import { patents, publications, toolbox } from "@/content/research";
 
 export const metadata: Metadata = {
@@ -129,39 +129,45 @@ export default function Resume() {
         </Block>
 
         <Block title="Projects">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {projects.map((p) => (
-              <div
-                key={p.slug}
-                className="group break-inside-avoid rounded-2xl border border-line px-4 py-3.5 transition hover:border-ink/20 hover:bg-cream/50"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-semibold leading-snug">
-                      {p.name}
-                      {p.sideQuest && (
-                        <span className="ml-2 rounded-full bg-teal/15 px-2 py-0.5 align-middle font-mono text-[10px] font-medium text-[#14857a]">
-                          side quest
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-[13.5px] text-ink-soft">{p.tagline}</p>
+          <div className="space-y-7">
+            {DOMAINS.map((d) => {
+              const list = projects.filter((p) => p.domain === d.id);
+              if (!list.length) return null;
+              return (
+                <div key={d.id}>
+                  <h3 className="mb-3 text-[13px] font-semibold text-ink">
+                    {d.label} <span className="font-normal text-ink-soft">· {list.length}</span>
+                  </h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {list.map((p) => (
+                      <div
+                        key={p.slug}
+                        className="break-inside-avoid rounded-2xl border border-line px-4 py-3.5 transition hover:border-ink/20 hover:bg-cream/50"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-semibold leading-snug">{p.name}</p>
+                            <p className="text-[13.5px] text-ink-soft">{p.tagline}</p>
+                          </div>
+                          <p className="shrink-0 text-right">
+                            <span className="block font-display text-[16px] font-semibold leading-none text-red">{p.headline.value}</span>
+                            <span className="mt-1 block max-w-[110px] text-[10.5px] leading-tight text-ink-soft">{p.headline.label}</span>
+                          </p>
+                        </div>
+                        <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <span className="font-mono text-[11px] text-ink-soft/80">{p.stack.slice(0, 4).join(" · ")}</span>
+                          {p.links.map((l) => (
+                            <a key={l.href} href={l.href} className="text-[12px] font-medium text-red hover:underline print:hidden">
+                              {l.label} ↗
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <p className="shrink-0 text-right">
-                    <span className="block font-display text-[17px] font-semibold leading-none text-red">{p.headline.value}</span>
-                    <span className="mt-1 block max-w-[110px] text-[10.5px] leading-tight text-ink-soft">{p.headline.label}</span>
-                  </p>
                 </div>
-                <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <span className="font-mono text-[11px] text-ink-soft/80">{p.stack.slice(0, 4).join(" · ")}</span>
-                  {p.links.map((l) => (
-                    <a key={l.href} href={l.href} className="text-[12px] font-medium text-red hover:underline print:hidden">
-                      {l.label} ↗
-                    </a>
-                  ))}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Block>
 
