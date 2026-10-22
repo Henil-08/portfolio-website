@@ -62,8 +62,8 @@ export default function Terminal({ onReveal }: { onReveal?: () => void }) {
     } catch {}
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (played || reduced) {
-      finishIntro();
-      return;
+      const t = setTimeout(finishIntro, 0);
+      return () => clearTimeout(t);
     }
 
     (async () => {
