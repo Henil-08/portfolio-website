@@ -30,10 +30,23 @@ Create `~/portfolio/.env` on the VM (see `.env.example` in the repo root):
 
 ```bash
 GROQ_API_KEY=gsk_...
+GROQ_MODEL=openai/gpt-oss-120b
 RADIO_DAILY_CAP=800
 NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 DOMAIN=yourdomain.com      # or :80 if you have no domain yet
 ```
+
+### Licensed assets
+
+The Racero font and the F1 radio sting aren't in the public repo. Copy them from your machine to the VM once:
+
+```bash
+ssh ubuntu@<VM_IP> "mkdir -p ~/portfolio/assets"
+scp public/fonts/racero.otf ubuntu@<VM_IP>:~/portfolio/assets/racero.otf
+scp public/sfx/radio.mp3   ubuntu@<VM_IP>:~/portfolio/assets/radio.mp3
+```
+
+`docker-compose.yml` mounts them into the container. Without them the site still works, with a fallback font and no radio sting.
 
 ## 3. Domain (optional but recommended)
 
