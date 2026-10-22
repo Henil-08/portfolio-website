@@ -11,8 +11,8 @@ import {
   type RapierRigidBody,
 } from "@react-three/rapier";
 import * as THREE from "three";
-import { CarBody, CarWheel } from "./models/Car";
-import { Driver } from "./models/Avatar";
+import { CarBody, CarWheel, CHASSIS_HALF, REAR_WHEEL_SCALE, WHEEL_POSITIONS, WHEEL_RADIUS } from "./models/Car";
+import { Driver, DRIVER_SEAT } from "./models/Avatar";
 import { input } from "./input";
 import { carState } from "./carState";
 import { getState, setState, subscribe } from "./store";
@@ -21,16 +21,17 @@ import { honk } from "./sound";
 
 type VehicleController = ReturnType<ReturnType<typeof useRapier>["world"]["createVehicleController"]>;
 
-// Connection points sit a little above the wheel centres so the car settles
-// with the body's ground line (y = -0.46) just touching the road.
-const WHEELS = [
-  { pos: new THREE.Vector3(0.78, 0.14, 0.66), front: true },
-  { pos: new THREE.Vector3(0.78, 0.14, -0.66), front: true },
-  { pos: new THREE.Vector3(-0.72, 0.14, 0.66), front: false },
-  { pos: new THREE.Vector3(-0.72, 0.14, -0.66), front: false },
-];
-const RADIUS = 0.34;
-const REST = 0.32;
+// Suspension: rest length and the sag the springs settle at (measured, stiffness 90).
+const REST = 0.2;
+const SAG = 0.04;
+
+// Each wheel's suspension mounts above its rest-position centre, so the car
+// settles with the tyres on the ground and the body at the model's ride height.
+const WHEELS = WHEEL_POSITIONS.map((w) => ({
+  pos: new THREE.Vector3(w.x, w.y + REST - SAG, w.z),
+  front: w.front,
+  radius: w.front ? WHEEL_RADIUS : WHEEL_RADIUS * REAR_WHEEL_SCALE,
+}));
 const ENGINE = 34;
 const BOOST = 1.7;
 const TOP = 24; // m/s, about 86 km/h. Toy fast, still steerable.
@@ -54,13 +55,13 @@ export default function Vehicle() {
     if (!b) return;
     const v = world.createVehicleController(b);
     for (const w of WHEELS) {
-      v.addWheel(w.pos, { x: 0, y: -1, z: 0 }, { x: 0, y: 0, z: 1 }, REST, RADIUS);
+      v.addWheel(w.pos, { x: 0, y: -1, z: 0 }, { x: 0, y: 0, z: 1 }, REST, w.radius);
     }
     for (let i = 0; i < WHEELS.length; i++) {
       v.setWheelSuspensionStiffness(i, 90);
       v.setWheelSuspensionCompression(i, 4.2);
       v.setWheelSuspensionRelaxation(i, 3.4);
-      v.setWheelMaxSuspensionTravel(i, 0.3);
+      v.setWheelMaxSuspensionTravel(i, 0.18);
       v.setWheelMaxSuspensionForce(i, 100000);
       v.setWheelFrictionSlip(i, 2.4);
       v.setWheelSideFrictionStiffness(i, 1);
@@ -185,19 +186,18 @@ export default function Vehicle() {
     <RigidBody
       ref={body}
       colliders={false}
-      position={[SPAWN[0], 1.2, SPAWN[1]]}
+      position={[SPAWN[0], 0.9, SPAWN[1]]}
       linearDamping={0.25}
       angularDamping={1.6}
       canSleep={false}
       ccd
     >
       {/* Light chassis and a heavy low ballast so it bounces but rarely tips. */}
-      <CuboidCollider args={[1.1, 0.22, 0.55]} mass={4} friction={0.3} />
-      <BallCollider args={[0.15]} position={[0, -0.05, 0]} mass={8} friction={0} frictionCombineRule={1} />
-      <CarBody brakeLight={false} />
-      <group position={[-0.15, 0.05, 0]}>
-        <Driver />
-      </group>
+      <CuboidCollider args={[CHASSIS_HALF[0], 0.17, CHASSIS_HALF[2]]} position={[0, 0.05, 0]} mass={4} friction={0.3} />
+      <BallCollider args={[0.12]} position={[0, -0.08, 0]} mass={8} friction={0} frictionCombineRule={1} />
+      <CarBody brakeLight={false}>
+        <Driver position={DRIVER_SEAT} />
+      </CarBody>
       {WHEELS.map((w, i) => (
         <group
           key={i}
@@ -207,7 +207,7 @@ export default function Vehicle() {
           position={[w.pos.x, w.pos.y - REST, w.pos.z]}
         >
           <group>
-            <CarWheel scale={w.front ? 1 : 1.06} />
+            <CarWheel scale={w.front ? 1 : REAR_WHEEL_SCALE} />
           </group>
         </group>
       ))}
@@ -217,7 +217,7 @@ export default function Vehicle() {
 
 function place(b: RapierRigidBody, x: number, z: number, heading: number) {
   const q = new THREE.Quaternion().setFromAxisAngle(up, heading);
-  b.setTranslation({ x, y: 1.2, z }, true);
+  b.setTranslation({ x, y: 0.9, z }, true);
   b.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
   b.setLinvel({ x: 0, y: 0, z: 0 }, true);
   b.setAngvel({ x: 0, y: 0, z: 0 }, true);
