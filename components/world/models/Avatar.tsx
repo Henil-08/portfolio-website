@@ -1,111 +1,291 @@
 "use client";
 
-// Chibi Henil. Avatar: standing, origin at feet, faces +Z, ~1.3 m tall.
-// Driver: seated, origin at hip, faces +X (drop it into CarBody at (-0.15, 0.05, 0)).
+// Chibi Henil as a designer-vinyl racing figure.
+// Avatar: standing, origin at feet, faces +Z, ~1.3 m tall.
+// Driver: seated, origin at hip, faces +X. Place it in CarBody at DRIVER_SEAT.
 
 import { useMemo, useRef } from "react";
 import type { ThreeElements } from "@react-three/fiber";
 import { useFrame } from "@react-three/fiber";
-import { RoundedBox } from "@react-three/drei";
+import { RoundedBox, Text } from "@react-three/drei";
 import * as THREE from "three";
-import { C } from "../palette";
+import { glslColor, liveryMaterial, physical } from "./Car";
 
 type GroupProps = ThreeElements["group"];
 const PI = Math.PI;
 
-function mat(color: string, roughness = 0.7, metalness = 0) {
-  return new THREE.MeshStandardMaterial({ color, roughness, metalness });
-}
+/** Where Driver goes inside CarBody space (hip point, chassis-centre origin). */
+export const DRIVER_SEAT: [number, number, number] = [0.02, 0.0, 0];
+const DRIVER_SCALE = 0.45;
 
-function useAvatarKit() {
-  return useMemo(() => {
-    const m = {
-      skin: mat(C.skin, 0.65),
-      skinShade: mat(C.skinShade, 0.7),
-      hair: mat(C.hair, 0.38, 0.15),
-      ink: mat(C.ink, 0.6),
-      white: mat(C.white, 0.5),
-      vest: mat(C.jacketBlack, 0.6, 0.1),
-      jacket: mat(C.jacketWhite, 0.75),
-      hoodie: mat(C.hoodie, 0.85),
-      jeans: mat(C.jeans, 0.85),
-      mouth: mat(C.redDark, 0.6),
-      red: mat(C.red, 0.6),
-      blush: new THREE.MeshStandardMaterial({ color: C.pink, roughness: 0.9, transparent: true, opacity: 0.55 }),
-    };
-    m.hair.side = THREE.DoubleSide;
-    m.mouth.side = THREE.DoubleSide;
-    const g = {
-      sphere: new THREE.SphereGeometry(1, 28, 20),
-      lowSphere: new THREE.SphereGeometry(1, 14, 10),
-      hairCap: new THREE.SphereGeometry(1, 32, 16, 0, PI * 2, 0, PI * 0.56),
-      halfDown: new THREE.SphereGeometry(1, 20, 10, 0, PI * 2, PI / 2, PI / 2),
-      capsule: new THREE.CapsuleGeometry(1, 1, 6, 16),
-      ring: new THREE.TorusGeometry(1, 0.11, 10, 32),
-      puff: new THREE.TorusGeometry(1, 0.1, 10, 32),
-      band: new THREE.TorusGeometry(1, 0.075, 8, 28, PI),
-    };
-    return { m, g };
-  }, []);
-}
-type Kit = ReturnType<typeof useAvatarKit>;
-
-const MIC_FROM = new THREE.Vector3(0.28, -0.05, 0.02);
-const MIC_TO = new THREE.Vector3(0.09, -0.12, 0.25);
+const COL = {
+  suit: "#f4f3ef",
+  red: "#e0111f",
+  blue: "#1f4fd1",
+  black: "#1b1b1f",
+  skin: "#b27650",
+  skinShade: "#9a5f3d",
+  hair: "#1a120e",
+  eye: "#120b08",
+  mouth: "#5b2219",
+  blush: "#e2737a",
+  rim: "#17171a",
+};
 
 /* ------------------------------------------------------------------ */
-/* Head (center origin, faces +Z, radius ~0.27)                        */
+/* Materials + geometry                                                */
 /* ------------------------------------------------------------------ */
 
-function Head({ kit, headset = false }: { kit: Kit; headset?: boolean }) {
+const SW = glslColor(COL.suit);
+const SR = glslColor(COL.red);
+
+// Helmet shell in unit-sphere space: two bold red stripes front to back over the top.
+const HELMET_GLSL = /* glsl */ `
+vec4 livery(vec3 p, vec3 n) {
+  float ax = abs(p.x);
+  float stripe = lvBand(ax, 0.09, 0.22) * lvAA(p.y + 0.6);
+  float pin = lvBand(ax, 0.25, 0.275) * lvAA(p.y + 0.6);
+  // red lower edge band at the back/neck
+  float hem = lvAA(-0.78 - p.y);
+  vec3 col = mix(${SW}, ${SR}, max(max(stripe, pin), hem));
+  return vec4(col, 0.22);
+}
+`;
+
+// Race suit legs (unit capsule): red stripe down the outer and inner side.
+const LEG_GLSL = /* glsl */ `
+vec4 livery(vec3 p, vec3 n) {
+  float s = lvAA(abs(p.x) - 0.82) * lvBand(p.z, -0.42, 0.42) * lvAA(p.y + 0.95);
+  return vec4(mix(${SW}, ${SR}, s), 0.42);
+}
+`;
+
+// Torso (metres, lathe space): red side panels, red collar.
+const TORSO_GLSL = /* glsl */ `
+vec4 livery(vec3 p, vec3 n) {
+  float side = lvAA(abs(n.x) - 0.9) * lvAA(0.3 - p.y);
+  float collar = lvAA(p.y - 0.315);
+  return vec4(mix(${SW}, ${SR}, max(side, collar)), 0.42);
+}
+`;
+
+let KIT: ReturnType<typeof makeKit> | null = null;
+function makeKit() {
+  const satin = { clearcoat: 0.45, clearcoatRoughness: 0.35 };
+  const m = {
+    helmet: liveryMaterial("helmet", HELMET_GLSL),
+    rim: physical(COL.rim, 0.6, { clearcoat: 0.2 }),
+    liner: physical("#2a2a2e", 0.8, { side: THREE.BackSide }),
+    red: physical(COL.red, 0.28, { clearcoat: 1, clearcoatRoughness: 0.15 }),
+    redSatin: physical(COL.red, 0.42, satin),
+    suit: physical(COL.suit, 0.42, satin),
+    leg: liveryMaterial("leg", LEG_GLSL, satin),
+    torso: liveryMaterial("torso", TORSO_GLSL, satin),
+    blue: physical(COL.blue, 0.38, satin),
+    black: physical(COL.black, 0.48, satin),
+    buckle: physical("#d9dadf", 0.25, { metalness: 0.9 }),
+    skin: physical(COL.skin, 0.5, { clearcoat: 0.15, clearcoatRoughness: 0.5, sheen: 0.4, sheenColor: new THREE.Color("#f0b38f") }),
+    skinShade: physical(COL.skinShade, 0.55),
+    hair: physical(COL.hair, 0.42, { clearcoat: 0.4, clearcoatRoughness: 0.3 }),
+    eye: physical(COL.eye, 0.08, { clearcoat: 1, clearcoatRoughness: 0.02 }),
+    iris: physical("#3d2014", 0.15, { clearcoat: 1, clearcoatRoughness: 0.05 }),
+    shine: new THREE.MeshBasicMaterial({ color: "#ffffff", toneMapped: false }),
+    mouth: physical(COL.mouth, 0.4),
+    blush: new THREE.MeshStandardMaterial({ color: COL.blush, roughness: 0.9, transparent: true, opacity: 0.35, depthWrite: false }),
+  };
+
+  // helmet: unit sphere with a round face opening facing forward-down
+  const TILT = 0.42; // opening axis tilted down
+  const OPEN = 0.86; // opening half-angle
+  const shell = new THREE.SphereGeometry(1, 72, 48, 0, PI * 2, OPEN, PI - OPEN).rotateX(PI / 2 + TILT);
+  const rim = new THREE.TorusGeometry(Math.sin(OPEN), 0.072, 16, 72)
+    .rotateX(TILT)
+    .translate(0, -Math.sin(TILT) * Math.cos(OPEN), Math.cos(TILT) * Math.cos(OPEN));
+  const linerG = shell.clone().scale(0.97, 0.97, 0.97);
+  const pod = new THREE.SphereGeometry(1, 32, 20);
+
+  // torso: smooth chibi bean, lathe
+  const prof = new THREE.SplineCurve(
+    [
+      [0.0, -0.07],
+      [0.12, -0.06],
+      [0.168, 0.0],
+      [0.178, 0.1],
+      [0.172, 0.2],
+      [0.152, 0.28],
+      [0.112, 0.325],
+      [0.07, 0.345],
+      [0.0, 0.35],
+    ].map(([a, b]) => new THREE.Vector2(a, b)),
+  ).getPoints(40);
+  prof[0].x = 0;
+  prof[prof.length - 1].x = 0;
+  const torso = new THREE.LatheGeometry(prof, 56).scale(1, 1, 0.82);
+  // belt: a slice of the torso profile pushed outward so it hugs the body
+  const beltProf = prof
+    .filter((p) => p.y > 0.005 && p.y < 0.085)
+    .map((p) => new THREE.Vector2(p.x + 0.009, p.y));
+  beltProf.unshift(new THREE.Vector2(beltProf[0].x - 0.009, beltProf[0].y - 0.002));
+  beltProf.push(new THREE.Vector2(beltProf[beltProf.length - 1].x - 0.009, beltProf[beltProf.length - 1].y + 0.002));
+  const belt = new THREE.LatheGeometry(beltProf, 56).scale(1, 1, 0.82);
+
+  const g = {
+    shell,
+    rim,
+    liner: linerG,
+    pod,
+    torso,
+    sphere: new THREE.SphereGeometry(1, 32, 24),
+    // teardrop strand, point down
+    strand: new THREE.LatheGeometry(
+      Array.from({ length: 25 }, (_, i) => {
+        const t = i / 24;
+        return new THREE.Vector2(Math.pow(Math.sin(PI * t), 0.7) * (1 - 0.5 * t) + 1e-4, 1 - 2 * t);
+      }),
+      24,
+    ),
+    // hair cap: crown of the head, tilted so it frames the forehead
+    hairCap: new THREE.SphereGeometry(1, 40, 16, 0, PI * 2, 0, 1.25).rotateX(0.1),
+    lowSphere: new THREE.SphereGeometry(1, 18, 12),
+    capsule: new THREE.CapsuleGeometry(1, 1, 8, 20),
+    smile: new THREE.TorusGeometry(1, 0.22, 10, 32, PI * 0.62).rotateZ(PI * 1.5 - PI * 0.31),
+    belt,
+    cyl: new THREE.CylinderGeometry(1, 1, 1, 28),
+    chevron: (() => {
+      const s = new THREE.Shape();
+      s.moveTo(0, 0);
+      s.lineTo(0.5, 0.5);
+      s.lineTo(0, 1);
+      s.lineTo(0.38, 1);
+      s.lineTo(0.88, 0.5);
+      s.lineTo(0.38, 0);
+      s.closePath();
+      return new THREE.ExtrudeGeometry(s, { depth: 0.2, bevelEnabled: false }).translate(-0.44, -0.5, 0);
+    })(),
+  };
+  return { m, g, TILT, OPEN };
+}
+type Kit = ReturnType<typeof makeKit>;
+function useKit() {
+  return useMemo(() => (KIT ??= makeKit()), []);
+}
+
+/** Point + orientation on a sphere (centre c, radius r) at yaw/pitch, facing outward. */
+function onSphere(c: [number, number, number], r: number, yaw: number, pitch: number) {
+  const d = new THREE.Vector3(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
+  const pos = new THREE.Vector3(...c).addScaledVector(d, r);
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), d);
+  return { position: pos.toArray() as [number, number, number], quaternion: q };
+}
+
+/* ------------------------------------------------------------------ */
+/* Head + helmet (centre origin, faces +Z, unit space x HEAD_R)        */
+/* ------------------------------------------------------------------ */
+
+const HEAD_R = 0.28;
+const FACE_C: [number, number, number] = [0, -0.03, 0.055];
+const FACE_R = 0.93;
+
+function Face({ kit }: { kit: Kit }) {
   const { m, g } = kit;
+  const f = useMemo(() => {
+    const eye = (s: number) => onSphere(FACE_C, FACE_R, s * 0.34, -0.2);
+    const brow = (s: number) => onSphere(FACE_C, FACE_R, s * 0.36, 0.05);
+    const blush = (s: number) => onSphere(FACE_C, FACE_R, s * 0.58, -0.44);
+    const fringe = [-0.56, -0.34, -0.12, 0.1, 0.32, 0.54].map((yaw, i) =>
+      onSphere(FACE_C, FACE_R + 0.03, yaw, 0.3 - Math.abs(yaw) * 0.12 + (i % 2) * 0.025),
+    );
+    return {
+      eyes: [1, -1].map(eye),
+      brows: [1, -1].map(brow),
+      blush: [1, -1].map(blush),
+      nose: onSphere(FACE_C, FACE_R, 0, -0.4),
+      mouth: onSphere(FACE_C, FACE_R, 0, -0.6),
+      fringe,
+    };
+  }, []);
   return (
     <group>
-      {/* skull */}
-      <mesh geometry={g.sphere} material={m.skin} scale={[0.27, 0.255, 0.255]} castShadow receiveShadow />
-      {/* ears */}
-      {[1, -1].map((s) => (
-        <mesh key={s} geometry={g.lowSphere} material={m.skin} position={[s * 0.262, -0.02, 0]} scale={[0.03, 0.055, 0.045]} castShadow />
-      ))}
-
-      {/* hair: cap tilted back so the forehead shows, plus a swept-up quiff */}
-      <mesh geometry={g.hairCap} material={m.hair} position={[0, 0.02, -0.015]} rotation={[-0.62, 0, 0]} scale={[0.287, 0.28, 0.276]} castShadow />
-      {/* volume on top */}
-      <mesh geometry={g.sphere} material={m.hair} position={[0.01, 0.19, 0.0]} rotation={[0.2, 0, -0.1]} scale={[0.235, 0.13, 0.22]} castShadow />
-      {/* front quiff swept up and over to his left */}
-      <mesh geometry={g.sphere} material={m.hair} position={[-0.05, 0.23, 0.15]} rotation={[0.75, 0, -0.35]} scale={[0.15, 0.075, 0.1]} castShadow />
-      <mesh geometry={g.sphere} material={m.hair} position={[0.07, 0.27, 0.12]} rotation={[0.6, 0, -0.55]} scale={[0.16, 0.08, 0.11]} castShadow />
-      <mesh geometry={g.sphere} material={m.hair} position={[0.17, 0.24, 0.07]} rotation={[0.3, 0, -0.95]} scale={[0.11, 0.065, 0.1]} castShadow />
-
-      {/* eyes with highlights */}
-      {[1, -1].map((s) => (
-        <group key={s}>
-          <mesh geometry={g.lowSphere} material={m.ink} position={[s * 0.092, -0.01, 0.236]} scale={[0.036, 0.05, 0.022]} />
-          <mesh geometry={g.lowSphere} material={m.white} position={[s * 0.092 + 0.012, 0.01, 0.255]} scale={0.012} />
-          {/* brow */}
-          <mesh geometry={g.capsule} material={m.hair} position={[s * 0.1, 0.075, 0.232]} rotation={[0, 0, PI / 2 + s * 0.12]} scale={[0.013, 0.025, 0.013]} />
-          {/* blush */}
-          <mesh geometry={g.lowSphere} material={m.blush} position={[s * 0.16, -0.075, 0.2]} rotation={[0, s * 0.6, 0]} scale={[0.04, 0.024, 0.015]} />
+      {/* skin */}
+      <mesh geometry={g.sphere} material={m.skin} position={FACE_C} scale={FACE_R} castShadow receiveShadow />
+      {/* eyes: glossy dark, iris ring, two highlights */}
+      {f.eyes.map((e, i) => (
+        <group key={i} position={e.position} quaternion={e.quaternion}>
+          <mesh geometry={g.sphere} material={m.eye} scale={[0.13, 0.165, 0.05]} />
+          <mesh geometry={g.sphere} material={m.iris} position={[0, -0.035, 0.014]} scale={[0.095, 0.1, 0.042]} />
+          <mesh geometry={g.sphere} material={m.eye} position={[0, -0.03, 0.022]} scale={[0.06, 0.065, 0.038]} />
+          <mesh geometry={g.lowSphere} material={m.shine} position={[0.045, 0.06, 0.045]} scale={[0.038, 0.044, 0.01]} />
+          <mesh geometry={g.lowSphere} material={m.shine} position={[-0.05, -0.075, 0.04]} scale={0.016} />
         </group>
       ))}
-
-      {/* nose */}
-      <mesh geometry={g.lowSphere} material={m.skinShade} position={[0, -0.045, 0.255]} scale={[0.024, 0.018, 0.018]} />
-      {/* big smile */}
-      <mesh geometry={g.halfDown} material={m.mouth} position={[0, -0.095, 0.228]} rotation={[0.3, 0, 0]} scale={[0.072, 0.05, 0.03]} />
-
-      {headset && (
-        <group>
-          {/* band over the hair */}
-          <mesh geometry={g.band} material={m.ink} position={[0, -0.02, -0.04]} rotation={[-0.15, 0, 0]} scale={[0.3, 0.33, 0.3]} castShadow />
-          {[1, -1].map((s) => (
-            <mesh key={s} geometry={g.capsule} material={m.red} position={[s * 0.285, -0.02, -0.01]} rotation={[0, 0, PI / 2]} scale={[0.07, 0.01, 0.07]} castShadow />
-          ))}
-          {/* mic boom from the left cup to the mouth */}
-          <Limb kit={kit} from={MIC_FROM} to={MIC_TO} radius={0.016} material={m.ink} />
-          <mesh geometry={g.lowSphere} material={m.red} position={MIC_TO} scale={0.032} />
+      {/* brows */}
+      {f.brows.map((b, i) => (
+        <group key={i} position={b.position} quaternion={b.quaternion}>
+          <mesh geometry={g.capsule} material={m.hair} rotation={[0, 0, PI / 2 + (i === 0 ? -0.12 : 0.12)]} scale={[0.026, 0.06, 0.018]} />
         </group>
-      )}
+      ))}
+      {/* blush */}
+      {f.blush.map((b, i) => (
+        <group key={i} position={b.position} quaternion={b.quaternion}>
+          <mesh geometry={g.lowSphere} material={m.blush} scale={[0.1, 0.06, 0.02]} />
+        </group>
+      ))}
+      {/* nose + smile */}
+      <group position={f.nose.position} quaternion={f.nose.quaternion}>
+        <mesh geometry={g.sphere} material={m.skinShade} scale={[0.045, 0.035, 0.03]} />
+      </group>
+      <group position={f.mouth.position} quaternion={f.mouth.quaternion}>
+        <mesh geometry={g.smile} material={m.mouth} scale={[0.11, 0.085, 0.08]} />
+      </group>
+      {/* hair fringe peeking out under the helmet */}
+      <mesh geometry={g.hairCap} material={m.hair} position={FACE_C} scale={FACE_R + 0.008} />
+      {f.fringe.map((h, i) => (
+        <group key={i} position={h.position} quaternion={h.quaternion}>
+          <mesh
+            geometry={g.strand}
+            material={m.hair}
+            rotation={[0.2, 0, 0.38 + (i % 2) * 0.1]}
+            position={[0, -0.03, -0.012]}
+            scale={[0.155, 0.22, 0.05]}
+            castShadow
+          />
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function Helmet({ kit }: { kit: Kit }) {
+  const { m, g } = kit;
+  const logo = useMemo(() => onSphere([0, 0, 0], 1.0, 0, 0.68), []);
+  return (
+    <group>
+      <mesh geometry={g.shell} material={m.helmet} castShadow receiveShadow />
+      <mesh geometry={g.liner} material={m.liner} />
+      <mesh geometry={g.rim} material={m.rim} castShadow />
+      {/* ear pods */}
+      {[1, -1].map((s) => (
+        <group key={s} position={[s * 0.975, -0.12, -0.04]}>
+          <mesh geometry={g.pod} material={m.red} scale={[0.09, 0.23, 0.23]} castShadow />
+          <mesh geometry={g.cyl} material={m.rim} position={[s * 0.07, 0, 0]} rotation={[0, 0, PI / 2]} scale={[0.12, 0.04, 0.12]} />
+        </group>
+      ))}
+      {/* forehead logo: red chevron + HG */}
+      <group position={logo.position} quaternion={logo.quaternion}>
+        <mesh geometry={g.chevron} material={m.red} position={[-0.17, 0, -0.03]} scale={[0.12, 0.12, 0.2]} />
+        <Text font="/fonts/racero.otf" position={[0.06, 0, 0.012]} fontSize={0.15} material={m.red} anchorX="center" anchorY="middle">
+          HG
+        </Text>
+      </group>
+    </group>
+  );
+}
+
+function Head({ kit }: { kit: Kit }) {
+  return (
+    <group scale={[HEAD_R, HEAD_R * 0.97, HEAD_R * 1.03]}>
+      <Face kit={kit} />
+      <Helmet kit={kit} />
     </group>
   );
 }
@@ -118,29 +298,33 @@ function Torso({ kit }: { kit: Kit }) {
   const { m, g } = kit;
   return (
     <group>
-      {/* white jacket core */}
-      <mesh geometry={g.capsule} material={m.jacket} position={[0, 0.2, 0]} scale={[0.165, 0.11, 0.135]} castShadow />
-      {/* black puffer vest + quilting */}
-      <mesh geometry={g.capsule} material={m.vest} position={[0, 0.2, 0]} scale={[0.18, 0.1, 0.15]} castShadow receiveShadow />
-      {[0.13, 0.2, 0.27].map((y) => (
-        <mesh key={y} geometry={g.puff} material={m.vest} position={[0, y, 0]} rotation={[PI / 2, 0, 0]} scale={[0.172, 0.143, 0.2]} castShadow />
-      ))}
-      {/* beige hoodie collar + hood */}
-      <mesh geometry={g.ring} material={m.hoodie} position={[0, 0.39, 0]} rotation={[PI / 2, 0, 0]} scale={[0.115, 0.105, 0.42]} castShadow />
-      <mesh geometry={g.sphere} material={m.hoodie} position={[0, 0.37, -0.12]} scale={[0.14, 0.08, 0.07]} castShadow />
+      <mesh geometry={g.torso} material={m.torso} castShadow receiveShadow />
+      {/* belt + buckle */}
+      <mesh geometry={g.belt} material={m.blue} castShadow />
+      <RoundedBox args={[0.075, 0.05, 0.03]} radius={0.012} smoothness={3} position={[0, 0.045, 0.142]} material={m.buckle} castShadow />
+      <RoundedBox args={[0.05, 0.026, 0.03]} radius={0.008} smoothness={2} position={[0, 0.045, 0.148]} material={m.blue} />
+      {/* chest patches */}
+      <group position={[0.07, 0.21, 0.13]} rotation={[-0.15, 0.42, 0]}>
+        <RoundedBox args={[0.07, 0.04, 0.012]} radius={0.005} smoothness={2} material={m.red} castShadow />
+      </group>
+      <group position={[-0.07, 0.21, 0.13]} rotation={[-0.15 + PI / 2, 0, 0.42]}>
+        <mesh geometry={g.cyl} material={m.blue} scale={[0.025, 0.012, 0.025]} rotation={[0, 0, 0]} />
+      </group>
     </group>
   );
 }
 
-const SHOULDER_Y = 0.33;
+const SHOULDER_Y = 0.27;
 
 function Arm({ kit, side }: { kit: Kit; side: 1 | -1 }) {
-  // hangs straight down from its pivot
+  // hangs from its pivot
   const { m, g } = kit;
   return (
     <group>
-      <mesh geometry={g.capsule} material={m.jacket} position={[0, -0.11, 0]} scale={[0.055, 0.1, 0.055]} castShadow />
-      <mesh geometry={g.sphere} material={m.skin} position={[side * 0.005, -0.25, 0]} scale={[0.062, 0.066, 0.058]} castShadow />
+      <mesh geometry={g.capsule} material={m.leg} position={[0, -0.1, 0]} rotation={[0, PI / 2, 0]} scale={[0.052, 0.08, 0.052]} castShadow />
+      <mesh geometry={g.cyl} material={m.redSatin} position={[0, -0.2, 0]} scale={[0.056, 0.04, 0.056]} castShadow />
+      <mesh geometry={g.sphere} material={m.black} position={[side * 0.004, -0.255, 0.004]} scale={[0.056, 0.062, 0.056]} castShadow />
+      <mesh geometry={g.sphere} material={m.black} position={[-side * 0.03, -0.235, 0.03]} scale={[0.022, 0.03, 0.022]} castShadow />
     </group>
   );
 }
@@ -152,9 +336,10 @@ function Arm({ kit, side }: { kit: Kit; side: 1 | -1 }) {
 export type AvatarProps = GroupProps & { wave?: boolean; look?: [number, number, number] };
 
 const _v = new THREE.Vector3();
+const HIP_Y = 0.42;
 
 export function Avatar({ wave = false, look, ...props }: AvatarProps) {
-  const kit = useAvatarKit();
+  const kit = useKit();
   const { m, g } = kit;
   const body = useRef<THREE.Group>(null);
   const head = useRef<THREE.Group>(null);
@@ -166,16 +351,16 @@ export function Avatar({ wave = false, look, ...props }: AvatarProps) {
     const t = state.clock.elapsedTime;
     const b = Math.sin(t * 2.2);
     if (body.current) {
-      body.current.position.y = 0.3 + b * 0.008;
-      body.current.scale.set(1 - b * 0.008, 1 + b * 0.012, 1 - b * 0.008);
+      body.current.position.y = HIP_Y + b * 0.006;
+      body.current.scale.set(1 - b * 0.006, 1 + b * 0.01, 1 - b * 0.006);
     }
     waveAmt.current = THREE.MathUtils.damp(waveAmt.current, wave ? 1 : 0, 6, dt);
     const w = waveAmt.current;
     if (rArm.current) {
-      rArm.current.rotation.z = THREE.MathUtils.lerp(-0.12, -2.35 + Math.sin(t * 9) * 0.35, w);
+      rArm.current.rotation.z = THREE.MathUtils.lerp(-0.2, -2.45 + Math.sin(t * 9) * 0.3, w);
       rArm.current.rotation.x = Math.sin(t * 2.2 + 1) * 0.03 * (1 - w);
     }
-    if (lArm.current) lArm.current.rotation.z = 0.12 + Math.sin(t * 2.2) * 0.02;
+    if (lArm.current) lArm.current.rotation.z = 0.2 + Math.sin(t * 2.2) * 0.02;
     if (head.current) {
       let yaw = Math.sin(t * 0.7) * 0.05;
       let pitch = 0;
@@ -188,30 +373,30 @@ export function Avatar({ wave = false, look, ...props }: AvatarProps) {
       }
       head.current.rotation.y = THREE.MathUtils.damp(head.current.rotation.y, yaw, 5, dt);
       head.current.rotation.x = THREE.MathUtils.damp(head.current.rotation.x, pitch, 5, dt);
-      head.current.rotation.z = w * Math.sin(t * 4.5) * 0.06;
+      head.current.rotation.z = w * Math.sin(t * 4.5) * 0.05;
     }
   });
 
   return (
     <group {...props}>
-      {/* legs + sneakers */}
+      {/* legs + boots */}
       {[1, -1].map((s) => (
         <group key={s}>
-          <mesh geometry={g.capsule} material={m.jeans} position={[s * 0.085, 0.19, 0]} scale={[0.068, 0.08, 0.068]} castShadow />
-          <RoundedBox args={[0.13, 0.09, 0.21]} radius={0.04} smoothness={3} position={[s * 0.088, 0.045, 0.025]} material={m.white} castShadow receiveShadow />
-          <RoundedBox args={[0.135, 0.03, 0.215]} radius={0.012} smoothness={2} position={[s * 0.088, 0.012, 0.025]} material={m.ink} />
+          <mesh geometry={g.capsule} material={m.leg} position={[s * 0.085, 0.27, 0]} rotation={[0, s > 0 ? 0 : PI, 0]} scale={[0.074, 0.1, 0.074]} castShadow receiveShadow />
+          <mesh geometry={g.cyl} material={m.redSatin} position={[s * 0.085, 0.135, 0]} scale={[0.077, 0.03, 0.077]} castShadow />
+          <RoundedBox args={[0.135, 0.11, 0.22]} radius={0.05} smoothness={4} position={[s * 0.088, 0.068, 0.025]} material={m.black} castShadow receiveShadow />
+          <RoundedBox args={[0.136, 0.026, 0.216]} radius={0.012} smoothness={3} position={[s * 0.088, 0.013, 0.025]} material={m.red} castShadow />
         </group>
       ))}
-      <group ref={body} position={[0, 0.3, 0]}>
-        <RoundedBox args={[0.3, 0.1, 0.22]} radius={0.05} smoothness={3} position={[0, 0.02, 0]} material={m.jeans} castShadow />
+      <group ref={body} position={[0, HIP_Y, 0]}>
         <Torso kit={kit} />
-        <group ref={rArm} position={[-0.185, SHOULDER_Y, 0]}>
+        <group ref={rArm} position={[-0.17, SHOULDER_Y, 0]}>
           <Arm kit={kit} side={-1} />
         </group>
-        <group ref={lArm} position={[0.185, SHOULDER_Y, 0]}>
+        <group ref={lArm} position={[0.17, SHOULDER_Y, 0]}>
           <Arm kit={kit} side={1} />
         </group>
-        <group ref={head} position={[0, 0.66, 0]}>
+        <group ref={head} position={[0, 0.6, 0]}>
           <Head kit={kit} />
         </group>
       </group>
@@ -225,23 +410,11 @@ export function Avatar({ wave = false, look, ...props }: AvatarProps) {
 
 export type DriverProps = GroupProps & { steer?: number; wave?: boolean };
 
-const WHEEL_POS = new THREE.Vector3(0, 0.2, 0.3);
-const WHEEL_R = 0.085;
+const WHEEL_POS = new THREE.Vector3(0, 0.2, 0.32);
+const WHEEL_R = 0.1;
 
-/** Capsule spanning two points (for arms that reach the wheel). */
-function Limb({
-  kit,
-  from,
-  to,
-  radius,
-  material,
-}: {
-  kit: Kit;
-  from: THREE.Vector3;
-  to: THREE.Vector3;
-  radius: number;
-  material?: THREE.Material;
-}) {
+/** Capsule spanning two points. */
+function Limb({ kit, from, to, radius, material }: { kit: Kit; from: THREE.Vector3; to: THREE.Vector3; radius: number; material?: THREE.Material }) {
   const { pos, quat, len } = useMemo(() => {
     const dir = to.clone().sub(from);
     const len = dir.length();
@@ -251,7 +424,7 @@ function Limb({
   return (
     <mesh
       geometry={kit.g.capsule}
-      material={material ?? kit.m.jacket}
+      material={material ?? kit.m.suit}
       position={pos}
       quaternion={quat}
       scale={[radius, Math.max(0.001, len / 2 - radius), radius]}
@@ -261,7 +434,7 @@ function Limb({
 }
 
 export function Driver({ steer = 0, wave = false, ...props }: DriverProps) {
-  const kit = useAvatarKit();
+  const kit = useKit();
   const { m, g } = kit;
   const wheel = useRef<THREE.Group>(null);
   const rig = useRef<THREE.Group>(null);
@@ -272,10 +445,10 @@ export function Driver({ steer = 0, wave = false, ...props }: DriverProps) {
   const steerS = useRef(0);
 
   const pts = useMemo(() => {
-    const shoulderL = new THREE.Vector3(0.17, SHOULDER_Y, 0.02);
-    const shoulderR = new THREE.Vector3(-0.17, SHOULDER_Y, 0.02);
-    const handL = new THREE.Vector3(WHEEL_R + 0.03, 0, 0).add(WHEEL_POS);
-    const handR = new THREE.Vector3(-WHEEL_R - 0.03, 0, 0).add(WHEEL_POS);
+    const shoulderL = new THREE.Vector3(0.16, SHOULDER_Y, 0.02);
+    const shoulderR = new THREE.Vector3(-0.16, SHOULDER_Y, 0.02);
+    const handL = new THREE.Vector3(WHEEL_R, 0, 0).add(WHEEL_POS);
+    const handR = new THREE.Vector3(-WHEEL_R, 0, 0).add(WHEEL_POS);
     return { shoulderL, shoulderR, handL, handR };
   }, []);
 
@@ -285,55 +458,48 @@ export function Driver({ steer = 0, wave = false, ...props }: DriverProps) {
     const s = steerS.current;
     waveAmt.current = THREE.MathUtils.damp(waveAmt.current, wave ? 1 : 0, 6, dt);
     const w = waveAmt.current;
-    // steering wheel turns about its column; whole arm rig rolls with it a bit
     if (rig.current) rig.current.rotation.z = -s * 0.45;
     if (wheel.current) wheel.current.rotation.z = -s * 0.5;
-    if (torso.current) torso.current.rotation.z = -s * 0.06;
+    if (torso.current) torso.current.rotation.z = -s * 0.05;
     if (head.current) {
-      head.current.rotation.z = -s * 0.12;
-      head.current.rotation.y = s * 0.3 + Math.sin(t * 0.9) * 0.03 - w * 0.3;
-      head.current.position.y = 0.62 + Math.sin(t * 2.6) * 0.004;
+      head.current.rotation.z = -s * 0.1;
+      head.current.rotation.y = s * 0.28 + Math.sin(t * 0.9) * 0.025 - w * 0.3;
+      head.current.position.y = 0.6 + Math.sin(t * 2.6) * 0.004;
     }
     if (waveArm.current) {
       waveArm.current.visible = w > 0.02;
-      waveArm.current.scale.set(Math.max(0.001, w), Math.max(0.001, w * 1.3), Math.max(0.001, w));
-      waveArm.current.rotation.z = -2.25 + Math.sin(t * 9) * 0.4;
+      waveArm.current.scale.setScalar(Math.max(0.001, w));
+      waveArm.current.rotation.z = -2.3 + Math.sin(t * 9) * 0.35;
     }
   });
 
   return (
-    // build facing +Z, then turn so +Z -> +X
     <group {...props}>
-      <group rotation={[0, PI / 2, 0]}>
-        {/* thighs tucked into the tub */}
+      {/* build facing +Z at figure scale, then turn so +Z -> +X */}
+      <group rotation={[0, PI / 2, 0]} scale={DRIVER_SCALE}>
         {[1, -1].map((s) => (
-          <mesh key={s} geometry={g.capsule} material={m.jeans} position={[s * 0.08, 0.0, 0.18]} rotation={[PI / 2, 0, 0]} scale={[0.065, 0.12, 0.065]} />
+          <mesh key={s} geometry={g.capsule} material={m.leg} position={[s * 0.085, 0.02, 0.24]} rotation={[PI / 2, 0, 0]} scale={[0.07, 0.16, 0.07]} />
         ))}
         <group ref={torso}>
-          <group position={[0, -0.06, 0]}>
-            <Torso kit={kit} />
-          </group>
-          <group ref={head} position={[0, 0.62, 0]}>
-            <Head kit={kit} headset />
+          <Torso kit={kit} />
+          <group ref={head} position={[0, 0.6, 0]}>
+            <Head kit={kit} />
           </group>
         </group>
-
-        {/* arms + steering wheel rig: rolls with the wheel so the hands stay on it */}
         <group ref={rig} position={WHEEL_POS}>
           <group position={[-WHEEL_POS.x, -WHEEL_POS.y, -WHEEL_POS.z]}>
             <Limb kit={kit} from={pts.shoulderL} to={pts.handL} radius={0.05} />
-            <mesh geometry={g.sphere} material={m.skin} position={pts.handL} scale={0.058} castShadow />
+            <mesh geometry={g.sphere} material={m.black} position={pts.handL} scale={0.055} castShadow />
             {!wave && <Limb kit={kit} from={pts.shoulderR} to={pts.handR} radius={0.05} />}
-            {!wave && <mesh geometry={g.sphere} material={m.skin} position={pts.handR} scale={0.058} castShadow />}
+            {!wave && <mesh geometry={g.sphere} material={m.black} position={pts.handR} scale={0.055} castShadow />}
           </group>
           <group ref={wheel} rotation={[-0.35, 0, 0]}>
-            <RoundedBox args={[0.26, 0.11, 0.045]} radius={0.022} smoothness={2} material={m.ink} castShadow />
-            <RoundedBox args={[0.08, 0.05, 0.05]} radius={0.015} smoothness={2} position={[0, 0.012, 0.012]} material={m.red} />
+            <RoundedBox args={[0.28, 0.12, 0.05]} radius={0.024} smoothness={2} material={m.black} castShadow />
+            <RoundedBox args={[0.1, 0.06, 0.055]} radius={0.015} smoothness={2} position={[0, 0.01, 0.01]} material={m.red} />
           </group>
         </group>
-
         {/* waving arm (car's right side, toward the game camera) */}
-        <group ref={waveArm} position={[-0.19, SHOULDER_Y, 0.02]} visible={false}>
+        <group ref={waveArm} position={[-0.17, SHOULDER_Y, 0.02]} visible={false}>
           <Arm kit={kit} side={-1} />
         </group>
       </group>
