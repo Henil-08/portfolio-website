@@ -16,7 +16,7 @@ export const playbook = [
   {
     compound: "medium",
     title: "Pick the model per lap",
-    body: "The biggest model for architecture and nasty bugs, a fast cheap one for renames, tests and boilerplate. Most of our spend was the expensive model doing easy work.",
+    body: "The biggest model for architecture and nasty bugs, a fast cheap one for renames, tests and boilerplate. A lot of AI spend is the expensive model doing easy work.",
   },
   {
     compound: "medium",

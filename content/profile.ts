@@ -31,7 +31,7 @@ export const story = [
   {
     lap: 1,
     place: "Ahmedabad",
-    years: "2019 to 2021",
+    years: "2021",
     title: "A solar car and a pile of traffic cones",
     body: [
       "I've been writing code since I was 18, but ML found me by accident. I was studying Electronics and Communication at Nirma University and captaining Team Stallions, 40 students building Mercury, a solar electric car, for Asia's biggest solar vehicle competition.",
@@ -51,7 +51,7 @@ export const story = [
   {
     lap: 3,
     place: "Boston",
-    years: "2024 to 2025",
+    years: "2023 to 2025",
     title: "Moved countries, then GenAI happened",
     body: [
       "I moved to Boston for an MS in Data Science at Northeastern and finished with a 4.0. Right around the time I landed, the GenAI wave hit, and I went all in on agents, RAG, fine-tuning and the boring production parts that make them hold up.",

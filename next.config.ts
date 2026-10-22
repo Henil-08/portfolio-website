@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
+  // A stray lockfile in a parent folder confuses root detection.
+  turbopack: { root: process.cwd() },
   async headers() {
     return [
       {
