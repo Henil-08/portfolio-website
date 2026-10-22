@@ -40,3 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 !.env.example
+
+# Licensed assets, kept out of the public repo. See deploy/DEPLOY.md.
+/public/fonts/racero.otf
+/public/sfx/radio.mp3

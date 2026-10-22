@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Racero is a licensed display font. It is not in the public repo: it is
+   served from public/fonts at runtime (mounted on the server). Without it,
+   headings fall back to Bricolage. */
+@font-face {
+  font-family: "Racero";
+  src: url("/fonts/racero.otf") format("opentype");
+  font-display: swap;
+}
+
 @theme {
   --color-ink: #1f2133;
   --color-ink-soft: #4a4d63;
@@ -16,6 +25,7 @@
   --color-night: #0b0b10;
 
   --font-display: var(--font-bricolage), system-ui, sans-serif;
+  --font-racing: "Racero", var(--font-bricolage), system-ui, sans-serif;
   --font-sans: var(--font-geist), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
