@@ -1,6 +1,6 @@
 import { profile, stats, story, offTrack } from "@/content/profile";
 import { experience, education } from "@/content/experience";
-import { projects } from "@/content/projects";
+import { DOMAINS, projects } from "@/content/projects";
 import { publications, patents, toolbox } from "@/content/research";
 import { playbook } from "@/content/playbook";
 
@@ -34,7 +34,7 @@ export function experienceText() {
 
 export function projectText(p: (typeof projects)[number]) {
   return [
-    `${p.name}: ${p.tagline}${p.sideQuest ? " [side quest: AI for hardware]" : ""}`,
+    `${p.name}: ${p.tagline} [${DOMAINS.find((d) => d.id === p.domain)?.label}]`,
     `Headline: ${p.headline.value} ${p.headline.label}`,
     `Stack: ${p.stack.join(", ")}`,
     ...p.points.map((x) => `- ${x}`),

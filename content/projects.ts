@@ -1,18 +1,29 @@
+export const DOMAINS = [
+  { id: "agents", label: "Agents and LLM systems" },
+  { id: "genai", label: "Fine-tuning and generative AI" },
+  { id: "hardware", label: "AI for hardware" },
+  { id: "vision", label: "Computer vision and robotics" },
+  { id: "ml", label: "ML and data" },
+] as const;
+
+export type Domain = (typeof DOMAINS)[number]["id"];
+
 export type Project = {
   slug: string;
+  domain: Domain;
   name: string;
   tagline: string;
   headline: { value: string; label: string };
   stack: string[];
   points: string[];
   links: { label: string; href: string }[];
-  sideQuest?: boolean;
   featured?: boolean;
 };
 
 export const projects: Project[] = [
   {
     slug: "rtl-coverage-agents",
+    domain: "hardware",
     name: "AI in Verification",
     tagline: "Seven agents that write and run chip tests",
     headline: { value: "10/10", label: "planted bugs caught" },
@@ -27,11 +38,11 @@ export const projects: Project[] = [
     links: [
       { label: "GitHub", href: "https://github.com/Henil-08/rtl-coverage-agents" },
     ],
-    sideQuest: true,
     featured: true,
   },
   {
     slug: "verilog-coder",
+    domain: "hardware",
     name: "Verilog Coder",
     tagline: "Small models that write better Verilog than big ones",
     headline: { value: "17.3 → 44.9%", label: "pass@1" },
@@ -46,11 +57,11 @@ export const projects: Project[] = [
       { label: "GitHub", href: "https://github.com/Henil-08/verilog-coder-ft" },
       { label: "Hugging Face", href: "https://huggingface.co/henil08/verilog-coder-7b" },
     ],
-    sideQuest: true,
     featured: true,
   },
   {
     slug: "appsage",
+    domain: "agents",
     name: "AppSageAI 2.0",
     tagline: "A resume analyzer that keeps your data yours",
     headline: { value: "<1s", label: "p99 TTFT at 600+ DAU" },
@@ -68,6 +79,7 @@ export const projects: Project[] = [
   },
   {
     slug: "freemoji",
+    domain: "genai",
     name: "Freemoji",
     tagline: "Apple's Genmoji, but for WhatsApp",
     headline: { value: "+40%", label: "inference speed" },
@@ -88,6 +100,7 @@ export const projects: Project[] = [
   },
   {
     slug: "verta",
+    domain: "agents",
     name: "Verta",
     tagline: "A personal shopping copilot",
     headline: { value: "250ms", label: "p95 TTFT under 6x load" },
@@ -102,6 +115,7 @@ export const projects: Project[] = [
   },
   {
     slug: "self-driving",
+    domain: "vision",
     name: "Self-Driving Solar Vehicle",
     tagline: "Where it all started",
     headline: { value: "24 FPS", label: "real-time steering" },
@@ -115,6 +129,7 @@ export const projects: Project[] = [
   },
   {
     slug: "ipl-fantasy",
+    domain: "genai",
     name: "IPL Fantasy Picker",
     tagline: "I fine-tuned an LLM to pick my fantasy team",
     headline: { value: "85%", label: "team prediction accuracy" },
@@ -129,6 +144,7 @@ export const projects: Project[] = [
   },
   {
     slug: "kidney",
+    domain: "vision",
     name: "Kidney Tumor Classification",
     tagline: "End-to-end medical imaging pipeline",
     headline: { value: "0.96", label: "F1 score" },
@@ -146,6 +162,7 @@ export const projects: Project[] = [
   },
   {
     slug: "frisbee",
+    domain: "ml",
     name: "Ultimate Frisbee Ratings",
     tagline: "Plus-minus for a sport that never had one",
     headline: { value: "+20%", label: "predictive accuracy" },
@@ -158,6 +175,7 @@ export const projects: Project[] = [
   },
   {
     slug: "runway",
+    domain: "ml",
     name: "Rent the Runway Recommender",
     tagline: "Hybrid fashion recommendations",
     headline: { value: "-40%", label: "update time" },
@@ -172,6 +190,7 @@ export const projects: Project[] = [
   },
   {
     slug: "sql-chat",
+    domain: "agents",
     name: "Chat with SQL",
     tagline: "Ask your database in plain English",
     headline: { value: "2", label: "databases, one agent" },
@@ -181,5 +200,83 @@ export const projects: Project[] = [
       "Custom SQL toolkit for zero-shot answers on complex queries",
     ],
     links: [{ label: "GitHub", href: "https://github.com/Henil-08/chat-with-sql" }],
+  },
+  {
+    slug: "elder-knowledge",
+    domain: "agents",
+    name: "Elder Knowledge AI",
+    tagline: "Turning oral histories into a searchable archive",
+    headline: { value: "Audio → RAG", label: "speech to semantic search" },
+    stack: ["Speech recognition", "Embeddings", "Semantic search", "Python"],
+    points: [
+      "Transcribes recorded oral histories with automatic speech recognition",
+      "Cleans, normalises and semantically tags the transcripts",
+      "Embeds them into a searchable, meaning-aware digital archive",
+    ],
+    links: [{ label: "GitHub", href: "https://github.com/Henil-08/Elder-Knowledge-AI" }],
+  },
+  {
+    slug: "gpt-from-scratch",
+    domain: "genai",
+    name: "GPT from Scratch",
+    tagline: "A transformer written by hand, no shortcuts",
+    headline: { value: "EN → IT", label: "translation, trained from zero" },
+    stack: ["PyTorch", "Transformers", "Beam search", "Docker", "EC2"],
+    points: [
+      "Encoder-decoder transformer implemented from scratch in PyTorch, trained on OPUS Books",
+      "Own WordLevel tokenizer, greedy and beam search decoding",
+      "Evaluated with BLEU, WER and CER; served with Streamlit on a GPU EC2 box",
+    ],
+    links: [{ label: "GitHub", href: "https://github.com/Henil-08/GPT-from-scratch" }],
+  },
+  {
+    slug: "api-anomaly",
+    domain: "ml",
+    name: "API Traffic Anomaly Detection",
+    tagline: "Catching latency spikes and error storms",
+    headline: { value: "LSTM-AE", label: "reconstruction-error detector" },
+    stack: ["PyTorch", "LSTM Autoencoder", "MLflow", "Streamlit"],
+    points: [
+      "End-to-end MLOps pipeline that turns API gateway logs into time series",
+      "LSTM autoencoder flags windows with high reconstruction error",
+      "Runs and ROC-AUC tracked in MLflow, insights in a Streamlit dashboard",
+    ],
+    links: [{ label: "GitHub", href: "https://github.com/Henil-08/API-traffic-anomaly-detection" }],
+  },
+  {
+    slug: "resume-parser",
+    domain: "agents",
+    name: "Resume Parser",
+    tagline: "CVs in, structured matches out",
+    headline: { value: "PDF → JD", label: "resume to job matching" },
+    stack: ["Python", "NLP", "Hugging Face"],
+    points: [
+      "Extracts the relevant details from PDF resumes",
+      "Matches them against job descriptions from a Hugging Face dataset",
+    ],
+    links: [{ label: "GitHub", href: "https://github.com/Henil-08/Parse-Resume" }],
+  },
+  {
+    slug: "pi-car",
+    domain: "vision",
+    name: "Pi-Car",
+    tagline: "A tiny self-driving RC car on a budget",
+    headline: { value: "RPi + Arduino", label: "lane following over I2C" },
+    stack: ["Raspberry Pi", "Arduino", "OpenCV", "Hough transform"],
+    points: [
+      "Detects green lane lines with OpenCV and Hough line transforms",
+      "Raspberry Pi as the brain, Arduino Uno driving the motors over I2C",
+    ],
+    links: [{ label: "GitHub", href: "https://github.com/Henil-08/Pi-Car" }],
+  },
+  {
+    slug: "gesture-control",
+    domain: "vision",
+    name: "Gesture Volume Control",
+    tagline: "Pinch the air to change the volume",
+    headline: { value: "2 fingers", label: "hand-tracked control" },
+    stack: ["OpenCV", "Hand tracking", "Python"],
+    points: ["Tracks your hand from a webcam and maps the pinch distance to system volume"],
+    links: [{ label: "GitHub", href: "https://github.com/Henil-08/Gesture-Volume-Control" }],
   },
 ];

@@ -191,7 +191,7 @@ function Work() {
 }
 
 function ProjectList({ side }: { side: boolean }) {
-  const list = projects.filter((p) => !!p.sideQuest === side);
+  const list = projects.filter((p) => (p.domain === "hardware") === side);
   return (
     <div className="space-y-3">
       {list.map((p) => (
