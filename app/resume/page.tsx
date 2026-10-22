@@ -66,14 +66,16 @@ export default function Resume() {
               ))}
             </div>
           </div>
-          <Image
-            src="/img/henil-smile.jpg"
-            alt="Henil Gajjar"
-            width={240}
-            height={240}
-            className="h-24 w-24 shrink-0 rounded-3xl object-cover object-top ring-4 ring-cream sm:h-28 sm:w-28 print:hidden"
-            priority
-          />
+          <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-3xl bg-gradient-to-b from-[#f6b2ac] to-[#ee7d76] sm:h-32 sm:w-32 print:hidden">
+            <Image
+              src="/img/henil-3d.png"
+              alt="Henil as a little racing driver"
+              width={320}
+              height={320}
+              className="absolute inset-x-0 -bottom-2 h-[118%] w-full object-cover object-top"
+              priority
+            />
+          </div>
         </header>
 
         <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-5">
