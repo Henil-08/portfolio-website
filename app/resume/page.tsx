@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { profile, stats } from "@/content/profile";
 import { experience, education } from "@/content/experience";
 import { projects } from "@/content/projects";
@@ -7,118 +8,219 @@ import { patents, publications, toolbox } from "@/content/research";
 
 export const metadata: Metadata = {
   title: "Resume · Henil Gajjar",
-  description: "The one-page version. No animations.",
+  description: "The one-page version. No car required.",
 };
 
 export default function Resume() {
   return (
-    <main className="min-h-screen bg-[#f6f6f4] text-[#111] print:bg-white">
-      <div className="mx-auto max-w-3xl px-5 py-10 sm:py-16">
-        <div className="mb-10 flex items-center justify-between text-sm print:hidden">
-          <Link href="/" className="text-[#555] hover:text-black">
-            ← Back to the fun version
-          </Link>
-          <a href={profile.resume} target="_blank" rel="noreferrer" className="font-semibold text-[#c10500] hover:underline">
-            PDF resume ↗
+    <main className="min-h-screen bg-cream px-3 py-6 text-ink sm:px-6 sm:py-12 print:bg-white print:p-0">
+      <nav className="mx-auto mb-5 flex max-w-[860px] items-center justify-between text-sm print:hidden">
+        <Link href="/" className="rounded-full px-3 py-1.5 text-ink-soft transition hover:bg-white hover:text-ink">
+          ← Back to the island
+        </Link>
+        <div className="flex items-center gap-2">
+          <a
+            href={profile.resume}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-full border border-line bg-white px-4 py-1.5 font-medium transition hover:border-ink/30"
+          >
+            PDF
+          </a>
+          <a
+            href={`mailto:${profile.email}`}
+            className="rounded-full bg-ink px-4 py-1.5 font-medium text-white transition hover:bg-red"
+          >
+            Email me
           </a>
         </div>
+      </nav>
 
-        <header>
-          <h1 className="font-display text-4xl font-black tracking-tight">{profile.name}</h1>
-          <p className="mt-1 text-lg">
-            {profile.role}, {profile.company} · {profile.location}
-          </p>
-          <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#444]">
-            <a href={`mailto:${profile.email}`} className="underline">
-              {profile.email}
-            </a>
-            <a href={profile.links.linkedin} className="underline">LinkedIn</a>
-            <a href={profile.links.github} className="underline">GitHub</a>
-            <a href={profile.links.scholar} className="underline">Scholar</a>
-          </p>
-          <p className="mt-5 leading-relaxed text-[#333]">{profile.oneLiner}</p>
-          <p className="mt-3 text-sm text-[#555]">{stats.map((s) => `${s.value} ${s.label}`).join(" · ")}</p>
+      <article className="mx-auto max-w-[860px] rounded-[28px] border border-line bg-paper px-6 py-9 shadow-[0_30px_80px_-40px_rgba(31,33,51,0.25)] sm:px-12 sm:py-12 print:rounded-none print:border-0 print:shadow-none">
+        <header className="flex flex-col-reverse gap-6 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="font-display text-[40px] font-semibold leading-none tracking-tight sm:text-5xl">
+              {profile.name}
+            </h1>
+            <p className="mt-3 text-lg text-ink-soft">
+              {profile.role} at <span className="font-medium text-ink">{profile.company}</span> · {profile.location}
+            </p>
+            <p className="mt-4 max-w-xl leading-relaxed text-ink-soft">{profile.oneLiner}</p>
+            <div className="mt-5 flex flex-wrap gap-2 text-[13px]">
+              {(
+                [
+                  [profile.email, `mailto:${profile.email}`],
+                  ["LinkedIn", profile.links.linkedin],
+                  ["GitHub", profile.links.github],
+                  ["Scholar", profile.links.scholar],
+                  ["Hugging Face", profile.links.huggingface],
+                ] as const
+              ).map(([label, href]) => (
+                <a
+                  key={label}
+                  href={href}
+                  className="rounded-full bg-cream px-3 py-1 text-ink transition hover:bg-line print:bg-transparent print:px-0 print:pr-3"
+                >
+                  {label}
+                </a>
+              ))}
+            </div>
+          </div>
+          <Image
+            src="/img/henil-smile.jpg"
+            alt="Henil Gajjar"
+            width={240}
+            height={240}
+            className="h-24 w-24 shrink-0 rounded-3xl object-cover object-top ring-4 ring-cream sm:h-28 sm:w-28 print:hidden"
+            priority
+          />
         </header>
 
-        <Block title="Experience">
-          {experience.map((r) => (
-            <div key={r.company + r.title} className="mb-6 break-inside-avoid">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-                <h3 className="font-semibold">
-                  {r.title}, {r.company}
-                </h3>
-                <span className="text-sm tabular-nums text-[#555]">{r.dates}</span>
-              </div>
-              <ul className="mt-1.5 list-disc space-y-1 pl-5 text-[15px] leading-relaxed text-[#333]">
-                {r.points.map((p) => (
-                  <li key={p}>{p}</li>
-                ))}
-              </ul>
+        <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-5">
+          {stats.map((s) => (
+            <div key={s.label} className="bg-paper px-4 py-3 last:col-span-2 sm:last:col-span-1">
+              <p className="font-display text-2xl font-semibold leading-none">{s.value}</p>
+              <p className="mt-1.5 text-[12px] leading-tight text-ink-soft">{s.label}</p>
             </div>
           ))}
+        </div>
+
+        <Block title="Experience">
+          <ol className="relative space-y-7 border-l border-line pl-6 sm:border-0 sm:pl-0">
+            {experience.map((r, i) => (
+              <li key={r.company + r.title} className="relative break-inside-avoid sm:grid sm:grid-cols-[140px_1fr] sm:gap-6">
+                <span
+                  className={`absolute -left-[29px] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-paper sm:hidden ${
+                    i === 0 ? "bg-red" : "bg-ink/25"
+                  }`}
+                />
+                <p className="font-mono text-[12px] leading-6 text-ink-soft tabular-nums">{r.dates}</p>
+                <div>
+                  <h3 className="font-semibold leading-6">
+                    {r.title} <span className="font-normal text-ink-soft">· {r.company}</span>
+                  </h3>
+                  <ul className="mt-2 space-y-1.5 text-[14.5px] leading-relaxed text-ink-soft">
+                    {r.points.map((p) => (
+                      <li key={p} className="relative pl-4 before:absolute before:left-0 before:top-[0.7em] before:h-1 before:w-1 before:rounded-full before:bg-red/70">
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 font-mono text-[11px] text-ink-soft/70">{r.tags.join(" · ")}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
         </Block>
 
         <Block title="Education">
-          {education.map((e) => (
-            <p key={e.school} className="mb-1">
-              <span className="font-semibold">{e.degree}</span>, {e.school}{" "}
-              <span className="text-sm text-[#555]">· {e.detail}</span>
-            </p>
-          ))}
+          <div className="grid gap-3 sm:grid-cols-2">
+            {education.map((e) => (
+              <div key={e.school} className="rounded-2xl bg-cream px-4 py-3 print:bg-transparent print:px-0">
+                <p className="font-semibold">{e.degree}</p>
+                <p className="text-[14px] text-ink-soft">
+                  {e.school} · {e.detail}
+                </p>
+              </div>
+            ))}
+          </div>
         </Block>
 
-        <Block title="Selected projects">
-          {projects.map((p) => (
-            <div key={p.slug} className="mb-3 break-inside-avoid">
-              <p>
-                <span className="font-semibold">{p.name}</span>
-                <span className="text-[#555]">
-                  {" "}
-                  · {p.tagline} · {p.headline.value} {p.headline.label}
-                </span>
-                {p.links[0] && (
-                  <a href={p.links[0].href} className="ml-2 text-sm text-[#c10500] underline print:hidden">
-                    {p.links[0].label}
-                  </a>
-                )}
-              </p>
-              <p className="text-sm text-[#555]">{p.stack.join(", ")}</p>
-            </div>
-          ))}
+        <Block title="Projects">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {projects.map((p) => (
+              <div
+                key={p.slug}
+                className="group break-inside-avoid rounded-2xl border border-line px-4 py-3.5 transition hover:border-ink/20 hover:bg-cream/50"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold leading-snug">
+                      {p.name}
+                      {p.sideQuest && (
+                        <span className="ml-2 rounded-full bg-teal/15 px-2 py-0.5 align-middle font-mono text-[10px] font-medium text-[#14857a]">
+                          side quest
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-[13.5px] text-ink-soft">{p.tagline}</p>
+                  </div>
+                  <p className="shrink-0 text-right">
+                    <span className="block font-display text-[17px] font-semibold leading-none text-red">{p.headline.value}</span>
+                    <span className="mt-1 block max-w-[110px] text-[10.5px] leading-tight text-ink-soft">{p.headline.label}</span>
+                  </p>
+                </div>
+                <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="font-mono text-[11px] text-ink-soft/80">{p.stack.slice(0, 4).join(" · ")}</span>
+                  {p.links.map((l) => (
+                    <a key={l.href} href={l.href} className="text-[12px] font-medium text-red hover:underline print:hidden">
+                      {l.label} ↗
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </Block>
 
         <Block title="Publications and patents">
-          <ul className="list-disc space-y-1 pl-5 text-[15px] text-[#333]">
+          <ul className="divide-y divide-line">
             {publications.map((p) => (
-              <li key={p.title}>
-                {p.title} <span className="text-[#555]">({p.venue}, {p.date})</span>
+              <li key={p.title} className="flex flex-col gap-1 py-2.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
+                <span className="text-[14.5px] leading-snug">{p.title}</span>
+                <span className="flex shrink-0 items-center gap-2 font-mono text-[11px] text-ink-soft">
+                  <span className="rounded-full bg-purple/10 px-2 py-0.5 text-[#6a45c9]">{p.venue}</span>
+                  {p.date}
+                </span>
               </li>
             ))}
             {patents.map((p) => (
-              <li key={p.id}>
-                Patent: {p.title} <span className="text-[#555]">({p.id}, {p.status})</span>
+              <li key={p.id} className="flex flex-col gap-1 py-2.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
+                <span className="text-[14.5px] leading-snug">{p.title}</span>
+                <span className="flex shrink-0 items-center gap-2 font-mono text-[11px] text-ink-soft">
+                  <span className="rounded-full bg-yellow/25 px-2 py-0.5 text-[#8a6a00]">Patent</span>
+                  {p.id} · {p.status}
+                </span>
               </li>
             ))}
           </ul>
         </Block>
 
         <Block title="Skills">
-          {toolbox.map((t) => (
-            <p key={t.group} className="mb-1 text-[15px]">
-              <span className="font-semibold">{t.group}:</span> <span className="text-[#333]">{t.items.join(", ")}</span>
-            </p>
-          ))}
+          <div className="space-y-2.5">
+            {toolbox.map((t) => (
+              <div key={t.group} className="flex flex-col gap-1.5 sm:flex-row sm:gap-6">
+                <span className="w-[140px] shrink-0 pt-0.5 text-[13px] font-medium text-ink">{t.group}</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {t.items.map((x) => (
+                    <span key={x} className="rounded-md bg-cream px-2 py-0.5 text-[13px] text-ink-soft print:bg-transparent print:px-0 print:pr-2">
+                      {x}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </Block>
-      </div>
+
+        <footer className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5 text-[13px] text-ink-soft print:hidden">
+          <span>{profile.coords}</span>
+          <Link href="/" className="font-medium text-red hover:underline">
+            Want the fun version? Take the car for a spin →
+          </Link>
+        </footer>
+      </article>
     </main>
   );
 }
 
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mt-10">
-      <h2 className="mb-4 border-b-2 border-[#c10500] pb-1 font-display text-sm font-bold uppercase tracking-[0.2em]">
+    <section className="mt-11">
+      <h2 className="mb-5 flex items-center gap-3 font-display text-[13px] font-semibold uppercase tracking-[0.18em] text-ink">
+        <span className="h-3.5 w-1 rounded-full bg-red" />
         {title}
+        <span className="h-px flex-1 bg-line" />
       </h2>
       {children}
     </section>
