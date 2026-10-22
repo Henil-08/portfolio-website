@@ -1,35 +1,35 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ink: #07080a;
-  --color-carbon: #0f1115;
-  --color-panel: #14171c;
-  --color-line: #23272f;
-  --color-mute: #8a909c;
-  --color-chalk: #eceef2;
-  --color-red: #e10600;
-  --color-purple: #b14cff; /* fastest lap */
-  --color-green: #19d27a; /* personal best */
-  --color-amber: #ffc531;
-  --color-cyan: #36d6ff;
+  --color-ink: #1f2133;
+  --color-ink-soft: #4a4d63;
+  --color-cream: #fff8ec;
+  --color-paper: #fffdf8;
+  --color-line: #ece3d3;
+  --color-red: #ff4b3e;
+  --color-red-dark: #e23a2e;
+  --color-yellow: #ffd23f;
+  --color-teal: #2ec4b6;
+  --color-blue: #3d8bff;
+  --color-purple: #9b6bff;
+  --color-green: #45c46b;
+  --color-night: #0b0b10;
 
-  --font-display: var(--font-titillium), system-ui, sans-serif;
-  --font-sans: var(--font-inter), system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+  --font-display: var(--font-bricolage), system-ui, sans-serif;
+  --font-sans: var(--font-geist), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-:root {
-  color-scheme: dark;
-}
-
-html {
-  background: var(--color-ink);
-  color: var(--color-chalk);
-}
-
+html,
 body {
+  background: var(--color-night);
+  color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
 
 ::selection {
@@ -37,34 +37,37 @@ body {
   color: white;
 }
 
-/* Kerb stripe used as a section divider */
-.kerb {
-  height: 6px;
-  background: repeating-linear-gradient(
-    90deg,
-    var(--color-red) 0 24px,
-    #f4f4f4 24px 48px
-  );
+/* Soft toy-like card used for every panel in the world */
+.toy-card {
+  background: rgba(255, 253, 248, 0.92);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 24px 60px -20px rgba(31, 33, 51, 0.35),
+    0 8px 20px -10px rgba(31, 33, 51, 0.25);
 }
 
-/* Subtle carbon-fibre weave */
-.carbon {
-  background-color: var(--color-carbon);
-  background-image:
-    linear-gradient(45deg, rgba(255, 255, 255, 0.025) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(255, 255, 255, 0.025) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.025) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.025) 75%);
-  background-size: 6px 6px;
+/* Chunky button with a pressed-in bottom edge */
+.toy-btn {
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.18);
+  transition:
+    transform 120ms var(--ease-out-expo),
+    box-shadow 120ms var(--ease-out-expo);
+}
+.toy-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
 }
 
 .caret::after {
   content: "";
   display: inline-block;
-  width: 0.55em;
-  height: 1.1em;
-  margin-left: 2px;
-  vertical-align: -0.2em;
+  width: 0.08em;
+  height: 1em;
+  margin-left: 0.06em;
+  vertical-align: -0.12em;
   background: currentColor;
   animation: blink 1s steps(1) infinite;
 }
@@ -75,19 +78,18 @@ body {
   }
 }
 
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
-  }
-}
-
-@media print {
-  html,
-  body {
-    background: white;
-    color: black;
   }
 }
