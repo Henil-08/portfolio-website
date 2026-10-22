@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // A stray lockfile in a parent folder confuses root detection.
   turbopack: { root: process.cwd() },
+  async redirects() {
+    return [{ source: "/drive", destination: "/", permanent: false }];
+  },
   async headers() {
     return [
       {
