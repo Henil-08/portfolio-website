@@ -57,9 +57,9 @@ function TopBar() {
         </IconBtn>
         <Link
           href="/resume"
-          className="toy-card toy-btn hidden rounded-2xl px-4 py-2.5 text-sm font-semibold text-ink sm:block"
+          className="toy-card toy-btn rounded-2xl px-3.5 py-2.5 text-sm font-semibold text-ink sm:px-4"
         >
-          Just the resume
+          Resume
         </Link>
       </div>
     </motion.div>

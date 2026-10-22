@@ -15,7 +15,7 @@ const ANSWER: Line[] = [
     kind: "text",
     text: "Henil is an ML engineer at Waters Corporation in Boston. He builds agents that do real work, and most of his job is giving models the right context and tools so they stop guessing.",
   },
-  { kind: "tool", name: "Search", arg: 'projects "agents OR fine-tuning"', result: "11 projects, 2 side quests" },
+  { kind: "tool", name: "Search", arg: 'projects "agents OR fine-tuning"', result: "17 projects across 5 domains" },
   {
     kind: "text",
     text: "Before that: founding engineer at a startup that made it onto Shark Tank India. Before that, a solar car that drove itself. Easier to show you than tell you.",
@@ -138,6 +138,14 @@ export default function Intro() {
     <div className="fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-center overflow-hidden bg-night px-5 text-white" onClick={start}>
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_60%,rgba(225,6,0,0.16),transparent_60%)]" />
       <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:repeating-linear-gradient(0deg,#fff_0_1px,transparent_1px_3px)]" />
+
+      <a
+        href="/resume"
+        onClick={(e) => e.stopPropagation()}
+        className="absolute left-5 top-5 z-10 rounded-full bg-white/10 px-4 py-1.5 font-mono text-[11px] uppercase tracking-widest text-white/80 backdrop-blur transition hover:bg-white hover:text-black"
+      >
+        Resume
+      </a>
 
       {step !== "boot" && (
         <button
