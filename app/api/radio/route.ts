@@ -19,8 +19,8 @@ const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 // Each Groq model has its own free-tier quota, so falling back on 429 keeps answers flowing.
 const MODELS = [
   process.env.GROQ_MODEL || "openai/gpt-oss-120b",
-  "llama-3.3-70b-versatile",
-  "llama-3.1-8b-instant",
+  "openai/gpt-oss-20b",
+  "qwen/qwen3.8-27b",
 ].filter((m, i, a) => a.indexOf(m) === i);
 const DAILY_CAP = Number(process.env.RADIO_DAILY_CAP ?? 800);
 
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
         temperature: voice === "radio" ? 0.8 : 0.5,
         // Reasoning models spend part of the budget thinking, so give them room.
         max_completion_tokens: (voice === "radio" ? 180 : 360) + (reasoning ? 400 : 0),
-        ...(reasoning ? { reasoning_effort: "low" } : {}),
+        ...(reasoning ? { reasoning_effort: "low" } : { reasoning_format: "hidden" }),
         messages: [{ role: "system", content: system }, ...messages.slice(-6)],
       }),
       signal: req.signal,
