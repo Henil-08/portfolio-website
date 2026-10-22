@@ -37,11 +37,11 @@ function TopBar() {
       className="pointer-events-none fixed inset-x-0 top-0 z-30 flex items-start justify-between gap-3 p-3 sm:p-5"
     >
       <div className="toy-card pointer-events-auto flex items-center gap-3 rounded-2xl py-2 pl-2 pr-4">
-        <span className="grid h-9 w-9 place-items-center rounded-xl bg-red font-display text-base font-bold text-white">
-          H
+        <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#e10600] font-racing text-sm text-white">
+          08
         </span>
         <div className="leading-tight">
-          <p className="font-display text-[15px] font-semibold text-ink">Henil Gajjar</p>
+          <p className="font-racing text-[14px] tracking-wide text-ink">HENIL GAJJAR</p>
           <p className="text-[11.5px] text-ink-soft">
             {found}/{zones.length} places found
           </p>
@@ -102,7 +102,7 @@ function ZoneCard() {
             <span className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ background: zoneMeta[zone].color }} />
             <div className="min-w-0 flex-1">
               <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-soft">{zoneMeta[zone].kicker}</p>
-              <h2 className="mt-1 font-display text-[26px] font-semibold leading-[1.08] tracking-tight text-ink">
+              <h2 className="mt-1.5 font-racing text-[22px] uppercase leading-[1.05] tracking-wide text-ink">
                 {zoneMeta[zone].title}
               </h2>
             </div>
@@ -138,7 +138,7 @@ function Toast() {
           className="pointer-events-none fixed left-1/2 top-24 z-40 -translate-x-1/2"
         >
           <span
-            className="block rounded-2xl px-6 py-3 font-display text-3xl font-bold text-ink shadow-xl"
+            className="block rounded-xl px-6 py-3 font-racing text-3xl tracking-wider text-ink shadow-xl"
             style={{ background: bg[t.tone], color: t.tone === "yellow" ? "#1f2133" : "#fff" }}
           >
             {t.text}
@@ -176,7 +176,7 @@ function Hints() {
         )}
       </AnimatePresence>
       <div className="toy-card pointer-events-none fixed bottom-5 right-5 z-20 hidden rounded-2xl px-4 py-2 sm:block">
-        <span className="font-display text-2xl font-bold tabular-nums text-ink">{speed}</span>
+        <span className="font-racing text-2xl tabular-nums text-ink">{speed}</span>
         <span className="ml-1 text-[11px] text-ink-soft">km/h</span>
       </div>
     </>
@@ -282,7 +282,7 @@ function MapMenu() {
             className="toy-card w-full max-w-md rounded-[28px] p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="font-display text-2xl font-semibold text-ink">Where to?</p>
+            <p className="font-racing text-2xl tracking-wide text-ink">WHERE TO?</p>
             <p className="mt-1 text-sm text-ink-soft">Tap a place and the car goes straight there.</p>
             <div className="mt-4 grid grid-cols-2 gap-2">
               {zones.map((z) => (

@@ -1,7 +1,6 @@
 "use client";
 
 import { useLayoutEffect, useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, CylinderCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { C } from "./palette";
@@ -109,31 +108,6 @@ function StartLine() {
   );
 }
 
-function Water() {
-  const mat = useRef<THREE.MeshStandardMaterial>(null);
-  const ring = useRef<THREE.Mesh>(null);
-  useFrame(({ clock }) => {
-    const t = clock.elapsedTime;
-    if (ring.current) {
-      const s = 1 + Math.sin(t * 0.8) * 0.006;
-      ring.current.scale.set(s, 1, s);
-    }
-  });
-  return (
-    <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.9, 0]} receiveShadow>
-        <circleGeometry args={[600, 64]} />
-        <meshStandardMaterial ref={mat} color={C.water} roughness={0.35} metalness={0.05} />
-      </mesh>
-      {/* Foam ring hugging the beach */}
-      <mesh ref={ring} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.82, 0]}>
-        <ringGeometry args={[ISLAND_RADIUS + 6.5, ISLAND_RADIUS + 8.5, 96]} />
-        <meshBasicMaterial color="#e9fbff" transparent opacity={0.7} />
-      </mesh>
-    </group>
-  );
-}
-
 export default function Island() {
   const asphalt = useMemo(() => ribbon(TRACK_WIDTH, 0.03), []);
   const edgeL = useMemo(() => ribbon(0.25, 0.05, -TRACK_WIDTH / 2 + 0.35), []);
@@ -149,18 +123,22 @@ export default function Island() {
         <CuboidCollider args={[400, 1, 400]} position={[0, -7, 0]} />
       </RigidBody>
 
-      {/* Grass top, sand beach and a cliff band */}
+      {/* The island is a diorama plinth: grass top, a stone border and a deep base. */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <circleGeometry args={[ISLAND_RADIUS, 96]} />
-        <meshStandardMaterial color={C.grass} roughness={0.95} />
-      </mesh>
-      <mesh position={[0, -0.52, 0]} receiveShadow>
-        <cylinderGeometry args={[ISLAND_RADIUS + 5, ISLAND_RADIUS + 7, 0.9, 96]} />
-        <meshStandardMaterial color={C.sand} roughness={1} />
+        <circleGeometry args={[ISLAND_RADIUS, 128]} />
+        <meshStandardMaterial color={C.grass} roughness={0.92} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
-        <ringGeometry args={[ISLAND_RADIUS, ISLAND_RADIUS + 5, 96]} />
-        <meshStandardMaterial color={C.sand} roughness={1} />
+        <ringGeometry args={[ISLAND_RADIUS, ISLAND_RADIUS + 5, 128]} />
+        <meshStandardMaterial color={C.sand} roughness={0.85} />
+      </mesh>
+      <mesh position={[0, -3.02, 0]} receiveShadow>
+        <cylinderGeometry args={[ISLAND_RADIUS + 5, ISLAND_RADIUS + 4.2, 6, 128, 1, true]} />
+        <meshStandardMaterial color={C.sand} roughness={0.8} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh position={[0, -0.35, 0]}>
+        <torusGeometry args={[ISLAND_RADIUS + 5.02, 0.07, 6, 160]} />
+        <meshStandardMaterial color={C.red} roughness={0.4} />
       </mesh>
 
       <mesh geometry={asphalt} receiveShadow>
@@ -188,7 +166,6 @@ export default function Island() {
         <meshStandardMaterial color={C.red} roughness={0.8} />
       </mesh>
 
-      <Water />
     </group>
   );
 }
