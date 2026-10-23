@@ -1,15 +1,25 @@
 "use client";
 
-import { getState } from "./store";
+import { getState, subscribe } from "./store";
 
-// Real F1 radio notification + pre-rendered radio voice lines, all through WebAudio.
+// All audio is WebAudio. Sounds are pre-generated with ElevenLabs into public/sfx
+// (see scripts/gen-audio.mjs); live replies use /api/voice.
 let ctx: AudioContext | null = null;
+let master: GainNode | null = null;
 const buffers = new Map<string, Promise<AudioBuffer | null>>();
 
 function audio() {
-  if (getState().muted) return null;
   try {
-    ctx ??= new AudioContext();
+    if (!ctx) {
+      ctx = new AudioContext();
+      master = ctx.createGain();
+      master.gain.value = getState().muted ? 0 : 1;
+      master.connect(ctx.destination);
+      // Mute affects everything, smoothly.
+      subscribe(() => {
+        if (ctx && master) master.gain.setTargetAtTime(getState().muted ? 0 : 1, ctx.currentTime, 0.08);
+      });
+    }
     if (ctx.state === "suspended") void ctx.resume();
     return ctx;
   } catch {
@@ -17,84 +27,152 @@ function audio() {
   }
 }
 
-function load(url: string) {
-  let p = buffers.get(url);
+function load(name: string) {
+  let p = buffers.get(name);
   if (!p) {
     p = (async () => {
       const a = audio();
       if (!a) return null;
       try {
-        const res = await fetch(url);
+        const res = await fetch(`/sfx/${name}.mp3`);
         if (!res.ok) return null;
         return await a.decodeAudioData(await res.arrayBuffer());
       } catch {
         return null;
       }
     })();
-    buffers.set(url, p);
+    buffers.set(name, p);
   }
   return p;
 }
 
+async function play(name: string | AudioBuffer, { vol = 1, rate = 1, delay = 0, radio = false } = {}) {
+  const a = audio();
+  if (!a || !master) return 0;
+  const buf = typeof name === "string" ? await load(name) : name;
+  if (!buf) return 0;
+  const src = a.createBufferSource();
+  src.buffer = buf;
+  src.playbackRate.value = rate;
+  const g = a.createGain();
+  g.gain.value = vol;
+  let node: AudioNode = src;
+  if (radio) node = radioChain(a, src);
+  node.connect(g).connect(master);
+  src.start(a.currentTime + delay);
+  return buf.duration / rate + delay;
+}
+
+// Band-pass, drive and compression: for live TTS that isn't pre-filtered.
+function radioChain(a: AudioContext, input: AudioNode) {
+  const hp = a.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.value = 350;
+  const lp = a.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = 3400;
+  const drive = a.createWaveShaper();
+  const curve = new Float32Array(1024);
+  for (let i = 0; i < curve.length; i++) curve[i] = Math.tanh(((i / 1023) * 2 - 1) * 2);
+  drive.curve = curve;
+  const comp = a.createDynamicsCompressor();
+  comp.threshold.value = -24;
+  comp.ratio.value = 6;
+  input.connect(hp);
+  hp.connect(lp);
+  lp.connect(drive);
+  drive.connect(comp);
+  return comp;
+}
+
 export function unlockAudio() {
   audio();
-  ["/sfx/radio.mp3", "/sfx/ask.mp3", "/sfx/go.mp3", "/sfx/theme.mp3"].forEach(load);
+  ["sting", "engine", "music-1", "music-2", "boost", "honk", "pop"].forEach((n) => void load(n));
+  startMusic();
+  startEngine();
 }
 
-// Plays a buffer, optionally through the radio chain (band-pass, drive, compression).
-async function play(src: string | AudioBuffer, { radio = false, vol = 1, delay = 0 } = {}) {
+// ------------------------------------------------------------ music
+
+let musicGain: GainNode | null = null;
+let musicStarted = false;
+async function startMusic() {
   const a = audio();
-  if (!a) return 0;
-  const buf = typeof src === "string" ? await load(src) : src;
-  if (!buf) return 0;
-  const node = a.createBufferSource();
-  node.buffer = buf;
+  if (!a || !master || musicStarted) return;
+  musicStarted = true;
+  musicGain = a.createGain();
+  musicGain.gain.value = 0.0001;
+  musicGain.connect(master);
+  musicGain.gain.exponentialRampToValueAtTime(0.22, a.currentTime + 3);
+  // Alternate the two loops so it doesn't feel like one short track.
+  let i = 0;
+  const next = async () => {
+    const buf = await load(i++ % 2 ? "music-2" : "music-1");
+    if (!buf || !musicGain) return;
+    const src = a.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    src.connect(musicGain);
+    src.start();
+    src.stop(a.currentTime + buf.duration * 3);
+    src.onended = () => void next();
+  };
+  void next();
+}
+
+// ------------------------------------------------------------ engine
+
+let engine: { src: AudioBufferSourceNode; gain: GainNode } | null = null;
+async function startEngine() {
+  const a = audio();
+  if (!a || !master || engine) return;
+  const buf = await load("engine");
+  if (!buf) return;
+  const src = a.createBufferSource();
+  src.buffer = buf;
+  src.loop = true;
   const gain = a.createGain();
-  gain.gain.value = vol;
-  let out: AudioNode = node;
-  if (radio) {
-    const hp = a.createBiquadFilter();
-    hp.type = "highpass";
-    hp.frequency.value = 380;
-    const lp = a.createBiquadFilter();
-    lp.type = "lowpass";
-    lp.frequency.value = 3300;
-    const drive = a.createWaveShaper();
-    const curve = new Float32Array(1024);
-    for (let i = 0; i < curve.length; i++) {
-      const x = (i / (curve.length - 1)) * 2 - 1;
-      curve[i] = Math.tanh(x * 2.2);
-    }
-    drive.curve = curve;
-    const comp = a.createDynamicsCompressor();
-    comp.threshold.value = -24;
-    comp.ratio.value = 8;
-    out.connect(hp);
-    hp.connect(lp);
-    lp.connect(drive);
-    drive.connect(comp);
-    out = comp;
+  gain.gain.value = 0;
+  src.connect(gain).connect(master);
+  src.start();
+  engine = { src, gain };
+}
+
+let wasBoost = false;
+let lastSkid = 0;
+// Called every frame from the world: pitch follows speed, volume follows throttle.
+export function engineUpdate(speedKmh: number, throttle: number, boost: boolean, sliding: boolean) {
+  const a = ctx;
+  if (!a || !engine) return;
+  const s = Math.min(speedKmh / 140, 1.3);
+  engine.src.playbackRate.setTargetAtTime(0.65 + s * 1.05 + (boost ? 0.15 : 0), a.currentTime, 0.08);
+  engine.gain.gain.setTargetAtTime(0.05 + s * 0.12 + throttle * 0.06, a.currentTime, 0.1);
+  if (boost && !wasBoost) void play("boost", { vol: 0.5 });
+  wasBoost = boost;
+  if (sliding && a.currentTime - lastSkid > 1.2 && speedKmh > 30) {
+    lastSkid = a.currentTime;
+    void play("skid", { vol: 0.35 });
   }
-  out.connect(gain).connect(a.destination);
-  node.start(a.currentTime + delay);
-  return buf.duration + delay;
 }
 
-// The broadcast "radio incoming" sting.
+export function engineIdle() {
+  if (ctx && engine) engine.gain.gain.setTargetAtTime(0, ctx.currentTime, 0.2);
+}
+
+// ------------------------------------------------------------ radio
+
 export function radioBeep() {
-  return play("/sfx/radio.mp3", { vol: 0.9 });
+  return play("sting", { vol: 0.7 });
 }
 
-// Pre-rendered engineer lines for the intro. Resolves with the clip length in seconds.
-export async function radioLine(name: "ask" | "go") {
-  await radioBeep();
-  return play(`/sfx/${name}.mp3`, { delay: 0.55 });
+// Pre-voiced line from public/sfx (already radio-filtered), after the sting.
+export async function radioLine(name: string) {
+  const sting = await radioBeep();
+  return play(`radio-${name}`, { delay: Math.min(0.5, sting * 0.6) });
 }
 
-// Live radio voice for chat replies: Groq Orpheus TTS through the radio chain.
-// If the voice endpoint isn't available we stay silent rather than use a robotic browser voice.
+// Live line (chat replies): ElevenLabs via /api/voice, filtered here. Silent if unavailable.
 export async function radioSpeak(text: string) {
-  if (getState().muted) return;
   try {
     const res = await fetch("/api/voice", {
       method: "POST",
@@ -106,58 +184,24 @@ export async function radioSpeak(text: string) {
     if (!a) return;
     const buf = await a.decodeAudioData(await res.arrayBuffer());
     await radioBeep();
-    play(buf, { radio: true, delay: 0.55 });
+    void play(buf, { radio: true, delay: 0.45 });
   } catch {}
 }
 
-function beep(freq: number, start: number, dur: number, type: OscillatorType = "sine", vol = 0.05) {
-  const a = audio();
-  if (!a) return;
-  const t = a.currentTime + start;
-  const o = a.createOscillator();
-  const g = a.createGain();
-  o.type = type;
-  o.frequency.setValueAtTime(freq, t);
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.connect(g).connect(a.destination);
-  o.start(t);
-  o.stop(t + dur + 0.02);
-}
+// ------------------------------------------------------------ one-shots
 
 export function honk() {
-  beep(440, 0, 0.16, "triangle", 0.06);
-  beep(554, 0, 0.16, "triangle", 0.05);
+  void play("honk", { vol: 0.6 });
 }
 
 export function pop() {
-  beep(880, 0, 0.06, "sine", 0.04);
-  beep(1320, 0.05, 0.08, "sine", 0.03);
+  void play("sting", { vol: 0.35, rate: 1.3 });
 }
 
 export function cheer() {
-  [523, 659, 784, 1047].forEach((f, i) => beep(f, i * 0.07, 0.16, "sine", 0.04));
+  void play("crowd", { vol: 0.5 });
 }
 
-// Intro theme. Plays /sfx/theme.mp3 if it exists, otherwise stays silent.
-let themeGain: GainNode | null = null;
-export async function playTheme() {
-  const a = audio();
-  if (!a) return;
-  const buf = await load("/sfx/theme.mp3");
-  if (!buf) return;
-  const src = a.createBufferSource();
-  src.buffer = buf;
-  themeGain = a.createGain();
-  themeGain.gain.setValueAtTime(0.0001, a.currentTime);
-  themeGain.gain.exponentialRampToValueAtTime(0.7, a.currentTime + 0.6);
-  src.connect(themeGain).connect(a.destination);
-  src.start();
-}
-
-export function fadeTheme(seconds = 2.5) {
-  const a = ctx;
-  if (!a || !themeGain) return;
-  themeGain.gain.setTargetAtTime(0.0001, a.currentTime, seconds / 4);
+export function bump(strength = 1) {
+  void play("bump", { vol: Math.min(0.6, 0.2 * strength) });
 }

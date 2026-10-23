@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef } from "react";
 import { getState, setState, useWorld } from "@/components/world/store";
-import { radioBeep, radioSpeak } from "@/components/world/sound";
+import { radioBeep, radioLine } from "@/components/world/sound";
 import { radioLines } from "@/content/radio";
 import type { ZoneId } from "@/components/world/layout";
 
@@ -22,8 +22,8 @@ export default function RadioMessages() {
     if (!line) return;
     const id = ++msgId;
     setState({ radioMsg: { id, text: line } });
-    if (getState().voice) radioSpeak(line);
-    else radioBeep();
+    if (getState().voice) void radioLine(near);
+    else void radioBeep();
     const t = setTimeout(() => {
       if (getState().radioMsg?.id === id) setState({ radioMsg: null });
     }, 6500);
