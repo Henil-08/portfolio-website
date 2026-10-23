@@ -54,7 +54,7 @@ let state: State = {
   spawns: [],
   picks: null,
   fitOpen: false,
-  voice: false,
+  voice: true,
   hallucinating: false,
   achievements: [],
   radioMsg: null,
