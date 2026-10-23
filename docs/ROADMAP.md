@@ -85,8 +85,9 @@ Owner feedback still open (latest first): the map menu is bad; the water and its
 not up to the mark (now more water to dress: harbour, river, spring lake); the E prompt should be
 animated like Bruno's. New (2026-10-23): buildings on slopes with vertical walls (3f), a Bruno-style
 see-through when the car is hidden (3h), and a compact Bruno-style career timeline with floating rocks
-plus the owner's school journey (3b). 3f, 3g, 3h and 3b are done (2026-10-23, late); the car no longer
-beaches on slopes (colliders 0.3 m up, parapets on embankments). Next up: step 4.
+plus the owner's school journey (3b). 3f, 3g, 3h, 3b and most of step 4 are done (2026-10-23, late); the
+car no longer beaches on slopes (colliders 0.3 m up, parapets on embankments). Next up: lamp reflections
+on night water (end of step 4), then step 5 (map menu).
 
 ## Steps (do them in order; first unticked one is next)
 
@@ -181,13 +182,18 @@ wipes in (`labelReveal` 0 -> 1, power2.inOut 1 s); leaving lowers it again. Year
       Keep entries in content/ (e.g. extend `education`), the world only reads them.
 
 ### 4. Water, lake and surroundings
-- [ ] The lake and inlet look like flat holes in sand. Bruno's look: ground colour gradient by depth
+- [x] (de96488) Spring lake: drivable shelf then a basin; reeds with cattails, rocks, lily pads round the
+      lake and along the river (districts/waterside.ts). Quays/steps at the harbour were done in 3g (8ba0ff2).
+      Was: The lake and inlet look like flat holes in sand. Bruno's look: ground colour gradient by depth
       (sand #ffa94e-ish -> teal #5bc2b9 -> navy #13375f, toned to our palette), a soft glowing
       shoreline, gentle waves/caustics, reeds, rocks, a quay or steps at the harbour, lily pads.
-- [ ] Beaches: wet-sand band, a few rocks and driftwood, softer transition to grass.
-- [ ] Water.tsx shader: add subtle normal ripples (two scrolling noise layers), fresnel toward the
-      horizon, foam that follows the shore contour (sample depth gradient), night reflections of lamps.
-- [ ] Harbour bridge (Harbour.tsx): the causeway is so low the arch is a culvert; either raise the road
+- [x] (63da291) Beaches: rock groups and driftwood (districts/beaches.ts), sand-to-grass blend widened to
+      ~7 m. The wet-sand band was already in Island.tsx terrain colours. Was: wet-sand band, rocks, driftwood.
+- [~] (0f09206) Water.tsx: Bruno's teal shore glow (faint emission at night), two scrolling ripple layers in
+      the normals, fresnel; the foam already follows the depth contour. Left: night reflections of lamps.
+      Was: normal ripples, fresnel toward the horizon, foam that follows the shore contour, night reflections.
+- [x] (8c1db86, layout v4 b) Harbour bridge: stone deck with parapets over open water, piers in the channel.
+      Was: Harbour bridge (Harbour.tsx): the causeway is so low the arch is a culvert; either raise the road
       over the inlet a little (track heights in layout.ts TRACK_POINTS near t ~0.92) or make it a
       proper low bridge with a gap under the deck.
 
