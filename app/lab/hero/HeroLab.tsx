@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { CarPreview, GROUND_Y } from "@/components/world/models/Car";
@@ -17,6 +17,18 @@ const ANGLES: Record<string, [number, number, number]> = {
   back: [-3.6, 1.3, 1.6],
   game: [-3.2, 3.4, 2.1], // high, behind-right, ~45 deg down
   face: [2.4, 0.35, 0.6],
+  rear34: [-3.0, 1.1, 2.8], // rear 3/4 (rear-right)
+  low: [2.9, 0.32, 2.5], // low front 3/4, shows the undercut and floor
+  nose: [1.6, 0.9, 1.2], // close on the nose and front wing
+  cockpit: [0.9, 1.2, 1.4], // close on cockpit, halo and helmet
+  wing: [-1.6, 0.9, 1.3], // close on the rear wing
+};
+
+// close-up angles look at a part of the car instead of its centre
+const FOCUS: Record<string, [number, number, number]> = {
+  nose: [1.0, 0.15, 0],
+  cockpit: [0, 0.45, 0],
+  wing: [-1.15, 0.55, 0],
 };
 
 const PI_2 = Math.PI / 2;
@@ -64,18 +76,32 @@ function Studio({ shadows = true }: { shadows?: boolean }) {
     </>
   );
 }
+// ?drs=1 opens the DRS flap to the angle Vehicle uses while boosting
+function DrsPose({ open }: { open: boolean }) {
+  const scene = useThree((s) => s.scene);
+  useFrame(() => {
+    const flap = scene.getObjectByName("drs-flap");
+    if (flap) flap.rotation.z = open ? 0.75 : 0;
+  });
+  return null;
+}
+
 export default function HeroLab({
   view,
   angle,
   wave,
   steer,
   brake,
+  dist = 1,
+  drs = false,
 }: {
   view: string;
   angle: string;
   wave: boolean;
   steer: number;
   brake: boolean;
+  dist?: number;
+  drs?: boolean;
 }) {
   const portrait = view === "portrait";
   // transparent page for the portrait capture
@@ -93,11 +119,11 @@ export default function HeroLab({
       ? [0, 0.68, 0]
       : view === "driver"
         ? [0, 0.55, 0]
-        : [0, 0.35, 0];
+        : (FOCUS[angle] ?? [0, 0.35, 0]);
   const base = ANGLES[angle] ?? ANGLES.front;
   // avatar faces +Z, car faces +X: rotate offsets so "front" means the subject's front
   const off = isAvatar ? [-base[2] * 0.62, base[1] * 0.62, base[0] * 0.62] : base;
-  const zoom = view === "driver" ? (angle === "face" ? 0.45 : 0.6) : 1;
+  const zoom = (view === "driver" ? (angle === "face" ? 0.45 : 0.6) : 1) * dist;
   const cam: [number, number, number] = portrait
     ? [1.05, 1.02, 2.05]
     : [target[0] + off[0] * zoom, target[1] + off[1] * zoom, target[2] + off[2] * zoom];
@@ -131,6 +157,7 @@ export default function HeroLab({
             <Avatar position={[0.6, 0, 1.3]} rotation={[0, 0.5, 0]} wave={wave} />
           </>
         )}
+        <DrsPose open={drs} />
         <OrbitControls target={target} makeDefault />
       </Canvas>
     </div>
