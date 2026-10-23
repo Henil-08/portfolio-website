@@ -1,9 +1,9 @@
 // Procedural layout of the street circuit: where every barrier block, lamp,
 // board, fence panel and marshal post goes. Pure data, computed once.
 import * as THREE from "three";
-import { LEN, FRAMES, N_FRAMES, barrierOffset, farSign, farSpot, inPitSide, inSectorScene, nearCones, nearPlace, nearTree, outSign, RUNOFF, type Spot } from "./common";
+import { BARRIER_OFF, LEN, FRAMES, N_FRAMES, barrierOffset, farSign, farSpot, inPitSide, inSectorScene, nearCones, nearPlace, nearTree, outSign, RUNOFF, type Spot } from "./common";
 import { STAND_SPOTS } from "./standSpots";
-import { PIT, nearCrossing, onBridge } from "../layout";
+import { PIT, nearCrossing, nearestT, onBridge } from "../layout";
 
 export const BLOCK = 2.0;
 
@@ -136,6 +136,8 @@ export const LAMPS: Lamp[] = (() => {
       q = f.p.clone().addScaledVector(f.n, s * off);
       if (Math.abs(Math.abs(q.x) - 18) < 3.6) continue;
     }
+    // never on the road: the pit-wall rule above misfires where the lap bends away (T1, the last corner)
+    if (nearestT(q.x, q.z).dist < BARRIER_OFF + 0.8) continue;
     if (nearCrossing(q.x, q.z)) continue;
     if (inSectorScene(q.x, q.z, 2.5) || nearPlace(q.x, q.z, 2) || nearTree(q.x, q.z, 0.8) || nearCones(q.x, q.z, 3)) continue;
     if (STAND_SPOTS.some((st) => Math.hypot(st.x - q.x, st.z - q.z) < 8)) continue;
