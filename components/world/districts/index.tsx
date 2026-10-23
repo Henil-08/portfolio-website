@@ -10,8 +10,9 @@ import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeom
 import { mat, unitCyl } from "../models/props/shared";
 import { propGeometry } from "../models/props/bruno";
 import { withWind } from "../alive/sway";
-import { BENCH, LANTERN, LANTERN_LIGHT } from "../models/props/brunoProps";
+import { BENCH, FENCE, LANTERN, LANTERN_LIGHT } from "../models/props/brunoProps";
 import { Instances } from "../street/Instances";
+import { DUNES, tuftGeometry } from "./dunes";
 import { HARBOUR } from "./harbour";
 import { HILLS, flowerGeometry } from "./hills";
 import { OLD_TOWN } from "./oldTown";
@@ -20,7 +21,8 @@ import { OLD_TOWN } from "./oldTown";
 const glass = new THREE.MeshStandardMaterial({ color: "#ffd9a8", emissive: new THREE.Color("#ff9440"), emissiveIntensity: 0.1, roughness: 0.4, toneMapped: false });
 
 export default function Districts() {
-  const props = useMemo(() => ({ lantern: propGeometry(LANTERN), light: propGeometry(LANTERN_LIGHT), bench: propGeometry(BENCH), crate: new RoundedBoxGeometry(1, 1, 1, 2, 0.08), flower: flowerGeometry(), rock: new THREE.IcosahedronGeometry(1, 0) }), []);
+  const props = useMemo(() => ({ lantern: propGeometry(LANTERN), light: propGeometry(LANTERN_LIGHT), bench: propGeometry(BENCH), crate: new RoundedBoxGeometry(1, 1, 1, 2, 0.08), flower: flowerGeometry(), rock: new THREE.IcosahedronGeometry(1, 0), fence: propGeometry(FENCE), tuft: tuftGeometry() }), []);
+  const fences = useMemo(() => ({ m: DUNES.fences }), []);
   const lanterns = useMemo(() => ({ m: [...OLD_TOWN.lanterns, ...HARBOUR.lanterns] }), []);
   const benches = useMemo(() => ({ m: [...OLD_TOWN.benches, ...HARBOUR.benches] }), []);
   useFrame(() => {
@@ -37,6 +39,8 @@ export default function Districts() {
       <Instances geometry={unitCyl()} material={mat("#ffffff", { r: 0.6 })} batch={HARBOUR.barrels} />
       <Instances geometry={props.flower} material={withWind(mat("#ffffff", { r: 0.7, side: THREE.DoubleSide }), { amount: 0.25, maxHeight: 0.4 })} batch={HILLS.flowers} shadow={false} />
       <Instances geometry={props.rock} material={mat("#ffffff", { r: 0.95, flat: true })} batch={HILLS.rocks} />
+      <Instances geometry={props.fence} material={vc} batch={fences} />
+      <Instances geometry={props.tuft} material={withWind(mat("#ffffff", { r: 0.9, flat: true }), { amount: 0.3, maxHeight: 0.7 })} batch={DUNES.tufts} shadow={false} />
     </group>
   );
 }
