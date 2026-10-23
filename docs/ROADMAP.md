@@ -69,18 +69,21 @@ accent), real light and shadow doing the work, very little text in the world.
 UI is quiet broadcast graphics: small, precise, no cartoon colours.
 Fonts are fixed: Racero (display, `font-racing`), Geist (sans), Geist Mono (labels).
 
-## Where it stands (2026-10-23)
+## Where it stands (2026-10-23, evening)
 
 Done and working, don't redo: garden infield and timeline terrace; soft town (4 draw calls);
 Bruno's trees; HENIL GAJJAR letters at the start; contact ring of logos; Bruno's bumper collider,
-softer brake, boost release, stuck hint; Bruno's opening reveal; irregular coast with a south bay,
-beaches, a west lake joined to the sea by an inlet under the west sweepers; promenade, pier, boats;
-no wheel smoke or loose leaves; livery picker (six palettes). Commit history has the details.
+softer brake, boost release, stuck hint; Bruno's opening reveal; promenade, pier, boats;
+no wheel smoke or loose leaves; livery picker (six palettes). Since this morning: the car no longer
+breaks apart (CCD, buried respawn); continuous rumble kerbs; walls replaced by tyre walls at tight
+corners; layout v4 (docs/research/layout-v4.md): island ~15% bigger, harbour arm with quays under a
+stone bridge, a river from a spring lake under the east esses, hills on the north coast, east dunes,
+park islands north of the garden with a footbridge; no building blocks the chase camera.
+Commit history has the details.
 
-Owner feedback still open (2026-10-23, latest first): random glitches (the car breaks apart);
-kerbs on corners should be continuous; red/white barrier walls need rework; the map (the world
-layout itself) is still bad; the map menu is bad; the water, the lake and around it are not up to
-the mark; the E prompt should be animated like Bruno's.
+Owner feedback still open (latest first): the map menu is bad; the water and its surroundings are
+not up to the mark (now more water to dress: harbour, river, spring lake); the E prompt should be
+animated like Bruno's. Layout v4 sub-step g (district identity) and the street canyon (f) are open.
 
 ## Steps (do them in order; first unticked one is next)
 
@@ -92,8 +95,8 @@ the mark; the E prompt should be animated like Bruno's.
       the road where a corner changed hands (355d63c); hairline across the road at the start line
       where the road ribbon closes (e45804d). Left for later steps: barriers sink into slopes and grass
       pokes through them (red "drips"), and their segments overlap at odd angles in tight corners (step 2);
-      the chase camera loses the car under the bridge deck (t ~0.5) and behind the tall town building
-      by Boston (t ~0.6).
+      the chase camera loses the car under the bridge deck (t ~0.5); the tall building by Boston that
+      hid the car (t ~0.6) is fixed in 290b26a.
 
 ### 2. Kerbs and barriers
 - [x] (387ab64) Corner kerbs (Island.tsx `Kerbs`) are separate flat red/white tiles with gaps. Make them a
