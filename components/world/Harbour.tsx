@@ -1,90 +1,166 @@
 "use client";
 
-// The low bridge where the west sweepers cross the harbour inlet. The road runs
-// on a causeway (terrain.ts stops the inlet short of it); here are its stone
-// faces on both sides, each with a dark arch at the waterline so the water reads
-// as running under the road, and a coping along the top.
+// The harbour bridge: where the west sweepers cross the harbour arm, the road runs
+// on a stone deck with open water underneath. A thick deck edge under the road,
+// low parapets with a sand coping (they stop the car too), solid abutments where
+// it meets the banks and two slim piers in the channel.
 import { useMemo } from "react";
-import { CANALS, LAKES, SEA_Y, TRACK_WIDTH, lakeDepthDist, nearestT, trackPoint, trackTangent } from "./layout";
+import { CuboidCollider, RigidBody } from "@react-three/rapier";
+import * as THREE from "three";
+import { CANALS, SEA_Y, TRACK_WIDTH, canalDist, trackCurve, trackPoint, trackTangent } from "./layout";
 import { C } from "./palette";
 import { mat } from "./models/props/shared";
 import { heightAt } from "./terrain";
 
-const EDGE = TRACK_WIDTH / 2 + 2.2; // where the inlet stops, either side of the road centre
+const HALF = TRACK_WIDTH / 2 + 0.85; // deck half width (the kerbs fit inside)
+const DEPTH = 0.55; // deck thickness under the road
+const PARAPET_H = 0.5;
+const PARAPET_T = 0.32;
+const BANK = 3; // the deck runs this far onto land each side
 
-function crossings() {
-  const out: { x: number; z: number; y: number; yaw: number; nx: number; nz: number; w: number; tx: number; tz: number }[] = [];
-  for (const cn of CANALS) {
-    let best = { d: Infinity, x: 0, z: 0, t: 0, seg: 0 };
-    for (let i = 0; i < cn.pts.length - 1; i++)
-      for (let k = 0; k <= 40; k++) {
-        const x = cn.pts[i][0] + (cn.pts[i + 1][0] - cn.pts[i][0]) * (k / 40);
-        const z = cn.pts[i][1] + (cn.pts[i + 1][1] - cn.pts[i][1]) * (k / 40);
-        const n = nearestT(x, z);
-        if (n.dist < best.d) best = { d: n.dist, x, z, t: n.t, seg: i };
-      }
-    if (best.d > 3) continue;
-    const p = trackPoint(best.t);
-    const tan = trackTangent(best.t);
-    const nx = -tan.z;
-    const nz = tan.x;
-    const l = Math.hypot(nx, nz) || 1;
-    // The inlet meets the road at an angle: each face sits where the inlet's
-    // centreline reaches the causeway edge, and spans the inlet's width across it.
-    const [ax, az] = cn.pts[best.seg];
-    const [bx, bz] = cn.pts[best.seg + 1];
-    const dl = Math.hypot(bx - ax, bz - az) || 1;
-    const dx = (bx - ax) / dl;
-    const dz = (bz - az) / dl;
-    const sin = Math.max(0.35, Math.abs(dx * (nx / l) + dz * (nz / l)));
-    out.push({ x: p.x, z: p.z, y: p.y, yaw: Math.atan2(-tan.z, tan.x), nx: dx / sin, nz: dz / sin, w: cn.w / sin, tx: tan.x / Math.hypot(tan.x, tan.z), tz: tan.z / Math.hypot(tan.x, tan.z) });
+type Span = { t0: number; t1: number };
+
+/** Track stretches that pass over the harbour arm (plus a little bank either side). */
+function spans(): Span[] {
+  const out: Span[] = [];
+  const L = trackCurve.getLength();
+  const N = Math.round(L / 0.5);
+  let open = -1;
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    const p = trackPoint(t);
+    const over = i < N && CANALS.some((c) => canalDist(c, p.x, p.z) > -BANK);
+    if (over && open < 0) open = i;
+    if (!over && open >= 0) {
+      out.push({ t0: open / N, t1: (i - 1) / N });
+      open = -1;
+    }
   }
   return out;
 }
 
+/** A box swept along the track between t0 and t1, across [a, b] from the centreline, from y0 to y1 above the road. */
+function sweep(s: Span, a: number, b: number, y0: number, y1: number, steps = 24) {
+  const pos: number[] = [];
+  const idx: number[] = [];
+  for (let k = 0; k <= steps; k++) {
+    const t = s.t0 + ((s.t1 - s.t0) * k) / steps;
+    const p = trackPoint(t);
+    const tan = trackTangent(t);
+    const nx = -tan.z;
+    const nz = tan.x;
+    const l = Math.hypot(nx, nz) || 1;
+    for (const [o, y] of [
+      [a, y1],
+      [b, y1],
+      [b, y0],
+      [a, y0],
+    ])
+      pos.push(p.x + (nx / l) * o, p.y + y, p.z + (nz / l) * o);
+    if (k < steps) {
+      const v = k * 4;
+      for (let f = 0; f < 4; f++) {
+        const c0 = v + f;
+        const c1 = v + ((f + 1) % 4);
+        idx.push(c0, c1, c0 + 4, c1, c1 + 4, c0 + 4);
+      }
+    }
+  }
+  const last = steps * 4;
+  idx.push(0, 2, 1, 0, 3, 2, last, last + 1, last + 2, last, last + 2, last + 3);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  const flat = g.toNonIndexed();
+  flat.computeVertexNormals();
+  return flat;
+}
+
+function build() {
+  const deck: THREE.BufferGeometry[] = [];
+  const walls: THREE.BufferGeometry[] = [];
+  const caps: THREE.BufferGeometry[] = [];
+  const cols: { x: number; y: number; z: number; yaw: number; len: number }[] = [];
+  const piers: { x: number; z: number; y: number; yaw: number }[] = [];
+  const abuts: { x: number; z: number; y: number; yaw: number; h: number }[] = [];
+  for (const s of spans()) {
+    deck.push(sweep(s, -HALF, HALF, -DEPTH, 0.01));
+    for (const side of [-1, 1]) {
+      const a = side * HALF;
+      const b = side * (HALF - PARAPET_T);
+      walls.push(sweep(s, Math.min(a, b), Math.max(a, b), 0, PARAPET_H));
+      caps.push(sweep(s, Math.min(a, b) - 0.05, Math.max(a, b) + 0.05, PARAPET_H, PARAPET_H + 0.09));
+      // colliders: short straight pieces along the curve
+      const n = 8;
+      for (let k = 0; k < n; k++) {
+        const ta = s.t0 + ((s.t1 - s.t0) * k) / n;
+        const tb = s.t0 + ((s.t1 - s.t0) * (k + 1)) / n;
+        const pa = trackPoint(ta);
+        const pb = trackPoint(tb);
+        const tan = trackTangent((ta + tb) / 2);
+        const nx = -tan.z;
+        const nz = tan.x;
+        const l = Math.hypot(nx, nz) || 1;
+        const o = side * (HALF - PARAPET_T / 2);
+        cols.push({
+          x: (pa.x + pb.x) / 2 + (nx / l) * o,
+          y: (pa.y + pb.y) / 2,
+          z: (pa.z + pb.z) / 2 + (nz / l) * o,
+          yaw: Math.atan2(-(pb.z - pa.z), pb.x - pa.x),
+          len: Math.hypot(pb.x - pa.x, pb.z - pa.z),
+        });
+      }
+    }
+    // abutments at both ends, down to the ground
+    for (const t of [s.t0, s.t1]) {
+      const p = trackPoint(t);
+      const tan = trackTangent(t);
+      const ground = Math.min(heightAt(p.x, p.z), p.y - DEPTH);
+      abuts.push({ x: p.x, z: p.z, y: ground - 0.4, yaw: Math.atan2(-tan.z, tan.x), h: p.y - DEPTH - ground + 0.45 });
+    }
+    // two piers in the channel, at the thirds of the water crossing
+    for (const f of [1 / 3, 2 / 3]) {
+      const t = s.t0 + (s.t1 - s.t0) * f;
+      const p = trackPoint(t);
+      if (heightAt(p.x, p.z) > SEA_Y) continue;
+      const tan = trackTangent(t);
+      piers.push({ x: p.x, z: p.z, y: p.y - DEPTH, yaw: Math.atan2(-tan.z, tan.x) });
+    }
+  }
+  return { deck, walls, caps, cols, piers, abuts };
+}
+
 export default function Harbour() {
-  const parts = useMemo(() => crossings(), []);
-  const bottom = SEA_Y - 0.6;
+  const parts = useMemo(() => build(), []);
+  const stone = mat(C.rock, { r: 0.9 });
+  const coping = mat(C.sand, { r: 0.85 });
+  const bottom = SEA_Y - 1.6;
   return (
     <>
-      {parts.map((c, i) =>
-        [-1, 1].map((side) => {
-          const top = c.y + 0.02;
-          const h = top - bottom;
-          // the face covers the stretch of causeway edge that borders water (the inlet, or the lake)
-          const px = c.x + c.nx * EDGE * side;
-          const pz = c.z + c.nz * EDGE * side;
-          const wetAt = (k: number) => heightAt(px + c.tx * k + c.nx * side * 0.9, pz + c.tz * k + c.nz * side * 0.9) < SEA_Y + 0.05;
-          let lo = 0;
-          let hi = 0;
-          while (lo > -14 && wetAt(lo - 0.25)) lo -= 0.25;
-          while (hi < 14 && wetAt(hi + 0.25)) hi += 0.25;
-          const len = Math.max(2, hi - lo) + 1.6;
-          const mid = (lo + hi) / 2;
-          const archR = Math.max(0.2, Math.min(1.5, len / 2 - 0.8, top - SEA_Y - 0.14));
-          // only where the inlet itself meets the causeway; a lake just meets it with a bank
-          if (LAKES.some((l) => lakeDepthDist(l, px, pz) > -2)) return null;
-          return (
-            <group key={`${i}${side}`} position={[px + c.tx * mid, 0, pz + c.tz * mid]} rotation={[0, c.yaw + (side * Math.sign(c.nx * -Math.sin(c.yaw) + c.nz * Math.cos(c.yaw)) < 0 ? Math.PI : 0), 0]}>
-              {/* the stone face, its outside toward local +z */}
-              <mesh position={[0, bottom + h / 2, -0.3]} material={mat(C.rock, { r: 0.9 })} castShadow receiveShadow>
-                <boxGeometry args={[len, h, 0.6]} />
-              </mesh>
-              {/* a dark arch at the waterline */}
-              <mesh position={[0, SEA_Y, 0.005]} material={mat("#2a3236", { r: 1 })}>
-                <circleGeometry args={[archR, 28, 0, Math.PI]} />
-              </mesh>
-              {/* voussoir ring and coping */}
-              <mesh position={[0, SEA_Y, 0.01]} material={mat(C.sand, { r: 0.85 })}>
-                <ringGeometry args={[archR, archR + 0.22, 28, 1, 0, Math.PI]} />
-              </mesh>
-              <mesh position={[0, top + 0.06, -0.25]} material={mat(C.sand, { r: 0.85 })} castShadow receiveShadow>
-                <boxGeometry args={[len + 0.3, 0.14, 0.8]} />
-              </mesh>
-            </group>
-          );
-        }),
-      )}
+      {parts.deck.map((g, i) => (
+        <mesh key={`d${i}`} geometry={g} material={stone} castShadow receiveShadow />
+      ))}
+      {parts.walls.map((g, i) => (
+        <mesh key={`w${i}`} geometry={g} material={stone} castShadow receiveShadow />
+      ))}
+      {parts.caps.map((g, i) => (
+        <mesh key={`c${i}`} geometry={g} material={coping} castShadow receiveShadow />
+      ))}
+      {parts.abuts.map((a, i) => (
+        <mesh key={`a${i}`} position={[a.x, a.y + a.h / 2, a.z]} rotation={[0, a.yaw, 0]} material={stone} castShadow receiveShadow>
+          <boxGeometry args={[1.4, a.h, HALF * 2 + 0.3]} />
+        </mesh>
+      ))}
+      {parts.piers.map((p, i) => (
+        <mesh key={`p${i}`} position={[p.x, (p.y + bottom) / 2, p.z]} rotation={[0, p.yaw, 0]} material={stone} castShadow receiveShadow>
+          <boxGeometry args={[0.9, p.y - bottom, HALF * 2 - 1.2]} />
+        </mesh>
+      ))}
+      <RigidBody type="fixed" colliders={false}>
+        {parts.cols.map((k, i) => (
+          <CuboidCollider key={i} args={[k.len / 2 + 0.05, PARAPET_H / 2 + 0.2, PARAPET_T / 2]} position={[k.x, k.y + PARAPET_H / 2, k.z]} rotation={[0, k.yaw, 0]} />
+        ))}
+      </RigidBody>
     </>
   );
 }

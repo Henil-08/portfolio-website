@@ -3,7 +3,7 @@
 import * as THREE from "three";
 import { LEN, FRAMES, N_FRAMES, barrierOffset, farSign, farSpot, inPitSide, inSectorScene, nearCones, nearPlace, nearTree, outSign, RUNOFF, type Spot } from "./common";
 import { STAND_SPOTS } from "./standSpots";
-import { PIT, TRACK_WIDTH, nearCrossing, nearestT, onBridge } from "../layout";
+import { PIT, TRACK_WIDTH, inLand, nearCrossing, nearestT, onBridge } from "../layout";
 
 // Bruno's circuit has no walls: open run-off past the kerbs, and a short tyre wall
 // on the outside of the tight corners only, with a rounded block at each end.
@@ -122,6 +122,7 @@ export const LAMPS: Lamp[] = (() => {
     // never on the road: the pit-wall rule above misfires where the lap bends away (T1, the last corner)
     if (nearestT(q.x, q.z).dist < TRACK_WIDTH / 2 + 0.6) continue;
     if (nearCrossing(q.x, q.z)) continue;
+    if (!inLand(q.x, q.z, 1.5)) continue; // not in the harbour or the sea
     if (inSectorScene(q.x, q.z, 2.5) || nearPlace(q.x, q.z, 2) || nearTree(q.x, q.z, 0.8) || nearCones(q.x, q.z, 3)) continue;
     if (STAND_SPOTS.some((st) => Math.hypot(st.x - q.x, st.z - q.z) < 8)) continue;
     // head and pool on the road side

@@ -47,9 +47,9 @@ export const TRACK_POINTS: [number, number, number][] = [
   [-42, -30, 3.93],
   [-60, -36, 2.79],
   [-78, -32, 1.9],
-  [-90, -18, 1.1],
-  [-92, 0, 0.6],
-  [-84, 18, 0.2],
+  [-90, -18, 1.5],
+  [-92, 0, 1.8],
+  [-84, 18, 0.9],
   [-72, 34, 0],
 ];
 
@@ -112,32 +112,55 @@ export function coastR(angle: number) {
 
 /** Lakes: basins dug into low ground; their water is the sea's, at SEA_Y. */
 export type Lake = { x: number; z: number; rx: number; rz: number; yaw: number };
-export const LAKES: Lake[] = [
-  // West infield, between the cricket ground and the west sweepers.
-  { x: -51, z: 4.6, rx: 6.6, rz: 4.2, yaw: 0.3 },
-];
+export const LAKES: Lake[] = [];
 
 /**
- * Channels: the harbour inlet joins the west lake to the sea, passing under the
- * west sweepers, which cross it on a low stone bridge (Harbour.tsx).
+ * Channels of sea water cut into the land, with a width at each point. The harbour
+ * arm runs in from the west sea, under the west sweepers' bridge, to a basin at the
+ * garden's edge. `quay`: the side (as canalSide returns it) that is a stone quay
+ * instead of a beach; for the harbour arm, whose points run west, +1 is the north (town) side.
  */
-export type Canal = { pts: [number, number][]; w: number };
+export type Canal = { pts: [number, number][]; w: number[]; quay?: 1 | -1 };
 export const CANALS: Canal[] = [
-  { pts: [[-55, 4.4], [-63, 3.8], [-72, 3], [-84, 2], [-98, 1.2], [-120, 0.4]], w: 5.4 },
+  {
+    pts: [[-49, 5], [-58, 4], [-70, 3], [-82, 1.5], [-92, 0.5], [-104, 0], [-126, -1]],
+    w: [9, 9, 10, 11, 12, 14, 16],
+    quay: 1,
+  },
 ];
 
 /** Signed distance into a canal (positive inside, metres). */
 export function canalDist(c: Canal, x: number, z: number) {
-  let best = Infinity;
+  let best = -Infinity;
   for (let i = 0; i < c.pts.length - 1; i++) {
     const [ax, az] = c.pts[i];
     const [bx, bz] = c.pts[i + 1];
     const dx = bx - ax;
     const dz = bz - az;
     const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
-    best = Math.min(best, Math.hypot(x - ax - dx * t, z - az - dz * t));
+    const w = c.w[i] + (c.w[i + 1] - c.w[i]) * t;
+    best = Math.max(best, w / 2 - Math.hypot(x - ax - dx * t, z - az - dz * t));
   }
-  return c.w / 2 - best;
+  return best;
+}
+
+/** Which side of a canal's centreline a point is on: +1 or -1 (the sign of d x r, d along `pts`). */
+export function canalSide(c: Canal, x: number, z: number) {
+  let best = Infinity;
+  let side = 1;
+  for (let i = 0; i < c.pts.length - 1; i++) {
+    const [ax, az] = c.pts[i];
+    const [bx, bz] = c.pts[i + 1];
+    const dx = bx - ax;
+    const dz = bz - az;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
+    const d = Math.hypot(x - ax - dx * t, z - az - dz * t);
+    if (d < best) {
+      best = d;
+      side = dx * (z - az) - dz * (x - ax) > 0 ? 1 : -1;
+    }
+  }
+  return side;
 }
 
 /** Approximate signed distance into a lake (positive inside, metres). */

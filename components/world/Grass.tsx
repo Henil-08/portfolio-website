@@ -62,14 +62,16 @@ function makeMask() {
   g.fill();
   g.globalCompositeOperation = "source-over";
   g.fillStyle = g.strokeStyle = "#000";
-  // The harbour inlet.
+  // The harbour arm and its banks.
   g.lineCap = g.lineJoin = "round";
-  for (const cn of CANALS) {
-    g.lineWidth = (cn.w + 4) * s;
-    g.beginPath();
-    cn.pts.forEach(([x, z], i) => (i ? g.lineTo(tx(x), tx(z)) : g.moveTo(tx(x), tx(z))));
-    g.stroke();
-  }
+  for (const cn of CANALS)
+    for (let i = 0; i < cn.pts.length - 1; i++) {
+      g.lineWidth = (Math.max(cn.w[i], cn.w[i + 1]) + 4) * s;
+      g.beginPath();
+      g.moveTo(tx(cn.pts[i][0]), tx(cn.pts[i][1]));
+      g.lineTo(tx(cn.pts[i + 1][0]), tx(cn.pts[i + 1][1]));
+      g.stroke();
+    }
   // Lakes and their sandy shores.
   for (const l of LAKES) {
     g.beginPath();

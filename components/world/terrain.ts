@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { CANALS, GRANDSTAND, LAKES, canalDist, LETTERS, MAX_R, SEA_FLOOR, SEA_Y, TIMELINE, lakeDepthDist, onBridge, PIT, SCENE_FOOT, SECTORS, shoreDist, TRACK_WIDTH, trackCurve, trackPoint, zones } from "./layout";
+import { CANALS, GRANDSTAND, LAKES, canalDist, canalSide, LETTERS, MAX_R, SEA_FLOOR, SEA_Y, TIMELINE, lakeDepthDist, onBridge, PIT, SCENE_FOOT, SECTORS, shoreDist, TRACK_WIDTH, trackCurve, trackPoint, zones } from "./layout";
 
 // Terrain height for the whole island. The land follows the circuit: right next
 // to the road it matches the track's height exactly, further away it blends
@@ -114,6 +114,8 @@ function build() {
   // sea floor. Lakes are the same, dug into low ground (their water is the sea's).
   const BEACH = SEA_Y + 0.22;
   const SHALLOW = SEA_Y - 0.38; // lakes, the inlet and the sea's first metres: a car sits in it, body above water
+  const DEEP = SEA_Y - 1.3; // the harbour channel
+  const QUAY = SEA_Y + 0.75; // quay top
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {
       const c = j * n + i;
@@ -128,17 +130,20 @@ function build() {
           fixed[c] = 1;
         }
       }
-      // The harbour inlet; it stops short of the road, which crosses on a causeway.
-      if (roadD[c] > TRACK_WIDTH / 2 + 2)
-        for (const cn of CANALS) {
-          const cd = canalDist(cn, x, z);
-          if (cd < -6) continue;
-          if (cd < 0) h[c] = Math.min(h[c], THREE.MathUtils.lerp(BEACH, h[c], THREE.MathUtils.smoothstep(-cd, 0, 6)));
-          else {
-            h[c] = THREE.MathUtils.lerp(BEACH, SHALLOW, THREE.MathUtils.smoothstep(cd, 0, 1.4));
-            fixed[c] = 1;
-          }
+      // The harbour arm runs under the road (the road crosses on a bridge). A beach on
+      // one side, a stone quay on the other, deep water down the middle.
+      for (const cn of CANALS) {
+        const cd = canalDist(cn, x, z);
+        if (cd < -6) continue;
+        const quay = cn.quay !== undefined && canalSide(cn, x, z) === cn.quay;
+        if (cd < 0) {
+          if (quay) h[c] = Math.min(h[c], THREE.MathUtils.lerp(QUAY, h[c], THREE.MathUtils.smoothstep(-cd, 1.2, 5)));
+          else h[c] = Math.min(h[c], THREE.MathUtils.lerp(BEACH, h[c], THREE.MathUtils.smoothstep(-cd, 0, 6)));
+        } else {
+          h[c] = quay ? DEEP : THREE.MathUtils.lerp(THREE.MathUtils.lerp(BEACH, SHALLOW, THREE.MathUtils.smoothstep(cd, 0, 1.4)), DEEP, THREE.MathUtils.smoothstep(cd, 1.6, 3.6));
+          fixed[c] = 1;
         }
+      }
       if (roadD[c] < TRACK_WIDTH / 2 + 3) continue;
       for (const l of LAKES) {
         const ld = lakeDepthDist(l, x, z);
