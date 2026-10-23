@@ -1,13 +1,13 @@
 // Career timeline data: one lane per role from content/experience.ts, with
 // real dates parsed into decimal years. Label copy is short, uppercase and
 // only says things that are already in the experience file.
-import { experience, type Role } from "@/content/experience";
+import { education, experience, type Role } from "@/content/experience";
 
-export const T0 = 2021; // start of the time axis (Jan 2021)
+export const T0 = 2019; // start of the time axis (Jan 2019, the year college began)
 export const T1 = 2027; // end (end of 2026)
-export const PER_YEAR = 1.5; // metres per year: compact, like Bruno's career strip
-export const LANE_GAP = 1.0; // metres between lanes
-export const LENGTH = (T1 - T0) * PER_YEAR; // 9 m of time axis
+export const PER_YEAR = 1.3; // metres per year: compact, like Bruno's career strip
+export const LANE_GAP = 0.9; // metres between lanes
+export const LENGTH = (T1 - T0) * PER_YEAR; // 10.4 m of time axis
 
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
@@ -44,6 +44,10 @@ const COPY: Record<string, LaneCopy> = {
   "Impacter AI|AI Developer Intern": { title: "IMPACTER AI", lines: ["AI DEVELOPER INTERN", "SALES AGENTS ON AKS"], color: "#ff6fd8" },
   "Waters Corporation|GenAI and ML Intern": { title: "WATERS", lines: ["GENAI + ML INTERN", "LLM EVALS FOR AI SEARCH"], color: "#f3f1ec" },
   "Waters Corporation|AI/ML Software Engineer": { title: "WATERS", lines: ["AI/ML SOFTWARE ENGINEER", "AGENTS FOR S/4HANA"], color: "#ff4b52" },
+  // education (content/experience.ts `education`), keyed by school|degree
+  "Nirma University|B.Tech, Electronics and Communication": { title: "NIRMA UNIVERSITY", lines: ["B.TECH, ELECTRONICS + COMMUNICATION"], color: "#f0d48a" },
+  "Nirma University|Minor, Computer Science and Engineering": { title: "NIRMA UNIVERSITY", lines: ["MINOR, COMPUTER SCIENCE"], color: "#ffb38a" },
+  "Northeastern University|MS, Data Science": { title: "NORTHEASTERN", lines: ["MS, DATA SCIENCE", "4.0 GPA"], color: "#8fb6ff" },
 };
 
 export type Lane = {
@@ -57,15 +61,17 @@ export type Lane = {
   ongoing: boolean;
 };
 
-function laneFor(r: Role, index: number): Lane {
+type Entry = Pick<Role, "company" | "title" | "dates">;
+
+function laneFor(r: Entry, index: number): Lane {
   const key = `${r.company}|${r.title}`;
   const c = COPY[key] ?? { title: r.company.toUpperCase(), lines: [r.title.toUpperCase()], color: "#f3f1ec" };
   const { start, end, ongoing } = parseRange(r.dates);
   return { key, index, ...c, start: Math.max(T0, start), end: Math.min(T1, end), ongoing };
 }
 
-/** Earliest role in lane 0, latest in the last lane: the lines form a staircase. */
-export const LANES: Lane[] = [...experience]
+/** Roles and degrees, earliest in lane 0, latest in the last lane: the lines form a staircase. */
+export const LANES: Lane[] = [...experience, ...education.map((e) => ({ company: e.school, title: e.degree, dates: e.dates }))]
   .map((r) => ({ r, s: parseRange(r.dates).start }))
   .sort((a, b) => a.s - b.s)
   .map(({ r }, i) => laneFor(r, i));

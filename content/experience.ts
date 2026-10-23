@@ -128,10 +128,18 @@ export const education = [
     school: "Northeastern University",
     degree: "MS, Data Science",
     detail: "4.0 GPA · Dec 2025 · Boston",
+    dates: "Sep 2023 – Dec 2025",
   },
   {
     school: "Nirma University",
     degree: "B.Tech, Electronics and Communication",
     detail: "Ahmedabad, India",
+    dates: "Jun 2019 – Jun 2023",
+  },
+  {
+    school: "Nirma University",
+    degree: "Minor, Computer Science and Engineering",
+    detail: "Ahmedabad, India",
+    dates: "Jul 2021 – Jun 2023",
   },
 ];

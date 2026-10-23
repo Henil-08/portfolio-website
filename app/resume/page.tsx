@@ -121,7 +121,7 @@ export default function Resume() {
         <Block title="Education">
           <div className="grid gap-3 sm:grid-cols-2">
             {education.map((e) => (
-              <div key={e.school} className="rounded-2xl bg-cream px-4 py-3 print:bg-transparent print:px-0">
+              <div key={e.degree} className="rounded-2xl bg-cream px-4 py-3 print:bg-transparent print:px-0">
                 <p className="font-semibold">{e.degree}</p>
                 <p className="text-[14px] text-ink-soft">
                   {e.school} · {e.detail}
