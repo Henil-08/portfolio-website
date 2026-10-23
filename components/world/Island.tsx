@@ -1,14 +1,15 @@
 "use client";
 
 import { useLayoutEffect, useMemo, useRef } from "react";
-import { CuboidCollider, CylinderCollider, RigidBody } from "@react-three/rapier";
+import { CuboidCollider, HeightfieldCollider, RigidBody, TrimeshCollider } from "@react-three/rapier";
 import * as THREE from "three";
 import { C } from "./palette";
-import { ISLAND_RADIUS, TRACK_WIDTH, trackCurve } from "./layout";
+import { ISLAND_RADIUS, START_T, TRACK_WIDTH, trackCurve } from "./layout";
+import { EXTENT, GRID, heightAt, heightGrid } from "./terrain";
 
 const SEGMENTS = 320;
 
-// Flat ribbon along the track curve, slightly above the grass.
+// Ribbon along the track curve, following its height, slightly above the ground.
 function ribbon(width: number, y: number, offset = 0) {
   const pos: number[] = [];
   const idx: number[] = [];
@@ -19,7 +20,7 @@ function ribbon(width: number, y: number, offset = 0) {
     const n = new THREE.Vector3(-t.z, 0, t.x).normalize();
     const a = p.clone().addScaledVector(n, offset - width / 2);
     const b = p.clone().addScaledVector(n, offset + width / 2);
-    pos.push(a.x, y, a.z, b.x, y, b.z);
+    pos.push(a.x, p.y + y, a.z, b.x, p.y + y, b.z);
     if (i < SEGMENTS) {
       const k = i * 2;
       idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3);
@@ -55,7 +56,7 @@ function Kerbs() {
       for (const side of [-1, 1]) {
         const q = p.clone().addScaledVector(nrm, side * (TRACK_WIDTH / 2 + 0.3));
         const rot = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(1, 0, 0), t0);
-        m.push(new THREE.Matrix4().compose(new THREE.Vector3(q.x, 0.035, q.z), rot, new THREE.Vector3(1, 1, 1)));
+        m.push(new THREE.Matrix4().compose(new THREE.Vector3(q.x, p.y + 0.035, q.z), rot, new THREE.Vector3(1, 1, 1)));
         c.push(new THREE.Color(i % 2 ? C.red : C.white));
       }
     }
@@ -98,14 +99,54 @@ function StartLine() {
     t.colorSpace = THREE.SRGBColorSpace;
     return t;
   }, []);
-  const p = trackCurve.getPointAt(0.98);
-  const tan = trackCurve.getTangentAt(0.98);
+  const p = trackCurve.getPointAt(START_T);
+  const tan = trackCurve.getTangentAt(START_T);
   return (
-    <mesh position={[p.x, 0.045, p.z]} rotation={[-Math.PI / 2, 0, Math.atan2(tan.z, tan.x) + Math.PI / 2]} receiveShadow>
+    <mesh position={[p.x, p.y + 0.045, p.z]} rotation={[-Math.PI / 2, 0, Math.atan2(tan.z, tan.x) + Math.PI / 2]} receiveShadow>
       <planeGeometry args={[TRACK_WIDTH, 1.6]} />
       <meshStandardMaterial map={tex} roughness={0.8} />
     </mesh>
   );
+}
+
+// The ground: a disc mesh whose vertices follow the terrain.
+function terrainGeometry() {
+  const rings = 110;
+  const segs = 220;
+  const pos: number[] = [0, heightAt(0, 0), 0];
+  const idx: number[] = [];
+  for (let r = 1; r <= rings; r++) {
+    const rad = (r / rings) * ISLAND_RADIUS;
+    for (let s = 0; s < segs; s++) {
+      const a = (s / segs) * Math.PI * 2;
+      const x = Math.cos(a) * rad;
+      const z = Math.sin(a) * rad;
+      pos.push(x, heightAt(x, z), z);
+    }
+  }
+  const at = (r: number, s: number) => (r === 0 ? 0 : 1 + (r - 1) * segs + (s % segs));
+  for (let s = 0; s < segs; s++) idx.push(0, at(1, s + 1), at(1, s));
+  for (let r = 1; r < rings; r++)
+    for (let s = 0; s < segs; s++) idx.push(at(r, s), at(r, s + 1), at(r + 1, s), at(r, s + 1), at(r + 1, s + 1), at(r + 1, s));
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  if (g.getAttribute("normal").getY(0) < 0) {
+    for (let i = 0; i < idx.length; i += 3) [idx[i + 1], idx[i + 2]] = [idx[i + 2], idx[i + 1]];
+    g.setIndex(idx);
+    g.computeVertexNormals();
+  }
+  return g;
+}
+
+// Rapier heightfield from the same grid. Columns run along X, rows along Z.
+function heightfieldArgs(): [number, number, number[], { x: number; y: number; z: number }] {
+  const h = heightGrid();
+  const n = GRID + 1;
+  const out = new Array<number>(n * n);
+  for (let ix = 0; ix < n; ix++) for (let iz = 0; iz < n; iz++) out[ix * n + iz] = h[iz * n + ix];
+  return [GRID, GRID, out, { x: EXTENT, y: 1, z: EXTENT }];
 }
 
 export default function Island() {
@@ -113,19 +154,27 @@ export default function Island() {
   const edgeL = useMemo(() => ribbon(0.25, 0.05, -TRACK_WIDTH / 2 + 0.35), []);
   const edgeR = useMemo(() => ribbon(0.25, 0.05, TRACK_WIDTH / 2 - 0.35), []);
   const centre = useMemo(() => ribbon(0.18, 0.05, 0), []);
+  const ground = useMemo(() => terrainGeometry(), []);
+  const field = useMemo(() => heightfieldArgs(), []);
+  // The road surface itself is the driving surface: a slightly wide trimesh of the ribbon.
+  const road = useMemo(() => {
+    const g = ribbon(TRACK_WIDTH + 3, 0.03);
+    return [g.getAttribute("position").array as Float32Array, g.getIndex()!.array as Uint32Array] as const;
+  }, []);
+  const plazaY = heightAt(0, 3);
 
   return (
     <group>
       <RigidBody type="fixed" colliders={false} friction={1}>
-        {/* Island top sits at y=0 */}
-        <CylinderCollider args={[2, ISLAND_RADIUS + 5]} position={[0, -2, 0]} />
+        {/* The land, hills and all */}
+        <HeightfieldCollider args={field} />
+        <TrimeshCollider args={[road[0], road[1]]} />
         {/* Sea floor catches anything that drives off, the car then respawns */}
         <CuboidCollider args={[400, 1, 400]} position={[0, -7, 0]} />
       </RigidBody>
 
       {/* The island is a diorama plinth: grass top, a stone border and a deep base. */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <circleGeometry args={[ISLAND_RADIUS, 128]} />
+      <mesh geometry={ground} receiveShadow>
         <meshStandardMaterial color={C.grass} roughness={0.92} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
@@ -157,11 +206,11 @@ export default function Island() {
       <StartLine />
 
       {/* Plaza where the car starts */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 3]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, plazaY + 0.02, 3]} receiveShadow>
         <circleGeometry args={[9, 64]} />
         <meshStandardMaterial color={C.greyLight} roughness={0.75} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 3]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, plazaY + 0.025, 3]}>
         <ringGeometry args={[8.75, 9, 64]} />
         <meshStandardMaterial color={C.red} roughness={0.8} />
       </mesh>

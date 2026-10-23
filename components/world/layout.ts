@@ -12,24 +12,41 @@ import type { Domain } from "@/content/projects";
 export const ISLAND_RADIUS = 98;
 export const TRACK_WIDTH = 8;
 
-export const TRACK_POINTS: [number, number][] = [
-  [-40, 46], // main straight, heading +X
-  [0, 47],
-  [40, 46],
-  [60, 36], // turn 1
-  [66, 12], // sector 1 runs north along the east side
-  [62, -18],
-  [48, -44], // hairpin into sector 2
-  [22, -56],
-  [-6, -52], // sector 3
-  [-36, -50],
-  [-58, -32],
-  [-66, -4], // sector 4 down the west side
-  [-60, 26],
+// A proper street circuit, with elevation: [x, z, height].
+// Main straight (low, DRS) -> T1 Mercury hairpin -> Stallion esses climbing ->
+// T4 crest at Hyperlab (+9 m) -> The Pitch chicane -> Charles River sweep diving
+// downhill like Eau Rouge -> Lab complex -> MCP corner -> back onto the straight.
+export const TRACK_POINTS: [number, number, number][] = [
+  [-56, 41, 0],
+  [-10, 42, 0],
+  [34, 41, 0],
+  [54, 36, 0.3],
+  [64, 25, 0.8],
+  [58, 13, 1.5],
+  [45, 9, 2.4],
+  [36, 0, 3.4],
+  [44, -9, 4.6],
+  [58, -15, 6],
+  [67, -27, 7.6],
+  [59, -41, 9],
+  [41, -46, 9.2],
+  [27, -38, 8.6],
+  [16, -42, 7.8],
+  [5, -51, 6.6],
+  [-11, -55, 4.6],
+  [-27, -50, 2.8],
+  [-36, -39, 2],
+  [-49, -41, 1.8],
+  [-63, -35, 1.4],
+  [-71, -22, 1],
+  [-69, -6, 0.6],
+  [-60, 6, 0.2],
+  [-66, 22, 0],
+  [-63, 35, 0],
 ];
 
 export const trackCurve = new THREE.CatmullRomCurve3(
-  TRACK_POINTS.map(([x, z]) => new THREE.Vector3(x, 0, z)),
+  TRACK_POINTS.map(([x, z, y]) => new THREE.Vector3(x, y, z)),
   true,
   "centripetal"
 );
@@ -71,10 +88,10 @@ export const START_T = 0.06;
 // camera (which sits to the +X/+Z of the car), a few metres past the kerb,
 // facing the road. That way it's always in frame and never blocks the view.
 const SECTOR_DEFS = [
-  { n: 1, id: "ahmedabad", name: "Ahmedabad", place: "Nirma University", year: "2021", from: 0.26, to: 0.46 },
-  { n: 2, id: "hyperlab", name: "Hyperlab", place: "Hyperlab", year: "2022–23", from: 0.46, to: 0.62 },
-  { n: 3, id: "boston", name: "Boston", place: "Boston", year: "2023–25", from: 0.62, to: 0.8 },
-  { n: 4, id: "waters", name: "Waters", place: "Waters", year: "2026 →", from: 0.8, to: 0.98 },
+  { n: 1, id: "ahmedabad", name: "Ahmedabad", place: "Nirma University", year: "2021", from: 0.24, to: 0.42 },
+  { n: 2, id: "hyperlab", name: "Hyperlab", place: "Hyperlab", year: "2022–23", from: 0.42, to: 0.56 },
+  { n: 3, id: "boston", name: "Boston", place: "Boston", year: "2023–25", from: 0.56, to: 0.74 },
+  { n: 4, id: "waters", name: "Waters", place: "Waters", year: "2026 →", from: 0.74, to: 0.97 },
 ] as const;
 
 const AWAY = new THREE.Vector3(-1, 0, -1).normalize();
@@ -101,13 +118,13 @@ export function sectorAt(t: number) {
 }
 
 // Pit lane runs just inside the main straight. One garage per project domain.
-export const PIT = { z: 37, from: -34, to: 34, garageZ: 27 };
+export const PIT = { z: 32, from: -34, to: 26, garageZ: 22 };
 export const GARAGES: { domain: Domain; x: number }[] = [
-  { domain: "agents", x: -24 },
-  { domain: "genai", x: -12 },
-  { domain: "hardware", x: 0 },
-  { domain: "vision", x: 12 },
-  { domain: "ml", x: 24 },
+  { domain: "agents", x: -28 },
+  { domain: "genai", x: -16 },
+  { domain: "hardware", x: -4 },
+  { domain: "vision", x: 8 },
+  { domain: "ml", x: 20 },
 ];
 
 export type ZoneId =
@@ -171,11 +188,11 @@ export const zones: Zone[] = [
     size: [9, 8],
     spawn: [g.x, PIT.z, Math.PI / 2],
   })),
-  { id: "playbook", label: "Tyre wall", hint: "How I work with AI", pos: [22, 8], size: [11, 8], spawn: [14, 14, 0] },
-  { id: "podium", label: "Podium", hint: "Papers and patents", pos: [-22, 8], size: [10, 8], spawn: [-14, 14, Math.PI] },
-  { id: "cricket", label: "Cricket", hint: "Off the clock", pos: [-22, -22], size: [22, 8], spawn: [-8, -22, Math.PI] },
-  { id: "football", label: "Football", hint: "Off the clock", pos: [24, -22], size: [18, 14], spawn: [12, -14, 0] },
-  { id: "contact", label: "Mailbox", hint: "Say hi", pos: [44, 30], size: [9, 8], spawn: [38, 36, -Math.PI / 4] },
+  { id: "playbook", label: "Tyre wall", hint: "How I work with AI", pos: [20, 8], size: [11, 8], spawn: [12, 12, 0] },
+  { id: "podium", label: "Podium", hint: "Papers and patents", pos: [-28, 8], size: [10, 8], spawn: [-20, 12, Math.PI] },
+  { id: "cricket", label: "Cricket", hint: "Off the clock", pos: [-30, -20], size: [22, 8], spawn: [-16, -20, Math.PI] },
+  { id: "football", label: "Football", hint: "Off the clock", pos: [14, -18], size: [18, 14], spawn: [2, -10, 0] },
+  { id: "contact", label: "Mailbox", hint: "Say hi", pos: [42, 26], size: [9, 8], spawn: [36, 30, -Math.PI / 4] },
 ];
 
 export const zoneById = Object.fromEntries(zones.map((z) => [z.id, z])) as Record<ZoneId, Zone>;
