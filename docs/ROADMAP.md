@@ -234,7 +234,8 @@ straight with pit wall, fences and stands). Do these in order, one commit per it
       Blade height was cut in b. Was: Grass like Bruno's (Grass.tsx, alive/Tracks.tsx already ports his wheel tracks): wheels part
       the grass and show the ground; it grows back after a while and is whole again when you return.
       Check it really reads like his (see his Grass.js / Terrain.js), tune blade density and colour.
-- [ ] e. Bushes like Bruno's (sources/Game/World/Bushes.js + Foliage.js clumps on the ground), scattered
+- [x] e. (7a2d602) park/bushes.ts: single round clumps (species `bush` is now his one-clump bush) beside
+      the garden paths, round the park islands and in infield clusters. Was: Bushes like Bruno's (sources/Game/World/Bushes.js + Foliage.js clumps on the ground), scattered
       through the infield, park and along paths. Reuse foliage/* (his clump material is already ported).
 - [ ] f. The infield common area in the middle is too empty: fill it Bruno-style (bushes, paths, his
       benches/lanterns/fences from models/props/brunoProps.ts, a small wooden footbridge, flower beds).
