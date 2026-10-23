@@ -85,7 +85,8 @@ Owner feedback still open (latest first): the map menu is bad; the water and its
 not up to the mark (now more water to dress: harbour, river, spring lake); the E prompt should be
 animated like Bruno's. New (2026-10-23): buildings on slopes with vertical walls (3f), a Bruno-style
 see-through when the car is hidden (3h), and a compact Bruno-style career timeline with floating rocks
-plus the owner's school journey (3b). Next up, in order: 3f, 3g, 3h, 3b, then step 4.
+plus the owner's school journey (3b). 3f, 3g, 3h and 3b are done (2026-10-23, late); the car no longer
+beaches on slopes (colliders 0.3 m up, parapets on embankments). Next up: step 4.
 
 ## Steps (do them in order; first unticked one is next)
 
@@ -169,10 +170,12 @@ the garden) uses too much ground. Bruno's career area (folio-2025 sources/Game/W
 CareerArea.js) is small: a few lines of stones laid in the ground; as the car drives along a line the
 stone rises out of the ground (`activeElevation` 2.5, sound), floats with a slow bob, and its label
 wipes in (`labelReveal` 0 -> 1, power2.inOut 1 s); leaving lowers it again. Years sit beside the lines.
-- [ ] Rebuild the timeline Bruno's way: compact (aim under a third of today's footprint), floating
+- [x] (9a93545) Rebuild the timeline Bruno's way: compact (aim under a third of today's footprint), floating
       rocks that rise and move as you pass, labels revealed by a wipe, years as small markers.
       Free the old pad back to the garden (garden/layout.ts paths and hedges that point at it).
-- [ ] Add the school journey to it. content/experience.ts `education` only has Nirma University
+- [x] (0ad0254) Owner: colleges only, no school. Nirma B.Tech Jun 2019 - Jun 2023, CSE minor Jul 2021 -
+      Jun 2023, Northeastern Sep 2023 - Dec 2025 (dates in content/experience.ts `education`, also in
+      Profile.pdf). Terrace ~13.6 x 13.5 m (31% of the old 31 x 19). Was: Add the school journey to it. content/experience.ts `education` only has Nirma University
       (B.Tech ECE, Ahmedabad) and Northeastern (MS Data Science, 4.0, Dec 2025, Boston). Anything
       before college (schools, years, places) is not in the repo: ask the owner for it, never invent.
       Keep entries in content/ (e.g. extend `education`), the world only reads them.
