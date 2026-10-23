@@ -27,55 +27,62 @@ export default function Intro() {
       }, 0);
       return () => clearTimeout(t);
     }
+    // Bruno's keys: Enter, or just start driving.
     const k = (e: KeyboardEvent) => {
-      if (ready && (e.key === "Enter" || e.key === " ")) start();
+      if (ready && ["Enter", "Space", "KeyW", "ArrowUp"].includes(e.code)) start();
     };
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
   }, [ready, start]);
 
+  // Loading: a dark screen. Ready: the screen clears and the world shows only in
+  // the reveal circle round the car (Reveal.tsx); a quiet title and the prompt sit
+  // at the bottom. Start: the circle sweeps out and the camera eases back.
   return (
     <AnimatePresence>
       {phase !== "world" && !leaving && (
         <motion.div
           key="start"
-          className="fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-end pb-[12vh] text-white"
-          style={{ background: ready ? "linear-gradient(to top, rgba(13,13,16,0.72), rgba(13,13,16,0) 45%)" : "#0d0d10" }}
+          className="fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-end pb-[9vh] text-white"
+          initial={false}
+          animate={{ backgroundColor: ready ? "rgba(29,23,33,0)" : "rgba(29,23,33,1)" }}
+          transition={{ duration: 1.2, ease: "easeInOut" }}
           onClick={() => ready && start()}
-          exit={{ opacity: 0, transition: { duration: 0.8 } }}
+          exit={{ opacity: 0, transition: { duration: 0.5 } }}
         >
           <a
             href="/resume"
             onClick={(e) => e.stopPropagation()}
-            className="absolute left-5 top-5 rounded-full bg-white/10 px-4 py-1.5 font-mono text-[11px] uppercase tracking-widest text-white/80 transition hover:bg-white hover:text-black"
+            className="absolute left-5 top-5 px-1 py-1.5 font-mono text-[11px] uppercase tracking-widest text-white/60 transition hover:text-white"
           >
             Resume
           </a>
-          <p className="font-racing text-[clamp(2rem,6vw,4.2rem)] leading-none tracking-wide drop-shadow-[0_2px_12px_rgba(0,0,0,0.35)]">
+          <p className="font-racing text-[clamp(1.4rem,3.6vw,2.6rem)] leading-none tracking-wide">
             HENIL <span className="text-[#e10600]">GAJJAR</span>
           </p>
-          <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.3em] text-white/70">AI/ML Software Engineer · Boston</p>
-          <div className="mt-8 h-10">
+          <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.3em] text-white/60">AI/ML Software Engineer · Boston</p>
+          <div className="mt-7 h-8">
             {ready ? (
               <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [0.4, 1, 0.4] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="font-racing text-sm tracking-[0.3em]"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.2, duration: 0.6 }}
+                className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.25em] text-white/80"
               >
-                CLICK TO START
+                <kbd className="grid h-6 min-w-6 place-items-center border border-white/50 px-1.5 text-[10px]">Enter</kbd>
+                to start
               </motion.p>
             ) : (
-              <div className="h-[2px] w-40 overflow-hidden rounded bg-white/10">
+              <div className="h-[2px] w-40 overflow-hidden bg-white/10">
                 <motion.div
-                  className="h-full w-1/3 bg-[#e10600]"
+                  className="h-full w-1/3 bg-[#e88eff]"
                   animate={{ x: ["-100%", "300%"] }}
                   transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
                 />
               </div>
             )}
           </div>
-          <p className="absolute bottom-6 font-mono text-[10px] uppercase tracking-[0.25em] text-white/45">Sound on</p>
+          <p className="absolute bottom-5 font-mono text-[10px] uppercase tracking-[0.25em] text-white/40">Sound on</p>
         </motion.div>
       )}
     </AnimatePresence>

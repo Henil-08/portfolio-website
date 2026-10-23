@@ -12,6 +12,7 @@ export type Phase = "boot" | "intro" | "world";
 type State = {
   phase: Phase;
   ready: boolean; // physics and scene mounted
+  revealed: boolean; // the opening reveal has finished (Reveal.tsx)
   zone: ZoneId | null; // the card that is open
   near: ZoneId | null; // the place the car is parked at, if any
   nearLink: string | null; // the contact medallion the car is next to (social/index.tsx LINKS key)
@@ -43,6 +44,7 @@ type State = {
 let state: State = {
   phase: "boot",
   ready: false,
+  revealed: false,
   zone: null,
   near: null,
   nearLink: null,

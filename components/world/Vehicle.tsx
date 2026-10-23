@@ -321,7 +321,7 @@ export default function Vehicle() {
       <RigidBody
         ref={body}
         colliders={false}
-        position={[SPAWN[0], heightAt(SPAWN[0], SPAWN[1]) + 0.9, SPAWN[1]]}
+        position={[SPAWN[0], heightAt(SPAWN[0], SPAWN[1]) + 0.45, SPAWN[1]]}
         linearDamping={0.1}
         angularDamping={0.1}
         canSleep={false}
@@ -389,7 +389,7 @@ export default function Vehicle() {
   );
 }
 
-function place(b: RapierRigidBody, x: number, z: number, heading: number, y = heightAt(x, z) + 0.9) {
+function place(b: RapierRigidBody, x: number, z: number, heading: number, y = heightAt(x, z) + 0.45) {
   const q = new THREE.Quaternion().setFromAxisAngle(up, heading);
   b.setTranslation({ x, y, z }, true);
   b.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);

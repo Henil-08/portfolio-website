@@ -1,5 +1,6 @@
 "use client";
 
+import { reveal } from "./Reveal";
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
@@ -27,7 +28,7 @@ export function CameraRig() {
   const shot = useRef<{ id: number; style: string; t: number } | null>(null);
   const idle = useRef(0);
 
-  useFrame(({ clock }, dt) => {
+  useFrame((_, dt) => {
     const phase = getState().phase;
     const portrait = size.height > size.width;
     const zoom = portrait ? 1.45 : 1;
@@ -48,7 +49,7 @@ export function CameraRig() {
     // Pull back a little at speed.
     const spd = Math.hypot(target.current.x - prev.current.x, target.current.z - prev.current.y) / Math.max(dt, 1e-4);
     zoomS.current += (THREE.MathUtils.smoothstep(spd, 5, 30) * 0.22 - zoomS.current) * k1;
-    const followPos = tmp.copy(OFFSET).multiplyScalar(zoom * (1 + zoomS.current)).add(target.current);
+    const followPos = tmp.copy(OFFSET).multiplyScalar(zoom * (1 + zoomS.current) * reveal.zoom).add(target.current);
 
     // Dev and headless checks: window.__cam = [x, y, z, tx, ty, tz] pins the camera.
     const dbg = (window as unknown as { __cam?: number[] }).__cam;
@@ -59,15 +60,13 @@ export function CameraRig() {
     }
 
     if (phase !== "world") {
-      // Start screen: a slow turntable around the parked car, like a car reveal.
-      const c = carState.pos;
-      const ta = clock.elapsedTime * 0.12 + 2.2;
-      const r = portrait ? 7.5 : 5.6;
-      camera.position.set(c.x + Math.cos(ta) * r, c.y + 2.2, c.z + Math.sin(ta) * r);
-      camera.lookAt(c.x, c.y - 1.1, c.z); // car sits in the upper half, the title below it
-      orbit.copy(camera.position); // the swoop to the chase camera starts here
-      target.current.copy(c);
-      blend.current = 0;
+      // Start screen, like Bruno's: the chase camera's angle, pulled in close on
+      // the car inside the reveal circle (Reveal.tsx eases the zoom back on start).
+      target.current.set(carState.pos.x, carState.pos.y - 0.3, carState.pos.z);
+      camera.position.copy(followPos);
+      camera.lookAt(target.current);
+      orbit.copy(camera.position);
+      blend.current = 1;
       return;
     }
 

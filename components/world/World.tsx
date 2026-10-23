@@ -1,5 +1,6 @@
 "use client";
 
+import { RevealDriver, RevealPass } from "./Reveal";
 import { Suspense, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Physics, useRapier } from "@react-three/rapier";
@@ -27,6 +28,7 @@ export default function World() {
 
   useEffect(() => bindKeyboard(), []);
   const hallucinating = useWorld((s) => s.hallucinating);
+  const revealed = useWorld((s) => s.revealed);
 
   return (
     <Canvas
@@ -59,6 +61,7 @@ export default function World() {
         </Physics>
       </Suspense>
       <CameraRig />
+      <RevealDriver />
       <ZoneWatcher />
       <InteractionPoint />
       <Weather />
@@ -67,8 +70,16 @@ export default function World() {
       <Alive />
       <Autopilot />
       <Exposure />
+      {/* The light version still gets the opening reveal, then drops the composer. */}
+      {!fancy && !revealed && (
+        <EffectComposer multisampling={0} enableNormalPass={false}>
+          <RevealPass />
+          <Bloom luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0.55} mipmapBlur />
+        </EffectComposer>
+      )}
       {fancy && (
         <EffectComposer multisampling={0} enableNormalPass={false}>
+          <RevealPass />
           <N8AO halfRes aoRadius={1.6} intensity={1.6} distanceFalloff={0.7} color="#2a2420" />
           {/* Only emissives pushed past 1.0 bloom (lamps, windows, garage headers, neon). */}
           <Bloom luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0.55} mipmapBlur />
