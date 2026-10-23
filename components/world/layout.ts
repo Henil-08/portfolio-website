@@ -14,41 +14,43 @@ export const ISLAND_RADIUS = 98;
 export const TRACK_WIDTH = 8;
 
 // A street circuit with a crossover, [x, z, height].
-// Main straight (low, DRS) -> T1 sweeper east -> the east esses -> NE hairpin ->
-// the north tunnel straight, which runs UNDER the bridge -> the climbing loop
-// behind the town -> over the bridge, 7 m up -> a long descent through the
-// infield's edge -> the west sweepers -> back onto the straight.
-// Heights are spread by distance so no grade passes ~9%.
+// Main straight (DRS) -> T1 sweeper east -> the east esses over the river ->
+// NE hairpin -> the north tunnel straight, which runs UNDER the bridge -> the
+// climbing loop behind the town -> over the bridge, 4.5 m up -> a long descent
+// to the harbour bridge -> the west sweepers -> back onto the straight.
+// Flat world (owner, 4b-c): the land is level and the road is at 0 except the
+// crossover's ramps (cosine eased, under ~9%) and the low decks over the river
+// and the harbour arm, which keep a gap over the water.
 export const TRACK_POINTS: [number, number, number][] = [
   [-56, 41, 0],
   [-10, 42, 0],
   [34, 41, 0],
-  [54, 36, 0.28],
-  [64, 24, 1.3],
-  [62, 6, 1.75],
-  [52, -6, 1.6],
-  [62, -20, 1.5],
-  [76, -32, 2.4],
-  [86, -50, 3.4],
-  [80, -68, 3.8],
-  [62, -74, 3.2],
-  [44, -62, 2.0],
-  [28, -54, 0.9],
-  [12, -50, 0.3],
-  [-12, -50, 0.4],
-  [-26, -58, 1.57],
-  [-28, -70, 2.58],
-  [-14, -77, 3.95],
-  [2, -72, 5.41],
-  [4, -62, 6.22],
-  [1, -50, 7.1],
-  [-1, -38, 6.53],
-  [-10, -28, 5.83],
-  [-26, -25, 4.92],
-  [-42, -30, 3.93],
-  [-60, -36, 2.79],
-  [-78, -32, 1.9],
-  [-90, -18, 1.5],
+  [54, 36, 0],
+  [64, 24, 1.0],
+  [62, 6, 1.2],
+  [52, -6, 0.3],
+  [62, -20, 0],
+  [76, -32, 0],
+  [86, -50, 0],
+  [80, -68, 0],
+  [62, -74, 0],
+  [44, -62, 0],
+  [28, -54, 0],
+  [12, -50, 0],
+  [-12, -50, 0],
+  [-26, -58, 0.4],
+  [-28, -70, 1.15],
+  [-14, -77, 2.46],
+  [2, -72, 3.76],
+  [4, -62, 4.27],
+  [1, -50, 4.5],
+  [-1, -38, 4.41],
+  [-10, -28, 4.14],
+  [-26, -25, 3.62],
+  [-42, -30, 2.94],
+  [-60, -36, 2.2],
+  [-78, -32, 1.68],
+  [-90, -18, 1.6],
   [-92, 0, 1.8],
   [-84, 18, 0.9],
   [-72, 34, 0],
@@ -194,10 +196,10 @@ export function shoreDist(x: number, z: number) {
 
 // ------------------------------------------------------------ relief
 
-// Hills: a range along the north coast behind the old town and the north-east
-// hairpin (a backdrop for the chase camera, which looks north-west), and knolls
-// round the spring lake. Wide enough that their slopes stay drivable.
-const HILLS: { x: number; z: number; r: number; h: number }[] = [
+// Meadows: where the north-coast hills used to be (behind the old town and the
+// north-east hairpin) and round the spring lake. The world is flat now (4b-c);
+// these only say where wildflowers and rock outcrops grow (districts/hills.ts).
+const MEADOWS: { x: number; z: number; r: number; h: number }[] = [
   { x: 56, z: -96, r: 20, h: 6 },
   { x: 24, z: -104, r: 22, h: 8 },
   { x: -12, z: -108, r: 22, h: 7.5 },
@@ -216,16 +218,10 @@ export function duneMask(x: number, z: number) {
   return band * THREE.MathUtils.smoothstep(z, -40, -28) * (1 - THREE.MathUtils.smoothstep(z, 26, 36));
 }
 
-/** Extra height (m) the land rises above the circuit-following ground: hills and dunes. */
-export function reliefAt(x: number, z: number) {
+/** How deep into a meadow (x, z) is, in the old hill heights (m); 0 outside. Not a height. */
+export function meadowAt(x: number, z: number) {
   let h = 0;
-  for (const k of HILLS) h += k.h * Math.exp((-1.6 * ((x - k.x) ** 2 + (z - k.z) ** 2)) / (k.r * k.r));
-  const dm = duneMask(x, z);
-  if (dm > 0) {
-    const a = Math.atan2(z, x);
-    const sd = shoreDist(x, z);
-    h += dm * (0.55 + 0.45 * Math.sin(a * 30 + sd * 0.35) * Math.sin(a * 11 - sd * 0.22 + 1.3)) * 2.6;
-  }
+  for (const k of MEADOWS) h += k.h * Math.exp((-1.6 * ((x - k.x) ** 2 + (z - k.z) ** 2)) / (k.r * k.r));
   return h;
 }
 

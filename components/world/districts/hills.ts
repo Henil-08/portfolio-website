@@ -1,9 +1,9 @@
-// The north hills: wildflower clusters (Bruno Simon's Flowers.js, MIT, (c) 2025
+// The north meadows (where the hills were): wildflower clusters (Bruno Simon's Flowers.js, MIT, (c) 2025
 // Bruno Simon: eight tiny petal cards on a dome, scattered in clusters of 3 to 10)
-// and grey rock outcrops half sunk in the slope. Pure data, read by ./index.tsx.
+// and grey rock outcrops half sunk in the ground. Pure data, read by ./index.tsx.
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { MAX_R, TRACK_WIDTH, duneMask, inLand, nearestT, reliefAt } from "../layout";
+import { MAX_R, TRACK_WIDTH, duneMask, inLand, nearestT, meadowAt } from "../layout";
 import { heightAt } from "../terrain";
 import { compose, inSectorScene, nearPlace, nearTree, rng } from "../street/common";
 import { BUILDINGS } from "../street/town";
@@ -11,7 +11,7 @@ import { C } from "../palette";
 
 /** Up on a hill, not the dunes, not the road, a building or a place. */
 function onHill(x: number, z: number, pad: number) {
-  if (reliefAt(x, z) < 1 || duneMask(x, z) > 0.05) return false;
+  if (meadowAt(x, z) < 1 || duneMask(x, z) > 0.05) return false;
   if (!inLand(x, z, 2) || nearestT(x, z).dist < TRACK_WIDTH / 2 + 4 + pad) return false;
   if (nearPlace(x, z, pad) || inSectorScene(x, z, pad + 3, 10)) return false;
   return !BUILDINGS.some((b) => Math.hypot(b.x - x, b.z - z) < Math.hypot(b.w, b.d) / 2 + 1 + pad);
