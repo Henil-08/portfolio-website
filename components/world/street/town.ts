@@ -126,10 +126,27 @@ function frontage(out: Bld[]) {
       i += 2;
       continue;
     }
-    const w = 6 + r() * 4.5;
+    // Narrower on bends, so the frontage steps round the corner instead of jutting into it.
+    const bend = Math.abs(f.k) > 0.025;
+    const w = bend ? 4.2 + r() * 2 : 6 + r() * 4.5;
     const d = 5.5 + r() * 3;
-    // right behind the pavement
-    const off = Math.abs(barrierOffset(i, s as 1 | -1)) + 3.6 + r() * 1.2 + d / 2;
+    // Right behind the pavement: pushed back until both front corners clear it.
+    const need = Math.abs(barrierOffset(i, s as 1 | -1)) + 3.6 + r() * 1.2;
+    let off = need + d / 2;
+    const yawF = Math.atan2(-f.tan.z, f.tan.x);
+    for (let k = 0; k < 8; k++) {
+      const c = f.p.clone().addScaledVector(f.n, s * off);
+      const nearest = Math.min(
+        ...[-1, 1].map((sx) => {
+          // front corners: along the tangent by +-w/2, toward the road by d/2
+          const x = c.x + Math.cos(yawF) * (sx * w) / 2 - f.n.x * s * (d / 2);
+          const z = c.z - Math.sin(yawF) * (sx * w) / 2 - f.n.z * s * (d / 2);
+          return distToTrack(x, z);
+        }),
+      );
+      if (nearest >= need - 0.1) break;
+      off += need - nearest;
+    }
     const q = f.p.clone().addScaledVector(f.n, s * off);
     const floors = 2 + Math.floor(Math.pow(r(), 1.2) * 3.999);
     const color = WALLS[Math.floor(r() * WALLS.length)];
