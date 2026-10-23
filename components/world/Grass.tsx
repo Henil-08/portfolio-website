@@ -1,23 +1,42 @@
+// Adapted from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon), sources/Game/World/Grass.js
+// (wind from sources/Game/Wind.js, wheel tracks from sources/Game/Tracks.js + Terrain.js)
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { carState } from "./carState";
-import { dayNight } from "./daynight";
 import { GARAGES, ISLAND_RADIUS, PIT, SECTORS, TRACK_WIDTH, trackCurve, zones } from "./layout";
 import { C } from "./palette";
+import { getWindUniforms, terrainShader, updateWind, TERRAIN_GLSL, WIND_GLSL } from "./alive/wind";
+import { perlinTexture, seeded } from "./alive/noise";
+import { tracks, tracksTarget } from "./alive/Tracks";
 
-// Wind-blown grass around the car, Bruno style: thousands of instanced blades in a
-// field that follows the car (snapped to a grid so it doesn't swim), swaying in the
-// vertex shader. A mask painted from the track and building footprints keeps
-// blades off the asphalt and out of buildings.
+// Bruno's grass: one triangle per blade (tip + two base corners), laid out on a
+// jittered grid that loops around the car so the field never runs out. Every
+// blade turns to face the camera, its height follows a perlin patchwork, the
+// shared wind bends its tip, wheel tracks flatten it, and the car pushes it
+// aside as it drives through. Lit like the ground under it (normal points up),
+// so the field melts into the island at the root and lightens toward the tips.
+// A mask painted from the track and building footprints keeps blades off the
+// asphalt and out of buildings.
+//
+// Changes for WebGL + this island: a regular (non-node) MeshStandardMaterial
+// patched in onBeforeCompile, a 56 m field around the car (Bruno sizes it to the
+// view), and our palette instead of his yellow-green.
 
-// Fewer blades on phones.
-const COUNT = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches ? 22000 : 56000;
+const COARSE = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+const SUBDIVISIONS = COARSE ? 148 : 236; // 22k blades on phones, 56k on desktop
 const SIZE = 56; // field width in metres
 const MASK_RES = 1024;
 const WORLD = (ISLAND_RADIUS + 6) * 2;
+
+// Bruno scales blades up when the field covers more than his ideal surface.
+const SURFACE_IDEAL = 2000;
+const OVERFLOW = Math.max(0, SIZE * SIZE - SURFACE_IDEAL) / SURFACE_IDEAL;
+const BLADE_WIDTH = 0.1 * (1 + OVERFLOW * 0.5);
+const BLADE_HEIGHT = 0.6 * (1 + OVERFLOW * 0.5);
+const BLADE_HEIGHT_RANDOMNESS = 0.6;
 
 function makeMask() {
   const c = document.createElement("canvas");
@@ -62,87 +81,185 @@ function makeMask() {
   return tex;
 }
 
+/** A plain white texture: grass everywhere (the lab, or no `mask`). */
+function fullMask() {
+  const t = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+  t.needsUpdate = true;
+  return t;
+}
+
 function makeBlades() {
-  // One blade: a tapered strip of 3 segments, base at y = 0.
-  const blade = new THREE.BufferGeometry();
-  const w = 0.085;
-  const pos = [-w, 0, 0, w, 0, 0, -w * 0.7, 0.33, 0, w * 0.7, 0.33, 0, -w * 0.35, 0.66, 0, w * 0.35, 0.66, 0, 0, 1, 0];
-  blade.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-  blade.setIndex([0, 1, 2, 2, 1, 3, 2, 3, 4, 4, 3, 5, 4, 5, 6]);
-  const g = new THREE.InstancedBufferGeometry().copy(blade as unknown as THREE.InstancedBufferGeometry);
-  const off = new Float32Array(COUNT * 4);
-  for (let i = 0; i < COUNT; i++) {
-    off[i * 4] = (Math.random() - 0.5) * SIZE;
-    off[i * 4 + 1] = (Math.random() - 0.5) * SIZE;
-    off[i * 4 + 2] = 0.3 + Math.random() * 0.38; // height
-    off[i * 4 + 3] = Math.random() * Math.PI * 2; // rotation
+  // Bruno's layout: one blade per cell of a grid, jittered inside its cell; the
+  // three vertices of a blade share its centre and the shader builds the shape.
+  const r = seeded(280);
+  const count = SUBDIVISIONS * SUBDIVISIONS;
+  const fragment = SIZE / SUBDIVISIONS;
+  const position = new Float32Array(count * 3 * 3);
+  const random = new Float32Array(count * 3);
+  for (let iX = 0; iX < SUBDIVISIONS; iX++) {
+    const fx = (iX / SUBDIVISIONS - 0.5) * SIZE + fragment * 0.5;
+    for (let iZ = 0; iZ < SUBDIVISIONS; iZ++) {
+      const fz = (iZ / SUBDIVISIONS - 0.5) * SIZE + fragment * 0.5;
+      const i = iX * SUBDIVISIONS + iZ;
+      const x = fx + (r() - 0.5) * fragment;
+      const z = fz + (r() - 0.5) * fragment;
+      const h = r();
+      for (let v = 0; v < 3; v++) {
+        position[(i * 3 + v) * 3] = x;
+        position[(i * 3 + v) * 3 + 2] = z;
+        random[i * 3 + v] = h;
+      }
+    }
   }
-  g.setAttribute("aOffset", new THREE.InstancedBufferAttribute(off, 4));
-  g.instanceCount = COUNT;
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(position, 3));
+  g.setAttribute("aRandom", new THREE.BufferAttribute(random, 1));
+  g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), SIZE);
   return g;
 }
 
-export default function Grass() {
-  const mesh = useRef<THREE.Mesh<THREE.InstancedBufferGeometry, THREE.ShaderMaterial>>(null);
-  const geo = useMemo(() => makeBlades(), []);
-  const mat = useMemo(
-    () =>
-      new THREE.ShaderMaterial({
-        side: THREE.DoubleSide,
-        uniforms: {
-          uTime: { value: 0 },
-          uCenter: { value: new THREE.Vector2() },
-          uMask: { value: makeMask() },
-          uWorld: { value: WORLD },
-          uSize: { value: SIZE },
-          uBase: { value: new THREE.Color(C.grassDark).offsetHSL(0, 0.05, -0.08) },
-          uTip: { value: new THREE.Color(C.grass).offsetHSL(0.01, 0.1, 0.06) },
-          uNight: { value: 0 },
-        },
-        vertexShader: /* glsl */ `
-          attribute vec4 aOffset;
-          uniform float uTime; uniform vec2 uCenter; uniform sampler2D uMask; uniform float uWorld; uniform float uSize;
-          varying float vH; varying float vFade;
-          void main() {
-            vec2 wp = uCenter + aOffset.xy;
-            // Wrap blades into the field around the car so the patch never runs out.
-            wp = uCenter + mod(aOffset.xy - uCenter + uSize * 0.5, uSize) - uSize * 0.5;
-            float m = texture2D(uMask, wp / uWorld + 0.5).r;
-            float edge = 1.0 - smoothstep(uSize * 0.35, uSize * 0.5, length(wp - uCenter));
-            float h = aOffset.z * m * edge;
-            vec3 p = position;
-            float c = cos(aOffset.w), s = sin(aOffset.w);
-            p.xz = mat2(c, -s, s, c) * p.xz;
-            p.y *= h;
-            // Wind: two travelling waves, stronger toward the tip.
-            float wave = sin(wp.x * 0.35 + uTime * 1.6) * 0.6 + sin(wp.y * 0.5 + uTime * 2.3) * 0.4;
-            p.x += wave * 0.12 * position.y * position.y * h * 3.0;
-            p.z += wave * 0.06 * position.y * position.y * h * 3.0;
-            vH = position.y;
-            vFade = m * edge;
-            gl_Position = projectionMatrix * viewMatrix * vec4(p.x + wp.x, p.y, p.z + wp.y, 1.0);
-          }`,
-        fragmentShader: /* glsl */ `
-          uniform vec3 uBase; uniform vec3 uTip; uniform float uNight;
-          varying float vH; varying float vFade;
-          void main() {
-            if (vFade < 0.05) discard;
-            vec3 col = mix(uBase, uTip, vH);
-            col *= mix(1.0, 0.11, uNight);
-            gl_FragColor = vec4(col, 1.0);
-            #include <colorspace_fragment>
-          }`,
-      }),
-    []
-  );
+function makeMaterial(mask: THREE.Texture) {
+  const terrain = terrainShader();
+  const u = {
+    uCenter: { value: new THREE.Vector2() },
+    uCar: { value: new THREE.Vector4(0, -100, 0, 0) }, // xyz + grounded
+    uMask: { value: mask },
+    uWorld: { value: WORLD },
+    uSize: { value: SIZE },
+    uBladeWidth: { value: BLADE_WIDTH },
+    uBladeHeight: { value: BLADE_HEIGHT },
+    uBladeHeightRandomness: { value: BLADE_HEIGHT_RANDOMNESS },
+    uNoise: { value: perlinTexture() },
+    uRoot: { value: new THREE.Color(C.grass).offsetHSL(0, 0.02, -0.07) },
+    uTipA: { value: new THREE.Color(C.grass).offsetHSL(0.01, 0.1, 0.06) },
+    uTipB: { value: new THREE.Color(C.grass).offsetHSL(-0.03, 0.14, 0.1) },
+    ...terrain.uniforms,
+  };
+  const m = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0, side: THREE.DoubleSide });
+  m.defines = { ...terrain.defines };
+  m.userData.u = u;
+  m.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, u, getWindUniforms(), tracks.uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        "#include <common>",
+        /* glsl */ `#include <common>
+        attribute float aRandom;
+        uniform vec2 uCenter; uniform vec4 uCar; uniform sampler2D uMask; uniform float uWorld; uniform float uSize;
+        uniform float uBladeWidth; uniform float uBladeHeight; uniform float uBladeHeightRandomness;
+        uniform sampler2D uNoise;
+        uniform sampler2D uTracks; uniform vec2 uTracksFocus; uniform float uTracksSize;
+        varying float vTip; varying float vPatch; varying float vRandom;
+        ${WIND_GLSL}
+        ${TERRAIN_GLSL}`
+      )
+      .replace(
+        "#include <beginnormal_vertex>",
+        /* glsl */ `
+        vec3 objectNormal = vec3(0.0, 1.0, 0.0);
+        // Blade position, looped around the centre
+        float vertexLoopIndex = float(gl_VertexID % 3);
+        float tipness = step(vertexLoopIndex, 0.5);
+        vec2 loopPosition = position.xz - uCenter;
+        float halfSize = uSize * 0.5;
+        loopPosition = mod(loopPosition + halfSize, uSize) - halfSize;
+        vec2 bladePosition = loopPosition + uCenter;
 
-  useFrame((_, dt) => {
+        // Terrain data: the mask is our "grass" channel; wheel tracks remove grass
+        float terrainDataGrass = texture2D(uMask, bladePosition / uWorld + 0.5).r;
+        vec2 tracksUv = (bladePosition - uTracksFocus) / uTracksSize + 0.5;
+        if (tracksUv.x > 0.0 && tracksUv.x < 1.0 && tracksUv.y > 0.0 && tracksUv.y < 1.0)
+          terrainDataGrass *= 1.0 - texture2D(uTracks, tracksUv).r;
+        terrainDataGrass *= 1.0 - smoothstep(uSize * 0.36, halfSize, length(loopPosition));
+        float hidden = step(terrainDataGrass - 0.4, 0.1);
+
+        // Height
+        float heightVariation = texture2D(uNoise, bladePosition * 0.0321).r + 0.5;
+        float height = uBladeHeight
+          * (uBladeHeightRandomness * aRandom + (1.0 - uBladeHeightRandomness))
+          * heightVariation
+          * terrainDataGrass;
+
+        // Shape: tip, left, right
+        vec3 shape = vec3(0.0);
+        if (vertexLoopIndex < 0.5) shape.y = height;
+        else shape.x = (vertexLoopIndex < 1.5 ? 1.0 : -1.0) * uBladeWidth * terrainDataGrass;
+
+        // Face the camera
+        float angleToCamera = atan(bladePosition.y - cameraPosition.z, bladePosition.x - cameraPosition.x) - PI * 0.5;
+        float ca = cos(angleToCamera), sa = sin(angleToCamera);
+        shape.xz = vec2(ca * shape.x - sa * shape.z, sa * shape.x + ca * shape.z);
+
+        // Wind
+        vec2 wind = windOffset(bladePosition) * tipness * height * 2.0;
+        shape.xz += wind;
+
+        // The car pushes blades aside (and down) as it drives through
+        vec2 fromCar = bladePosition - uCar.xz;
+        float carDistance = length(fromCar);
+        float push = (1.0 - smoothstep(0.5, 1.9, carDistance)) * uCar.w * tipness;
+        shape.xz += fromCar / max(carDistance, 0.001) * push * height * 1.1;
+        shape.y -= push * height * 0.55;
+
+        shape *= 1.0 - hidden;
+        vec3 bladeTransformed = vec3(bladePosition.x, terrainHeight(bladePosition), bladePosition.y) + shape;
+
+        vTip = tipness;
+        vRandom = aRandom;
+        vPatch = texture2D(uNoise, bladePosition * 0.06 + 0.37).r;`
+      )
+      .replace("#include <begin_vertex>", "vec3 transformed = bladeTransformed;");
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <common>",
+        /* glsl */ `#include <common>
+        uniform vec3 uRoot; uniform vec3 uTipA; uniform vec3 uTipB;
+        varying float vTip; varying float vPatch; varying float vRandom;`
+      )
+      .replace(
+        "vec4 diffuseColor = vec4( diffuse, opacity );",
+        /* glsl */ `vec3 tipColor = mix(uTipA, uTipB, smoothstep(0.25, 0.85, vPatch)) * (0.9 + vRandom * 0.2);
+        vec4 diffuseColor = vec4(mix(uRoot, tipColor, vTip), opacity);`
+      )
+      // Always lit like the ground: world up in view space (no back-face flip).
+      .replace("#include <normal_fragment_begin>", "#include <normal_fragment_begin>\n normal = normalize( ( viewMatrix * vec4( 0.0, 1.0, 0.0, 0.0 ) ).xyz );");
+  };
+  m.customProgramCacheKey = () => "alive-grass";
+  return m;
+}
+
+/**
+ * Wind-blown grass around the car. `mask={false}` grows grass everywhere (labs).
+ */
+export default function Grass({ mask = true }: { mask?: boolean }) {
+  const mesh = useRef<THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>>(null);
+
+  // Built once on mount (canvas + seeded layout), disposed on unmount.
+  useEffect(() => {
     const m = mesh.current;
     if (!m) return;
-    m.material.uniforms.uTime.value += dt;
-    m.material.uniforms.uCenter.value.set(carState.pos.x, carState.pos.z);
-    m.material.uniforms.uNight.value = dayNight.night;
+    const geometry = makeBlades();
+    const tex = mask ? makeMask() : fullMask();
+    const material = makeMaterial(tex);
+    tracksTarget();
+    m.geometry = geometry;
+    m.material = material;
+    m.visible = true;
+    return () => {
+      geometry.dispose();
+      material.dispose();
+      tex.dispose();
+    };
+  }, [mask]);
+
+  useFrame(({ clock }, dt) => {
+    updateWind(clock.elapsedTime, dt);
+    const m = mesh.current;
+    const u = m?.material.userData.u;
+    if (!u) return;
+    u.uCenter.value.set(carState.pos.x, carState.pos.z);
+    u.uCar.value.set(carState.pos.x, carState.pos.y, carState.pos.z, carState.grounded ? 1 : 0);
   });
 
-  return <mesh ref={mesh} geometry={geo} material={mat} frustumCulled={false} />;
+  return <mesh ref={mesh} visible={false} frustumCulled={false} receiveShadow />;
 }

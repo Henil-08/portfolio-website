@@ -10,12 +10,17 @@ import { useMemo } from "react";
 import * as THREE from "three";
 import { C } from "../../palette";
 import { geo, mat, rng, type GroupProps } from "./shared";
+import { withWind } from "../../alive/sway";
 
 type TreeProps = GroupProps & { variant?: "round" | "pine" | "palm"; seed?: number };
 
-const leafMat = () => mat(C.leaf, { r: 0.55 });
-const leafDarkMat = () => mat(C.leafDark, { r: 0.55 });
-const facetMat = (dark: boolean) => mat(dark ? C.leafDark : C.leaf, { r: 0.6, flat: true });
+// Foliage sways in the shared wind (alive/sway.ts); trunks stay put.
+const CANOPY_SWAY = { amount: 0.1, flutter: 0.025 };
+const BUSH_SWAY = { amount: 0.22, flutter: 0.02 };
+const PALM_SWAY = { amount: 0.05, flutter: 0.05 };
+const leafMat = (sway = CANOPY_SWAY) => withWind(mat(C.leaf, { r: 0.55 }), sway);
+const leafDarkMat = (sway = CANOPY_SWAY) => withWind(mat(C.leafDark, { r: 0.55 }), sway);
+const facetMat = (dark: boolean) => withWind(mat(dark ? C.leafDark : C.leaf, { r: 0.6, flat: true }), { amount: 0.08, flutter: 0.015 });
 const trunkMat = () => mat(C.woodDark, { r: 0.55 });
 
 function trunkGeo() {
@@ -122,16 +127,16 @@ function PalmTree() {
   const top: [number, number, number] = [0.9, 3.95, 0];
   return (
     <>
-      <mesh geometry={palmTrunkGeo()} material={mat(C.wood, { r: 0.6 })} castShadow receiveShadow />
+      <mesh geometry={palmTrunkGeo()} material={withWind(mat(C.wood, { r: 0.6 }), { ...PALM_SWAY, flutter: 0 })} castShadow receiveShadow />
       <group position={top}>
-        <mesh geometry={canopyGeo()} scale={0.16} material={mat(C.woodDark, { r: 0.5 })} castShadow />
+        <mesh geometry={canopyGeo()} scale={0.16} material={withWind(mat(C.woodDark, { r: 0.5 }), { ...PALM_SWAY, flutter: 0 })} castShadow />
         {Array.from({ length: 9 }, (_, i) => (
           <mesh
             key={i}
             geometry={frondGeo()}
             rotation={[0, (i / 9) * Math.PI * 2 + 0.3, (i % 2) * 0.22 - 0.05]}
             scale={i % 2 ? 0.92 : 1.05}
-            material={mat(i % 3 ? C.leafPalm : C.leafDark, { r: 0.55, side: THREE.DoubleSide })}
+            material={withWind(mat(i % 3 ? C.leafPalm : C.leafDark, { r: 0.55, side: THREE.DoubleSide }), PALM_SWAY)}
             castShadow
           />
         ))}
@@ -159,8 +164,8 @@ export function Bush({ seed = 1, ...props }: GroupProps & { seed?: number }) {
   }, [seed]);
   return (
     <group {...props}>
-      <mesh geometry={canopyGeo()} position={[-0.12, 0.38, 0]} scale={[v.a * 1.15, v.a * 0.85, v.a]} material={v.dark ? leafDarkMat() : leafMat()} castShadow receiveShadow />
-      <mesh geometry={canopyGeo()} position={[0.4, 0.28, 0.1]} scale={[v.b * 1.1, v.b * 0.85, v.b]} material={v.dark ? leafMat() : leafDarkMat()} castShadow receiveShadow />
+      <mesh geometry={canopyGeo()} position={[-0.12, 0.38, 0]} scale={[v.a * 1.15, v.a * 0.85, v.a]} material={v.dark ? leafDarkMat(BUSH_SWAY) : leafMat(BUSH_SWAY)} castShadow receiveShadow />
+      <mesh geometry={canopyGeo()} position={[0.4, 0.28, 0.1]} scale={[v.b * 1.1, v.b * 0.85, v.b]} material={v.dark ? leafMat(BUSH_SWAY) : leafDarkMat(BUSH_SWAY)} castShadow receiveShadow />
     </group>
   );
 }
