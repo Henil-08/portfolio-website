@@ -123,7 +123,9 @@ distinct areas threaded by paths, water woven through, shorelines with teal glow
   - [x] e. (2fc6d8e) Park islands (park/layout.ts `ISLANDS`, `parkSand`): football, podium, playbook,
         contact on grass islands in sand, north of the garden (the open infield there, not east: the
         river and the esses leave no room east). One wooden footbridge over the river (park/index.tsx).
-  - [ ] f. Old town packed around the crossover bridge (street canyon under the deck).
+  - [~] f. (4a3aea9) Old town round the crossover: three buildings fit in its corners (town.ts `oldTown`).
+        The street canyon under the deck does not fit: the bridge's ramps fill the ground beside the
+        lower road. Options for the owner: move the crossover to a straighter, flatter stretch, or accept.
   - [ ] g. District identity: paving, planting, props, one district per commit.
 
 ### 4. Water, lake and surroundings
