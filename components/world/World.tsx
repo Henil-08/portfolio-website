@@ -16,6 +16,7 @@ import { InteractionPoint } from "./Race";
 import { DayNight, Exposure, Spawns, Weather } from "./Effects";
 import Autopilot from "./autopilot/Autopilot";
 import Grass from "./Grass";
+import Street from "./street";
 import { bindKeyboard } from "./input";
 import { useWorld } from "./store";
 
@@ -51,6 +52,7 @@ export default function World() {
           <Stepper />
           <Island />
           <Places />
+          <Street />
           <Vehicle />
           <Spawns />
         </Physics>

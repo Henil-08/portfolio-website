@@ -25,3 +25,5 @@ Next.js 16, React 19, Tailwind 4, React Three Fiber, Framer Motion, Groq. Deploy
 ## Credits
 
 The vehicle feel and follow camera are adapted from [Bruno Simon's folio-2025](https://github.com/brunosimon/folio-2025) (MIT, © 2025 Bruno Simon): suspension damping ratios, centre-of-mass setup, soft top speed and the single-pass camera smoothing.
+
+Music, sound effects and the race engineer's voice are generated with [ElevenLabs](https://elevenlabs.io) (`scripts/gen-audio.mjs`).
