@@ -204,12 +204,15 @@ wipes in (`labelReveal` 0 -> 1, power2.inOut 1 s); leaving lowers it again. Year
 The owner compared our world with Bruno's (screenshots in that session: his jeep in tall-but-short grass,
 chunky bench, small wooden bridge, lamp; a Qatar night circuit under floodlight towers; Melbourne's pit
 straight with pit wall, fences and stands). Do these in order, one commit per item, screenshots each time.
-- [ ] a. See-through only for foliage. Owner: "no need to blur behind the building, behind leaves is fine".
+- [x] a. (90676c6) See-through only for foliage. Owner: "no need to blur behind the building, behind leaves is fine".
       Keep the foliage crowns and trunks (foliage/material.ts, registry.ts); take `patchSeeThrough` /
       `seeThrough(...)` off Skyline.tsx, Bridge.tsx, Harbour.tsx, Embankments.tsx and Island.tsx road
       materials. Buildings must then never hide the car: bring back the town's camera filter
       (revert 3f75dd8, `blocksCamera` in street/town.ts) and see b (lower buildings).
-- [ ] b. Scale and proportions, like Bruno. In his world buildings are barely taller than the vehicle, the
+- [x] b. (car f446b06, grass 8606f5e, town 78e88f7, props af25fd3) Owner chose the bigger car (x1.38,
+      `CAR_SCALE` in models/Car.tsx, physics too) over pulling the camera in. Grass `SHORT` 0.45, storeys
+      3.0/2.6 m with 1-2 near the track, `PROP_SCALE` 1.3 (models/props/bruno.ts), footbridge 3.6 m wide.
+      Was: Scale and proportions, like Bruno. In his world buildings are barely taller than the vehicle, the
       grass is a fraction of the car's height, and props (bench, lamp, footbridge) are chunky and read
       big next to the car. Ours: grass blades are as tall as the F1 car (Grass.tsx `BLADE_HEIGHT` 0.6 m
       + randomness; the car body is ~0.5 m tall), buildings run 2-5 storeys (town.ts `bodyH`, `MAX_TOP`
