@@ -98,30 +98,36 @@ area holding all the places · buildings cute 3D, soft, not harsh; too childish 
 Notes: ~1% of open ground is still >40% where the raised descent leg (t ~0.70–0.80)
 meets the infield. Keep places >= 17 m from that leg.
 
-### 2. Garden infield, city streets outside — NEXT
+### 2. Garden infield, city streets outside — 2a done, 2b NEXT
 Two independent halves; they can be done in parallel by separate agents
 because they own different files.
 
 **2a. Garden infield** — owns components/world/garden/** (new), Timeline.tsx,
 components/world/timeline/**, app/lab/timeline/**, and only the mask function in Grass.tsx.
-- [ ] `components/world/garden/index.tsx` exporting default `Garden`, mounted in Places.tsx
+- [x] `components/world/garden/index.tsx` exporting default `Garden`, mounted in Places.tsx
       next to `<Groves />`: soft gravel/stone path ribbons (sand #e9dcc4/#d8c7a6, edging #c9b48e)
       linking the infield places (zones playbook, podium, cricket, football; TIMELINE; LETTERS;
       the garages); rounded instanced hedges (#6f8f5a/#5c7a4b); flower beds with sparse instanced
       flowers in muted colours; a small pond with a stone rim; benches; small garden lamps whose
       heads brighten with `dayNight.night` (emissive > 1 so they bloom). < ~25 new draw calls.
       Small colliders on hedges/benches/lamps only; paths and grass stay drivable.
-- [ ] Grass.tsx `trackMask()`: paint paths, pond and beds black (no grass) via a helper
+- [x] Grass.tsx `trackMask()`: paint paths, pond and beds black (no grass) via a helper
       exported from garden.
-- [ ] Timeline rebuilt garden-native: a broad stone terrace/path with the neon lines inset
+- [x] Timeline rebuilt garden-native: a broad stone terrace/path with the neon lines inset
       as glowing grooves, soft edging, low planters along the sides, posts as garden bollards.
       Keep behaviour (lines light up to the car, labels rise, year counter) and API
       (`Timeline({ position, rotation, colliders })`, mounted at TIMELINE.pos, yaw TIMELINE.rot = π/2,
       time runs toward world −x). The year counter must read from the chase camera
       (camera at +X,+Z of the car, looking −X,−Z, ~45°).
-- [ ] Remove leftovers that clash (the old cones/flags near the timeline are already gone).
+- [x] Remove leftovers that clash (the old cones/flags near the timeline are already gone).
 - Accept when: top view and three ground-level views look like a calm park; nothing floats
   or clips; the timeline sits naturally in the garden by day and night.
+- Done in 7dcbaf9 (garden), f5429d4 (timeline terrace), and the commit that ticks this.
+  Data lives in components/world/garden/layout.ts (`PATHS`, `BEDS`, `POND`, `HEDGES`, `BENCHES`,
+  `LAMPS_GARDEN`); use `nearGarden(x, z, pad)` to keep scattered props off it. The garden is 13
+  draw calls. The year counter was upside down from the chase camera; fixed. The infield
+  signposts (Billboard) are still there; step 5's in-world prompt should replace them.
+  `window.__placeXZ(x, z, heading)` drops the car anywhere for checks.
 
 **2b. Cute city outside the circuit** — owns components/world/street/** and app/lab/city/**.
 - [ ] Replace the box skyline (street/Skyline.tsx, instanced boxes + `facadeMaterial`) with soft

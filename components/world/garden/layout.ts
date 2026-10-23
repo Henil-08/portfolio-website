@@ -25,7 +25,7 @@ export const PATHS: Path[] = [
   // East: from the promenade, round the tyre wall and down to the football.
   { pts: [[27, 14.2], [30, 6], [29, -2], [24.5, -9.5]], w: 2 },
   // From the terrace's south-east corner down to the football pitch.
-  { pts: [[10, -1.5], [10.6, -6.5], [10, -10.5]], w: 1.8 },
+  { pts: [[9.4, -1.5], [9.7, -6.5], [9.4, -10.5]], w: 1.8 },
   // To the mailbox.
   { pts: [[27, 14.2], [33, 18.5], [37, 22]], w: 1.8 },
 ];
