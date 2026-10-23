@@ -23,7 +23,7 @@ import {
 import { Driver, DRIVER_SEAT } from "./models/Avatar";
 import { input } from "./input";
 import { carState, ticker } from "./carState";
-import { getState, setState, subscribe, useWorld } from "./store";
+import { getState, setState, subscribe, toast, useWorld } from "./store";
 import { BoostTrail } from "./BoostTrail";
 import { dayNight } from "./daynight";
 import { heightAt } from "./terrain";
@@ -96,6 +96,8 @@ export default function Vehicle() {
   const speed = useRef(0); // simulation units per second, like Bruno's
   const boosting = useRef(false);
   const brakeHeld = useRef(0); // seconds the brake has been held
+  // Bruno's stuck test: on the throttle, but under 0.5 m covered in the last 3 s.
+  const stuck = useRef({ items: [] as [number, number][], told: false });
   const { world } = useRapier();
 
   useEffect(() => {
@@ -232,6 +234,23 @@ export default function Vehicle() {
     prevPos.copy(tmpP);
     carState.speed = speed.current * 2 * (goingForward.current ? 1 : -1); // real m/s at 2x time
     carState.grounded = [0, 1, 2, 3].some((i) => v.wheelIsInContact(i));
+
+    const st = stuck.current;
+    if (Math.abs(input.forward - input.back) > 0.5 && getState().phase === "world") {
+      st.items.unshift([moved.length(), dt]);
+      let dist = 0;
+      let time = 0;
+      let k = 0;
+      for (; k < st.items.length && time < 3; k++) {
+        dist += st.items[k][0];
+        time += st.items[k][1];
+      }
+      st.items.length = k;
+      if (time >= 3 && dist < 0.5 && !st.told) {
+        st.told = true;
+        toast("Stuck? Press R", "teal");
+      } else if (dist > 2) st.told = false;
+    } else st.items.length = 0;
 
     // Wheels follow the suspension; spin from forward speed.
     for (let i = 0; i < WHEELS.length; i++) {
