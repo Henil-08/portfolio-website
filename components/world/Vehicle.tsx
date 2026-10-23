@@ -65,6 +65,14 @@ const FRICTION_SLIP = 0.9;
 const SIDE_FRICTION = 3;
 // Static compression the springs settle at, measured in the headless check.
 const SAG = 0.34;
+// Wheel visuals stay within this of their resting height, whatever the raycast says
+// (a ray starting inside a wall or post reports a wild suspension length).
+const WHEEL_REST = SUSPENSION.restLength - SAG;
+const WHEEL_PLAY = 0.25;
+// The chassis centre rides ~0.4 m above the ground. Below the ground it has been
+// shoved through the terrain (a post or wall at speed): respawn instead of
+// leaving the body buried with the wheels sticking out.
+const BURIED = 0.15;
 
 // Mount each wheel's suspension so the car settles with the tyres on the road.
 const WHEELS = WHEEL_POSITIONS.map((w) => ({
@@ -78,6 +86,7 @@ const tmpQ = new THREE.Quaternion();
 const tmpV = new THREE.Vector3();
 const tmpP = new THREE.Vector3();
 const prevPos = new THREE.Vector3();
+let snapWheels = true; // set by place(): put the wheel visuals straight at rest
 
 export default function Vehicle() {
   const livery = useWorld((s) => s.livery);
@@ -92,6 +101,7 @@ export default function Vehicle() {
   const rain = useRef<THREE.Mesh<THREE.BoxGeometry, THREE.MeshStandardMaterial>>(null);
   const flipped = useRef(0);
   const wet = useRef(0);
+  const buried = useRef(0);
   const lastHud = useRef(0);
   const goingForward = useRef(true);
   const speed = useRef(0); // simulation units per second, like Bruno's
@@ -260,9 +270,10 @@ export default function Vehicle() {
     for (let i = 0; i < WHEELS.length; i++) {
       const g = wheelRefs.current[i];
       if (!g) continue;
-      const len = v.wheelSuspensionLength(i) ?? SUSPENSION.restLength;
+      const raw = v.wheelIsInContact(i) ? v.wheelSuspensionLength(i) ?? WHEEL_REST : WHEEL_REST;
+      const len = THREE.MathUtils.clamp(raw, WHEEL_REST - WHEEL_PLAY, WHEEL_REST + WHEEL_PLAY);
       const ty = WHEELS[i].pos.y - len;
-      g.position.y += (ty - g.position.y) * Math.min(1, dt * 50);
+      g.position.y = snapWheels ? ty : g.position.y + (ty - g.position.y) * Math.min(1, dt * 50);
       if (WHEELS[i].front)
         g.rotation.y +=
           ((v.wheelSteering(i) ?? 0) - g.rotation.y) * Math.min(1, dt * 32);
@@ -270,6 +281,7 @@ export default function Vehicle() {
       if (s && !input.handbrake)
         s.rotation.z -= (carState.speed / WHEELS[i].radius) * dt;
     }
+    snapWheels = false;
 
     // The rain light glows a little at night; no headlights, it's a race car.
     if (rain.current) rain.current.material.emissiveIntensity = 0.4 + dayNight.night * 1.2;
@@ -286,10 +298,12 @@ export default function Vehicle() {
     flipped.current = tmpV.y < 0.25 ? flipped.current + dt : 0;
     // In deep water (past the shallows) for a second: back onto the road, like Bruno's respawn.
     wet.current = SEA_Y - heightAt(t.x, t.z) > 0.7 && t.y < SEA_Y + 0.4 ? wet.current + dt : 0;
-    if (input.reset || flipped.current > 1.6 || wet.current > 1 || t.y < heightAt(t.x, t.z) - 4) {
+    buried.current = t.y < heightAt(t.x, t.z) - BURIED ? buried.current + dt : 0;
+    if (input.reset || flipped.current > 1.6 || wet.current > 1 || buried.current > 0.1 || t.y < heightAt(t.x, t.z) - 4) {
       input.reset = false;
       flipped.current = 0;
       wet.current = 0;
+      buried.current = 0;
       if (t.y < heightAt(t.x, t.z) - 4) place(b, SPAWN[0], SPAWN[1], SPAWN[2]);
       else {
         // Back onto the nearest bit of road, facing the way you were going (Bruno's R).
@@ -329,6 +343,7 @@ export default function Vehicle() {
         linearDamping={0.1}
         angularDamping={0.1}
         canSleep={false}
+        ccd
       >
         {/* Bruno's chassis: mass 2.5 with the centre of mass well below the body. */}
         <CuboidCollider
@@ -399,4 +414,5 @@ function place(b: RapierRigidBody, x: number, z: number, heading: number, y = he
   b.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
   b.setLinvel({ x: 0, y: 0, z: 0 }, true);
   b.setAngvel({ x: 0, y: 0, z: 0 }, true);
+  snapWheels = true;
 }
