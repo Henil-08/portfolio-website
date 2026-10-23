@@ -70,9 +70,11 @@ const KERB_PROFILE: [number, number][] = [
 
 /** Index ranges [start, end) (end may pass n, wrap with % n) of the bends, in samples. */
 function kerbRuns(n: number) {
+  // a bend is tighter than ~55 m radius: the heading turns 0.11 rad over 6 m
+  const du = 6 / trackCurve.getLength();
   const bend = Array.from({ length: n }, (_, i) => {
     const u = i / n;
-    return trackCurve.getTangentAt(u).angleTo(trackCurve.getTangentAt((u + 0.01) % 1)) >= 0.075;
+    return trackCurve.getTangentAt(u).angleTo(trackCurve.getTangentAt((u + du) % 1)) >= 0.11;
   });
   // close short gaps between bends, then drop slivers
   const gap = Math.round(3 / KERB_STEP);
