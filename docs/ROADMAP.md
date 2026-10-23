@@ -118,7 +118,8 @@ distinct areas threaded by paths, water woven through, shorelines with teal glow
         east esses (road bridge) and out to the east sea. Changed from the plan: no branch to the garden
         pond (it is far west; a branch would cut through the timeline and letters). All water is at sea
         level (one water plane), so the river is a shallow creek you can drive through.
-  - [ ] d. Relief: hills in the north-east (~8 m), dunes along the east beach.
+  - [x] d. (b8a42f0) Relief: `reliefAt` in layout.ts. Hills along the north coast behind the old town and the
+        NE hairpin (the NE loop itself had no room), knolls round the spring lake, dunes on the east beach.
   - [ ] e. Park islands east of the garden: football, podium, playbook, contact on Bruno-style grass
         islands with sandy paths and footbridges.
   - [ ] f. Old town packed around the crossover bridge (street canyon under the deck).
