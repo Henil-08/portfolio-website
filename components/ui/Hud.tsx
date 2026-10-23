@@ -13,6 +13,7 @@ import Ask from "./Ask";
 import { Minimap } from "./RaceHud";
 import AutopilotHud from "./AutopilotHud";
 import FitPanel, { LapChip } from "./FitPanel";
+import RadioMessages from "./RadioMessages";
 
 export default function Hud() {
   const phase = useWorld((s) => s.phase);
@@ -26,6 +27,7 @@ export default function Hud() {
       <AutopilotHud />
       <FitPanel />
       <LapChip />
+      <RadioMessages />
       <Toast />
       <Hints />
       <Joystick />
