@@ -4,12 +4,15 @@
 // over the terrain (read from the height texture), like Bruno Simon's ground
 // gradient in folio-2025 (MIT): pale teal shallows, then deep blue-green, with a
 // slow foam line where the water meets the beach. Lit like everything else, so
-// it follows day and night.
+// it follows day and night. On top: Bruno's teal glow along every shore (a faint
+// emission at night too), two scrolling ripple layers in the normals so the sun
+// glints, and a little fresnel toward grazing angles.
 import { useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { C } from "./palette";
 import { SEA_Y } from "./layout";
+import { dayNight } from "./daynight";
 import { heightTexture } from "./terrain";
 
 const SIZE = 1400; // reaches past the fog in every direction
@@ -25,6 +28,9 @@ const uniforms = {
   uMid: { value: new THREE.Color(C.water) },
   uDeep: { value: new THREE.Color(C.waterDeep) },
   uFoam: { value: new THREE.Color("#f4efe4") },
+  uGlow: { value: new THREE.Color("#6fc7ba") }, // Bruno's #5bc2b9, toned to our palette
+  uSky: { value: new THREE.Color("#cfe3e2") },
+  uNight: { value: 0 },
 };
 
 function waterMaterial() {
@@ -45,8 +51,16 @@ function waterMaterial() {
           "#include <common>",
           `#include <common>
           varying vec3 vWaterW;
-          uniform sampler2D uHeight; uniform float uSize, uMinY, uMaxY, uSeaY, uTime;
-          uniform vec3 uShallow, uMid, uDeep, uFoam;`
+          uniform sampler2D uHeight; uniform float uSize, uMinY, uMaxY, uSeaY, uTime, uNight;
+          uniform vec3 uShallow, uMid, uDeep, uFoam, uGlow, uSky;
+          float wHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+          float wNoise(vec2 p) {
+            vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+            return mix(mix(wHash(i), wHash(i + vec2(1.0, 0.0)), f.x), mix(wHash(i + vec2(0.0, 1.0)), wHash(i + vec2(1.0, 1.0)), f.x), f.y);
+          }
+          // two ripple layers drifting different ways
+          float wRipple(vec2 p) { return wNoise(p * 1.2 + vec2(uTime * 0.25, uTime * 0.1)) + wNoise(p * 2.9 - vec2(uTime * 0.14, -uTime * 0.22)) * 0.5; }
+          float wGlow;`
         )
         .replace(
           "#include <color_fragment>",
@@ -62,12 +76,36 @@ function waterMaterial() {
             float wob = sin(uTime * 1.3 + (vWaterW.x + vWaterW.z) * 0.6) * 0.035 + sin(uTime * 0.7 - vWaterW.x * 0.9) * 0.02;
             float foam = 1.0 - smoothstep(0.03, 0.12, depth + wob);
             float foam2 = (1.0 - smoothstep(0.0, 0.03, abs(depth - 0.32 - wob * 2.0))) * 0.35;
+            // Bruno's shoreline glow: teal over the first metre or so of water
+            wGlow = (1.0 - smoothstep(0.08, 0.75, depth)) * (1.0 - foam);
+            c = mix(c, uGlow, wGlow * 0.55);
             c = mix(c, uFoam, clamp(foam + foam2, 0.0, 1.0));
             diffuseColor.rgb = c;
           }`
+        )
+        .replace(
+          "#include <normal_fragment_maps>",
+          `#include <normal_fragment_maps>
+          {
+            // ripples: tilt the (view-space) normal by the ripple field's slope
+            vec2 p = vWaterW.xz;
+            float e = 0.15;
+            float r0 = wRipple(p);
+            vec2 g = vec2(wRipple(p + vec2(e, 0.0)) - r0, wRipple(p + vec2(0.0, e)) - r0) / e;
+            vec3 nw = normalize(vec3(-g.x * 0.07, 1.0, -g.y * 0.07));
+            normal = normalize((viewMatrix * vec4(nw, 0.0)).xyz);
+            // fresnel: a paler sky tint toward grazing angles
+            float fr = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 3.0);
+            diffuseColor.rgb = mix(diffuseColor.rgb, uSky, fr * 0.3 * (1.0 - uNight * 0.7));
+          }`
+        )
+        .replace(
+          "#include <emissivemap_fragment>",
+          `#include <emissivemap_fragment>
+          totalEmissiveRadiance += uGlow * wGlow * (0.04 + uNight * 0.22);`
         );
     };
-    m.customProgramCacheKey = () => "water-v1";
+    m.customProgramCacheKey = () => "water-v2";
     return m;
   }
 }
@@ -77,6 +115,7 @@ export default function Water() {
 
   useFrame(({ clock }) => {
     uniforms.uTime.value = clock.elapsedTime;
+    uniforms.uNight.value = dayNight.night;
   });
 
   return (
