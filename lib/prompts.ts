@@ -32,11 +32,11 @@ const get = (i: number) => {
   return v;
 };
 
-export function systemPrompt(voice: Voice, question: string) {
+export function systemPrompt(voice: Voice, question: string, maxSections = 3) {
   const q = question.toLowerCase();
   let picked = sections.map((s, i) => (s.words.test(q) ? i : -1)).filter((i) => i >= 0);
   // Broad questions ("who is he", "why hire") get the two most useful sections.
   if (picked.length === 0) picked = [0, 1];
-  const facts = [profileText(), ...picked.slice(0, 3).map(get)].join("\n\n");
+  const facts = [profileText(), ...picked.slice(0, maxSections).map(get)].join("\n\n");
   return `${voices[voice]}\n\n${rules}\n\nFacts about Henil:\n${facts}`;
 }

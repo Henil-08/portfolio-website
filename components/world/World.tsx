@@ -10,6 +10,8 @@ import Island from "./Island";
 import Vehicle from "./Vehicle";
 import Places from "./Places";
 import { CameraRig, Sky, Sun, ZoneWatcher } from "./Rig";
+import { InteractionPoint } from "./Race";
+import { Exposure, Spawns, Weather } from "./Effects";
 import { bindKeyboard } from "./input";
 
 export default function World() {
@@ -43,10 +45,14 @@ export default function World() {
           <Island />
           <Places />
           <Vehicle />
+          <Spawns />
         </Physics>
       </Suspense>
       <CameraRig />
       <ZoneWatcher />
+      <InteractionPoint />
+      <Weather />
+      <Exposure />
       {fancy && (
         <EffectComposer multisampling={0} enableNormalPass={false}>
           <N8AO halfRes aoRadius={1.6} intensity={1.6} distanceFalloff={0.7} color="#2a2420" />
