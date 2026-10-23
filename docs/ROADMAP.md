@@ -86,8 +86,10 @@ not up to the mark (now more water to dress: harbour, river, spring lake); the E
 animated like Bruno's. New (2026-10-23): buildings on slopes with vertical walls (3f), a Bruno-style
 see-through when the car is hidden (3h), and a compact Bruno-style career timeline with floating rocks
 plus the owner's school journey (3b). 3f, 3g, 3h, 3b and step 4 are done (2026-10-23, late); the
-car no longer beaches on slopes (colliders 0.3 m up, parapets on embankments). Step 4 is done too. Next up:
-step 5 (map menu).
+car no longer beaches on slopes (colliders 0.3 m up, parapets on embankments). Step 4 is done too. Owner review the same night added step 4b (foliage-only see-through, Bruno's
+scale, flat world, grass, bushes, fuller infield, Team Stallions facing the camera, F1 floodlights,
+a real pit lane, grandstands, random rain with a tyre swap). Next up: 4b a, then the rest of 4b in
+order, then step 5 (map menu).
 
 ## Steps (do them in order; first unticked one is next)
 
@@ -197,6 +199,54 @@ wipes in (`labelReveal` 0 -> 1, power2.inOut 1 s); leaving lowers it again. Year
       Was: Harbour bridge (Harbour.tsx): the causeway is so low the arch is a culvert; either raise the road
       over the inlet a little (track heights in layout.ts TRACK_POINTS near t ~0.92) or make it a
       proper low bridge with a gap under the deck.
+
+### 4b. Owner review: scale, flat world, F1 circuit (owner, 2026-10-23 night)
+The owner compared our world with Bruno's (screenshots in that session: his jeep in tall-but-short grass,
+chunky bench, small wooden bridge, lamp; a Qatar night circuit under floodlight towers; Melbourne's pit
+straight with pit wall, fences and stands). Do these in order, one commit per item, screenshots each time.
+- [ ] a. See-through only for foliage. Owner: "no need to blur behind the building, behind leaves is fine".
+      Keep the foliage crowns and trunks (foliage/material.ts, registry.ts); take `patchSeeThrough` /
+      `seeThrough(...)` off Skyline.tsx, Bridge.tsx, Harbour.tsx, Embankments.tsx and Island.tsx road
+      materials. Buildings must then never hide the car: bring back the town's camera filter
+      (revert 3f75dd8, `blocksCamera` in street/town.ts) and see b (lower buildings).
+- [ ] b. Scale and proportions, like Bruno. In his world buildings are barely taller than the vehicle, the
+      grass is a fraction of the car's height, and props (bench, lamp, footbridge) are chunky and read
+      big next to the car. Ours: grass blades are as tall as the F1 car (Grass.tsx `BLADE_HEIGHT` 0.6 m
+      + randomness; the car body is ~0.5 m tall), buildings run 2-5 storeys (town.ts `bodyH`, `MAX_TOP`
+      18 m), and the chase camera sits far (Rig.tsx `OFFSET` 10.5, 12.5, 14). Measure first (headless
+      shots side by side with Bruno's), then: pull the camera in, cut grass to about a third of the car's
+      height, cap buildings near the track to 1-2 low storeys, and scale props up relative to the car.
+      Owner thinks "mine is too zoomed out or the car is smaller": try both, show him.
+- [ ] c. Flat world. Owner: "no need for ups and downs, it's an F1 theme world". Flatten the track
+      heights in layout.ts `TRACK_POINTS` and drop the relief (`reliefAt` hills and dunes, terrain.ts),
+      keeping only the crossover bridge's ramps (approved in layout-v4). Then the building plinths
+      (3f), embankment parapets (Embankments.tsx) and slope caps mostly fall away: remove what is no
+      longer needed. This is a layout change the owner asked for; anything beyond flattening, ask.
+- [ ] d. Grass like Bruno's (Grass.tsx, alive/Tracks.tsx already ports his wheel tracks): wheels part
+      the grass and show the ground; it grows back after a while and is whole again when you return.
+      Check it really reads like his (see his Grass.js / Terrain.js), tune blade density and colour.
+- [ ] e. Bushes like Bruno's (sources/Game/World/Bushes.js + Foliage.js clumps on the ground), scattered
+      through the infield, park and along paths. Reuse foliage/* (his clump material is already ported).
+- [ ] f. The infield common area in the middle is too empty: fill it Bruno-style (bushes, paths, his
+      benches/lanterns/fences from models/props/brunoProps.ts, a small wooden footbridge, flower beds).
+      No invented text or facts.
+- [ ] g. Team Stallions (Sector 1 Ahmedabad scene, models/sectors/Ahmedabad.tsx, placed by layout.ts
+      `SECTORS` scene/sceneRot ~line 400): it faces away from the camera so you only see its back.
+      Turn it (and check every sector scene) so its front faces the chase camera (street/common.ts
+      `AWAY`), or move it to the far side of the road.
+- [ ] h. Track lighting like a real F1 night race (Qatar reference): no street lamps on the circuit
+      (street/Lamps.tsx, layoutStreet.ts `LAMPS`). Instead tall floodlight towers with lamp banks set
+      back outside the run-off, many of them, lighting the track at night (cheap light pools on the
+      asphalt, emissive banks that bloom). Bruno-style small lamps stay only in the park and garden.
+- [ ] i. Pit lane is a real dedicated lane (Melbourne reference): separate it from the main straight with
+      a pit wall and fence (PitRoads.tsx, layout.ts `PIT`), painted pit entry/exit lines, the lane
+      clearly its own strip in front of the garages.
+- [ ] j. Grandstands: lots of them along the main straight and round T1 (models/props/Grandstand.tsx,
+      `GRANDSTAND` in layout.ts, street/Trackside.tsx), covered, with crowds, fences in front.
+- [ ] k. Random rain with a tyre change: weather (Effects.tsx, store `scene.weather`) turns to rain at
+      random times for a while, like Bruno's. When rain starts the car's slicks animate off and wet
+      tyres (blue band) come on, a quick pit-stop style swap; back to slicks when it stops
+      (models/Car.tsx `CarWheel`, `LIVERIES`). Frequency random, not too often.
 
 ### 5. Map menu like Bruno's (M)
 Owns components/ui/** (MapMenu in Hud.tsx) and a new components/world/MapCapture.tsx.
