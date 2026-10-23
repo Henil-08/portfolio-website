@@ -21,11 +21,11 @@ export const PATHS: Path[] = [
   // From the terrace's west end out to the west path.
   { pts: [[-22, 3], [-31, 3.4], [-40.8, 4]], w: 2 },
   // From the terrace's east end, along the tyre wall, out to the east path.
-  { pts: [[10, 3], [19, 3.4], [29, 3]], w: 2 },
+  { pts: [[10, 3], [19, 3.4], [31, 3]], w: 2 },
   // East: from the promenade, round the tyre wall and down to the football.
-  { pts: [[27, 14.2], [30, 6], [29, -2], [24.5, -9.5]], w: 2 },
-  // From the terrace's south-east corner down to the football pitch.
-  { pts: [[9.4, -1.5], [9.7, -6.5], [9.4, -10.5]], w: 1.8 },
+  { pts: [[27, 14.2], [31, 6], [31.2, -2], [25.5, -10]], w: 2 },
+  // From the east path, between HENIL and GAJJAR (the word gap is at x ~18), down to the football.
+  { pts: [[18, 3.2], [18, -3.2], [17.2, -10.5]], w: 1.2 },
   // To the mailbox.
   { pts: [[27, 14.2], [33, 18.5], [37, 22]], w: 1.8 },
 ];
@@ -63,7 +63,7 @@ export const BEDS: Bed[] = [
   { x: -46.5, z: 10, rx: 2.2, rz: 1.5, yaw: 1.2 },
   { x: 13, z: 9, rx: 1.6, rz: 2.6, yaw: 0 },
   { x: 34, z: 10, rx: 2.2, rz: 1.5, yaw: -0.6 },
-  { x: 19, z: -8, rx: 2.6, rz: 1.2, yaw: 0.1 },
+  { x: 23.5, z: -7.6, rx: 2.4, rz: 1.1, yaw: 0.1 },
 ];
 
 /** Bed-local coordinates of a world point (x along rx, z along rz). */
@@ -85,7 +85,7 @@ export const HEDGES: [number, number, number, number][] = [
   // Behind the podium.
   [-32, 4.8, -25, 4.8],
   // Along the east path's outer side, between it and the run-off.
-  [33, 8, 33, 0],
+  [34, 8, 34, 0],
   // Behind the tyre wall, screening the letters.
   [15.5, 5.6, 25, 5.6],
   // Low line along the cricket ground's north side.
@@ -98,8 +98,8 @@ export const BENCHES: { x: number; z: number; yaw: number }[] = [
   { x: -41.2, z: 21, yaw: -Math.PI / 2 },
   { x: -36, z: 13, yaw: Math.PI },
   { x: 6, z: 13, yaw: Math.PI },
-  { x: 31.8, z: 2, yaw: -Math.PI / 2 },
-  { x: 13, z: -9, yaw: -Math.PI / 2 },
+  { x: 33, z: -4, yaw: -Math.PI / 2 },
+  { x: 7.2, z: -9.6, yaw: Math.PI },
 ];
 
 /** Garden lamps along the paths, every ~13 m, alternating sides. */

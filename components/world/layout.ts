@@ -327,11 +327,16 @@ export const zones: Zone[] = [
 
 export const zoneById = Object.fromEntries(zones.map((z) => [z.id, z])) as Record<ZoneId, Zone>;
 
-// Spawn on the grid just behind the start line, facing down the straight.
-const sp = trackPoint(START_T - 0.012);
-export const SPAWN: [number, number, number] = [sp.x, sp.z, headingFromTangent(trackTangent(START_T))];
 
-export const LETTERS = { chars: ["H", "E", "N", "I", "L"] as const, origin: [12, -3] as [number, number], gap: 3 };
+/**
+ * The name in the middle of the infield, where the drive starts (like Bruno's
+ * landing). Knockable letters; Places lays them out from the glyph widths.
+ * `hx` is the half width of the whole word pair, for pads and clearances.
+ */
+export const LETTERS = { text: "HENIL GAJJAR", center: [19, -3.2] as [number, number], scale: 1.2, hx: 10 };
+// Spawn in front of the name, on the garden path, facing east: the chase
+// camera opens on the car with HENIL GAJJAR behind it.
+export const SPAWN: [number, number, number] = [LETTERS.center[0] - 3, LETTERS.center[1] + 6.2, 0];
 /** Career timeline plaza (components/world/Timeline.tsx): centre, world-axis half size, yaw. */
 export const TIMELINE = { pos: [-6, 3] as [number, number], hx: 15.5, hz: 9.5, rot: Math.PI / 2 }; // time runs west
 /** Infield grandstand looking north over the tunnel straight and the bridge. */

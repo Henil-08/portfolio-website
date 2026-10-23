@@ -83,7 +83,7 @@ function build() {
       };
     }),
     { x: (PIT.from + PIT.to) / 2, z: (PIT.z + PIT.garageZ) / 2 - 1, hx: (PIT.to - PIT.from) / 2 + 8, hz: 11 },
-    { x: LETTERS.origin[0] + 6, z: LETTERS.origin[1], hx: 10, hz: 4, y: infieldY },
+    { x: LETTERS.center[0], z: LETTERS.center[1], hx: LETTERS.hx + 1.5, hz: 4, y: infieldY },
     { x: GRANDSTAND.pos[0], z: GRANDSTAND.pos[1], hx: 8, hz: 5 },
     ...zones.filter((zz) => !zz.id.startsWith("sector-") && !zz.id.startsWith("garage-")).map((zz) => ({ x: zz.pos[0], z: zz.pos[1], hx: zz.size[0] / 2 + 3, hz: zz.size[1] / 2 + 3, y: zz.id === "contact" ? undefined : infieldY })),
     // Last, so it wins where its edge meets a neighbour's slope.

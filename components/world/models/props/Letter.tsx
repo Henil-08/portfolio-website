@@ -1,7 +1,7 @@
 // Dynamic. Name letters: real extruded Racero glyphs with a small bevel. Origin at ground centre.
 // All letters are 1.55 m tall and 0.5 m deep (z -0.25..0.25). Bounding boxes (W x H x D):
 //   H: 1.50 x 1.55 x 0.5    E: 1.30 x 1.55 x 0.5    N: 1.50 x 1.55 x 0.5
-//   I: 0.41 x 1.55 x 0.5    L: 1.27 x 1.55 x 0.5
+//   I: 0.41 x 1.55 x 0.5    L: 1.27 x 1.55 x 0.5    G, A: 1.50    J: 0.74    R: 1.57
 // A single cuboid of LETTER_WIDTH x 1.55 x 0.5 centred at y=0.775 is a good collider.
 // `letterBoxes(char)` returns that box (center, size, rotZ) for compound colliders.
 // The font loads once (opentype.js) and is cached; the letter renders nothing until then.
@@ -14,18 +14,28 @@ import { C } from "../../palette";
 import { FONT } from "./Label";
 import { mat, type GroupProps } from "./shared";
 
-export type LetterChar = "H" | "E" | "N" | "I" | "L";
+export type LetterChar = "H" | "E" | "N" | "I" | "L" | "G" | "A" | "J" | "R";
 
 const LH = 1.55; // total height incl. bevel
 const DEPTH = 0.5; // total depth incl. bevel
 const BEVEL_T = 0.035; // bevel thickness (z)
 const BEVEL_S = 0.025; // bevel size (outline growth)
-const CAP = 700; // Racero cap height in font units (H, E, N, I, L are all 0..700)
+const CAP = 700; // Racero cap height in font units (every capital here is 0..700)
 
 export type LetterBar = { pos: [number, number, number]; size: [number, number, number]; rotZ: number };
 
 // Racero advance boxes (x1..x2 in font units) for each glyph, scaled to LH.
-const GLYPH_X: Record<LetterChar, [number, number]> = { H: [50, 727], E: [50, 634], N: [50, 727], I: [50, 215], L: [50, 619] };
+const GLYPH_X: Record<LetterChar, [number, number]> = {
+  H: [50, 727],
+  E: [50, 634],
+  N: [50, 727],
+  I: [50, 215],
+  L: [50, 619],
+  G: [36, 713],
+  A: [43, 720],
+  J: [3, 326],
+  R: [50, 737],
+};
 const SCALE = (LH - 2 * BEVEL_S) / CAP;
 
 export const LETTER_WIDTH: Record<LetterChar, number> = Object.fromEntries(

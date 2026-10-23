@@ -39,6 +39,7 @@ import {
   type Compound,
 } from "./models/props";
 import { Label } from "./models/props/Label";
+import { LETTER_WIDTH, type LetterChar } from "./models/props/Letter";
 import PitRoads from "./PitRoads";
 import Timeline from "./Timeline";
 import Groves from "./Groves";
@@ -97,22 +98,42 @@ const TRACK_SAMPLES = trackCurve.getSpacedPoints(160);
 
 // ------------------------------------------------------------ dynamic props
 
+// HENIL GAJJAR, set tight like Bruno's name at his landing: glyph widths plus
+// a small gap, a wider one between the words. First letter of each word in red.
+const NAME = (() => {
+  const s = LETTERS.scale;
+  const gap = 0.16 * s;
+  const space = 1.1 * s;
+  const items: { ch: LetterChar; x: number; w: number; red: boolean }[] = [];
+  let x = 0;
+  let wordStart = true;
+  for (const c of LETTERS.text) {
+    if (c === " ") {
+      x += space - gap;
+      wordStart = true;
+      continue;
+    }
+    const ch = c as LetterChar;
+    const w = LETTER_WIDTH[ch] * s;
+    items.push({ ch, x: x + w / 2, w, red: wordStart });
+    x += w + gap;
+    wordStart = false;
+  }
+  const total = x - gap;
+  return items.map((it) => ({ ...it, x: LETTERS.center[0] - total / 2 + it.x }));
+})();
+
 function Letters() {
-  const colors = [C.red, C.white, C.white, C.white, C.white];
+  const s = LETTERS.scale;
+  const h = 1.55 * s;
+  const z = LETTERS.center[1];
   return (
     <>
-      {LETTERS.chars.map((ch, i) => (
-        <RigidBody
-          key={ch + i}
-          colliders={false}
-          position={[LETTERS.origin[0] + i * LETTERS.gap, heightAt(LETTERS.origin[0] + i * LETTERS.gap, LETTERS.origin[1]) + 0.8, LETTERS.origin[1]]}
-          mass={3}
-          linearDamping={0.3}
-          angularDamping={0.4}
-        >
-          <CuboidCollider args={[ch === "I" ? 0.3 : 0.75, 0.8, 0.25]} friction={0.7} restitution={0.15} />
-          <group position={[0, -0.8, 0]}>
-            <Letter char={ch} color={colors[i]} />
+      {NAME.map((l, i) => (
+        <RigidBody key={l.ch + i} colliders={false} position={[l.x, heightAt(l.x, z) + h / 2 + 0.02, z]} mass={3 * s} linearDamping={0.3} angularDamping={0.4}>
+          <CuboidCollider args={[l.w / 2, h / 2, 0.25 * s]} friction={0.7} restitution={0.15} />
+          <group position={[0, -h / 2, 0]} scale={s}>
+            <Letter char={l.ch} color={l.red ? C.red : C.white} />
           </group>
         </RigidBody>
       ))}
@@ -578,7 +599,7 @@ function Nature() {
     const r = rng(42);
     const out: { kind: "round" | "pine" | "palm" | "bush" | "rock"; p: V3; s: number; rot: number; seed: number }[] = [];
     const avoid = Object.values(zoneById).map((z) => [z.pos[0], z.pos[1], Math.max(z.size[0], z.size[1]) / 2 + 6]);
-    avoid.push([TIMELINE.pos[0], TIMELINE.pos[1], 19], [LETTERS.origin[0] + 5, LETTERS.origin[1], 9], [GRANDSTAND.pos[0], GRANDSTAND.pos[1], 10]);
+    avoid.push([TIMELINE.pos[0], TIMELINE.pos[1], 19], [LETTERS.center[0], LETTERS.center[1], LETTERS.hx + 1.5], [GRANDSTAND.pos[0], GRANDSTAND.pos[1], 10]);
     for (const sc of SECTORS) avoid.push([sc.scene[0], sc.scene[1], 17]);
     for (let x = PIT.from - 6; x <= PIT.to + 6; x += 6) avoid.push([x, PIT.garageZ, 8], [x, PIT.z, 6]);
     let tries = 0;

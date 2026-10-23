@@ -155,7 +155,7 @@ export const TREES: [number, number, number][] = (() => {
     return b;
   };
   const avoid = Object.values(zoneById).map((zn) => [zn.pos[0], zn.pos[1], Math.max(zn.size[0], zn.size[1]) / 2 + 6]);
-  avoid.push([TIMELINE.pos[0], TIMELINE.pos[1], 19], [LETTERS.origin[0] + 5, LETTERS.origin[1], 9], [GRANDSTAND.pos[0], GRANDSTAND.pos[1], 10]);
+  avoid.push([TIMELINE.pos[0], TIMELINE.pos[1], 19], [LETTERS.center[0], LETTERS.center[1], LETTERS.hx + 1.5], [GRANDSTAND.pos[0], GRANDSTAND.pos[1], 10]);
   for (const sc of SECTORS) avoid.push([sc.scene[0], sc.scene[1], 17]);
   for (let x = PIT.from - 6; x <= PIT.to + 6; x += 6) avoid.push([x, PIT.garageZ, 8], [x, PIT.z, 6]);
   const out: [number, number, number][] = [];
