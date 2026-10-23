@@ -20,6 +20,7 @@ import {
   WHEEL_RADIUS,
   WING_TIPS,
   CAR_SCALE as S,
+  GROUND_Y,
 } from "./models/Car";
 import { Driver, DRIVER_SEAT } from "./models/Avatar";
 import { input } from "./input";
@@ -76,6 +77,9 @@ const WHEEL_PLAY = 0.25;
 const BURIED = 0.15;
 // Half length of the chassis collider: between the axles, so a crest meets the tyres first.
 const CHASSIS_CLEAR_HALF = 0.95;
+// Chassis centre height above the ground at rest. Dropping the car from any
+// higher (the old 0.45 m) made it bounce on its springs at every load and teleport.
+const REST_Y = -GROUND_Y * S + 0.02;
 
 // Mount each wheel's suspension so the car settles with the tyres on the road.
 // The wheel layout scales with the car; the springs (and so the sag) do not.
@@ -344,7 +348,7 @@ export default function Vehicle() {
       <RigidBody
         ref={body}
         colliders={false}
-        position={[SPAWN[0], heightAt(SPAWN[0], SPAWN[1]) + 0.45 * S, SPAWN[1]]}
+        position={[SPAWN[0], heightAt(SPAWN[0], SPAWN[1]) + REST_Y, SPAWN[1]]}
         linearDamping={0.1}
         angularDamping={0.1}
         canSleep={false}
@@ -418,7 +422,7 @@ export default function Vehicle() {
   );
 }
 
-function place(b: RapierRigidBody, x: number, z: number, heading: number, y = heightAt(x, z) + 0.45 * S) {
+function place(b: RapierRigidBody, x: number, z: number, heading: number, y = heightAt(x, z) + REST_Y) {
   const q = new THREE.Quaternion().setFromAxisAngle(up, heading);
   b.setTranslation({ x, y, z }, true);
   b.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
