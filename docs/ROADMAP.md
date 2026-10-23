@@ -72,8 +72,9 @@ area holding all the places · buildings cute 3D, soft, not harsh; too childish 
 - [x] M toggles the map, Esc closes
 - [x] vercel.json disables deploy-on-push (user may also disconnect the Vercel app in the dashboard)
 - [x] Voice model eleven_v4 @ stability 0.5 (scripts/gen-audio.mjs + app/api/voice)
-- [ ] **Ian voice — blocked on the user**: the API key lacks `voices_read`, so the
-      voice ID must come from the user (ElevenLabs > Voices > Ian > copy ID).
+- [ ] **Ian voice — blocked**: voice ID is `70HFmYdPmz1aKiKW6Zx3`, but it's a Voice Library
+      voice and the free plan returns 402 `paid_plan_required` for library voices over the API.
+      Needs a paid plan (or lines recorded by hand in the ElevenLabs UI into public/sfx).
       Then add `ELEVENLABS_VOICE_ID=<id>` to .env.local and run
       `node scripts/gen-audio.mjs --only radio-sector-1,radio-sector-2,radio-sector-3,radio-sector-4,radio-garage-agents,radio-garage-genai,radio-garage-hardware,radio-garage-ml,radio-garage-vision,radio-playbook,radio-podium,radio-contact,radio-hello,radio-idle,radio-claude,radio-temp-on,radio-temp-off --force`.
       Commit public/sfx. Set the same env var on the server for /api/voice.
@@ -166,9 +167,13 @@ Same ownership as step 4 plus new components/world/ui3d/**.
       muted palette with one accent.
 - [ ] Top-bar buttons and bottom key hints in the same language (keep Resume).
 
-### 6. Livery — lab done (7a4eb64), waiting on the user
-- [x] /lab/livery shows six palettes: Rosso, Papaya, Racing green, Midnight, Silver arrow, Cream & red.
-- [ ] User picks one (or asks for a mix); set `DEFAULT_LIVERY` in models/Car.tsx; screenshot in-world.
+### 6. Livery — done
+- [x] /lab/livery shows six palettes: Rosso, Papaya, Racing green, Midnight, Silver arrow, Cream & red (7a4eb64).
+- [x] All six selectable in settings (Controls panel, "Livery" swatches); default Cream & red;
+      the choice is remembered per browser (localStorage `hg-livery`). Palettes live in
+      components/world/liveries.ts; store field `livery`; Vehicle passes it to CarBody/CarWheel.
+- [ ] When step 5 restyles the panels, give settings its own small panel (gear icon) with
+      Livery, Sound and Voice toggles, instead of living under Controls.
 
 ### 7. Later
 - Bruno-style "unstuck" hint if the car barely moves for 3 s.

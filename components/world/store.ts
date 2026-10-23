@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_LIVERY, LIVERIES, type LiveryName } from "./liveries";
 import { useSyncExternalStore } from "react";
 import type { ZoneId } from "./layout";
 
@@ -28,6 +29,7 @@ type State = {
   fitOpen: boolean;
   controlsOpen: boolean;
   voice: boolean; // race engineer speaks out loud
+  livery: LiveryName; // car paint, picked in settings and remembered
   hallucinating: boolean;
   achievements: string[];
   radioMsg: { id: number; text: string } | null; // transient team-radio transcript
@@ -57,6 +59,7 @@ let state: State = {
   fitOpen: false,
   controlsOpen: false,
   voice: true,
+  livery: DEFAULT_LIVERY,
   hallucinating: false,
   achievements: [],
   radioMsg: null,
@@ -130,4 +133,21 @@ export function teleport(zone: ZoneId) {
 // Dev and headless-check hook: window.__world.teleport("garage-agents") etc.
 if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
   (window as unknown as { __world: object }).__world = { teleport, setState, getState, openZone };
+}
+
+// The livery choice lives in this browser only.
+const LIVERY_KEY = "hg-livery";
+if (typeof window !== "undefined") {
+  try {
+    const saved = window.localStorage.getItem(LIVERY_KEY);
+    if (saved && saved in LIVERIES) state = { ...state, livery: saved as LiveryName };
+  } catch {}
+  let last = state.livery;
+  subscribe(() => {
+    if (state.livery === last) return;
+    last = state.livery;
+    try {
+      window.localStorage.setItem(LIVERY_KEY, last);
+    } catch {}
+  });
 }

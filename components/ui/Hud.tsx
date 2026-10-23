@@ -1,5 +1,6 @@
 "use client";
 
+import { LIVERIES, LIVERY_NAMES } from "@/components/world/liveries";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
@@ -141,6 +142,34 @@ const CONTROLS: [string, string][] = [
   ["Esc", "Close a card"],
 ];
 
+// Car paint, remembered in this browser.
+function LiveryPicker() {
+  const current = useWorld((s) => s.livery);
+  return (
+    <div className="mt-5 border-t border-line pt-4">
+      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-soft">Livery</p>
+      <div className="mt-2.5 flex flex-wrap gap-2">
+        {LIVERY_NAMES.map((n) => {
+          const l = LIVERIES[n];
+          const on = n === current;
+          return (
+            <button
+              key={n}
+              title={l.label}
+              aria-label={l.label}
+              aria-pressed={on}
+              onClick={() => setState({ livery: n })}
+              className={`h-9 w-9 overflow-hidden rounded-full transition ${on ? "ring-2 ring-ink ring-offset-2" : "opacity-80 hover:opacity-100"}`}
+              style={{ background: `linear-gradient(135deg, ${l.body} 0 55%, ${l.low} 55% 85%, ${l.accent} 85%)` }}
+            />
+          );
+        })}
+      </div>
+      <p className="mt-2 text-[12px] text-ink-soft">{LIVERIES[current].label}</p>
+    </div>
+  );
+}
+
 function Controls() {
   const open = useWorld((s) => s.controlsOpen);
   return (
@@ -170,6 +199,7 @@ function Controls() {
               ))}
             </div>
             <p className="mt-4 text-[12px] text-ink-soft/70">On a phone: thumb stick to steer, gas and brake on the right. A few keys are secret.</p>
+            <LiveryPicker />
           </motion.div>
         </motion.div>
       )}

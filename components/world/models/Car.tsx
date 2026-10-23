@@ -7,6 +7,7 @@
 // position-based livery shader. Parts that share a material are baked into
 // one geometry to keep the draw count low.
 
+import { DEFAULT_LIVERY, LIVERIES, type LiveryName, type Palette } from "../liveries";
 import { useMemo } from "react";
 import type { ThreeElements } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
@@ -427,19 +428,7 @@ const POD: Station[] = [
 /* Liveries                                                            */
 /* ------------------------------------------------------------------ */
 
-/** body = main paint, low = lower body / undersides, accent = pinstripes and small marks, number = race number. */
-export type Palette = { body: string; low: string; accent: string; number: string; label: string };
-export const LIVERIES = {
-  rosso: { label: "Rosso", body: LIVERY.red, low: LIVERY.carbon, accent: LIVERY.yellow, number: LIVERY.white },
-  papaya: { label: "Papaya", body: "#ff7a1a", low: "#1d2733", accent: "#4fb3ff", number: "#ffffff" },
-  green: { label: "Racing green", body: "#0f5a3d", low: "#16181b", accent: "#d9b45c", number: "#f4ecd8" },
-  midnight: { label: "Midnight", body: "#1c2b4d", low: "#121318", accent: "#ff6a4d", number: "#ffffff" },
-  silver: { label: "Silver arrow", body: "#c9ced5", low: "#17191d", accent: "#22b8a7", number: "#17191d" },
-  cream: { label: "Cream & red", body: "#efe5d0", low: "#c8161f", accent: "#1c1d21", number: "#c8161f" },
-} satisfies Record<string, Palette>;
-export type LiveryName = keyof typeof LIVERIES;
-/** The livery the player's car wears. */
-export const DEFAULT_LIVERY: LiveryName = "rosso";
+export { DEFAULT_LIVERY, LIVERIES, type LiveryName, type Palette } from "../liveries";
 
 /* ------------------------------------------------------------------ */
 /* Materials                                                           */

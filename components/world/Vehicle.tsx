@@ -22,7 +22,7 @@ import {
 import { Driver, DRIVER_SEAT } from "./models/Avatar";
 import { input } from "./input";
 import { carState, ticker } from "./carState";
-import { getState, setState, subscribe } from "./store";
+import { getState, setState, subscribe, useWorld } from "./store";
 import { BoostTrail } from "./BoostTrail";
 import { dayNight } from "./daynight";
 import { heightAt } from "./terrain";
@@ -74,6 +74,7 @@ const tmpP = new THREE.Vector3();
 const prevPos = new THREE.Vector3();
 
 export default function Vehicle() {
+  const livery = useWorld((s) => s.livery);
   const body = useRef<RapierRigidBody>(null);
   const controller = useRef<VehicleController | null>(null);
   const wheelRefs = useRef<(THREE.Group | null)[]>([]);
@@ -300,7 +301,7 @@ export default function Vehicle() {
         <boxGeometry args={[0.04, 0.07, 0.16]} />
         <meshStandardMaterial color="#ff2a1f" emissive="#ff2a1f" emissiveIntensity={0.4} />
       </mesh>
-      <CarBody brakeLight={false} drsRef={drs}>
+      <CarBody brakeLight={false} drsRef={drs} livery={livery}>
           <Driver position={DRIVER_SEAT} />
         </CarBody>
         {WING_TIPS.map((p, i) => (
@@ -327,7 +328,7 @@ export default function Vehicle() {
                 spinRefs.current[i] = el;
               }}
             >
-              <CarWheel scale={w.front ? 1 : REAR_WHEEL_SCALE} />
+              <CarWheel scale={w.front ? 1 : REAR_WHEEL_SCALE} livery={livery} />
             </group>
           </group>
         ))}
