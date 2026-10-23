@@ -4,8 +4,9 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 import { CuboidCollider, HeightfieldCollider, RigidBody, TrimeshCollider } from "@react-three/rapier";
 import * as THREE from "three";
 import { C } from "./palette";
-import { ISLAND_RADIUS, START_T, TRACK_WIDTH, trackCurve } from "./layout";
-import { EXTENT, GRID, heightAt, heightGrid } from "./terrain";
+import { LAKES, SEA_Y, START_T, TRACK_WIDTH, lakeDepthDist, shoreDist, trackCurve } from "./layout";
+import Water from "./Water";
+import { EXTENT, GRID, heightGrid } from "./terrain";
 
 const SEGMENTS = 320;
 
@@ -109,34 +110,42 @@ function StartLine() {
   );
 }
 
-// The ground: a disc mesh whose vertices follow the terrain.
+// The ground: the terrain grid as a mesh, grass on the land and sand on the
+// beaches and lake shores (vertex colours), the sea floor dipping under the water.
 function terrainGeometry() {
-  const rings = 110;
-  const segs = 220;
-  const pos: number[] = [0, heightAt(0, 0), 0];
-  const idx: number[] = [];
-  for (let r = 1; r <= rings; r++) {
-    const rad = (r / rings) * ISLAND_RADIUS;
-    for (let s = 0; s < segs; s++) {
-      const a = (s / segs) * Math.PI * 2;
-      const x = Math.cos(a) * rad;
-      const z = Math.sin(a) * rad;
-      pos.push(x, heightAt(x, z), z);
+  const h = heightGrid();
+  const n = GRID + 1;
+  const pos = new Float32Array(n * n * 3);
+  const col = new Float32Array(n * n * 3);
+  const grass = new THREE.Color(C.grass);
+  const sand = new THREE.Color(C.sand);
+  const wet = new THREE.Color(C.sand).multiplyScalar(0.78);
+  const tmp = new THREE.Color();
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const k = j * n + i;
+      const x = (i / GRID - 0.5) * EXTENT;
+      const z = (j / GRID - 0.5) * EXTENT;
+      const y = h[k];
+      pos.set([x, y, z], k * 3);
+      // sand along the shores (by distance to the water), darker where it's wet
+      const d = Math.min(shoreDist(x, z), ...LAKES.map((l) => -lakeDepthDist(l, x, z)));
+      tmp.copy(grass).lerp(sand, 1 - THREE.MathUtils.smoothstep(d, 2.5, 6.5));
+      tmp.lerp(wet, 1 - THREE.MathUtils.smoothstep(y - SEA_Y, 0.02, 0.18));
+      col.set([tmp.r, tmp.g, tmp.b], k * 3);
     }
   }
-  const at = (r: number, s: number) => (r === 0 ? 0 : 1 + (r - 1) * segs + (s % segs));
-  for (let s = 0; s < segs; s++) idx.push(0, at(1, s + 1), at(1, s));
-  for (let r = 1; r < rings; r++)
-    for (let s = 0; s < segs; s++) idx.push(at(r, s), at(r, s + 1), at(r + 1, s), at(r, s + 1), at(r + 1, s + 1), at(r + 1, s));
+  const idx: number[] = [];
+  for (let j = 0; j < GRID; j++)
+    for (let i = 0; i < GRID; i++) {
+      const a = j * n + i;
+      idx.push(a, a + n, a + 1, a + 1, a + n, a + n + 1);
+    }
   const g = new THREE.BufferGeometry();
-  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  g.setAttribute("color", new THREE.BufferAttribute(col, 3));
   g.setIndex(idx);
   g.computeVertexNormals();
-  if (g.getAttribute("normal").getY(0) < 0) {
-    for (let i = 0; i < idx.length; i += 3) [idx[i + 1], idx[i + 2]] = [idx[i + 2], idx[i + 1]];
-    g.setIndex(idx);
-    g.computeVertexNormals();
-  }
   return g;
 }
 
@@ -172,22 +181,11 @@ export default function Island() {
         <CuboidCollider args={[400, 1, 400]} position={[0, -7, 0]} />
       </RigidBody>
 
-      {/* The island is a diorama plinth: grass top, a stone border and a deep base. */}
+      {/* The land with its beaches, then the sea and the lakes over it. */}
       <mesh geometry={ground} receiveShadow>
-        <meshStandardMaterial color={C.grass} roughness={0.92} />
+        <meshStandardMaterial vertexColors roughness={0.92} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
-        <ringGeometry args={[ISLAND_RADIUS, ISLAND_RADIUS + 5, 128]} />
-        <meshStandardMaterial color={C.sand} roughness={0.85} />
-      </mesh>
-      <mesh position={[0, -3.02, 0]} receiveShadow>
-        <cylinderGeometry args={[ISLAND_RADIUS + 5, ISLAND_RADIUS + 4.2, 6, 128, 1, true]} />
-        <meshStandardMaterial color={C.sand} roughness={0.8} side={THREE.DoubleSide} />
-      </mesh>
-      <mesh position={[0, -0.35, 0]}>
-        <torusGeometry args={[ISLAND_RADIUS + 5.02, 0.07, 6, 160]} />
-        <meshStandardMaterial color={C.red} roughness={0.4} />
-      </mesh>
+      <Water />
 
       <mesh geometry={asphalt} receiveShadow>
         <meshStandardMaterial color={C.asphalt} roughness={0.9} />

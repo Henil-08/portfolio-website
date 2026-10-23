@@ -3,13 +3,13 @@
 import * as THREE from "three";
 import { carState } from "../carState";
 import { heightAt } from "../terrain";
-import { ISLAND_RADIUS, TRACK_WIDTH, nearestT, trackPoint } from "../layout";
+import { TRACK_WIDTH, inLand, nearestT, trackPoint } from "../layout";
 
 export { heightAt };
 
 /** True on grass or gravel: off the asphalt (kerbs included) and on the island. */
 export function offTrack(x: number, z: number) {
-  if (Math.hypot(x, z) > ISLAND_RADIUS) return false;
+  if (!inLand(x, z)) return false;
   return nearestT(x, z).dist > TRACK_WIDTH / 2 + 0.4;
 }
 

@@ -60,7 +60,6 @@ export function pathDist(x: number, z: number, skip = -1) {
 export type Bed = { x: number; z: number; rx: number; rz: number; yaw: number };
 export const BEDS: Bed[] = [
   { x: -34, z: 8.5, rx: 3, rz: 1.8, yaw: 0.2 },
-  { x: -46.5, z: 10, rx: 2.2, rz: 1.5, yaw: 1.2 },
   { x: 13, z: 9, rx: 1.6, rz: 2.6, yaw: 0 },
   { x: 34, z: 10, rx: 2.2, rz: 1.5, yaw: -0.6 },
   { x: 23.5, z: -7.6, rx: 2.4, rz: 1.1, yaw: 0.1 },

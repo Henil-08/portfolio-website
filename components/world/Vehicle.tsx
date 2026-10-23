@@ -27,7 +27,7 @@ import { getState, setState, subscribe, toast, useWorld } from "./store";
 import { BoostTrail } from "./BoostTrail";
 import { dayNight } from "./daynight";
 import { heightAt } from "./terrain";
-import { SPAWN, headingFromTangent, nearestT3, trackPoint, trackTangent, zoneById } from "./layout";
+import { SEA_Y, SPAWN, headingFromTangent, inLand, nearestT3, trackPoint, trackTangent, zoneById } from "./layout";
 import { engineIdle, engineUpdate, honk } from "./sound";
 
 // Driving model ported from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon),
@@ -91,6 +91,7 @@ export default function Vehicle() {
   const tipB = useRef<THREE.Group | null>(null);
   const rain = useRef<THREE.Mesh<THREE.BoxGeometry, THREE.MeshStandardMaterial>>(null);
   const flipped = useRef(0);
+  const wet = useRef(0);
   const lastHud = useRef(0);
   const goingForward = useRef(true);
   const speed = useRef(0); // simulation units per second, like Bruno's
@@ -283,9 +284,12 @@ export default function Vehicle() {
     // Recover from flips and falls.
     tmpV.set(0, 1, 0).applyQuaternion(tmpQ);
     flipped.current = tmpV.y < 0.25 ? flipped.current + dt : 0;
-    if (input.reset || flipped.current > 1.6 || t.y < heightAt(t.x, t.z) - 4) {
+    // In the sea or a lake for a second: back onto the road, like Bruno's respawn.
+    wet.current = !inLand(t.x, t.z) && t.y < SEA_Y + 0.25 ? wet.current + dt : 0;
+    if (input.reset || flipped.current > 1.6 || wet.current > 1 || t.y < heightAt(t.x, t.z) - 4) {
       input.reset = false;
       flipped.current = 0;
+      wet.current = 0;
       if (t.y < heightAt(t.x, t.z) - 4) place(b, SPAWN[0], SPAWN[1], SPAWN[2]);
       else {
         // Back onto the nearest bit of road, facing the way you were going (Bruno's R).

@@ -1,13 +1,13 @@
 import * as THREE from "three";
-import { GRANDSTAND, ISLAND_RADIUS, LETTERS, TIMELINE, onBridge, PIT, SCENE_FOOT, SECTORS, TRACK_WIDTH, trackCurve, trackPoint, zones } from "./layout";
+import { GRANDSTAND, LAKES, LETTERS, MAX_R, SEA_FLOOR, SEA_Y, TIMELINE, lakeDepthDist, onBridge, PIT, SCENE_FOOT, SECTORS, shoreDist, TRACK_WIDTH, trackCurve, trackPoint, zones } from "./layout";
 
 // Terrain height for the whole island. The land follows the circuit: right next
 // to the road it matches the track's height exactly, further away it blends
 // smoothly between nearby stretches of track, so the circuit sits in rolling
 // hills instead of on stilts. Everything that sits on the ground asks heightAt.
 
-export const GRID = 192; // cells per side
-export const EXTENT = (ISLAND_RADIUS + 8) * 2; // metres covered by the grid
+export const GRID = 256; // cells per side
+export const EXTENT = (MAX_R + 12) * 2; // metres covered by the grid: the land, its beaches and some sea floor
 
 let heights: Float32Array | null = null;
 let texture: THREE.DataTexture | null = null;
@@ -52,10 +52,7 @@ function build() {
       const k = THREE.MathUtils.smoothstep(d, flat, flat + blend);
       // Under the road the land sits a little lower; the road has its own collider.
       const under = 1 - THREE.MathUtils.smoothstep(d, TRACK_WIDTH / 2 + 0.5, flat);
-      let y = THREE.MathUtils.lerp(bestY, far, k) - under * 0.22;
-      // The island edge rolls down to the plinth rim.
-      const r = Math.hypot(x, z);
-      y *= 1 - THREE.MathUtils.smoothstep(r, ISLAND_RADIUS - 14, ISLAND_RADIUS - 1);
+      const y = THREE.MathUtils.lerp(bestY, far, k) - under * 0.22;
       h[j * n + i] = y;
     }
   }
@@ -113,6 +110,35 @@ function build() {
     }
   }
 
+  // Water: the land eases down to a beach just above sea level, then drops to the
+  // sea floor. Lakes are the same, dug into low ground (their water is the sea's).
+  const BEACH = SEA_Y + 0.22;
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const c = j * n + i;
+      const x = (i / GRID - 0.5) * EXTENT;
+      const z = (j / GRID - 0.5) * EXTENT;
+      const sd = shoreDist(x, z);
+      if (sd < 14) {
+        if (sd >= 0) h[c] = THREE.MathUtils.lerp(BEACH, h[c], THREE.MathUtils.smoothstep(sd, 0, 14));
+        else {
+          h[c] = THREE.MathUtils.lerp(BEACH, SEA_FLOOR, THREE.MathUtils.smoothstep(-sd, 0, 9));
+          fixed[c] = 1;
+        }
+      }
+      if (roadD[c] < TRACK_WIDTH / 2 + 3) continue;
+      for (const l of LAKES) {
+        const ld = lakeDepthDist(l, x, z);
+        if (ld < -8) continue;
+        if (ld < 0) h[c] = Math.min(h[c], THREE.MathUtils.lerp(BEACH, h[c], THREE.MathUtils.smoothstep(-ld, 0, 8)));
+        else {
+          h[c] = THREE.MathUtils.lerp(BEACH, SEA_Y - 1.1, THREE.MathUtils.smoothstep(ld, 0, 3.2));
+          fixed[c] = 1;
+        }
+      }
+    }
+  }
+
   // Pads must never push land up through the asphalt or the shoulder.
   for (let i = 0; i < h.length; i++) {
     if (roadD[i] < TRACK_WIDTH / 2 + 0.5) h[i] = Math.min(h[i], roadY[i] - 0.22);
@@ -123,11 +149,7 @@ function build() {
   // than MAX_SLOPE, so a car that runs wide can always drive back up.
   const MAX_SLOPE = 0.28;
   const cell = EXTENT / GRID;
-  for (let i = 0; i < h.length; i++) {
-    const x = ((i % n) / GRID - 0.5) * EXTENT;
-    const z = (Math.floor(i / n) / GRID - 0.5) * EXTENT;
-    if (roadD[i] < TRACK_WIDTH / 2 + 2.5 || Math.hypot(x, z) > ISLAND_RADIUS - 2) fixed[i] = 1;
-  }
+  for (let i = 0; i < h.length; i++) if (roadD[i] < TRACK_WIDTH / 2 + 2.5) fixed[i] = 1;
   const nb = [
     [1, 0, 1],
     [-1, 0, 1],

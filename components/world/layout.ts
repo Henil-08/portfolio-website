@@ -56,6 +56,86 @@ export const trackCurve = new THREE.CatmullRomCurve3(
   "centripetal"
 );
 
+// ------------------------------------------------------------ land and water
+
+/** Sea level, and the sea floor past the beach. */
+export const SEA_Y = -0.3;
+export const SEA_FLOOR = -2.4;
+
+// The coast: a hand-drawn radius by bearing (0 = +x east, 90 = +z south, toward the
+// camera), never closer than 12 m to the track. A bay in the south makes the main
+// straight a waterfront in front of the chase camera; headlands in the north and
+// north-west give the far-side town room.
+const COAST_KEYS: [number, number][] = [
+  [0, 100], [30, 96], [50, 84], [70, 62], [90, 58], [110, 62], [130, 82], [150, 90],
+  [180, 92], [200, 96], [225, 106], [255, 112], [280, 108], [310, 100], [340, 104], [360, 100],
+];
+const COAST_N = 720;
+const COAST: Float32Array = (() => {
+  const reach = new Float32Array(COAST_N);
+  for (const p of trackCurve.getSpacedPoints(3000)) {
+    const a = (Math.atan2(p.z, p.x) + Math.PI * 2) % (Math.PI * 2);
+    const k = Math.floor((a / (Math.PI * 2)) * COAST_N) % COAST_N;
+    reach[k] = Math.max(reach[k], Math.hypot(p.x, p.z));
+  }
+  const out = new Float32Array(COAST_N);
+  for (let k = 0; k < COAST_N; k++) {
+    const deg = (k / COAST_N) * 360;
+    let j = 0;
+    while (COAST_KEYS[j + 1][0] < deg) j++;
+    const [d0, r0] = COAST_KEYS[j];
+    const [d1, r1] = COAST_KEYS[j + 1];
+    const t = (deg - d0) / (d1 - d0);
+    const base = r0 + (r1 - r0) * (0.5 - 0.5 * Math.cos(Math.PI * t));
+    // a little irregular, so it reads as a coast and not a curve
+    const wobble = 2.2 * Math.sin(k * 0.061 + 1.3) + 1.4 * Math.sin(k * 0.17 + 0.4);
+    // keep 12 m of land beyond the track (spread over neighbouring bearings)
+    let need = 0;
+    for (let q = -10; q <= 10; q++) need = Math.max(need, reach[(k + q + COAST_N) % COAST_N] + 12 - Math.abs(q) * 0.3);
+    out[k] = Math.max(base + wobble, need);
+  }
+  return out;
+})();
+/** Furthest the coast reaches from the centre. */
+export const MAX_R = COAST.reduce((m, v) => Math.max(m, v), 0);
+
+/** Coast radius at a bearing (radians, atan2(z, x)). */
+export function coastR(angle: number) {
+  const f = ((((angle / (Math.PI * 2)) % 1) + 1) % 1) * COAST_N;
+  const i = Math.floor(f);
+  const t = f - i;
+  return COAST[i % COAST_N] * (1 - t) + COAST[(i + 1) % COAST_N] * t;
+}
+
+/** Lakes: basins dug into low ground; their water is the sea's, at SEA_Y. */
+export type Lake = { x: number; z: number; rx: number; rz: number; yaw: number };
+export const LAKES: Lake[] = [
+  // West infield, between the cricket ground and the west sweepers.
+  { x: -51, z: 4.6, rx: 6.6, rz: 4.2, yaw: 0.3 },
+];
+
+/** Approximate signed distance into a lake (positive inside, metres). */
+export function lakeDepthDist(l: Lake, x: number, z: number) {
+  const dx = x - l.x;
+  const dz = z - l.z;
+  const c = Math.cos(l.yaw);
+  const sn = Math.sin(l.yaw);
+  const u = (dx * c - dz * sn) / l.rx;
+  const v = (dx * sn + dz * c) / l.rz;
+  return (1 - Math.hypot(u, v)) * Math.min(l.rx, l.rz);
+}
+
+/** Signed distance to the sea's shore: positive on land, negative in the sea. */
+export function shoreDist(x: number, z: number) {
+  return coastR(Math.atan2(z, x)) - Math.hypot(x, z);
+}
+
+/** True on dry land at least `margin` metres from the sea and every lake. */
+export function inLand(x: number, z: number, margin = 0) {
+  if (shoreDist(x, z) < margin) return false;
+  return LAKES.every((l) => lakeDepthDist(l, x, z) < -margin);
+}
+
 export function trackPoint(t: number) {
   return trackCurve.getPointAt(((t % 1) + 1) % 1);
 }
@@ -195,7 +275,7 @@ function footprintClear(cx: number, cz: number, rot: number) {
       const x = cx + lx * c + lz * sn;
       const z = cz - lx * sn + lz * c;
       if (nearestT(x, z).dist < TRACK_WIDTH / 2 + 2.2) return false;
-      if (Math.hypot(x, z) > ISLAND_RADIUS - 6) return false;
+      if (!inLand(x, z, 6)) return false;
       if (x > PIT.from - 10 && x < PIT.to + 10 && z > PIT.garageZ - 8 && z < PIT.z + 6) return false;
       for (const [ix, iz] of INFIELD) if (Math.hypot(x - ix, z - iz) < 12) return false;
     }

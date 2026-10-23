@@ -5,7 +5,7 @@
 import { useMemo } from "react";
 import { CylinderCollider, RigidBody } from "@react-three/rapier";
 import { Bush, Tree } from "./models/props";
-import { ISLAND_RADIUS, PIT, SECTORS, TRACK_WIDTH, nearestT, trackPoint } from "./layout";
+import { MAX_R, PIT, inLand, SECTORS, TRACK_WIDTH, nearestT, trackPoint } from "./layout";
 import { heightAt } from "./terrain";
 import { BUILDINGS } from "./street/Skyline";
 import { STAND_SPOTS } from "./street/standSpots";
@@ -20,7 +20,7 @@ function rng(seed: number) {
 }
 
 function free(x: number, z: number, pad: number, out: Item[]) {
-  if (Math.hypot(x, z) > ISLAND_RADIUS - 4) return false;
+  if (!inLand(x, z, 4)) return false;
   const n = nearestT(x, z);
   if (n.dist < TRACK_WIDTH / 2 + 6) return false;
   // outside the loop only: further from the centre than the nearest stretch of track
@@ -42,7 +42,7 @@ export default function Groves() {
     let groves = 0;
     for (let tries = 0; tries < 3000 && groves < 26; tries++) {
       const a = r() * Math.PI * 2;
-      const rad = 40 + r() * (ISLAND_RADIUS - 44);
+      const rad = 40 + r() * (MAX_R - 44);
       const cx = Math.cos(a) * rad;
       const cz = Math.sin(a) * rad;
       if (!free(cx, cz, 3, out)) continue;

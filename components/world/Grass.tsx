@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { carState } from "./carState";
-import { GARAGES, ISLAND_RADIUS, PIT, TIMELINE, PIT_LANE_WIDTH, SCENE_FOOT, SECTORS, TRACK_WIDTH, pitRoadCurves, trackCurve, zones } from "./layout";
+import { GARAGES, LAKES, MAX_R, PIT, coastR, TIMELINE, PIT_LANE_WIDTH, SCENE_FOOT, SECTORS, TRACK_WIDTH, pitRoadCurves, trackCurve, zones } from "./layout";
 import { C } from "./palette";
 import { getWindUniforms, terrainShader, updateWind, TERRAIN_GLSL, WIND_GLSL } from "./alive/wind";
 import { perlinTexture, seeded } from "./alive/noise";
@@ -30,7 +30,7 @@ const COARSE = typeof window !== "undefined" && window.matchMedia("(pointer: coa
 const SUBDIVISIONS = COARSE ? 148 : 236; // 22k blades on phones, 56k on desktop
 const SIZE = 56; // field width in metres
 const MASK_RES = 1024;
-const WORLD = (ISLAND_RADIUS + 6) * 2;
+const WORLD = (MAX_R + 6) * 2;
 
 // Bruno scales blades up when the field covers more than his ideal surface.
 const SURFACE_IDEAL = 2000;
@@ -49,11 +49,23 @@ function makeMask() {
   g.fillRect(0, 0, MASK_RES, MASK_RES);
   // Outside the island: no grass.
   g.globalCompositeOperation = "destination-in";
+  // the land, a few metres in from the shore (beaches stay bare)
   g.beginPath();
-  g.arc(tx(0), tx(0), (ISLAND_RADIUS - 1) * s, 0, Math.PI * 2);
+  for (let k = 0; k <= 360; k++) {
+    const a = (k / 360) * Math.PI * 2;
+    const r = coastR(a) - 4;
+    if (k) g.lineTo(tx(Math.cos(a) * r), tx(Math.sin(a) * r));
+    else g.moveTo(tx(Math.cos(a) * r), tx(Math.sin(a) * r));
+  }
   g.fill();
   g.globalCompositeOperation = "source-over";
   g.fillStyle = g.strokeStyle = "#000";
+  // Lakes and their sandy shores.
+  for (const l of LAKES) {
+    g.beginPath();
+    g.ellipse(tx(l.x), tx(l.z), (l.rx + 2.5) * s, (l.rz + 2.5) * s, -l.yaw, 0, Math.PI * 2);
+    g.fill();
+  }
   // Track plus kerbs and run-off.
   g.lineWidth = (TRACK_WIDTH + 3.5) * s;
   g.lineJoin = g.lineCap = "round";

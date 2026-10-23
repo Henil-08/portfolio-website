@@ -7,7 +7,8 @@ import {
   GRANDSTAND,
   BRIDGE_HALF,
   nearCrossing,
-  ISLAND_RADIUS,
+  MAX_R,
+  inLand,
   LETTERS,
   TIMELINE,
   PIT,
@@ -162,9 +163,10 @@ export const TREES: [number, number, number][] = (() => {
   let tries = 0;
   while (out.length < 90 && tries++ < 4000) {
     const a = r() * Math.PI * 2;
-    const rad = Math.sqrt(r()) * (ISLAND_RADIUS - 3);
+    const rad = Math.sqrt(r()) * (MAX_R - 3);
     const x = Math.cos(a) * rad;
     const z = Math.sin(a) * rad;
+    if (!inLand(x, z, 3)) continue;
     if (dTrack(x, z) < TRACK_WIDTH / 2 + 4) continue;
     if (avoid.some(([ax, az, ar]) => Math.hypot(x - ax, z - az) < ar)) continue;
     if (nearGarden(x, z, 1.5)) continue;
@@ -230,7 +232,7 @@ export const RUNOFF: number[] = (() => {
     const s = -Math.sign(f.k) || 1; // outside of the bend
     for (let d = 0; d <= w; d += 0.5) {
       const q = f.p.clone().addScaledVector(f.n, s * (BARRIER_OFF + d + 0.8));
-      if (nearTree(q.x, q.z, 0.6) || inSectorScene(q.x, q.z, 1) || nearPlace(q.x, q.z, -4) || Math.hypot(q.x, q.z) > ISLAND_RADIUS - 4)
+      if (nearTree(q.x, q.z, 0.6) || inSectorScene(q.x, q.z, 1) || nearPlace(q.x, q.z, -4) || !inLand(q.x, q.z, 4))
         return Math.max(0, d - 1);
     }
     return w;

@@ -55,7 +55,9 @@ import {
   GANTRY_T,
   GARAGES,
   GRANDSTAND,
-  ISLAND_RADIUS,
+  MAX_R,
+  inLand,
+  shoreDist,
   LETTERS,
   TIMELINE,
   PIT,
@@ -230,7 +232,7 @@ function FootballPitch() {
         }, 1500);
       }
     }
-    if (p.y < gy - 3 || Math.hypot(p.x, p.z) > ISLAND_RADIUS + 4) {
+    if (p.y < gy - 3 || !inLand(p.x, p.z, -4)) {
       b.setTranslation({ x: home[0], y: home[1] + 1, z: home[2] }, true);
       b.setLinvel({ x: 0, y: 0, z: 0 }, true);
     }
@@ -572,14 +574,15 @@ function Nature() {
     let tries = 0;
     while (out.length < 90 && tries++ < 4000) {
       const a = r() * Math.PI * 2;
-      const rad = Math.sqrt(r()) * (ISLAND_RADIUS - 3);
+      const rad = Math.sqrt(r()) * (MAX_R - 3);
       const x = Math.cos(a) * rad;
       const z = Math.sin(a) * rad;
+      if (!inLand(x, z, 3)) continue;
       if (distToTrack(x, z) < TRACK_WIDTH / 2 + 4) continue;
       if (avoid.some(([ax, az, ar]) => Math.hypot(x - ax, z - az) < ar)) continue;
       if (nearGarden(x, z, 1.5)) continue;
       if (inTownBelt(x, z)) continue;
-      const beach = rad > ISLAND_RADIUS - 10;
+      const beach = shoreDist(x, z) < 10;
       const roll = r();
       const kind = beach ? (roll < 0.7 ? "palm" : "rock") : roll < 0.4 ? "round" : roll < 0.7 ? "pine" : roll < 0.88 ? "bush" : "rock";
       out.push({ kind, p: [x, heightAt(x, z), z], s: 0.85 + r() * 0.5, rot: r() * Math.PI * 2, seed: Math.floor(r() * 1000) });
