@@ -234,7 +234,8 @@ Same ownership as step 4 plus new components/world/ui3d/**.
 - [x] Shallow water (0.38 m in lakes, the inlet and the sea's first 6 m): a car in it stays visible;
       respawn only past 0.7 m deep. Harbour inlet (`CANALS`) from the sea to the west lake, under the
       west sweepers on a causeway with arched stone faces (Harbour.tsx) (2354ab0).
-- [ ] Waterfront dressing: a promenade with railings and lamps along the bay, a pier, boats.
+- [x] Waterfront (components/world/waterfront/): promenade with railing, benches and night lamps along
+      the bay, a drivable wooden pier, bobbing boats (bf829fb). `nearPromenade` keeps props off it.
 - [ ] Map (step 4) should now render this coastline.
 
 ### 7. Later
