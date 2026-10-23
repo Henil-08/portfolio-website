@@ -17,6 +17,7 @@ import { InteractionPoint } from "./Race";
 import { DayNight, Exposure, Spawns, Weather } from "./Effects";
 import Autopilot from "./autopilot/Autopilot";
 import Grass from "./Grass";
+import StartGarden from "./StartGarden";
 import Alive from "./alive";
 import Street from "./street";
 import { bindKeyboard } from "./input";
@@ -38,7 +39,8 @@ export default function World() {
       gl={{ antialias: !fancy, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.82 }}
       className={`!fixed inset-0 ${hallucinating ? "hallucinate" : ""}`}
     >
-      <PerformanceMonitor onDecline={() => setFancy(false)} />
+      {/* never swap renderers mid-reveal: that remount is a visible hitch */}
+      <PerformanceMonitor onDecline={() => revealed && setFancy(false)} />
       <fog attach="fog" args={["#e6e4df", 110, 300]} />
       {fancy && <SoftShadows size={22} samples={10} focus={0.6} />}
       {/* Studio environment for reflections on the car paint and glass. No network HDRs. */}
@@ -67,6 +69,7 @@ export default function World() {
       <Weather />
       <DayNight />
       <Grass />
+      <StartGarden />
       <Alive />
       <Autopilot />
       <Exposure />
@@ -79,8 +82,8 @@ export default function World() {
       )}
       {fancy && (
         <EffectComposer multisampling={0} enableNormalPass={false}>
-          <RevealPass />
           <N8AO halfRes aoRadius={1.6} intensity={1.6} distanceFalloff={0.7} color="#2a2420" />
+          <RevealPass />
           {/* Only emissives pushed past 1.0 bloom (lamps, windows, garage headers, neon). */}
           <Bloom luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0.55} mipmapBlur />
           <SMAA />

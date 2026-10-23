@@ -13,6 +13,7 @@ type State = {
   phase: Phase;
   ready: boolean; // physics and scene mounted
   revealed: boolean; // the opening reveal has finished (Reveal.tsx)
+  opened: boolean; // the loader ring is done and the small circle is open: the start prompt may show
   zone: ZoneId | null; // the card that is open
   near: ZoneId | null; // the place the car is parked at, if any
   nearLink: string | null; // the contact medallion the car is next to (social/index.tsx LINKS key)
@@ -45,6 +46,7 @@ let state: State = {
   phase: "boot",
   ready: false,
   revealed: false,
+  opened: false,
   zone: null,
   near: null,
   nearLink: null,
