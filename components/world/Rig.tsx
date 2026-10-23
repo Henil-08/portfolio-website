@@ -6,7 +6,8 @@ import * as THREE from "three";
 import { carState, ghostLeader } from "./carState";
 import { input } from "./input";
 import { getState, setNear } from "./store";
-import { SCENES } from "./Effects";
+import { sceneParams } from "./Effects";
+import { dayNight } from "./daynight";
 import { zones, type Zone } from "./layout";
 
 const OFFSET = new THREE.Vector3(10.5, 12.5, 14);
@@ -91,7 +92,6 @@ export function CameraRig() {
 }
 
 // The sun follows the car so the shadow map stays sharp where it matters.
-const tmpColor = new THREE.Color();
 
 export function Sun() {
   const light = useRef<THREE.DirectionalLight>(null);
@@ -112,16 +112,19 @@ export function Sun() {
     if (!l) return;
     const st = getState();
     const c = st.phase === "world" ? carState.pos : new THREE.Vector3(0, 0, 0);
-    l.position.set(c.x + 24, 40, c.z + 14);
+    // The sun arcs across the sky with the clock (it stays above the horizon for
+    // shadows; at night it becomes a dim blue moonlight).
+    const a = dayNight.t * Math.PI * 2;
+    const elev = Math.max(0.35, Math.abs(Math.sin(a)));
+    l.position.set(c.x + Math.cos(a) * 40, 40 * elev + 8, c.z + 14 + Math.sin(a) * 10);
     tgt.position.set(c.x, 0, c.z);
 
-    // Ease toward the current time-of-day preset.
-    const p = SCENES[st.scene.time];
-    const k = Math.min(1, dt * 1.5);
+    const p = sceneParams();
+    const k = Math.min(1, dt * 3);
     l.intensity += (p.sun - l.intensity) * k;
-    l.color.lerp(tmpColor.set(p.sunColor), k);
+    l.color.lerp(p.sunColor, k);
     if (hemi.current) hemi.current.intensity += (p.hemi - hemi.current.intensity) * k;
-    if (scene.fog) (scene.fog as THREE.Fog).color.lerp(tmpColor.set(p.fog), k);
+    if (scene.fog) (scene.fog as THREE.Fog).color.lerp(p.fog, k);
   });
 
   return (
@@ -165,11 +168,11 @@ export function Sky() {
     []
   );
   useFrame((_, dt) => {
-    const p = SCENES[getState().scene.time];
-    const k = Math.min(1, dt * 1.5);
-    (mat.uniforms.top.value as THREE.Color).lerp(tmpColor.set(p.top), k);
-    (mat.uniforms.mid.value as THREE.Color).lerp(tmpColor.set(p.mid), k);
-    (mat.uniforms.bottom.value as THREE.Color).lerp(tmpColor.set(p.bottom), k);
+    const p = sceneParams();
+    const k = Math.min(1, dt * 3);
+    (mat.uniforms.top.value as THREE.Color).lerp(p.top, k);
+    (mat.uniforms.mid.value as THREE.Color).lerp(p.mid, k);
+    (mat.uniforms.bottom.value as THREE.Color).lerp(p.bottom, k);
   });
   return (
     <mesh material={mat} scale={800} renderOrder={-1}>

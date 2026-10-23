@@ -5,14 +5,15 @@ import { useFrame } from "@react-three/fiber";
 import { BallCollider, CuboidCollider, CylinderCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { carState } from "./carState";
-import { getState, useWorld } from "./store";
+import { getState, subscribe, useWorld } from "./store";
+import { dayNight } from "./daynight";
 import { BALL_R, Cone, Football, TYRE_H, TYRE_R, Tyre } from "./models/props";
 
-// Lighting presets for the agent's set_scene tool. Everything eases between them.
+// Lighting keyframes. The day/night cycle blends between them by sun elevation.
 export const SCENES = {
   day: { sun: 1.9, sunColor: "#fff1e0", hemi: 0.35, exposure: 0.82, top: "#b9c9d3", mid: "#e6e4df", bottom: "#d8d2c8", fog: "#e6e4df" },
   golden: { sun: 1.6, sunColor: "#ffb36b", hemi: 0.3, exposure: 0.85, top: "#e9a37a", mid: "#f3d3b2", bottom: "#e7c4a0", fog: "#efcfae" },
-  night: { sun: 0.25, sunColor: "#9fb4ff", hemi: 0.12, exposure: 0.95, top: "#0b1022", mid: "#1b2340", bottom: "#141a30", fog: "#151b33" },
+  night: { sun: 0.18, sunColor: "#8fa6ff", hemi: 0.08, exposure: 0.9, top: "#0b1022", mid: "#1b2340", bottom: "#141a30", fog: "#151b33" },
 } as const;
 
 const WEATHER_N = 2200;
@@ -73,11 +74,66 @@ export function Weather() {
   );
 }
 
+type Params = { sun: number; sunColor: THREE.Color; hemi: number; exposure: number; top: THREE.Color; mid: THREE.Color; bottom: THREE.Color; fog: THREE.Color };
+const K = Object.fromEntries(
+  Object.entries(SCENES).map(([k, v]) => [
+    k,
+    { ...v, sunColor: new THREE.Color(v.sunColor), top: new THREE.Color(v.top), mid: new THREE.Color(v.mid), bottom: new THREE.Color(v.bottom), fog: new THREE.Color(v.fog) },
+  ])
+) as Record<keyof typeof SCENES, Params>;
+const out: Params = { ...K.day, sunColor: new THREE.Color(), top: new THREE.Color(), mid: new THREE.Color(), bottom: new THREE.Color(), fog: new THREE.Color() };
+
+function blend(a: Params, b: Params, k: number) {
+  out.sun = THREE.MathUtils.lerp(a.sun, b.sun, k);
+  out.hemi = THREE.MathUtils.lerp(a.hemi, b.hemi, k);
+  out.exposure = THREE.MathUtils.lerp(a.exposure, b.exposure, k);
+  out.sunColor.lerpColors(a.sunColor, b.sunColor, k);
+  out.top.lerpColors(a.top, b.top, k);
+  out.mid.lerpColors(a.mid, b.mid, k);
+  out.bottom.lerpColors(a.bottom, b.bottom, k);
+  out.fog.lerpColors(a.fog, b.fog, k);
+  return out;
+}
+
+/** Current lighting, blended from the sun's elevation. */
+export function sceneParams() {
+  const e = dayNight.sunElevation;
+  if (e > 0.35) return blend(K.day, K.day, 0);
+  if (e > 0.06) return blend(K.golden, K.day, (e - 0.06) / 0.29);
+  if (e > -0.22) return blend(K.night, K.golden, (e + 0.22) / 0.28);
+  return blend(K.night, K.night, 0);
+}
+
+const CYCLE = 360; // seconds for a full day
+const TIME_OF = { day: 0.22, golden: 0.44, night: 0.72 };
+
+// Drives the clock. The race engineer's set_scene jumps it to a time of day.
+export function DayNight() {
+  useEffect(() => {
+    let last = getState().scene.time;
+    return subscribe(() => {
+      const t = getState().scene.time;
+      if (t !== last) {
+        last = t;
+        dayNight.t = TIME_OF[t];
+      }
+    });
+  }, []);
+  useFrame((_, dt) => {
+    dayNight.t = (dayNight.t + dt / CYCLE) % 1;
+    dayNight.sunElevation = Math.sin(dayNight.t * Math.PI * 2);
+    dayNight.night = THREE.MathUtils.smoothstep(-dayNight.sunElevation, -0.08, 0.2);
+  });
+  return null;
+}
+
 // Exposure follows the time of day.
 export function Exposure() {
-  useFrame(({ gl }, dt) => {
-    const want = SCENES[getState().scene.time].exposure;
+  useFrame(({ gl, scene }, dt) => {
+    const want = sceneParams().exposure;
     gl.toneMappingExposure += (want - gl.toneMappingExposure) * Math.min(1, dt * 2);
+    // The studio environment light dims at night too, or nothing would get dark.
+    scene.environmentIntensity = THREE.MathUtils.lerp(0.55, 0.06, dayNight.night);
   });
   return null;
 }
