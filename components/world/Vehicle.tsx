@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
-  BallCollider,
   CuboidCollider,
   RigidBody,
   useBeforePhysicsStep,
@@ -21,7 +20,7 @@ import { honk } from "./sound";
 
 type VehicleController = ReturnType<ReturnType<typeof useRapier>["world"]["createVehicleController"]>;
 
-// Suspension: rest length and the sag the springs settle at (measured, stiffness 90).
+// Suspension: rest length and the sag the springs settle at (measured in the headless check).
 const REST = 0.2;
 const SAG = 0.04;
 
@@ -40,6 +39,7 @@ const BRAKE = 0.5;
 const up = new THREE.Vector3(0, 1, 0);
 const tmpQ = new THREE.Quaternion();
 const tmpV = new THREE.Vector3();
+const tmpP = new THREE.Vector3();
 
 export default function Vehicle() {
   const body = useRef<RapierRigidBody>(null);
@@ -48,6 +48,9 @@ export default function Vehicle() {
   const steer = useRef(0);
   const flipped = useRef(0);
   const lastHud = useRef(0);
+  const chassis = useRef<THREE.Group>(null);
+  const visSteer = useRef(0);
+  const primed = useRef(false);
   const { world } = useRapier();
 
   useEffect(() => {
@@ -58,13 +61,15 @@ export default function Vehicle() {
       v.addWheel(w.pos, { x: 0, y: -1, z: 0 }, { x: 0, y: 0, z: 1 }, REST, w.radius);
     }
     for (let i = 0; i < WHEELS.length; i++) {
-      v.setWheelSuspensionStiffness(i, 90);
-      v.setWheelSuspensionCompression(i, 4.2);
-      v.setWheelSuspensionRelaxation(i, 3.4);
-      v.setWheelMaxSuspensionTravel(i, 0.18);
-      v.setWheelMaxSuspensionForce(i, 100000);
+      // Damping ratios follow Bruno Simon's folio-2025 car (MIT): overdamped
+      // compression, softer rebound, so bumps settle instead of oscillating.
+      v.setWheelSuspensionStiffness(i, 80);
+      v.setWheelSuspensionCompression(i, 18);
+      v.setWheelSuspensionRelaxation(i, 5.5);
+      v.setWheelMaxSuspensionTravel(i, 0.3);
+      v.setWheelMaxSuspensionForce(i, 3000);
       v.setWheelFrictionSlip(i, 2.4);
-      v.setWheelSideFrictionStiffness(i, 1);
+      v.setWheelSideFrictionStiffness(i, 3);
     }
     controller.current = v;
     place(b, SPAWN[0], SPAWN[1], SPAWN[2]);
@@ -106,8 +111,8 @@ export default function Vehicle() {
     let brake = 0;
     const limit = TOP * (input.boost ? 1.35 : 1);
     if (fwd) {
-      const taper = Math.max(0, 1 - Math.max(speed, 0) / limit);
-      engine = ENGINE * (input.boost ? BOOST : 1) * taper;
+      // Soft top speed, Bruno style: force fades as we pass the limit.
+      engine = (ENGINE * (input.boost ? BOOST : 1)) / (1 + Math.max(0, speed - limit));
       if (speed < -1) brake = BRAKE;
     } else if (back) {
       if (speed > 1) brake = BRAKE;
@@ -126,6 +131,14 @@ export default function Vehicle() {
       if (!front && input.handbrake && driving) v.setWheelBrake(i, 0.15);
     }
     v.updateVehicle(w.timestep);
+
+    // Small extra push when airborne, per physics step so it doesn't depend on frame rate.
+    const grounded = [0, 1, 2, 3].some((i) => v.wheelIsInContact(i));
+    if (!grounded && fwd) {
+      const r = b.rotation();
+      tmpV.set(1, 0, 0).applyQuaternion(tmpQ.set(r.x, r.y, r.z, r.w));
+      b.applyImpulse({ x: tmpV.x * 0.05, y: 0, z: tmpV.z * 0.05 }, true);
+    }
   });
 
   useFrame((_, dt) => {
@@ -133,23 +146,29 @@ export default function Vehicle() {
     const b = body.current;
     if (!v || !b) return;
 
-    const t = b.translation();
-    const r = b.rotation();
-    carState.pos.set(t.x, t.y, t.z);
-    tmpQ.set(r.x, r.y, r.z, r.w);
+    // Everything visual reads the interpolated pose that rapier writes to the
+    // RigidBody's group, so camera, car and HUD always agree on the same frame.
+    const c = chassis.current;
+    if (!c) return;
+    c.getWorldPosition(tmpP);
+    c.getWorldQuaternion(tmpQ);
+    if (primed.current) carState.vel.copy(tmpP).sub(carState.pos).divideScalar(Math.max(dt, 1e-4));
+    primed.current = true;
+    carState.pos.copy(tmpP);
     carState.forward.set(1, 0, 0).applyQuaternion(tmpQ);
-    const lv = b.linvel();
-    carState.vel.set(lv.x, lv.y, lv.z);
     carState.speed = v.currentVehicleSpeed();
+    const t = b.translation();
     carState.grounded = [0, 1, 2, 3].some((i) => v.wheelIsInContact(i));
 
-    // Wheels follow the suspension.
+    // Wheels follow the suspension, smoothed so per-step noise doesn't show.
+    visSteer.current += (steer.current - visSteer.current) * (1 - Math.exp(-32 * dt));
     for (let i = 0; i < WHEELS.length; i++) {
       const g = wheelRefs.current[i];
       if (!g) continue;
       const len = v.wheelSuspensionLength(i) ?? REST;
-      g.position.set(WHEELS[i].pos.x, WHEELS[i].pos.y - len, WHEELS[i].pos.z);
-      g.rotation.set(0, v.wheelSteering(i) ?? 0, 0);
+      const ty = WHEELS[i].pos.y - len;
+      g.position.y += (ty - g.position.y) * (1 - Math.exp(-50 * dt));
+      if (WHEELS[i].front) g.rotation.y = visSteer.current;
       const spin = g.children[0];
       if (spin) spin.rotation.z = -(v.wheelRotation(i) ?? 0);
     }
@@ -167,11 +186,6 @@ export default function Vehicle() {
     if (input.honk) {
       input.honk = false;
       honk();
-    }
-
-    // Light boost: small extra push for that toy-car feel when airborne.
-    if (!carState.grounded && input.forward && getState().phase === "world") {
-      b.applyImpulse({ x: carState.forward.x * 0.05, y: 0, z: carState.forward.z * 0.05 }, true);
     }
 
     lastHud.current += dt;
@@ -192,9 +206,20 @@ export default function Vehicle() {
       canSleep={false}
       ccd
     >
-      {/* Light chassis and a heavy low ballast so it bounces but rarely tips. */}
-      <CuboidCollider args={[CHASSIS_HALF[0], 0.17, CHASSIS_HALF[2]]} position={[0, 0.05, 0]} mass={4} friction={0.3} />
-      <BallCollider args={[0.12]} position={[0, -0.08, 0]} mass={8} friction={0} frictionCombineRule={1} />
+      {/* One collider carries all the mass, with the centre of mass low near the
+          road (Bruno's trick) so the car is stable without a ballast touching the ground. */}
+      <CuboidCollider
+        args={[CHASSIS_HALF[0], 0.17, CHASSIS_HALF[2]]}
+        position={[0, 0.05, 0]}
+        friction={0.4}
+        massProperties={{
+          mass: 12,
+          centerOfMass: { x: 0, y: -0.3, z: 0 },
+          principalAngularInertia: { x: 1.2, y: 5.8, z: 5.1 },
+          angularInertiaLocalFrame: { x: 0, y: 0, z: 0, w: 1 },
+        }}
+      />
+      <group ref={chassis} />
       <CarBody brakeLight={false}>
         <Driver position={DRIVER_SEAT} />
       </CarBody>

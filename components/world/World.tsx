@@ -39,7 +39,7 @@ export default function World() {
       <Sky />
       <Sun />
       <Suspense fallback={null}>
-        <Physics gravity={[0, -22, 0]} timeStep={1 / 60}>
+        <Physics gravity={[0, -22, 0]} timeStep={1 / 60} interpolate updatePriority={-50}>
           <Island />
           <Places />
           <Vehicle />
