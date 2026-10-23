@@ -5,7 +5,7 @@ import { CuboidCollider, HeightfieldCollider, RigidBody, TrimeshCollider } from 
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { C } from "./palette";
-import { CANALS, LAKES, SEA_Y, canalDist, START_T, TRACK_WIDTH, lakeDepthDist, shoreDist, trackCurve } from "./layout";
+import { CANALS, LAKES, SEA_Y, canalDist, duneMask, START_T, TRACK_WIDTH, lakeDepthDist, shoreDist, trackCurve } from "./layout";
 import Water from "./Water";
 import Harbour from "./Harbour";
 import { EXTENT, GRID, heightGrid } from "./terrain";
@@ -209,6 +209,7 @@ function terrainGeometry() {
       // sand along the shores (by distance to the water), darker where it's wet
       const d = Math.min(shoreDist(x, z), ...LAKES.map((l) => -lakeDepthDist(l, x, z)), ...CANALS.map((c) => -canalDist(c, x, z)));
       tmp.copy(grass).lerp(sand, 1 - THREE.MathUtils.smoothstep(d, 2.5, 6.5));
+      tmp.lerp(sand, duneMask(x, z) * 0.85); // the east dunes are sand with a little grass
       tmp.lerp(wet, 1 - THREE.MathUtils.smoothstep(y - SEA_Y, 0.02, 0.18));
       col.set([tmp.r, tmp.g, tmp.b], k * 3);
     }

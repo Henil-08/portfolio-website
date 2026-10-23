@@ -191,6 +191,43 @@ export function shoreDist(x: number, z: number) {
   return coastR(Math.atan2(z, x)) - Math.hypot(x, z);
 }
 
+// ------------------------------------------------------------ relief
+
+// Hills: a range along the north coast behind the old town and the north-east
+// hairpin (a backdrop for the chase camera, which looks north-west), and knolls
+// round the spring lake. Wide enough that their slopes stay drivable.
+const HILLS: { x: number; z: number; r: number; h: number }[] = [
+  { x: 56, z: -96, r: 20, h: 6 },
+  { x: 24, z: -104, r: 22, h: 8 },
+  { x: -12, z: -108, r: 22, h: 7.5 },
+  { x: -46, z: -104, r: 20, h: 6 },
+  { x: -78, z: -88, r: 16, h: 4 },
+  { x: 74, z: -52, r: 8, h: 2.6 },
+  { x: 50, z: -40, r: 7, h: 2 },
+];
+
+/** Dunes along the east beach: 0..1 mask of where they are. */
+export function duneMask(x: number, z: number) {
+  if (x < 58) return 0;
+  const sd = shoreDist(x, z);
+  const band = THREE.MathUtils.smoothstep(sd, 3, 8) * (1 - THREE.MathUtils.smoothstep(sd, 16, 24));
+  // only the stretch between the river mouth's north bank and T1
+  return band * THREE.MathUtils.smoothstep(z, -40, -28) * (1 - THREE.MathUtils.smoothstep(z, 26, 36));
+}
+
+/** Extra height (m) the land rises above the circuit-following ground: hills and dunes. */
+export function reliefAt(x: number, z: number) {
+  let h = 0;
+  for (const k of HILLS) h += k.h * Math.exp((-1.6 * ((x - k.x) ** 2 + (z - k.z) ** 2)) / (k.r * k.r));
+  const dm = duneMask(x, z);
+  if (dm > 0) {
+    const a = Math.atan2(z, x);
+    const sd = shoreDist(x, z);
+    h += dm * (0.55 + 0.45 * Math.sin(a * 30 + sd * 0.35) * Math.sin(a * 11 - sd * 0.22 + 1.3)) * 2.6;
+  }
+  return h;
+}
+
 /** True on dry land at least `margin` metres from the sea and every lake. */
 export function inLand(x: number, z: number, margin = 0) {
   if (shoreDist(x, z) < margin) return false;

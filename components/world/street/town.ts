@@ -1,6 +1,6 @@
 // Where the town's buildings stand and what they look like: pure data, shared
 // by the renderer (./Skyline.tsx) and anything that must keep clear of them.
-import { MAX_R, PIT, inLand } from "../layout";
+import { MAX_R, PIT, duneMask, inLand, reliefAt } from "../layout";
 import { AWAY, FRAMES, RUNOFF, barrierOffset, distToTrack, farSign, inSectorScene, nearPlace, nearTree, nearestFrame, outSign, rng } from "./common";
 import { LAMPS } from "./layoutStreet";
 import { nearPromenade } from "../waterfront/layout";
@@ -90,6 +90,7 @@ function overlaps(a: Bld, b: Bld, gap: number) {
 function clear(b: Bld, out: Bld[]) {
   const hd = Math.hypot(b.w, b.d) / 2;
   if (!inLand(b.x, b.z, Math.max(b.w, b.d) * 0.45 + 2)) return false;
+  if (reliefAt(b.x, b.z) > 0.6 || duneMask(b.x, b.z) > 0.1) return false; // not on the hills or the dunes, a box would float on the slope
   if (nearPromenade(b.x, b.z, Math.max(b.w, b.d) * 0.55 + 1)) return false;
   if (inSectorScene(b.x, b.z, hd + 5, 14)) return false;
   if (nearPlace(b.x, b.z, hd)) return false;
@@ -177,6 +178,7 @@ export const BUILDINGS: Bld[] = (() => {
     const d = 5 + r() * (3.5 + far01 * 3);
     const hd = Math.hypot(w, d) / 2;
     if (!inLand(x, z, hd + 2)) continue;
+    if (reliefAt(x, z) > 0.6 || duneMask(x, z) > 0.1) continue; // the hills and the dunes stay open
     if (nearPromenade(x, z, hd + 1)) continue;
     const f = nearestFrame(x, z);
     const dt = distToTrack(x, z);

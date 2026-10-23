@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { CANALS, QUAY_Y, GRANDSTAND, LAKES, canalDist, canalSide, LETTERS, MAX_R, SEA_FLOOR, SEA_Y, TIMELINE, lakeDepthDist, onBridge, PIT, SCENE_FOOT, SECTORS, shoreDist, TRACK_WIDTH, trackCurve, trackPoint, zones } from "./layout";
+import { CANALS, QUAY_Y, reliefAt, GRANDSTAND, LAKES, canalDist, canalSide, LETTERS, MAX_R, SEA_FLOOR, SEA_Y, TIMELINE, lakeDepthDist, onBridge, PIT, SCENE_FOOT, SECTORS, shoreDist, TRACK_WIDTH, trackCurve, trackPoint, zones } from "./layout";
 
 // Terrain height for the whole island. The land follows the circuit: right next
 // to the road it matches the track's height exactly, further away it blends
@@ -52,7 +52,7 @@ function build() {
       const k = THREE.MathUtils.smoothstep(d, flat, flat + blend);
       // Under the road the land sits a little lower; the road has its own collider.
       const under = 1 - THREE.MathUtils.smoothstep(d, TRACK_WIDTH / 2 + 0.5, flat);
-      const y = THREE.MathUtils.lerp(bestY, far, k) - under * 0.22;
+      const y = THREE.MathUtils.lerp(bestY, far, k) - under * 0.22 + reliefAt(x, z) * k;
       h[j * n + i] = y;
     }
   }
