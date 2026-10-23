@@ -4,9 +4,8 @@ Working plan for the drivable portfolio. Each step is small, verified with
 headless screenshots, and committed on its own. Tick items as they land and
 note the commit, so the next session can pick up from the first unticked one.
 
-Reference for look and feel: Bruno Simon's folio-2025 (MIT). Research brief
-lives in the session scratchpad; the parts we rely on are summarised below
-as they get used.
+Reference for look and feel: Bruno Simon's folio-2025 (MIT). Research brief:
+docs/research/bruno-folio-2025.md (map, night, interaction prompt, UI, terrain).
 
 ## Feedback this plan answers (2026-10-23)
 
@@ -40,16 +39,21 @@ UI is quiet broadcast graphics: small, precise, translucent, no cartoon colours.
 - [ ] Ian voice: needs the voice ID from the user (key lacks voices_read);
       then `ELEVENLABS_VOICE_ID=<id> node scripts/gen-audio.mjs --only radio-... --force`
 
-### 1. Circuit v3: crossover and gentle grades
-- [ ] New track points (components/world/layout.ts): a figure-of-eight street
+### 1. Circuit v3: crossover and gentle grades — done (5d83cea)
+- [x] New track points (components/world/layout.ts): a figure-of-eight street
       circuit where one leg climbs over the other on a bridge (>= 5 m clearance),
       grades <= ~7%, a couple of fast sweepers, one hairpin, the pit straight kept.
-- [ ] Terrain (terrain.ts): at a crossover the land follows the LOWER road; IDW
+- [x] Terrain (terrain.ts): at a crossover the land follows the LOWER road; IDW
       must ignore the bridge span. Clamp off-road slope (max ~25%) so a car that
       leaves the road can always drive back.
-- [ ] Bridge model: deck, parapets, piers, abutment ramps; collider = the road
+- [x] Bridge model: deck, parapets, piers, abutment ramps; collider = the road
       trimesh (already per-ribbon) plus parapet cuboids.
-- [ ] Re-run scene placement, pit lanes, street dressing; verify with overview shots.
+- [x] Re-run scene placement, pit lanes, street dressing; verify with overview shots.
+
+Notes from step 1: R respawns onto the nearest road (nearestT3, height-aware).
+~1% of open ground is still >40% where the raised descent leg meets the
+infield; step 2's garden layout should keep places >= 17 m from that leg.
+Headless physics runs in slow motion (low fps), so judge driving by screenshots.
 
 ### 2. Garden infield, city streets outside
 - [ ] Infield becomes a garden park: soft paths (gravel/stone), hedges, flower
