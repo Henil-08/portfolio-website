@@ -50,9 +50,6 @@ export function CameraRig() {
     zoomS.current += (THREE.MathUtils.smoothstep(spd, 5, 30) * 0.22 - zoomS.current) * k1;
     const followPos = tmp.copy(OFFSET).multiplyScalar(zoom * (1 + zoomS.current)).add(target.current);
 
-    const a = clock.elapsedTime * 0.06 + 0.7;
-    orbit.set(Math.cos(a) * 95, 62, Math.sin(a) * 95);
-
     // Dev and headless checks: window.__cam = [x, y, z, tx, ty, tz] pins the camera.
     const dbg = (window as unknown as { __cam?: number[] }).__cam;
     if (dbg) {
@@ -62,8 +59,14 @@ export function CameraRig() {
     }
 
     if (phase !== "world") {
-      camera.position.copy(orbit);
-      camera.lookAt(0, 0, 0);
+      // Start screen: a slow turntable around the parked car, like a car reveal.
+      const c = carState.pos;
+      const ta = clock.elapsedTime * 0.12 + 2.2;
+      const r = portrait ? 7.5 : 5.6;
+      camera.position.set(c.x + Math.cos(ta) * r, c.y + 2.2, c.z + Math.sin(ta) * r);
+      camera.lookAt(c.x, c.y - 1.1, c.z); // car sits in the upper half, the title below it
+      orbit.copy(camera.position); // the swoop to the chase camera starts here
+      target.current.copy(c);
       blend.current = 0;
       return;
     }
@@ -89,11 +92,11 @@ export function CameraRig() {
       return;
     }
 
-    // Swoop from the orbit down to the car, then follow.
-    blend.current = Math.min(1, blend.current + dt * 0.45);
+    // Rise from the turntable shot up to the chase camera, then follow.
+    blend.current = Math.min(1, blend.current + dt * 0.7);
     const k = THREE.MathUtils.smootherstep(blend.current, 0, 1);
     camera.position.lerpVectors(orbit, followPos, k);
-    look.set(0, 0, 0).lerp(target.current, k);
+    look.copy(target.current);
     camera.lookAt(look);
   });
 

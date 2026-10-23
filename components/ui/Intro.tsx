@@ -39,7 +39,8 @@ export default function Intro() {
       {phase !== "world" && !leaving && (
         <motion.div
           key="start"
-          className="fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-center bg-[#0d0d10] text-white"
+          className="fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-end pb-[12vh] text-white"
+          style={{ background: ready ? "linear-gradient(to top, rgba(13,13,16,0.72), rgba(13,13,16,0) 45%)" : "#0d0d10" }}
           onClick={() => ready && start()}
           exit={{ opacity: 0, transition: { duration: 0.8 } }}
         >
@@ -50,11 +51,11 @@ export default function Intro() {
           >
             Resume
           </a>
-          <p className="font-racing text-[clamp(2.4rem,8vw,5.5rem)] leading-none tracking-wide">
+          <p className="font-racing text-[clamp(2rem,6vw,4.2rem)] leading-none tracking-wide drop-shadow-[0_2px_12px_rgba(0,0,0,0.35)]">
             HENIL <span className="text-[#e10600]">GAJJAR</span>
           </p>
-          <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.3em] text-white/40">AI/ML Software Engineer · Boston</p>
-          <div className="mt-12 h-10">
+          <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.3em] text-white/70">AI/ML Software Engineer · Boston</p>
+          <div className="mt-8 h-10">
             {ready ? (
               <motion.p
                 initial={{ opacity: 0 }}
@@ -74,7 +75,7 @@ export default function Intro() {
               </div>
             )}
           </div>
-          <p className="absolute bottom-6 font-mono text-[10px] uppercase tracking-[0.25em] text-white/25">Sound on</p>
+          <p className="absolute bottom-6 font-mono text-[10px] uppercase tracking-[0.25em] text-white/45">Sound on</p>
         </motion.div>
       )}
     </AnimatePresence>
