@@ -6,16 +6,35 @@
 // slow foam line where the water meets the beach. Lit like everything else, so
 // it follows day and night. On top: Bruno's teal glow along every shore (a faint
 // emission at night too), two scrolling ripple layers in the normals so the sun
-// glints, and a little fresnel toward grazing angles.
+// glints, and a little fresnel toward grazing angles. At night every lamp by the
+// water (promenade, pier, harbour lanterns, street lamps on the shore) lays a warm
+// streak on the surface toward the camera, broken up by the ripples.
 import { useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { C } from "./palette";
-import { SEA_Y } from "./layout";
+import { CANALS, LAKES, SEA_Y, canalDist, lakeDepthDist, shoreDist } from "./layout";
+import { PIER_LAMP, PROM_LAMPS } from "./waterfront/layout";
+import { HARBOUR } from "./districts/harbour";
+import { LAMPS } from "./street/layoutStreet";
 import { dayNight } from "./daynight";
 import { heightTexture } from "./terrain";
 
 const SIZE = 1400; // reaches past the fog in every direction
+
+/** Distance from (x, z) to the nearest water edge (sea, lakes, harbour, river); negative in the water. */
+function toWater(x: number, z: number) {
+  return Math.min(shoreDist(x, z), ...CANALS.map((c) => -canalDist(c, x, z)), ...LAKES.map((l) => -lakeDepthDist(l, x, z)));
+}
+
+// Lamps whose light reaches the water: [x, z, strength].
+const MAX_LIGHTS = 32;
+const LIGHTS: [number, number, number][] = [
+  ...PROM_LAMPS.map(([x, z]) => [x, z, 1] as [number, number, number]),
+  [PIER_LAMP[0], PIER_LAMP[1], 1] as [number, number, number],
+  ...HARBOUR.lanterns.map((m) => [m.elements[12], m.elements[14], 0.7] as [number, number, number]),
+  ...LAMPS.filter((l) => toWater(l.px, l.pz) < 8).map((l) => [l.px, l.pz, 1.2] as [number, number, number]),
+].slice(0, MAX_LIGHTS);
 
 const uniforms = {
   uHeight: { value: null as THREE.Texture | null },
@@ -31,6 +50,9 @@ const uniforms = {
   uGlow: { value: new THREE.Color("#6fc7ba") }, // Bruno's #5bc2b9, toned to our palette
   uSky: { value: new THREE.Color("#cfe3e2") },
   uNight: { value: 0 },
+  uLights: { value: Array.from({ length: MAX_LIGHTS }, (_, i) => new THREE.Vector3(...(LIGHTS[i] ?? [0, 0, 0]))) },
+  uLightCount: { value: LIGHTS.length },
+  uLamp: { value: new THREE.Color("#ffb867") },
 };
 
 function waterMaterial() {
@@ -52,7 +74,9 @@ function waterMaterial() {
           `#include <common>
           varying vec3 vWaterW;
           uniform sampler2D uHeight; uniform float uSize, uMinY, uMaxY, uSeaY, uTime, uNight;
-          uniform vec3 uShallow, uMid, uDeep, uFoam, uGlow, uSky;
+          uniform vec3 uShallow, uMid, uDeep, uFoam, uGlow, uSky, uLamp;
+          uniform vec3 uLights[${MAX_LIGHTS}];
+          uniform int uLightCount;
           float wHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
           float wNoise(vec2 p) {
             vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -102,10 +126,27 @@ function waterMaterial() {
         .replace(
           "#include <emissivemap_fragment>",
           `#include <emissivemap_fragment>
-          totalEmissiveRadiance += uGlow * wGlow * (0.04 + uNight * 0.22);`
+          totalEmissiveRadiance += uGlow * wGlow * (0.04 + uNight * 0.22);
+          if (uNight > 0.01) {
+            // lamp reflections: a streak from each lamp toward the camera, shimmering with the ripples
+            float refl = 0.0;
+            for (int i = 0; i < ${MAX_LIGHTS}; i++) {
+              if (i >= uLightCount) break;
+              vec3 L = uLights[i];
+              vec2 v = vWaterW.xz - L.xy;
+              if (dot(v, v) > 100.0) continue;
+              vec2 toCam = normalize(cameraPosition.xz - L.xy);
+              float along = dot(v, toCam);
+              float across = dot(v, vec2(-toCam.y, toCam.x));
+              float streak = exp(-across * across / 0.18) * exp(-along * along / 22.0) * smoothstep(-0.6, 0.4, along);
+              refl += streak * L.z;
+            }
+            float shimmer = smoothstep(0.55, 1.05, wRipple(vWaterW.xz * 1.7));
+            totalEmissiveRadiance += uLamp * refl * shimmer * uNight * 1.6;
+          }`
         );
     };
-    m.customProgramCacheKey = () => "water-v2";
+    m.customProgramCacheKey = () => "water-v3";
     return m;
   }
 }

@@ -10,7 +10,7 @@ import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import { CANALS, SEA_FLOOR, SEA_Y, coastR } from "../layout";
-import { PIER, PIER_I, PROMENADE, PROM_W, frame } from "./layout";
+import { PIER, PIER_I, PIER_LAMP, PROMENADE, PROM_LAMPS, PROM_W, frame } from "./layout";
 import { heightAt } from "../terrain";
 import { dayNight } from "../daynight";
 import { C } from "../palette";
@@ -116,19 +116,14 @@ function Lamps() {
   const parts = useMemo(() => {
     const poles = batch();
     const globes = batch();
-    for (let i = 12; i < PROMENADE.length; i += 32) {
-      if (Math.abs(i - PIER_I) < 6) continue;
-      const f = frame(i);
-      const x = PROMENADE[i][0] + f.nx * (PROM_W / 2 - 0.2);
-      const z = PROMENADE[i][1] + f.nz * (PROM_W / 2 - 0.2);
+    for (const [x, z] of PROM_LAMPS) {
       const y = heightAt(x, z) + 0.05;
       poles.m.push(compose(x, y + LAMP_H / 2, z, 0, 0.06, LAMP_H, 0.06));
       poles.m.push(compose(x, y + 0.12, z, 0, 0.16, 0.24, 0.16));
       globes.m.push(compose(x, y + LAMP_H + 0.2, z, 0, 0.24, 0.26, 0.24));
     }
     // and one at the end of the pier
-    const ex = PIER.x + PIER.dx * (PIER.len - 0.6);
-    const ez = PIER.z + PIER.dz * (PIER.len - 0.6);
+    const [ex, ez] = PIER_LAMP;
     poles.m.push(compose(ex, PIER.y + LAMP_H / 2, ez, 0, 0.06, LAMP_H, 0.06));
     globes.m.push(compose(ex, PIER.y + LAMP_H + 0.2, ez, 0, 0.24, 0.26, 0.24));
     return { poles, globes };

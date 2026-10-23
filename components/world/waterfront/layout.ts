@@ -62,3 +62,15 @@ export function paintWaterfront(g: CanvasRenderingContext2D, tx: (v: number) => 
   g.stroke();
   g.restore();
 }
+
+/** Promenade lamps: every 32 samples along the sea edge (none by the pier's foot), and one at the pier's end. */
+export const PROM_LAMPS: [number, number][] = (() => {
+  const out: [number, number][] = [];
+  for (let i = 12; i < PROMENADE.length; i += 32) {
+    if (Math.abs(i - PIER_I) < 6) continue;
+    const f = frame(i);
+    out.push([PROMENADE[i][0] + f.nx * (PROM_W / 2 - 0.2), PROMENADE[i][1] + f.nz * (PROM_W / 2 - 0.2)]);
+  }
+  return out;
+})();
+export const PIER_LAMP: [number, number] = [PIER.x + PIER.dx * (PIER.len - 0.6), PIER.z + PIER.dz * (PIER.len - 0.6)];
