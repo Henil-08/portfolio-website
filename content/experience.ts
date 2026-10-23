@@ -10,7 +10,7 @@ export type Role = {
 export const experience: Role[] = [
   {
     company: "Waters Corporation",
-    title: "AI / ML Engineer",
+    title: "AI/ML Software Engineer",
     dates: "Jan 2026 – Present",
     kind: "Full time",
     tags: ["LangGraph", "Claude", "MCP", "SAP", "SQL"],

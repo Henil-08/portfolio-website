@@ -53,7 +53,7 @@ export default function Intro() {
           <p className="font-racing text-[clamp(2.4rem,8vw,5.5rem)] leading-none tracking-wide">
             HENIL <span className="text-[#e10600]">GAJJAR</span>
           </p>
-          <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.3em] text-white/40">AI / ML Engineer · Boston</p>
+          <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.3em] text-white/40">AI/ML Software Engineer · Boston</p>
           <div className="mt-12 h-10">
             {ready ? (
               <motion.p

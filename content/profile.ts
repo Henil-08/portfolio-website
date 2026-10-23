@@ -1,7 +1,7 @@
 export const profile = {
   name: "Henil Gajjar",
   short: "Henil",
-  role: "AI / ML Engineer",
+  role: "AI/ML Software Engineer",
   company: "Waters Corporation",
   location: "Boston, MA",
   coords: "42.3555° N, 71.0565° W",

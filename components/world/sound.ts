@@ -138,17 +138,16 @@ async function startEngine() {
   engine = { src, gain };
 }
 
-let wasBoost = false;
 let lastSkid = 0;
 // Called every frame from the world: pitch follows speed, volume follows throttle.
 export function engineUpdate(speedKmh: number, throttle: number, boost: boolean, sliding: boolean) {
   const a = ctx;
   if (!a || !engine) return;
   const s = Math.min(speedKmh / 140, 1.3);
-  engine.src.playbackRate.setTargetAtTime(0.65 + s * 1.05 + (boost ? 0.15 : 0), a.currentTime, 0.08);
-  engine.gain.gain.setTargetAtTime(0.05 + s * 0.12 + throttle * 0.06, a.currentTime, 0.1);
-  if (boost && !wasBoost) void play("boost", { vol: 0.5 });
-  wasBoost = boost;
+  engine.src.playbackRate.setTargetAtTime(0.7 + s * 0.8 + (boost ? 0.08 : 0), a.currentTime, 0.12);
+  // Quiet under the music, silent when parked.
+  const moving = speedKmh > 3 || throttle > 0;
+  engine.gain.gain.setTargetAtTime(moving ? 0.012 + s * 0.035 + throttle * 0.01 : 0, a.currentTime, 0.25);
   if (sliding && a.currentTime - lastSkid > 1.2 && speedKmh > 30) {
     lastSkid = a.currentTime;
     void play("skid", { vol: 0.35 });
