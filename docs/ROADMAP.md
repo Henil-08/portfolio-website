@@ -65,6 +65,12 @@ pop-up banners childish, voice only on Enter · no Vercel deploy on push ·
 Enter UI bad · timeline tiles out of place on grass · street lap with a garden
 area holding all the places · buildings cute 3D, soft, not harsh; too childish overall.
 
+Second round (2026-10-23, later): the car snags on walls and buildings with a tyre
+hanging out · the brake stops it dead · start in the middle at the name, the full
+name HENIL GAJJAR, letters tight like Bruno's · contact as a ring of logos like
+Bruno's social area · use Bruno's assets and code (MIT) instead of designing from
+scratch, starting with his trees. See step 8.
+
 ## Steps
 
 ### 0. Quick fixes — done (c31cb73)
@@ -98,7 +104,7 @@ area holding all the places · buildings cute 3D, soft, not harsh; too childish 
 Notes: ~1% of open ground is still >40% where the raised descent leg (t ~0.70–0.80)
 meets the infield. Keep places >= 17 m from that leg.
 
-### 2. Garden infield, city streets outside — 2a done, 2b NEXT
+### 2. Garden infield, city streets outside — 2a done, 2b two of three done
 Two independent halves; they can be done in parallel by separate agents
 because they own different files.
 
@@ -130,13 +136,13 @@ components/world/timeline/**, app/lab/timeline/**, and only the mask function in
   `window.__placeXZ(x, z, heading)` drops the car anywhere for checks.
 
 **2b. Cute city outside the circuit** — owns components/world/street/** and app/lab/city/**.
-- [ ] Replace the box skyline (street/Skyline.tsx, instanced boxes + `facadeMaterial`) with soft
+- [x] Replace the box skyline (street/Skyline.tsx, instanced boxes + `facadeMaterial`) with soft
       buildings from a small instanced kit: bevelled bodies, chunky inset window frames,
       shop awnings, balconies, pitched/rounded roofs with roof gardens, water tanks, chimneys.
       Palette cream #f3e9d8, terracotta #d9826b, sage #9fb79a, dusty blue #8fa9c4, butter #f0d48a,
       warm white. Mostly 2–5 storeys, a few landmarks <= 18 m. Keep the `BUILDINGS` export
       ({x,z,w,d,h,yaw,...}) — Groves.tsx uses it. Keep per-building CuboidColliders.
-- [ ] Night: windows glow warm, seeded lit/unlit per window, driven by `facadeUniforms.uNight`
+- [x] Night: windows glow warm, seeded lit/unlit per window, driven by `facadeUniforms.uNight`
       / `dayNight.night`, emissive > 1 so they bloom.
 - [ ] Streets: pavements with kerb edging where buildings front the circuit, zebra crossings,
       street trees in planters, bollards, a bus stop / kiosk, café tables. Sparse enough to read
@@ -144,6 +150,12 @@ components/world/timeline/**, app/lab/timeline/**, and only the mask function in
       distToTrack, FRAMES, barrierOffset); never near the bridge.
 - Accept when: from the chase camera the lap feels like driving through a small, cute town;
   no harsh grey towers; night windows glow.
+- Done so far in ab83e0f: placement in street/town.ts (`BUILDINGS`, palette, `G0`/`FH` storey
+  heights), renderer in street/Skyline.tsx (bodies + trims + roofs merged, roof shrubs instanced:
+  4 draw calls; windows come from the facade shader). The island is small, so the town is a thin
+  ring; frontage stands right behind the pavement, only on the side away from the camera
+  (on the near side it hid the car). Scattered trees keep out of the town belt (`inTownBelt`).
+  NEXT: the streets item. Pavements will make the frontage read as a street.
 
 ### 3. Night like Bruno's — partly done (72b9ca7)
 - [x] Night palette: blue moonlight #4a5cff, violet hemisphere bounce, navy-to-plum sky/fog,
@@ -189,6 +201,24 @@ Same ownership as step 4 plus new components/world/ui3d/**.
       components/world/liveries.ts; store field `livery`; Vehicle passes it to CarBody/CarWheel.
 - [ ] When step 5 restyles the panels, give settings its own small panel (gear icon) with
       Livery, Sound and Voice toggles, instead of living under Controls.
+
+### 8. Second-round feedback (2026-10-23)
+- [x] Car snags on walls: Bruno's massless, frictionless bumper collider around wheels and
+      wings (Vehicle.tsx), so walls push the car along (1c35d56).
+- [x] Brake stops dead: the Space brake ramps in over 0.4 s at 4 (Bruno's is 35) and the rear
+      lets go a little while it's held (1c35d56). Tune `HANDBRAKE_*` by feel on a real GPU;
+      headless physics is too slow to judge it.
+- [x] Start at the name: HENIL GAJJAR (G, A, J, R added to Letter.tsx), tight spacing, centre
+      `LETTERS.center`; `SPAWN` sits on the garden path in front of it (3b32a6c).
+- [x] Contact as a ring of logos (components/world/social/): Email, LinkedIn, GitHub, Résumé,
+      Scholar, Hugging Face, Medium from content/profile.ts; store `nearLink`; E/Enter opens the
+      link (60023aa).
+- [x] Bruno's stuck hint (46d4d2f): on the throttle, under 0.5 m in 3 s -> "Stuck? Press R".
+- [ ] Bruno's trees (MIT; his repo's static/ is covered by the same license): foliage clumps with
+      the SDF leaf texture, spherical normals and wind, in components/world/foliage/** and
+      models/props/Tree.tsx; assets in public/bruno/ with his license.
+- [ ] More of Bruno to port next, in this order: interaction prompt (step 5), map (step 4),
+      respawn wipe, toasts. Bruno's clone: `git clone --depth 1 https://github.com/brunosimon/folio-2025`.
 
 ### 7. Later
 - Bruno-style "unstuck" hint if the car barely moves for 3 s.
