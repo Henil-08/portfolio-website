@@ -1,6 +1,6 @@
 // Where the town's buildings stand and what they look like: pure data, shared
 // by the renderer (./Skyline.tsx) and anything that must keep clear of them.
-import { MAX_R, PIT, duneMask, inLand, reliefAt } from "../layout";
+import { CROSSINGS, MAX_R, PIT, duneMask, inLand, reliefAt, trackTangent } from "../layout";
 import { AWAY, FRAMES, RUNOFF, barrierOffset, distToTrack, farSign, inSectorScene, nearPlace, nearTree, nearestFrame, outSign, rng } from "./common";
 import { LAMPS } from "./layoutStreet";
 import { nearPromenade } from "../waterfront/layout";
@@ -87,7 +87,19 @@ function overlaps(a: Bld, b: Bld, gap: number) {
   return true;
 }
 
-function clear(b: Bld, out: Bld[]) {
+/** True if every corner of the footprint is at least `gap` from every road centreline. */
+function cornersClear(b: Bld, gap: number) {
+  const c = Math.cos(b.yaw);
+  const sn = Math.sin(b.yaw);
+  for (const [lx, lz] of [[-1, -1], [1, -1], [1, 1], [-1, 1], [0, 0]]) {
+    const x = b.x + (lx * b.w * c) / 2 + (lz * b.d * sn) / 2;
+    const z = b.z - (lx * b.w * sn) / 2 + (lz * b.d * c) / 2;
+    if (distToTrack(x, z) < gap) return false;
+  }
+  return true;
+}
+
+function clear(b: Bld, out: Bld[], tight = false) {
   const hd = Math.hypot(b.w, b.d) / 2;
   if (!inLand(b.x, b.z, Math.max(b.w, b.d) * 0.45 + 2)) return false;
   if (reliefAt(b.x, b.z) > 0.6 || duneMask(b.x, b.z) > 0.1) return false; // not on the hills or the dunes, a box would float on the slope
@@ -97,7 +109,7 @@ function clear(b: Bld, out: Bld[]) {
   if (nearTree(b.x, b.z, Math.min(b.w, b.d) * 0.45)) return false;
   if (LAMPS.some((l) => Math.hypot(l.x - b.x, l.z - b.z) < hd + 1)) return false;
   if (STAND_SPOTS.some((s) => Math.hypot(s.x - b.x, s.z - b.z) < hd + 8)) return false;
-  if (distToTrack(b.x, b.z) - Math.min(b.w, b.d) / 2 < 7.5) return false;
+  if (tight ? !cornersClear(b, 6.5) : distToTrack(b.x, b.z) - Math.min(b.w, b.d) / 2 < 7.5) return false;
   return !out.some((o) => overlaps(o, b, 1.1));
 }
 
@@ -163,9 +175,41 @@ function frontage(out: Bld[]) {
 }
 const LEN_M = FRAMES.length * FRAMES[1].p.distanceTo(FRAMES[0].p);
 
+/**
+ * The old town: buildings packed into the four corners where the climbing road
+ * crosses over the tunnel straight, so you drive under the deck down a street
+ * canyon. Squared to the lower road; low on the camera's side so the car stays
+ * in view under the bridge.
+ */
+function oldTown(out: Bld[]) {
+  const r = rng(1897);
+  for (const c of CROSSINGS) {
+    const t = trackTangent(c.lowerT);
+    const yaw = Math.atan2(-t.z, t.x);
+    const tx = t.x / Math.hypot(t.x, t.z);
+    const tz = t.z / Math.hypot(t.x, t.z);
+    for (let k = 0; k < 90; k++) {
+      // along the lower road, and out to one side of it
+      const along = (r() * 2 - 1) * 30;
+      const side = r() < 0.5 ? 1 : -1;
+      const off = 7 + r() * 9;
+      const x = c.x + tx * along - tz * off * side;
+      const z = c.z + tz * along + tx * off * side;
+      const camSide = (-tz * side) * AWAY.x + (tx * side) * AWAY.z < 0;
+      const w = 5 + r() * 3.5;
+      const d = 5.5 + r() * 2.5;
+      const floors = camSide ? 2 : 3 + Math.floor(r() * 2);
+      const color = WALLS[Math.floor(r() * WALLS.length)];
+      const b = dress(r, { x, z, w, d, h: bodyH(floors), yaw, color, seed: r() * 100, floors }, 0.1);
+      if (clear(b, out, true)) out.push(b);
+    }
+  }
+}
+
 export const BUILDINGS: Bld[] = (() => {
   const r = rng(2026);
   const out: Bld[] = [];
+  oldTown(out);
   frontage(out);
   for (let tries = 0; tries < 16000 && out.length < 280; tries++) {
     const a = r() * Math.PI * 2;
