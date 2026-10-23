@@ -39,13 +39,16 @@ const ENTRIES: Entry[] = [
   { name: "pitch", r: 11, el: <P.CricketPitch><P.Wicket position={[0, 0, P.PITCH_STUMPS_Z]} /></P.CricketPitch> },
   {
     name: "trees",
-    r: 4,
+    r: 6,
+    cy: 2.2,
     el: (
       <>
-        <P.Tree variant="round" position={[-3, 0, 0]} />
-        <P.Tree variant="pine" position={[0, 0, 0]} />
-        <P.Tree variant="palm" position={[3, 0, 0]} />
+        <P.Tree variant="oak" seed={1} position={[-6, 0, 0]} />
+        <P.Tree variant="cherry" seed={2} position={[-1, 0, -1]} />
+        <P.Tree variant="pine" seed={3} position={[2.5, 0, 0]} />
+        <P.Tree variant="palm" position={[5, 0, 0]} />
         <P.Bush position={[-1.5, 0, 2]} />
+        <P.Bush seed={4} position={[-3.2, 0, 2.6]} scale={0.8} />
         <P.Rock position={[1.5, 0, 2]} />
         <P.Rock seed={2} position={[2.6, 0, 2.4]} scale={0.6} />
       </>

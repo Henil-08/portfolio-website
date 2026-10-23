@@ -214,9 +214,11 @@ Same ownership as step 4 plus new components/world/ui3d/**.
       Scholar, Hugging Face, Medium from content/profile.ts; store `nearLink`; E/Enter opens the
       link (60023aa).
 - [x] Bruno's stuck hint (46d4d2f): on the throttle, under 0.5 m in 3 s -> "Stuck? Press R".
-- [ ] Bruno's trees (MIT; his repo's static/ is covered by the same license): foliage clumps with
+- [x] Bruno's trees (MIT; his repo's static/ is covered by the same license): foliage clumps with
       the SDF leaf texture, spherical normals and wind, in components/world/foliage/** and
       models/props/Tree.tsx; assets in public/bruno/ with his license.
+      Oak, cherry (1 in 8 round trees), birch-shaped pine and bush: 4 draw calls (+4 shadow)
+      for ~170 trees via foliage/registry.ts. Palms still old meshes. Colours are a first pass.
 - [ ] More of Bruno to port next, in this order: interaction prompt (step 5), map (step 4),
       respawn wipe, toasts. Bruno's clone: `git clone --depth 1 https://github.com/brunosimon/folio-2025`.
 
