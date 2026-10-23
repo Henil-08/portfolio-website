@@ -44,3 +44,8 @@ next-env.d.ts
 # Licensed assets, kept out of the public repo. See deploy/DEPLOY.md.
 /public/fonts/racero.otf
 /public/sfx/radio.mp3
+
+# Personal files dropped in for reference
+/Profile.pdf
+/theme.mp3
+/media/
