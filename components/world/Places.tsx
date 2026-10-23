@@ -61,7 +61,7 @@ import {
   type ZoneId,
 } from "./layout";
 import { cheer, pop } from "./sound";
-import { toast } from "./store";
+import { achieve, toast } from "./store";
 
 type V3 = [number, number, number];
 
@@ -178,6 +178,7 @@ function FootballPitch() {
   const [x, , z] = at("football");
   const ball = useRef<RapierRigidBody>(null);
   const scored = useRef(0);
+  const goals = useRef(0);
   const home: V3 = [x, BALL_R + 0.05, z + 2];
   const goalZ = z - 6;
 
@@ -191,6 +192,9 @@ function FootballPitch() {
         scored.current = clock.elapsedTime;
         toast("GOAL!", "yellow");
         cheer();
+        goals.current++;
+        achieve("goal");
+        if (goals.current === 3 && achieve("hat-trick")) setTimeout(() => toast("Hat-trick", "teal"), 900);
         setTimeout(() => {
           b.setTranslation({ x: home[0], y: home[1] + 1, z: home[2] }, true);
           b.setLinvel({ x: 0, y: 0, z: 0 }, true);
@@ -244,6 +248,7 @@ function Cricket() {
   const [x, , z] = at("cricket");
   const stumps = useRef<(RapierRigidBody | null)[]>([]);
   const out = useRef(false);
+  const wickets = useRef(0);
   const ends = [-8.8, 8.8];
 
   const reset = () => {
@@ -272,6 +277,9 @@ function Cricket() {
         out.current = true;
         toast("HOWZAT!", "red");
         pop();
+        wickets.current++;
+        achieve("howzat");
+        if (wickets.current === 3 && achieve("hat-trick")) setTimeout(() => toast("Hat-trick", "teal"), 900);
         setTimeout(() => {
           reset();
           out.current = false;

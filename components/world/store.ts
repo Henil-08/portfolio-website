@@ -26,6 +26,8 @@ type State = {
   picks: { title: string; slugs: string[] } | null;
   fitOpen: boolean;
   voice: boolean; // race engineer speaks out loud
+  hallucinating: boolean;
+  achievements: string[];
   radioMsg: { id: number; text: string } | null; // transient team-radio transcript
   lap: { role: string; route: ZoneId[]; i: number } | null;
   autopilot: { on: boolean; gen: number; alive: number; best: number; history: number[] };
@@ -51,6 +53,8 @@ let state: State = {
   picks: null,
   fitOpen: false,
   voice: false,
+  hallucinating: false,
+  achievements: [],
   radioMsg: null,
   lap: null,
   autopilot: { on: false, gen: 0, alive: 0, best: 0, history: [] },
@@ -105,6 +109,13 @@ export function openZone(zone: ZoneId) {
 
 export function closeZone() {
   setState({ zone: null });
+}
+
+// Quiet achievements, listed in the map menu.
+export function achieve(id: string) {
+  if (getState().achievements.includes(id)) return false;
+  setState((s) => ({ achievements: [...s.achievements, id] }));
+  return true;
 }
 
 let tpId = 0;

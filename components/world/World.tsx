@@ -14,12 +14,14 @@ import { InteractionPoint } from "./Race";
 import { Exposure, Spawns, Weather } from "./Effects";
 import Autopilot from "./autopilot/Autopilot";
 import { bindKeyboard } from "./input";
+import { useWorld } from "./store";
 
 export default function World() {
   // Phones get the light version from the start. This component only renders on the client.
   const [fancy, setFancy] = useState(() => !window.matchMedia("(pointer: coarse)").matches);
 
   useEffect(() => bindKeyboard(), []);
+  const hallucinating = useWorld((s) => s.hallucinating);
 
   return (
     <Canvas
@@ -27,7 +29,7 @@ export default function World() {
       dpr={[1, fancy ? 1.75 : 1.25]}
       camera={{ fov: 34, near: 0.5, far: 1200, position: [90, 60, 40] }}
       gl={{ antialias: !fancy, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.82 }}
-      className="!fixed inset-0"
+      className={`!fixed inset-0 ${hallucinating ? "hallucinate" : ""}`}
     >
       <PerformanceMonitor onDecline={() => setFancy(false)} />
       <fog attach="fog" args={["#e6e4df", 110, 300]} />

@@ -14,6 +14,8 @@ import { Minimap } from "./RaceHud";
 import AutopilotHud from "./AutopilotHud";
 import FitPanel, { LapChip } from "./FitPanel";
 import RadioMessages from "./RadioMessages";
+import EasterEggs from "./EasterEggs";
+import { ACHIEVEMENTS } from "@/content/achievements";
 
 export default function Hud() {
   const phase = useWorld((s) => s.phase);
@@ -28,6 +30,7 @@ export default function Hud() {
       <FitPanel />
       <LapChip />
       <RadioMessages />
+      <EasterEggs />
       <Toast />
       <Hints />
       <Joystick />
@@ -125,6 +128,31 @@ function ZoneCard() {
         </motion.aside>
       )}
     </AnimatePresence>
+  );
+}
+
+// Earned ones show their name; the rest stay hidden as hints.
+function Achievements() {
+  const got = useWorld((s) => s.achievements);
+  return (
+    <div className="mt-4">
+      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-soft">
+        Achievements · {got.length}/{ACHIEVEMENTS.length}
+      </p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {ACHIEVEMENTS.map((a) =>
+          got.includes(a.id) ? (
+            <span key={a.id} className="rounded-full bg-ink px-2.5 py-1 text-[11.5px] font-semibold text-white" title={a.how}>
+              {a.name}
+            </span>
+          ) : (
+            <span key={a.id} className="rounded-full border border-dashed border-line px-2.5 py-1 text-[11.5px] text-ink-soft/70" title={a.how}>
+              ???
+            </span>
+          )
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -339,7 +367,7 @@ function MapMenu() {
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, y: 10 }}
             transition={{ type: "spring", stiffness: 300, damping: 24 }}
-            className="toy-card w-full max-w-md rounded-[28px] p-5"
+            className="toy-card no-scrollbar max-h-[90svh] w-full max-w-md overflow-y-auto rounded-[28px] p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-end justify-between">
@@ -348,7 +376,7 @@ function MapMenu() {
                 {found.length}/{zones.length} found
               </p>
             </div>
-            <div className="mt-3 aspect-square w-full rounded-2xl bg-cream p-2">
+            <div className="mx-auto mt-3 aspect-square w-full max-w-[220px] rounded-2xl bg-cream p-1">
               <Minimap />
             </div>
             <div className="mt-4 grid grid-cols-2 gap-2">
@@ -367,6 +395,7 @@ function MapMenu() {
                 </button>
               ))}
             </div>
+            <Achievements />
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button
                 onClick={() => setState({ menuOpen: false, fitOpen: true })}

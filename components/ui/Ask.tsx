@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import type { ChatMessage } from "@/lib/ask";
-import { setState, useWorld } from "@/components/world/store";
+import { achieve, setState, useWorld } from "@/components/world/store";
 import { radioBeep, radioSpeak } from "@/components/world/sound";
 import { runAction, type Action } from "@/components/world/actions";
 import { usePushToTalk } from "./usePushToTalk";
@@ -57,6 +57,7 @@ export default function Ask() {
 
   // Hold V (or the mic button) and just say it.
   const ptt = usePushToTalk((t) => {
+    achieve("voice");
     setState({ askOpen: true });
     send(t);
   });
