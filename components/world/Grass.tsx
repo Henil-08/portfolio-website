@@ -31,19 +31,16 @@ import { paintParkSlabs } from "./districts/park";
 // view), and our palette instead of his yellow-green.
 
 const COARSE = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
-const SUBDIVISIONS = COARSE ? 148 : 236; // 22k blades on phones, 56k on desktop
+const SUBDIVISIONS = COARSE ? 148 : 280; // 22k blades on phones, 78k on desktop (his count)
 const SIZE = 56; // field width in metres
 const MASK_RES = 1024;
 const WORLD = (MAX_R + 6) * 2;
 
 // Bruno scales blades up when the field covers more than his ideal surface.
-// SHORT cuts them to about a third of the car's height on average (owner, 4b-b):
-// at his size they stood as tall as our low F1 body.
 const SURFACE_IDEAL = 2000;
 const OVERFLOW = Math.max(0, SIZE * SIZE - SURFACE_IDEAL) / SURFACE_IDEAL;
-const SHORT = 0.45;
-const BLADE_WIDTH = 0.1 * (1 + OVERFLOW * 0.5) * 0.75;
-const BLADE_HEIGHT = 0.6 * (1 + OVERFLOW * 0.5) * SHORT;
+const BLADE_WIDTH = 0.1 * (1 + OVERFLOW * 0.5);
+const BLADE_HEIGHT = 0.6 * (1 + OVERFLOW * 0.5);
 const BLADE_HEIGHT_RANDOMNESS = 0.6;
 
 function makeMask() {
