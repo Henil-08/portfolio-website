@@ -27,7 +27,7 @@ import { getState, setState, subscribe, toast, useWorld } from "./store";
 import { BoostTrail } from "./BoostTrail";
 import { dayNight } from "./daynight";
 import { heightAt } from "./terrain";
-import { SEA_Y, SPAWN, headingFromTangent, inLand, nearestT3, trackPoint, trackTangent, zoneById } from "./layout";
+import { SEA_Y, SPAWN, headingFromTangent, nearestT3, trackPoint, trackTangent, zoneById } from "./layout";
 import { engineIdle, engineUpdate, honk } from "./sound";
 
 // Driving model ported from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon),
@@ -284,8 +284,8 @@ export default function Vehicle() {
     // Recover from flips and falls.
     tmpV.set(0, 1, 0).applyQuaternion(tmpQ);
     flipped.current = tmpV.y < 0.25 ? flipped.current + dt : 0;
-    // In the sea or a lake for a second: back onto the road, like Bruno's respawn.
-    wet.current = !inLand(t.x, t.z) && t.y < SEA_Y + 0.25 ? wet.current + dt : 0;
+    // In deep water (past the shallows) for a second: back onto the road, like Bruno's respawn.
+    wet.current = SEA_Y - heightAt(t.x, t.z) > 0.7 && t.y < SEA_Y + 0.4 ? wet.current + dt : 0;
     if (input.reset || flipped.current > 1.6 || wet.current > 1 || t.y < heightAt(t.x, t.z) - 4) {
       input.reset = false;
       flipped.current = 0;

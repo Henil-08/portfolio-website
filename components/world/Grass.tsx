@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { carState } from "./carState";
-import { GARAGES, LAKES, MAX_R, PIT, coastR, TIMELINE, PIT_LANE_WIDTH, SCENE_FOOT, SECTORS, TRACK_WIDTH, pitRoadCurves, trackCurve, zones } from "./layout";
+import { CANALS, GARAGES, LAKES, MAX_R, PIT, coastR, TIMELINE, PIT_LANE_WIDTH, SCENE_FOOT, SECTORS, TRACK_WIDTH, pitRoadCurves, trackCurve, zones } from "./layout";
 import { C } from "./palette";
 import { getWindUniforms, terrainShader, updateWind, TERRAIN_GLSL, WIND_GLSL } from "./alive/wind";
 import { perlinTexture, seeded } from "./alive/noise";
@@ -60,6 +60,14 @@ function makeMask() {
   g.fill();
   g.globalCompositeOperation = "source-over";
   g.fillStyle = g.strokeStyle = "#000";
+  // The harbour inlet.
+  g.lineCap = g.lineJoin = "round";
+  for (const cn of CANALS) {
+    g.lineWidth = (cn.w + 4) * s;
+    g.beginPath();
+    cn.pts.forEach(([x, z], i) => (i ? g.lineTo(tx(x), tx(z)) : g.moveTo(tx(x), tx(z))));
+    g.stroke();
+  }
   // Lakes and their sandy shores.
   for (const l of LAKES) {
     g.beginPath();

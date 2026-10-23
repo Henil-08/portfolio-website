@@ -4,8 +4,9 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 import { CuboidCollider, HeightfieldCollider, RigidBody, TrimeshCollider } from "@react-three/rapier";
 import * as THREE from "three";
 import { C } from "./palette";
-import { LAKES, SEA_Y, START_T, TRACK_WIDTH, lakeDepthDist, shoreDist, trackCurve } from "./layout";
+import { CANALS, LAKES, SEA_Y, canalDist, START_T, TRACK_WIDTH, lakeDepthDist, shoreDist, trackCurve } from "./layout";
 import Water from "./Water";
+import Harbour from "./Harbour";
 import { EXTENT, GRID, heightGrid } from "./terrain";
 
 const SEGMENTS = 320;
@@ -129,7 +130,7 @@ function terrainGeometry() {
       const y = h[k];
       pos.set([x, y, z], k * 3);
       // sand along the shores (by distance to the water), darker where it's wet
-      const d = Math.min(shoreDist(x, z), ...LAKES.map((l) => -lakeDepthDist(l, x, z)));
+      const d = Math.min(shoreDist(x, z), ...LAKES.map((l) => -lakeDepthDist(l, x, z)), ...CANALS.map((c) => -canalDist(c, x, z)));
       tmp.copy(grass).lerp(sand, 1 - THREE.MathUtils.smoothstep(d, 2.5, 6.5));
       tmp.lerp(wet, 1 - THREE.MathUtils.smoothstep(y - SEA_Y, 0.02, 0.18));
       col.set([tmp.r, tmp.g, tmp.b], k * 3);
@@ -186,6 +187,7 @@ export default function Island() {
         <meshStandardMaterial vertexColors roughness={0.92} />
       </mesh>
       <Water />
+      <Harbour />
 
       <mesh geometry={asphalt} receiveShadow>
         <meshStandardMaterial color={C.asphalt} roughness={0.9} />

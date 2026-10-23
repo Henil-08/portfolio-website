@@ -114,6 +114,29 @@ export const LAKES: Lake[] = [
   { x: -51, z: 4.6, rx: 6.6, rz: 4.2, yaw: 0.3 },
 ];
 
+/**
+ * Channels: the harbour inlet joins the west lake to the sea, passing under the
+ * west sweepers, which cross it on a low stone bridge (Harbour.tsx).
+ */
+export type Canal = { pts: [number, number][]; w: number };
+export const CANALS: Canal[] = [
+  { pts: [[-55, 4.4], [-63, 3.8], [-72, 3], [-84, 2], [-98, 1.2]], w: 5.4 },
+];
+
+/** Signed distance into a canal (positive inside, metres). */
+export function canalDist(c: Canal, x: number, z: number) {
+  let best = Infinity;
+  for (let i = 0; i < c.pts.length - 1; i++) {
+    const [ax, az] = c.pts[i];
+    const [bx, bz] = c.pts[i + 1];
+    const dx = bx - ax;
+    const dz = bz - az;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
+    best = Math.min(best, Math.hypot(x - ax - dx * t, z - az - dz * t));
+  }
+  return c.w / 2 - best;
+}
+
 /** Approximate signed distance into a lake (positive inside, metres). */
 export function lakeDepthDist(l: Lake, x: number, z: number) {
   const dx = x - l.x;
@@ -133,7 +156,7 @@ export function shoreDist(x: number, z: number) {
 /** True on dry land at least `margin` metres from the sea and every lake. */
 export function inLand(x: number, z: number, margin = 0) {
   if (shoreDist(x, z) < margin) return false;
-  return LAKES.every((l) => lakeDepthDist(l, x, z) < -margin);
+  return LAKES.every((l) => lakeDepthDist(l, x, z) < -margin) && CANALS.every((c) => canalDist(c, x, z) < -margin);
 }
 
 export function trackPoint(t: number) {
