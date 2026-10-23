@@ -9,9 +9,14 @@
 "use client";
 
 import { RoundedBox } from "@react-three/drei";
+import { useFrame } from "@react-three/fiber";
+import { useRef } from "react";
+import type * as THREE from "three";
+import { dayNight } from "../../daynight";
 import { C } from "../../palette";
 import { Label } from "./Label";
 import { mat, unitBox, type GroupProps } from "./shared";
+import { Word3D } from "./Word3D";
 
 const W = 9;
 const D = 7;
@@ -37,8 +42,31 @@ function Cabinet({ w = 1.6, h = 1.0 }: { w?: number; h?: number }) {
   );
 }
 
-/** Modern F1 team garage: white box, glass front partly raised, red stripe, "HG RACING" sign. */
-export function Garage(props: GroupProps) {
+/** Fascia header: the garage's name in extruded letters, lit from a red LED bar behind. Glows brighter at night. */
+function Header({ title }: { title: string }) {
+  const face = useRef<THREE.MeshStandardMaterial>(null);
+  const bar = useRef<THREE.MeshStandardMaterial>(null);
+  useFrame(() => {
+    const n = dayNight.night;
+    if (face.current) face.current.emissiveIntensity = 0.25 + n * 1.6;
+    if (bar.current) bar.current.emissiveIntensity = 0.8 + n * 3;
+  });
+  const y = OPEN_H + (H - 0.25 - OPEN_H) / 2;
+  return (
+    <group position={[0.55, y, ZF - 0.05]}>
+      {/* LED backlight bar, the letters stand proud of it */}
+      <mesh geometry={unitBox()} scale={[6.4, 0.05, 0.02]} position={[0, -0.36, 0]}>
+        <meshStandardMaterial ref={bar} color={C.red} emissive={C.red} emissiveIntensity={1} toneMapped={false} />
+      </mesh>
+      <Word3D text={title} height={0.5} depth={0.14} maxWidth={6.2} position={[0, -0.24, 0]}>
+        <meshStandardMaterial ref={face} color={C.white} emissive={C.white} emissiveIntensity={0.3} roughness={0.35} toneMapped={false} />
+      </Word3D>
+    </group>
+  );
+}
+
+/** Modern F1 team garage: white box, glass front partly raised, red stripe, team sign; the fascia carries the garage's own title. */
+export function Garage({ title, ...props }: GroupProps & { title?: string }) {
   const white = mat(C.white, { r: 0.3 });
   const red = mat(C.red, { r: 0.35 });
   const ink = mat(C.ink, { r: 0.45, m: 0.1 });
@@ -100,13 +128,13 @@ export function Garage(props: GroupProps) {
       <Label position={[-W / 2 + 1.05, OPEN_H + (H - 0.25 - OPEN_H) / 2 + 0.02, ZF - 0.025]} fontSize={0.5} color={C.white}>
         08
       </Label>
-      <Label position={[-W / 2 + 1.8, OPEN_H + 0.53, ZF - 0.04]} anchorX="left" fontSize={0.56} color={C.white} letterSpacing={0.04}>
-        HG RACING
-      </Label>
-      <Label position={[-W / 2 + 1.82, OPEN_H + 0.17, ZF - 0.04]} anchorX="left" fontSize={0.12} color={C.greyLight} letterSpacing={0.28}>
-        FORMULA TEAM GARAGE
-      </Label>
-      <mesh geometry={unitBox()} scale={[2.2, 0.03, 0.01]} position={[W / 2 - 1.75, OPEN_H + 0.2, ZF - 0.045]} material={red} />
+      {title ? (
+        <Header title={title} />
+      ) : (
+        <Label position={[-W / 2 + 1.8, OPEN_H + 0.53, ZF - 0.04]} anchorX="left" fontSize={0.56} color={C.white} letterSpacing={0.04}>
+          HG RACING
+        </Label>
+      )}
 
       {/* glass sectional door, raised to 2.4 m: framed panes with thin steel mullions */}
       <group position={[0, 0, ZF - 0.45]}>

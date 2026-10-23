@@ -40,7 +40,7 @@ export function letterBoxes(char: LetterChar): LetterBar[] {
 // ------------------------------------------------------------ font -> geometry
 
 let fontPromise: Promise<opentype.Font> | null = null;
-function loadFont() {
+export function loadFont() {
   fontPromise ??= fetch(FONT)
     .then((r) => r.arrayBuffer())
     .then((b) => opentype.parse(b));
@@ -92,7 +92,12 @@ function inside(pt: THREE.Vector2, poly: THREE.Vector2[]) {
 
 /** Glyph outline -> shapes with holes. The biggest contour's winding is "outer"; the opposite winding is a hole. */
 function glyphShapes(font: opentype.Font, char: LetterChar): THREE.Shape[] {
-  const paths = contours(font.charToGlyph(char).path.commands);
+  return commandShapes(font.charToGlyph(char).path.commands);
+}
+
+/** Path commands of one glyph -> extrudable shapes with holes. */
+export function commandShapes(cmds: opentype.PathCommand[]): THREE.Shape[] {
+  const paths = contours(cmds);
   const items = paths.map((path) => {
     const pts = path.getPoints(8);
     return { path, pts, a: area(pts) };

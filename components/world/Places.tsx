@@ -397,14 +397,11 @@ function PitLane() {
         return (
           <group key={g.domain} position={[g.x, pitY, PIT.garageZ - 1]}>
             <RigidBody type="fixed" colliders={false}>
-              <Garage />
+              <Garage title={garageLabel[g.domain].toUpperCase()} />
               <CuboidCollider args={[4.5, 2.25, 0.15]} position={[0, 2.25, -3.35]} />
               <CuboidCollider args={[0.15, 2.25, 3.5]} position={[-4.35, 2.25, 0]} />
               <CuboidCollider args={[0.15, 2.25, 3.5]} position={[4.35, 2.25, 0]} />
             </RigidBody>
-            <Label position={[0, 5.3, 3.4]} fontSize={0.62} color={C.ink}>
-              {garageLabel[g.domain].toUpperCase()}
-            </Label>
             {list.map((p, i) => {
               const x = list.length === 1 ? 0 : -span / 2 + (span / (list.length - 1)) * i;
               return (
