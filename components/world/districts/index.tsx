@@ -18,17 +18,18 @@ import { DUNES, tuftGeometry } from "./dunes";
 import { HARBOUR } from "./harbour";
 import { HILLS, flowerGeometry } from "./hills";
 import { OLD_TOWN } from "./oldTown";
+import { PARK } from "./park";
 import { WATERSIDE, padGeometry, reedGeometry } from "./waterside";
 
 /** Lantern glass: a soft glow by day, blooming at night. Owned here so it's safe to animate. */
 const glass = new THREE.MeshStandardMaterial({ color: "#ffd9a8", emissive: new THREE.Color("#ff9440"), emissiveIntensity: 0.1, roughness: 0.4, toneMapped: false });
 
 export default function Districts() {
-  const props = useMemo(() => ({ lantern: propGeometry(LANTERN), light: propGeometry(LANTERN_LIGHT), bench: propGeometry(BENCH), crate: new RoundedBoxGeometry(1, 1, 1, 2, 0.08), flower: flowerGeometry(), rock: new THREE.IcosahedronGeometry(1, 0), fence: propGeometry(FENCE), tuft: tuftGeometry(), reed: reedGeometry(), pad: padGeometry() }), []);
+  const props = useMemo(() => ({ lantern: propGeometry(LANTERN), light: propGeometry(LANTERN_LIGHT), bench: propGeometry(BENCH), crate: new RoundedBoxGeometry(1, 1, 1, 2, 0.08), slab: new RoundedBoxGeometry(1, 1, 1, 2, 0.3), flower: flowerGeometry(), rock: new THREE.IcosahedronGeometry(1, 0), fence: propGeometry(FENCE), tuft: tuftGeometry(), reed: reedGeometry(), pad: padGeometry() }), []);
   const lilies = useMemo(() => ({ m: WATERSIDE.flowers }), []);
-  const fences = useMemo(() => ({ m: DUNES.fences }), []);
-  const lanterns = useMemo(() => ({ m: [...OLD_TOWN.lanterns, ...HARBOUR.lanterns] }), []);
-  const benches = useMemo(() => ({ m: [...OLD_TOWN.benches, ...HARBOUR.benches] }), []);
+  const fences = useMemo(() => ({ m: [...DUNES.fences, ...PARK.fences] }), []);
+  const lanterns = useMemo(() => ({ m: [...OLD_TOWN.lanterns, ...HARBOUR.lanterns, ...PARK.lanterns] }), []);
+  const benches = useMemo(() => ({ m: [...OLD_TOWN.benches, ...HARBOUR.benches, ...PARK.benches] }), []);
   useFrame(() => {
     glass.emissiveIntensity = 0.1 + dayNight.night * 1.7;
   });
@@ -43,6 +44,8 @@ export default function Districts() {
       <Instances geometry={unitCyl()} material={mat("#ffffff", { r: 0.6 })} batch={HARBOUR.barrels} />
       <Instances geometry={props.flower} material={withWind(mat("#ffffff", { r: 0.7, side: THREE.DoubleSide }), { amount: 0.25, maxHeight: 0.4 })} batch={HILLS.flowers} shadow={false} />
       <Instances geometry={props.rock} material={mat("#ffffff", { r: 0.95, flat: true })} batch={HILLS.rocks} />
+      <Instances geometry={props.slab} material={mat("#ffffff", { r: 0.9 })} batch={PARK.slabs} shadow={false} />
+      <Instances geometry={props.flower} material={withWind(mat("#ffffff", { r: 0.7, side: THREE.DoubleSide }), { amount: 0.25, maxHeight: 0.4 })} batch={PARK.flowers} shadow={false} />
       <Instances geometry={props.fence} material={vc} batch={fences} />
       <Instances geometry={props.tuft} material={withWind(mat("#ffffff", { r: 0.9, flat: true }), { amount: 0.3, maxHeight: 0.7 })} batch={DUNES.tufts} shadow={false} />
       <Instances geometry={props.reed} material={withWind(mat("#ffffff", { r: 0.85, vc: true, flat: true }), { amount: 0.22, maxHeight: 1.4 })} batch={WATERSIDE.reeds} shadow={false} />
