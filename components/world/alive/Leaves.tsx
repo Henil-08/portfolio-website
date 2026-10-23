@@ -17,11 +17,11 @@ import * as THREE from "three";
 import { carState } from "../carState";
 import { samplePerlin, seeded, remapClamp, hash } from "./noise";
 import { updateWind, wind } from "./wind";
-import { surfaceY } from "./ground";
+import { offTrack, surfaceY } from "./ground";
 import { aliveEvents } from "./events";
 
 const COARSE = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
-const COUNT = COARSE ? 256 : 768;
+const COUNT = COARSE ? 160 : 420;
 const SIZE = 56; // Bruno: the view's optimal area; we follow the car like the grass
 
 const P = {
@@ -138,7 +138,7 @@ function init(s: Sys, fx: number, fz: number) {
     x += samplePerlin(x * 0.02, z * 0.02) * 15;
     s.position[i * 3] = x;
     s.position[i * 3 + 2] = z;
-    s.position[i * 3 + 1] = surfaceY(x, z) + 0.02;
+    s.position[i * 3 + 1] = offTrack(x, z) ? surfaceY(x, z) + 0.02 : -50;
   }
   s.initialised = true;
 }
@@ -204,6 +204,20 @@ export function Leaves() {
       let vz = v[i3 + 2];
       const w = weight[i];
 
+      // Hidden (swept off the road): only follow the loop, reappear when it wraps onto grass.
+      if (y < -40) {
+        const nx = ((((x + half - fx) % SIZE) + SIZE) % SIZE) - half + fx;
+        const nz = ((((z + half - fz) % SIZE) + SIZE) % SIZE) - half + fz;
+        if ((nx !== x || nz !== z) && offTrack(nx, nz)) {
+          p[i3 + 1] = surfaceY(nx, nz) + 0.02;
+          floorAt[i * 2] = 1e9;
+          v[i3] = v[i3 + 1] = v[i3 + 2] = 0;
+        }
+        p[i3] = nx;
+        p[i3 + 2] = nz;
+        continue;
+      }
+
       // Ground under the leaf (cached until it moves half a metre)
       if (Math.abs(x - floorAt[i * 2]) + Math.abs(z - floorAt[i * 2 + 1]) > 0.5) {
         floor[i] = surfaceY(x, z);
@@ -260,17 +274,20 @@ export function Leaves() {
       y += vy * d;
       z += vz * d;
 
-      // Clamp to floor
-      y = Math.max(y, ground + 0.02);
+      // Clamp to floor (hidden leaves stay hidden)
+      if (y > -40) y = Math.max(y, ground + 0.02);
 
       // Loop around the focus
       x = ((((x + half - fx) % SIZE) + SIZE) % SIZE) - half + fx;
       z = ((((z + half - fz) % SIZE) + SIZE) % SIZE) - half + fz;
       if (Math.abs(x - p[i3]) > half || Math.abs(z - p[i3 + 2]) > half) {
         // wrapped: re-seat on the ground at the far side
-        y = surfaceY(x, z) + 0.02;
+        y = offTrack(x, z) ? surfaceY(x, z) + 0.02 : -50;
         floorAt[i * 2] = 1e9;
       }
+
+      // Keep the asphalt clean: a leaf that lands on the road is gone until it wraps back in on the grass.
+      if (y - ground < 0.05 && !offTrack(x, z)) y = -50;
 
       p[i3] = x;
       p[i3 + 1] = y;
