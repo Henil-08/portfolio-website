@@ -8,6 +8,7 @@
 import * as THREE from "three";
 import { clumpGeometry } from "./clump";
 import { foliageDepthMaterial, foliageMaterial, foliageUniforms } from "./material";
+import { patchSeeThrough } from "../seeThrough";
 import { linearColor, SPECIES, trunkGeometry, type SpeciesId, type TrunkId } from "./species";
 import { C } from "../palette";
 
@@ -80,7 +81,7 @@ function ensureTrunk(id: TrunkId, count: number) {
   const m = trunks.get(id);
   if (m && m.instanceMatrix.count >= count) return m;
   const cap = Math.max(256, m ? m.instanceMatrix.count * 2 : 0, count);
-  if (!trunkMat) trunkMat = new THREE.MeshStandardMaterial({ color: C.woodDark, roughness: 0.75, metalness: 0, side: THREE.DoubleSide });
+  if (!trunkMat) trunkMat = patchSeeThrough(new THREE.MeshStandardMaterial({ color: C.woodDark, roughness: 0.75, metalness: 0, side: THREE.DoubleSide }));
   const next = new THREE.InstancedMesh(trunkGeometry(id), trunkMat, cap);
   next.name = `bruno-trunk-${id}`;
   next.instanceMatrix.setUsage(THREE.DynamicDrawUsage);

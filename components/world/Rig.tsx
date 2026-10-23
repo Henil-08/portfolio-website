@@ -3,6 +3,7 @@
 import { reveal } from "./Reveal";
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
+import { updateSeeThrough } from "./seeThrough";
 import * as THREE from "three";
 import { carState, ghostLeader } from "./carState";
 import { input } from "./input";
@@ -97,6 +98,12 @@ export function CameraRig() {
     camera.position.lerpVectors(orbit, followPos, k);
     look.copy(target.current);
     camera.lookAt(look);
+  });
+
+  // After the camera has moved: where the car is on screen, for the see-through.
+  useFrame((state) => {
+    camera.updateMatrixWorld();
+    updateSeeThrough(camera, state.gl);
   });
 
   return null;

@@ -14,6 +14,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { dayNight } from "../daynight";
 import { lowSphere, mat } from "../models/props/shared";
 import { compose, distToTrack, rng } from "./common";
+import { patchSeeThrough, seeThrough } from "../seeThrough";
 import { Instances } from "./Instances";
 import { C } from "../palette";
 import { AWNINGS, BUILDINGS, CREAM, DUSTY_BLUE, FH, G0, ROOF_SAGE, ROOF_SLATE, ROOF_TILE, TERRACOTTA, WARM_WHITE, footing } from "./town";
@@ -128,7 +129,7 @@ function facadeMaterial() {
   return m;
 }
 
-const facadeMat = facadeMaterial();
+const facadeMat = patchSeeThrough(facadeMaterial());
 
 // ------------------------------------------------------------ geometry
 
@@ -358,9 +359,9 @@ export function Skyline() {
   return (
     <>
       <mesh geometry={PARTS.bodies} material={facadeMat} castShadow receiveShadow frustumCulled={false} />
-      <mesh geometry={PARTS.trims} material={mat("#ffffff", { r: 0.7, vc: true })} castShadow receiveShadow frustumCulled={false} />
-      <mesh geometry={PARTS.roofs} material={mat("#ffffff", { r: 0.75, vc: true, side: THREE.DoubleSide })} castShadow receiveShadow frustumCulled={false} />
-      <Instances geometry={lowSphere()} material={mat("#ffffff", { r: 0.85 })} batch={shrubBatch} />
+      <mesh geometry={PARTS.trims} material={seeThrough(mat("#ffffff", { r: 0.7, vc: true }))} castShadow receiveShadow frustumCulled={false} />
+      <mesh geometry={PARTS.roofs} material={seeThrough(mat("#ffffff", { r: 0.75, vc: true, side: THREE.DoubleSide }))} castShadow receiveShadow frustumCulled={false} />
+      <Instances geometry={lowSphere()} material={seeThrough(mat("#ffffff", { r: 0.85 }))} batch={shrubBatch} />
       <RigidBody type="fixed" colliders={false}>
         {BUILDINGS.filter((b) => distToTrack(b.x, b.z) < 40).map((b, i) => {
           // from the foot of the plinth to 4 m above the floor

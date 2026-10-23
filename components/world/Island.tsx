@@ -8,6 +8,7 @@ import { C } from "./palette";
 import { CANALS, LAKES, SEA_Y, canalDist, duneMask, START_T, TRACK_WIDTH, lakeDepthDist, shoreDist, trackCurve } from "./layout";
 import Water from "./Water";
 import Embankments from "./Embankments";
+import { patchSeeThrough } from "./seeThrough";
 import Harbour from "./Harbour";
 import { EXTENT, GRID, heightGrid } from "./terrain";
 import { parkSand as parkSandAt } from "./park/layout";
@@ -155,13 +156,18 @@ function kerbGeometry() {
   return g;
 }
 
+// Road surfaces fade round the car when they pass over it (the crossover deck), like
+// everything else between the car and the camera (see seeThrough.ts).
+const ROAD = {
+  asphalt: patchSeeThrough(new THREE.MeshStandardMaterial({ color: C.asphalt, roughness: 0.9 })),
+  line: patchSeeThrough(new THREE.MeshStandardMaterial({ color: C.asphaltLine, roughness: 0.8 })),
+  centre: patchSeeThrough(new THREE.MeshStandardMaterial({ color: C.yellow, roughness: 0.8, transparent: true, opacity: 0.55 })),
+  kerb: patchSeeThrough(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 })),
+};
+
 function Kerbs() {
   const geo = useMemo(() => kerbGeometry(), []);
-  return (
-    <mesh geometry={geo} receiveShadow>
-      <meshStandardMaterial vertexColors roughness={0.6} />
-    </mesh>
-  );
+  return <mesh geometry={geo} receiveShadow material={ROAD.kerb} />;
 }
 
 function StartLine() {
@@ -272,18 +278,10 @@ export default function Island() {
       <Harbour />
       <Embankments />
 
-      <mesh geometry={asphalt} receiveShadow>
-        <meshStandardMaterial color={C.asphalt} roughness={0.9} />
-      </mesh>
-      <mesh geometry={edgeL}>
-        <meshStandardMaterial color={C.asphaltLine} roughness={0.8} />
-      </mesh>
-      <mesh geometry={edgeR}>
-        <meshStandardMaterial color={C.asphaltLine} roughness={0.8} />
-      </mesh>
-      <mesh geometry={centre}>
-        <meshStandardMaterial color={C.yellow} roughness={0.8} transparent opacity={0.55} />
-      </mesh>
+      <mesh geometry={asphalt} receiveShadow material={ROAD.asphalt} />
+      <mesh geometry={edgeL} material={ROAD.line} />
+      <mesh geometry={edgeR} material={ROAD.line} />
+      <mesh geometry={centre} material={ROAD.centre} />
       <Kerbs />
       <StartLine />
 

@@ -16,6 +16,7 @@
 // crown doesn't speckle itself with its own shadow.
 import * as THREE from "three";
 import { getWindUniforms, WIND_GLSL } from "../alive/wind";
+import { SEE_GLSL, SEE_VERTEX, SEE_VERTEX_GLSL, seeUniforms } from "../seeThrough";
 
 export const foliageUniforms = {
   uLightDir: { value: new THREE.Vector3(0.5, 0.8, 0.3).normalize() },
@@ -91,7 +92,7 @@ export function foliageMaterial() {
     shadowSide: THREE.DoubleSide,
   });
   main.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, getWindUniforms(), foliageUniforms, { uFoliageMap: { value: tex } });
+    Object.assign(shader.uniforms, getWindUniforms(), foliageUniforms, seeUniforms, { uFoliageMap: { value: tex } });
     shader.vertexShader = shader.vertexShader
       .replace(
         "#include <common>",
@@ -100,6 +101,7 @@ export function foliageMaterial() {
         uniform float uShadowOffset;
         varying vec2 vFoliageUv;
         varying vec3 vFoliageColor;
+        ${SEE_VERTEX_GLSL}
         ${VERTEX_COMMON}`
       )
       .replace(
@@ -130,7 +132,8 @@ export function foliageMaterial() {
         #ifdef USE_SHADOWMAP
           worldPosition.xyz += uLightDir * uShadowOffset * aCrown.w;
         #endif`
-      );
+      )
+      .replace("#include <project_vertex>", `#include <project_vertex>\n${SEE_VERTEX}`);
     shader.fragmentShader = shader.fragmentShader
       .replace(
         "#include <common>",
@@ -138,16 +141,18 @@ export function foliageMaterial() {
         uniform sampler2D uFoliageMap;
         uniform float uThreshold;
         varying vec2 vFoliageUv;
-        varying vec3 vFoliageColor;`
+        varying vec3 vFoliageColor;
+        ${SEE_GLSL}`
       )
       .replace("#include <color_fragment>", "diffuseColor.rgb = vFoliageColor;")
       .replace("#include <alphamap_fragment>", "")
       .replace(
         "#include <alphatest_fragment>",
-        /* glsl */ `if (texture2D(uFoliageMap, clamp(vFoliageUv, 0.0, 1.0)).r < uThreshold) discard;`
+        // Bruno's see-through: sdf * mix(threshold, 1, distanceFade) against the threshold
+        /* glsl */ `if (texture2D(uFoliageMap, clamp(vFoliageUv, 0.0, 1.0)).r * mix(uThreshold, 1.0, seeFade(vViewPosition.z)) < uThreshold) discard;`
       );
   };
-  main.customProgramCacheKey = () => "bruno-foliage";
+  main.customProgramCacheKey = () => "bruno-foliage-see";
   return main;
 }
 

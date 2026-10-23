@@ -15,6 +15,7 @@ import { CANALS, TRACK_WIDTH, canalDist, nearestT, onBridge, trackCurve, trackPo
 import { C } from "./palette";
 import { mat } from "./models/props/shared";
 import { heightAt } from "./terrain";
+import { seeThrough } from "./seeThrough";
 
 // [inner face, outer face, height above the road, cap height] per style
 const DECK = { IN: TRACK_WIDTH / 2 + 0.5, OUT: TRACK_WIDTH / 2 + 0.9, TOP: 0.95, CAP: 0.12 }; // Bridge.tsx parapet
@@ -167,10 +168,10 @@ function loft(rings: [number, number, number][][], side: number) {
 
 export default function Embankments() {
   const parts = useMemo(() => build(), []);
-  const stone = mat(C.rock, { r: 0.9 });
-  const coping = mat(C.sand, { r: 0.85 });
-  const white = mat(C.white, { r: 0.6 });
-  const red = mat(C.red, { r: 0.45 });
+  const stone = seeThrough(mat(C.rock, { r: 0.9 }));
+  const coping = seeThrough(mat(C.sand, { r: 0.85 }));
+  const white = seeThrough(mat(C.white, { r: 0.6 }));
+  const red = seeThrough(mat(C.red, { r: 0.45 }));
   const sets = [
     [parts.stone, stone, coping],
     [parts.deck, white, red],
