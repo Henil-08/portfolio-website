@@ -49,6 +49,8 @@ export type Bld = {
   roof: Roof;
   /** pitched/vaulted roof height */
   rh: number;
+  /** one of the old town's buildings round the crossover */
+  old?: boolean;
 };
 
 // Buildings may stand on slopes. The walls stay vertical: the floor sits at the
@@ -253,7 +255,7 @@ function oldTown(out: Bld[]) {
       const floors = camSide ? 2 : 3 + Math.floor(r() * 2);
       const color = WALLS[Math.floor(r() * WALLS.length)];
       const b = dress(r, { x, z, w, d, h: bodyH(floors), yaw, color, seed: r() * 100, floors }, 0.1);
-      if (clear(b, out, true)) out.push(b);
+      if (clear(b, out, true)) out.push({ ...b, old: true });
     }
   }
 }
