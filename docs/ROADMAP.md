@@ -85,13 +85,8 @@ the mark; the E prompt should be animated like Bruno's.
 ## Steps (do them in order; first unticked one is next)
 
 ### 1. Glitches
-- [ ] **Car breaks apart** (owner screenshot: body small in the middle, the four wheels spread out
-      around it, one wheel off on its own by a lamp post). Reproduce first: hit walls and lamp posts
-      at speed, land jumps, drive into the lake and the inlet, R-respawn mid-air. Suspects, in order:
-      wheel visuals in Vehicle.tsx follow `wheelSuspensionLength` (maxTravel 2 m) with no clamp when a
-      wheel loses contact; the massless bumper collider (Vehicle.tsx) meeting thin colliders (lamp
-      cylinders, posts) and the chassis tunnelling; a respawn (`place`) while wheels are mid-lerp.
-      Clamp the wheel offset to the rest pose +-0.25 m, and snap wheels on respawn.
+- [x] **Car breaks apart** (5af6d89: a boost into a lamp drove the chassis through the terrain;
+      now CCD, respawn when buried, wheel visuals clamped to rest +-0.25 m and snapped on respawn).
 - [x] Street lamps standing on the road (two, at T1 and the last corner): fixed in 4e050da/35ba10b.
 - [ ] Sweep for others: drive a full lap at night and by day with the chase camera, plus
       `__placeT` every 0.05 of the lap; list anything floating, clipping, z-fighting or on the road.
