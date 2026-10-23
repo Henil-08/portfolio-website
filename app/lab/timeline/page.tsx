@@ -7,6 +7,7 @@ export const metadata: Metadata = {
 };
 
 // /lab/timeline?night=1&cam=follow|far|top&t=2024.5&lane=4&rot=30
+// rot defaults to 90, the yaw the world mounts the plaza at (time runs west).
 // Without t the fake car drives slowly up and down the time axis.
 export default async function TimelineLabPage({
   searchParams,
@@ -21,7 +22,7 @@ export default async function TimelineLabPage({
       cam={typeof sp.cam === "string" ? sp.cam : "follow"}
       t={num("t")}
       lane={num("lane") ?? 4}
-      rot={num("rot") ?? 0}
+      rot={num("rot") ?? 90}
     />
   );
 }

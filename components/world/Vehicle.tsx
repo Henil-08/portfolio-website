@@ -136,12 +136,19 @@ export default function Vehicle() {
     });
   }, []);
 
-  // Dev and headless checks: window.__placeT(t) drops the car on the track at t.
+  // Dev and headless checks: window.__placeT(t) drops the car on the track at t;
+  // window.__placeXZ(x, z, heading) drops it anywhere on the ground.
   useEffect(() => {
-    (window as unknown as { __placeT: (t: number) => void }).__placeT = (t: number) => {
+    const w = window as unknown as { __placeT: (t: number) => void; __placeXZ: (x: number, z: number, h?: number) => void };
+    w.__placeT = (t: number) => {
       if (!body.current) return;
       const p = trackPoint(t);
       place(body.current, p.x, p.z, headingFromTangent(trackTangent(t)), p.y + 0.9);
+      prevPos.copy(body.current.translation() as THREE.Vector3);
+    };
+    w.__placeXZ = (x: number, z: number, h = 0) => {
+      if (!body.current) return;
+      place(body.current, x, z, h);
       prevPos.copy(body.current.translation() as THREE.Vector3);
     };
   }, []);

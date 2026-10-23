@@ -67,8 +67,9 @@ const quat = new THREE.Quaternion();
 const glow = new THREE.Color();
 
 /**
- * Text reads along local -z with the top of the digits towards local -x, so
- * it is upright for a camera sitting on the +x/+z side (the follow camera).
+ * Text reads along local +z with the top of the digits towards local +x. In
+ * the world (plaza yaw pi/2) that is reading along +X with the tops towards -Z:
+ * upright for the chase camera, which sits at +X/+Z of the car looking -X/-Z.
  */
 export function YearCounter({ probe }: { probe: RefObject<Probe> }) {
   const group = useRef<THREE.Group>(null);
@@ -99,14 +100,14 @@ export function YearCounter({ probe }: { probe: RefObject<Probe> }) {
     const l = lift.current;
     for (let k = 0; k < N; k++) {
       const digit = DIGITS[Number(s[k])] ?? DIGITS[8];
-      // first digit at the +z end, reading towards -z
+      // first digit at the -z end, reading towards +z
       const uk = -TOTAL / 2 + W / 2 + k * (W + GAP);
       for (let i = 0; i < 7; i++) {
         const j = k * 7 + i;
         l[j] += (digit[i] - l[j]) * Math.min(1, d * 14);
         const bar = BARS[i];
         const len = (bar.horizontal ? W : H / 2) - T * 0.35;
-        pos.set(-bar.v, DOWN + (UP - DOWN) * l[j], -(uk + bar.u));
+        pos.set(bar.v, DOWN + (UP - DOWN) * l[j], uk + bar.u);
         // horizontal bars run along z (reading), vertical ones along x
         if (bar.horizontal) scl.set(T, 0.06, len);
         else scl.set(len, 0.06, T);
@@ -124,7 +125,7 @@ export function YearCounter({ probe }: { probe: RefObject<Probe> }) {
     <group ref={group} position={[COUNTER_X, 0, Z_START]}>
       <mesh position={[0, SLAB_TOP / 2, 0]} receiveShadow castShadow>
         <boxGeometry args={[SLAB.x, SLAB_TOP, SLAB.z]} />
-        <meshStandardMaterial color="#221e2b" roughness={0.75} />
+        <meshStandardMaterial color="#2c2622" roughness={0.8} />
       </mesh>
       <instancedMesh ref={bars} args={[geometry, undefined, N * 7]} frustumCulled={false}>
         <meshBasicMaterial ref={mat} toneMapped={false} />

@@ -65,7 +65,8 @@ function makeMask() {
   g.fillRect(tx(PIT.from - 6), tx(PIT.z - 4), (PIT.to - PIT.from + 12) * s, 9 * s);
   for (const gr of GARAGES) g.fillRect(tx(gr.x - 5), tx(PIT.garageZ - 5), 10 * s, 9 * s);
   // Plaza and the places.
-  g.fillRect(tx(TIMELINE.pos[0] - TIMELINE.hx), tx(TIMELINE.pos[1] - TIMELINE.hz), TIMELINE.hx * 2 * s, TIMELINE.hz * 2 * s);
+  // (the timeline's planters stand just outside the pad's long sides)
+  g.fillRect(tx(TIMELINE.pos[0] - TIMELINE.hx), tx(TIMELINE.pos[1] - TIMELINE.hz - 1.6), TIMELINE.hx * 2 * s, (TIMELINE.hz + 1.6) * 2 * s);
   for (const z of zones) g.fillRect(tx(z.pos[0] - z.size[0] / 2), tx(z.pos[1] - z.size[1] / 2), z.size[0] * s, z.size[1] * s);
   for (const sc of SECTORS) {
     g.save();

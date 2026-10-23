@@ -12,11 +12,12 @@
 // flat pad (see PLAZA in ./timeline/data.ts for the footprint).
 "use client";
 
-import { Suspense, useMemo, useRef, type RefObject } from "react";
+import { Suspense, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Billboard, Text } from "@react-three/drei";
-import { CuboidCollider, RigidBody } from "@react-three/rapier";
+import { Billboard, RoundedBox, Text } from "@react-three/drei";
+import { CuboidCollider, CylinderCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { carState } from "./carState";
 import { dayNight } from "./daynight";
 import { seeded } from "./alive/noise";
@@ -69,6 +70,7 @@ const strip = (() => {
 // ---------------------------------------------------------------- plaza
 
 function paverTexture() {
+  // Garden flagstones: warm cream slabs, two sizes in running courses, soft grout.
   const pxPerM = 32;
   const w = Math.round((PLAZA.maxX - PLAZA.minX) * pxPerM);
   const h = Math.round((PLAZA.maxZ - PLAZA.minZ) * pxPerM);
@@ -77,17 +79,19 @@ function paverTexture() {
   c.height = h;
   const ctx = c.getContext("2d")!;
   const r = seeded(21);
-  ctx.fillStyle = "#8d8794";
+  ctx.fillStyle = "#dccaa8";
   ctx.fillRect(0, 0, w, h);
-  // running-bond pavers, 1 m x 0.5 m, a little shade jitter each
-  const pw = pxPerM;
-  const ph = pxPerM / 2;
-  for (let row = 0; row * ph < h; row++) {
-    const off = row % 2 ? pw / 2 : 0;
-    for (let x = -off; x < w; x += pw) {
-      const v = 214 + Math.floor((r() - 0.5) * 22);
-      ctx.fillStyle = `rgb(${v - 4},${v - 6},${v})`;
-      ctx.fillRect(x + 1.5, row * ph + 1.5, pw - 3, ph - 3);
+  const row = pxPerM * 1.1;
+  for (let y = 0; y < h; y += row) {
+    let x = -r() * pxPerM;
+    while (x < w) {
+      const sw = pxPerM * (1.2 + Math.floor(r() * 3) * 0.4);
+      const v = r();
+      ctx.fillStyle = `rgb(${238 - v * 9},${227 - v * 9},${204 - v * 8})`;
+      ctx.beginPath();
+      ctx.roundRect(x + 1.2, y + 1.2, sw - 2.4, row - 2.4, 3);
+      ctx.fill();
+      x += sw;
     }
   }
   const t = new THREE.CanvasTexture(c);
@@ -96,6 +100,10 @@ function paverTexture() {
   return t;
 }
 
+const STONE = "#e9dcc4";
+const EDGE = "#c9b48e";
+const GROOVE = "#2c2622"; // the dark channel each neon line is set into
+
 function Plaza() {
   const map = useMemo(() => paverTexture(), []);
   const w = PLAZA.maxX - PLAZA.minX;
@@ -103,37 +111,128 @@ function Plaza() {
   const cx = (PLAZA.minX + PLAZA.maxX) / 2;
   const cz = (PLAZA.minZ + PLAZA.maxZ) / 2;
   const depth = 0.4; // skirt so small terrain bumps never poke through
+  const rim = 0.32;
   return (
     <group>
-      <mesh position={[cx, TOP - depth / 2 - 0.002, cz]} receiveShadow>
-        <boxGeometry args={[w + 0.3, depth, d + 0.3]} />
-        <meshStandardMaterial color="#6f6a76" roughness={0.95} />
-      </mesh>
+      {/* A soft, bevelled stone edge all round, flush enough to drive over. */}
+      <RoundedBox args={[w + rim * 2, depth, d + rim * 2]} radius={0.12} smoothness={3} position={[cx, TOP - depth / 2 - 0.001, cz]} receiveShadow>
+        <meshStandardMaterial color={EDGE} roughness={0.9} />
+      </RoundedBox>
       <mesh position={[cx, TOP, cz]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[w, d]} />
-        <meshStandardMaterial map={map} color="#d8d3dc" roughness={0.9} />
+        <meshStandardMaterial map={map} color={STONE} roughness={0.92} />
       </mesh>
-      {/* faint year seams across the plaza */}
+      {/* faint year seams across the terrace */}
       {Array.from({ length: T1 - T0 + 1 }, (_, i) => (
         <mesh key={i} position={[cx, TOP + 0.002, zOf(T0 + i)]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[w - 0.6, 0.06]} />
-          <meshStandardMaterial color="#6a6475" roughness={0.95} />
+          <planeGeometry args={[w - 0.6, 0.07]} />
+          <meshStandardMaterial color={EDGE} roughness={0.95} />
         </mesh>
       ))}
     </group>
   );
 }
 
-// ---------------------------------------------------------------- posts
+// ---------------------------------------------------------------- planters
 
-const POST = { w: 0.24, h: 0.75 };
+// Low stone planters along both long sides, with gaps to walk (or drive) through.
+const PLANTER = { len: 3.2, w: 1.1, h: 0.42, gap: 0.8 };
+export const PLANTER_OUT = 0.32 + 0.35 + PLANTER.w / 2; // from the terrace edge to a planter's centre
+
+function planterSpots() {
+  const out: Vec3[] = [];
+  const n = Math.floor((PLAZA.maxZ - PLAZA.minZ + PLANTER.gap) / (PLANTER.len + PLANTER.gap));
+  const span = n * PLANTER.len + (n - 1) * PLANTER.gap;
+  for (const x of [PLAZA.minX - PLANTER_OUT, PLAZA.maxX + PLANTER_OUT])
+    for (let i = 0; i < n; i++) out.push([x, 0, -span / 2 + PLANTER.len / 2 + i * (PLANTER.len + PLANTER.gap)]);
+  return out;
+}
+
+const planterBodyGeo = new RoundedBoxGeometry(PLANTER.w, PLANTER.h, PLANTER.len, 3, 0.1);
+const shrubGeo = new THREE.IcosahedronGeometry(1, 2);
+
+function Planters({ colliders }: { colliders: boolean }) {
+  const spots = useMemo(() => planterSpots(), []);
+  const body = useRef<THREE.InstancedMesh>(null);
+  const soil = useRef<THREE.InstancedMesh>(null);
+  const shrubs = useRef<THREE.InstancedMesh>(null);
+  const shrubCount = spots.length * 4;
+  useLayoutEffect(() => {
+    const r = seeded(8);
+    const o = new THREE.Object3D();
+    const greens = ["#6f8f5a", "#5c7a4b", "#7f9670"].map((c) => new THREE.Color(c));
+    spots.forEach((p, i) => {
+      o.position.set(p[0], PLANTER.h / 2, p[2]);
+      o.scale.set(1, 1, 1);
+      o.rotation.set(0, 0, 0);
+      o.updateMatrix();
+      body.current?.setMatrixAt(i, o.matrix);
+      o.position.set(p[0], PLANTER.h - 0.02, p[2]);
+      o.scale.set(PLANTER.w - 0.22, 0.04, PLANTER.len - 0.22);
+      o.updateMatrix();
+      soil.current?.setMatrixAt(i, o.matrix);
+      for (let k = 0; k < 4; k++) {
+        const s = 0.32 + r() * 0.12;
+        o.position.set(p[0] + (r() - 0.5) * 0.25, PLANTER.h + s * 0.55, p[2] - PLANTER.len / 2 + 0.45 + k * ((PLANTER.len - 0.9) / 3));
+        o.scale.set(s, s * 0.85, s);
+        o.rotation.set(0, r() * 6, 0);
+        o.updateMatrix();
+        shrubs.current?.setMatrixAt(i * 4 + k, o.matrix);
+        shrubs.current?.setColorAt(i * 4 + k, greens[Math.floor(r() * greens.length)]);
+      }
+    });
+    for (const m of [body.current, soil.current, shrubs.current]) {
+      if (!m) continue;
+      m.instanceMatrix.needsUpdate = true;
+      if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    }
+  }, [spots]);
+  return (
+    <group>
+      <instancedMesh ref={body} args={[planterBodyGeo, undefined, spots.length]} castShadow receiveShadow>
+        <meshStandardMaterial color={EDGE} roughness={0.88} />
+      </instancedMesh>
+      <instancedMesh ref={soil} args={[unitBoxGeo, undefined, spots.length]} receiveShadow>
+        <meshStandardMaterial color="#8c7461" roughness={1} />
+      </instancedMesh>
+      <instancedMesh ref={shrubs} args={[shrubGeo, undefined, shrubCount]} castShadow receiveShadow>
+        <meshStandardMaterial color="#ffffff" roughness={0.85} />
+      </instancedMesh>
+      {colliders && (
+        <RigidBody type="fixed" colliders={false}>
+          {spots.map((p, i) => (
+            <CuboidCollider key={i} args={[PLANTER.w / 2, PLANTER.h / 2, PLANTER.len / 2]} position={[p[0], PLANTER.h / 2, p[2]]} />
+          ))}
+        </RigidBody>
+      )}
+    </group>
+  );
+}
+
+// ---------------------------------------------------------------- bollards
+
+// Garden bollards at every year on both sides: a round stone post with a glowing band.
+const BOLLARD = { r: 0.15, h: 0.7 };
+const unitBoxGeo = new THREE.BoxGeometry(1, 1, 1);
+const bollardGeo = (() => {
+  const g = new THREE.CapsuleGeometry(BOLLARD.r, BOLLARD.h - BOLLARD.r * 2, 6, 20);
+  g.translate(0, BOLLARD.h / 2, 0);
+  return g;
+})();
+const bandGeo = (() => {
+  const g = new THREE.CylinderGeometry(BOLLARD.r + 0.008, BOLLARD.r + 0.008, 0.06, 20, 1, true);
+  g.translate(0, BOLLARD.h * 0.66, 0);
+  return g;
+})();
 
 function Posts({ colliders }: { colliders: boolean }) {
-  const glow = useMemo(() => new THREE.MeshBasicMaterial({ toneMapped: false }), []);
+  const glow = useMemo(() => new THREE.MeshBasicMaterial({ toneMapped: false, side: THREE.DoubleSide }), []);
+  const posts = useRef<THREE.InstancedMesh>(null);
+  const bands = useRef<THREE.InstancedMesh>(null);
   useFrame(({ clock }) => {
     const k = dayNight.night;
     const flicker = 0.94 + Math.sin(clock.elapsedTime * 2.1) * 0.06;
-    glow.color.setRGB(1, 0.45, 0.62).multiplyScalar((0.75 + k * 0.6) * flicker);
+    glow.color.setRGB(1, 0.62, 0.36).multiplyScalar((0.75 + k * 0.9) * flicker);
   });
   const spots = useMemo(() => {
     const out: Vec3[] = [];
@@ -143,24 +242,25 @@ function Posts({ colliders }: { colliders: boolean }) {
     }
     return out;
   }, []);
+  useLayoutEffect(() => {
+    const m = new THREE.Matrix4();
+    spots.forEach((p, i) => {
+      m.makeTranslation(p[0], p[1], p[2]);
+      posts.current?.setMatrixAt(i, m);
+      bands.current?.setMatrixAt(i, m);
+    });
+    for (const im of [posts.current, bands.current]) if (im) im.instanceMatrix.needsUpdate = true;
+  }, [spots]);
   return (
     <group>
-      {spots.map((p, i) => (
-        <group key={i} position={p}>
-          <mesh position={[0, POST.h / 2, 0]} castShadow receiveShadow>
-            <boxGeometry args={[POST.w, POST.h, POST.w]} />
-            <meshStandardMaterial color="#2a2533" roughness={0.6} />
-          </mesh>
-          {/* glowing slit on all four faces */}
-          <mesh position={[0, POST.h * 0.72, 0]} material={glow}>
-            <boxGeometry args={[POST.w + 0.012, 0.05, POST.w + 0.012]} />
-          </mesh>
-        </group>
-      ))}
+      <instancedMesh ref={posts} args={[bollardGeo, undefined, spots.length]} castShadow receiveShadow>
+        <meshStandardMaterial color="#4a4440" roughness={0.6} />
+      </instancedMesh>
+      <instancedMesh ref={bands} args={[bandGeo, glow, spots.length]} />
       {colliders && (
         <RigidBody type="fixed" colliders={false}>
           {spots.map((p, i) => (
-            <CuboidCollider key={i} args={[POST.w / 2, POST.h / 2, POST.w / 2]} position={[p[0], p[1] + POST.h / 2, p[2]]} />
+            <CylinderCollider key={i} args={[BOLLARD.h / 2, BOLLARD.r]} position={[p[0], p[1] + BOLLARD.h / 2, p[2]]} />
           ))}
         </RigidBody>
       )}
@@ -237,33 +337,33 @@ function LaneView({ lane, probe }: { lane: Lane; probe: RefObject<Probe> }) {
     }
   });
 
-  const yLine = TOP + 0.016;
+  const yLine = TOP + 0.007;
   return (
     <group>
-      {/* dark bed with the dim tube and the lit part on top */}
-      <mesh position={[x, TOP + 0.007, (z0 + z1) / 2]} receiveShadow>
-        <boxGeometry args={[0.34, 0.014, len + 0.3]} />
-        <meshStandardMaterial color="#1f1b27" roughness={0.7} />
+      {/* a dark groove cut into the stone, the dim tube in it and the lit part on top */}
+      <mesh position={[x, TOP + 0.003, (z0 + z1) / 2]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[0.3, len + 0.3]} />
+        <meshStandardMaterial color={GROOVE} roughness={0.8} />
       </mesh>
       <mesh geometry={strip} material={mats.dim} position={[x, yLine, z0]} scale={[STRIP_W, 1, len]} />
       <mesh ref={litStrip} geometry={strip} material={mats.lit} position={[x, yLine + 0.002, z0]} scale={[STRIP_W, 1, 0.0001]} visible={false} />
 
-      {/* start node (filled) */}
-      <mesh position={[x, TOP + 0.02, z0]} receiveShadow castShadow>
-        <boxGeometry args={[0.66, 0.04, 0.66]} />
-        <meshStandardMaterial color="#1f1b27" roughness={0.7} />
+      {/* start node (filled), set in a round stone */}
+      <mesh position={[x, TOP + 0.005, z0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <circleGeometry args={[0.4, 24]} />
+        <meshStandardMaterial color={GROOVE} roughness={0.8} />
       </mesh>
-      <mesh ref={startNode} geometry={flatSquare} material={mats.dim} position={[x, TOP + 0.042, z0]} scale={0.4} />
+      <mesh ref={startNode} geometry={flatSquare} material={mats.dim} position={[x, TOP + 0.01, z0]} scale={0.4} />
 
       {/* end node: hollow when the role is done, a pulsing square while it's still going */}
-      <mesh position={[x, TOP + 0.02, z1]} receiveShadow castShadow>
-        <boxGeometry args={[0.66, 0.04, 0.66]} />
-        <meshStandardMaterial color="#1f1b27" roughness={0.7} />
+      <mesh position={[x, TOP + 0.005, z1]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <circleGeometry args={[0.4, 24]} />
+        <meshStandardMaterial color={GROOVE} roughness={0.8} />
       </mesh>
       {lane.ongoing ? (
-        <mesh ref={endNode} geometry={flatSquare} material={mats.dim} position={[x, TOP + 0.042, z1]} scale={0.4} />
+        <mesh ref={endNode} geometry={flatSquare} material={mats.dim} position={[x, TOP + 0.01, z1]} scale={0.4} />
       ) : (
-        <mesh ref={endNode} geometry={hollowSquare} material={mats.dim} position={[x, TOP + 0.042, z1]} />
+        <mesh ref={endNode} geometry={hollowSquare} material={mats.dim} position={[x, TOP + 0.01, z1]} />
       )}
 
       <group ref={label} position={[x, TOP, z0]} visible={false}>
@@ -353,6 +453,7 @@ export default function Timeline({ position = [0, 0, 0], rotation = 0, colliders
   return (
     <group ref={root} position={position} rotation={rot}>
       <Plaza />
+      <Planters colliders={colliders} />
       <Posts colliders={colliders} />
       {LANES.map((lane) => (
         <LaneView key={lane.key} lane={lane} probe={probe} />
