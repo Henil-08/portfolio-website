@@ -16,7 +16,6 @@ import {
   Bush,
   Cone,
   CricketPitch,
-  Flag,
   Football,
   Gantry,
   Garage,
@@ -44,10 +43,10 @@ import PitRoads from "./PitRoads";
 import Timeline from "./Timeline";
 import Groves from "./Groves";
 import Garden from "./garden";
+import Social from "./social";
 import { nearGarden } from "./garden/layout";
 import { inTownBelt } from "./street/common";
 import Bridge from "./Bridge";
-import { Avatar } from "./models/Avatar";
 import { ProjectObject } from "./models/projects";
 import { AhmedabadSector, BostonSector, HyperlabSector, WatersSector } from "./models/sectors";
 import { projects } from "@/content/projects";
@@ -366,7 +365,6 @@ function Cricket() {
 
 function Buildings() {
   const pd = at("podium");
-  const ct = at("contact");
   const start = trackPoint(GANTRY_T);
   const sTan = trackCurve.getTangentAt(GANTRY_T);
   const sRot = Math.atan2(sTan.x, sTan.z); // local +Z (through the arch) along the road
@@ -378,12 +376,6 @@ function Buildings() {
         <CuboidCollider args={[2.5, 0.6, 1]} position={[0, 0.6, 0]} />
       </RigidBody>
 
-      {/* Mailbox and a waving Henil next to it */}
-      <group position={ct}>
-        <Mailbox />
-        <Avatar position={[2, 0, 0.5]} rotation={[0, -0.4, 0]} wave />
-        <Flag position={[-3, 0, -1]} color={C.red} />
-      </group>
 
       <group position={[GRANDSTAND.pos[0], heightAt(GRANDSTAND.pos[0], GRANDSTAND.pos[1]), GRANDSTAND.pos[1]]} rotation={[0, GRANDSTAND.rot, 0]}>
         <Grandstand cheer />
@@ -544,30 +536,6 @@ function Sectors() {
   );
 }
 
-function Mailbox() {
-  return (
-    <RigidBody type="fixed" colliders={false}>
-      <CuboidCollider args={[0.45, 0.9, 0.35]} position={[0, 0.9, 0]} />
-      <mesh position={[0, 0.55, 0]} castShadow>
-        <cylinderGeometry args={[0.09, 0.09, 1.1, 12]} />
-        <meshStandardMaterial color={C.ink} roughness={0.6} />
-      </mesh>
-      <mesh position={[0, 1.35, 0]} castShadow>
-        <boxGeometry args={[0.9, 0.6, 0.7]} />
-        <meshStandardMaterial color={C.red} roughness={0.4} />
-      </mesh>
-      <mesh position={[0, 1.65, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.35, 0.35, 0.9, 20, 1, false, 0, Math.PI]} />
-        <meshStandardMaterial color={C.red} roughness={0.4} />
-      </mesh>
-      <mesh position={[0.48, 1.55, 0.1]} castShadow>
-        <boxGeometry args={[0.05, 0.45, 0.08]} />
-        <meshStandardMaterial color={C.gold} roughness={0.4} />
-      </mesh>
-    </RigidBody>
-  );
-}
-
 // Small signposts so the infield places explain themselves.
 function Signposts() {
   return (
@@ -576,7 +544,6 @@ function Signposts() {
         [
           ["playbook", "TYRE WALL", "How I use AI", C.yellow, [0, 0, 4.5]],
           ["podium", "PODIUM", "Papers and patents", C.purple, [0, 0, 4.5]],
-          ["contact", "MAILBOX", "Say hi", C.red, [-5, 0, 3]],
           ["cricket", "CRICKET", "Off the clock", C.green, [0, 0, 6]],
           ["football", "FOOTBALL", "Off the clock", C.blue, [-10, 0, 8]],
         ] as const
@@ -666,6 +633,7 @@ export default function Places() {
       <Nature />
       <Groves />
       <Garden />
+      <Social />
       <Bridge />
     </>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { openLink } from "@/components/world/social";
 import { LIVERIES, LIVERY_NAMES } from "@/components/world/liveries";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
@@ -278,7 +279,8 @@ function InteractKey() {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
       const s = getState();
-      if ((e.code === "KeyE" || e.code === "Enter") && s.near && !s.zone) openZone(s.near);
+      if ((e.code === "KeyE" || e.code === "Enter") && s.nearLink && !s.zone) openLink(s.nearLink);
+      else if ((e.code === "KeyE" || e.code === "Enter") && s.near && !s.zone) openZone(s.near);
       if (e.code === "Escape" && s.zone) closeZone();
       if (e.code === "KeyM" && s.phase === "world") setState((w) => ({ menuOpen: !w.menuOpen }));
       if (e.code === "Escape" && s.menuOpen) setState({ menuOpen: false });

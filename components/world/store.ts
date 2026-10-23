@@ -14,6 +14,7 @@ type State = {
   ready: boolean; // physics and scene mounted
   zone: ZoneId | null; // the card that is open
   near: ZoneId | null; // the place the car is parked at, if any
+  nearLink: string | null; // the contact medallion the car is next to (social/index.tsx LINKS key)
   found: ZoneId[];
   toast: { id: number; text: string; tone: "red" | "yellow" | "teal" } | null;
   muted: boolean;
@@ -44,6 +45,7 @@ let state: State = {
   ready: false,
   zone: null,
   near: null,
+  nearLink: null,
   found: [],
   toast: null,
   muted: false,
