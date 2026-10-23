@@ -14,7 +14,6 @@ import {
   Bail,
   Billboard,
   Bush,
-  Chip,
   Cone,
   CricketPitch,
   Flag,
@@ -23,12 +22,8 @@ import {
   Garage,
   Goal,
   Grandstand,
-  Headset,
-  Lab,
-  Laptop,
   Letter,
   Pedestal,
-  Phone,
   PitWall,
   Podium,
   Rock,
@@ -43,13 +38,23 @@ import {
   TYRE_R,
   type Compound,
 } from "./models/props";
+import { Label } from "./models/props/Label";
 import { Avatar } from "./models/Avatar";
+import { ProjectObject } from "./models/projects";
+import { AhmedabadSector, BostonSector, HyperlabSector, WatersSector } from "./models/sectors";
+import { projects } from "@/content/projects";
 import { C } from "./palette";
 import {
+  GANTRY_T,
+  GARAGES,
   GRANDSTAND,
   ISLAND_RADIUS,
   LETTERS,
+  PIT,
+  SECTORS,
   TRACK_WIDTH,
+  sectorT,
+  garageLabel,
   trackCurve,
   trackPoint,
   zoneById,
@@ -323,37 +328,14 @@ function Cricket() {
 // ------------------------------------------------------------ fixed buildings
 
 function Buildings() {
-  const g = at("garage");
-  const l = at("sidequest");
-  const w = at("work");
   const pd = at("podium");
   const ct = at("contact");
-  const gantry = trackPoint(0.98);
-  const gTan = trackCurve.getTangentAt(0.98);
-  const gRot = Math.atan2(gTan.x, gTan.z) + Math.PI / 2;
+  const start = trackPoint(GANTRY_T);
+  const sTan = trackCurve.getTangentAt(GANTRY_T);
+  const sRot = Math.atan2(sTan.x, sTan.z) + Math.PI / 2;
 
   return (
     <>
-      {/* Garage faces the track (+X) */}
-      <RigidBody type="fixed" colliders={false} position={[g[0] - 2, 0, g[2]]} rotation={[0, Math.PI / 2, 0]}>
-        <Garage />
-        <CuboidCollider args={[4.5, 2.25, 0.15]} position={[0, 2.25, -3.35]} />
-        <CuboidCollider args={[0.15, 2.25, 3.5]} position={[-4.35, 2.25, 0]} />
-        <CuboidCollider args={[0.15, 2.25, 3.5]} position={[4.35, 2.25, 0]} />
-      </RigidBody>
-      <Showcase pos={[g[0] + 4, 0, g[2]]} />
-
-      {/* Side quest lab faces back toward the track (-X) */}
-      <RigidBody type="fixed" colliders={false} position={[l[0] + 2, 0, l[2]]} rotation={[0, -Math.PI / 2, 0]}>
-        <Lab />
-        <CuboidCollider args={[3.5, 2.5, 2.5]} position={[0, 2.5, -0.5]} />
-      </RigidBody>
-
-      <RigidBody type="fixed" colliders={false} position={[w[0], 0, w[2] + 1]}>
-        <PitWall />
-        <CuboidCollider args={[2.5, 0.8, 0.6]} position={[0, 0.8, 0]} />
-      </RigidBody>
-
       <RigidBody type="fixed" colliders={false} position={[pd[0], 0, pd[2] - 1]}>
         <Podium />
         <CuboidCollider args={[2.5, 0.6, 1]} position={[0, 0.6, 0]} />
@@ -370,9 +352,157 @@ function Buildings() {
         <Grandstand cheer />
       </group>
 
-      <group position={[gantry.x, 0, gantry.z]} rotation={[0, gRot, 0]}>
+      <group position={[start.x, 0, start.z]} rotation={[0, sRot, 0]}>
         <Gantry lights={0} />
       </group>
+    </>
+  );
+}
+
+// Pit lane: a pit wall between the lane and the main straight, and one garage
+// per project domain with that domain's projects on plinths inside.
+function PitLane() {
+  return (
+    <>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, PIT.z]} receiveShadow>
+        <planeGeometry args={[PIT.to - PIT.from + 10, 6]} />
+        <meshStandardMaterial color={C.asphalt} roughness={0.9} />
+      </mesh>
+      {[-1, 1].map((side) => (
+        <mesh key={side} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, PIT.z + side * 3]}>
+          <planeGeometry args={[PIT.to - PIT.from + 10, 0.18]} />
+          <meshStandardMaterial color={C.asphaltLine} />
+        </mesh>
+      ))}
+      {[-18, 18].map((x) => (
+        <RigidBody key={x} type="fixed" colliders={false} position={[x, 0, PIT.z + 4.6]}>
+          <PitWall />
+          <CuboidCollider args={[2.6, 0.6, 0.5]} position={[0, 0.6, 0]} />
+        </RigidBody>
+      ))}
+
+      {GARAGES.map((g) => {
+        const list = projects.filter((p) => p.domain === g.domain);
+        const span = Math.min(7, list.length * 1.8);
+        return (
+          <group key={g.domain} position={[g.x, 0, PIT.garageZ - 1]}>
+            <RigidBody type="fixed" colliders={false}>
+              <Garage />
+              <CuboidCollider args={[4.5, 2.25, 0.15]} position={[0, 2.25, -3.35]} />
+              <CuboidCollider args={[0.15, 2.25, 3.5]} position={[-4.35, 2.25, 0]} />
+              <CuboidCollider args={[0.15, 2.25, 3.5]} position={[4.35, 2.25, 0]} />
+            </RigidBody>
+            <Label position={[0, 5.3, 3.4]} fontSize={0.62} color={C.ink}>
+              {garageLabel[g.domain].toUpperCase()}
+            </Label>
+            {list.map((p, i) => {
+              const x = list.length === 1 ? 0 : -span / 2 + (span / (list.length - 1)) * i;
+              return (
+                <group key={p.slug} position={[x, 0, -1.4]}>
+                  <RigidBody type="fixed" colliders={false}>
+                    <CylinderCollider args={[0.5, 0.5]} position={[0, 0.5, 0]} />
+                  </RigidBody>
+                  <Pedestal />
+                  <group position={[0, 1.02, 0]} scale={0.8}>
+                    <ProjectObject slug={p.slug} />
+                  </group>
+                </group>
+              );
+            })}
+          </group>
+        );
+      })}
+    </>
+  );
+}
+
+// Each sector has its own scenery set beside the track.
+const SCENES = { ahmedabad: AhmedabadSector, hyperlab: HyperlabSector, boston: BostonSector, waters: WatersSector };
+
+// Text lying flat on the road, running along the track and upright as seen
+// from the camera (which looks from +X/+Z).
+const TOWARD_CAMERA = new THREE.Vector3(1, 0, 1).normalize();
+function groundTextRotation(tan: THREE.Vector3) {
+  const x = tan.clone().setY(0).normalize();
+  const z = new THREE.Vector3(0, 1, 0);
+  let y = new THREE.Vector3().crossVectors(z, x);
+  // Text "up" should point away from the camera so it reads the right way round.
+  if (y.dot(TOWARD_CAMERA) > 0) {
+    x.negate();
+    y = new THREE.Vector3().crossVectors(z, x);
+  }
+  return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z));
+}
+
+// Collision boxes for each scenery set, in the set's local space: [centre, full size].
+type Box = [[number, number, number], [number, number, number]];
+const SCENE_BOXES: Record<keyof typeof SCENES, Box[]> = {
+  ahmedabad: [
+    [[-5.5, 4, -6.5], [15, 8, 5]],
+    [[8, 0.45, -8.75], [10.4, 0.9, 0.5]],
+    [[12.95, 0.45, -6], [0.5, 0.9, 6]],
+    [[7.8, 1.5, -6], [3.2, 3, 3.2]],
+    [[4.3, 1.7, -3.1], [0.3, 3.4, 0.3]],
+    [[11.3, 1.7, -3.1], [0.3, 3.4, 0.3]],
+    [[-6, 0.6, -1.9], [4.4, 1.2, 1.9]],
+  ],
+  hyperlab: [
+    [[-7.6, 3.2, -6.5], [10.4, 6.4, 5]],
+    [[6.4, 0.2, -5.1], [12.8, 0.4, 7.4]],
+    [[6.4, 2.8, -8.45], [8.2, 5.6, 0.6]],
+    [[-8.2, 0.4, -2.3], [2.8, 0.8, 1.6]],
+    [[-1.2, 1.8, -2.4], [1.8, 3.6, 0.9]],
+  ],
+  boston: [
+    [[-6.6, 4.9, -6.3], [12.6, 9.8, 5.4]],
+    [[-11.35, 4.6, -3], [2.4, 9.1, 1.2]],
+    [[-7.15, 4.6, -3], [2.4, 9.1, 1.2]],
+    [[-2.95, 4.6, -3], [2.4, 9.1, 1.2]],
+    [[-9.5, 0.7, -2.45], [1.6, 1.4, 2.3]],
+    [[-5.3, 0.7, -2.45], [1.6, 1.4, 2.3]],
+    [[-1.1, 0.7, -2.45], [1.6, 1.4, 2.3]],
+    [[6.8, 3.65, -6.3], [12, 7.3, 5.4]],
+    [[6.8, 3.3, -2.45], [6.4, 6.6, 2.3]],
+    [[2.4, 0.5, -1.4], [1.8, 1, 0.7]],
+  ],
+  waters: [
+    [[-5.3, 4.1, -6.2], [15.4, 8.2, 6.4]],
+    [[6, 1, -3], [2.8, 2, 1.6]],
+    [[10.3, 1.2, -5.4], [3.2, 2.4, 2.6]],
+    [[-8.8, 0.4, -1.7], [6.6, 0.8, 1]],
+  ],
+};
+
+function Sectors() {
+  return (
+    <>
+      {SECTORS.map((s, i) => {
+        const Scene = SCENES[s.id];
+        const t = sectorT(i) - 0.045;
+        const p = trackPoint(t);
+        const q = groundTextRotation(trackCurve.getTangentAt(t));
+        return (
+          <group key={s.id}>
+            <RigidBody type="fixed" colliders={false} position={[s.scene[0], 0, s.scene[1]]} rotation={[0, s.sceneRot, 0]}>
+              <Scene />
+              {SCENE_BOXES[s.id].map(([c, size], i) => (
+                <CuboidCollider key={i} args={[size[0] / 2, size[1] / 2, size[2] / 2]} position={c} />
+              ))}
+            </RigidBody>
+            {/* The place name is painted on the asphalt, like names on a grid slot. */}
+            <Label
+              position={[p.x, 0.06, p.z]}
+              quaternion={q}
+              fontSize={1.6}
+              color="#f3f1ec"
+              fillOpacity={0.55}
+              letterSpacing={0.08}
+            >
+              {s.place.toUpperCase()}
+            </Label>
+          </group>
+        );
+      })}
     </>
   );
 }
@@ -387,93 +517,37 @@ function Mailbox() {
       </mesh>
       <mesh position={[0, 1.35, 0]} castShadow>
         <boxGeometry args={[0.9, 0.6, 0.7]} />
-        <meshStandardMaterial color={C.red} roughness={0.5} />
+        <meshStandardMaterial color={C.red} roughness={0.4} />
       </mesh>
       <mesh position={[0, 1.65, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
         <cylinderGeometry args={[0.35, 0.35, 0.9, 20, 1, false, 0, Math.PI]} />
-        <meshStandardMaterial color={C.red} roughness={0.5} />
+        <meshStandardMaterial color={C.red} roughness={0.4} />
       </mesh>
       <mesh position={[0.48, 1.55, 0.1]} castShadow>
         <boxGeometry args={[0.05, 0.45, 0.08]} />
-        <meshStandardMaterial color={C.yellow} roughness={0.5} />
+        <meshStandardMaterial color={C.gold} roughness={0.4} />
       </mesh>
     </RigidBody>
   );
 }
 
-// Gadgets on pedestals in front of the garage.
-function Showcase({ pos }: { pos: V3 }) {
-  const items = [Phone, Laptop, Headset, Chip];
-  return (
-    <group position={pos}>
-      {items.map((Item, i) => (
-        <group key={i} position={[0, 0, -4.5 + i * 3]}>
-          <RigidBody type="fixed" colliders={false}>
-            <CylinderCollider args={[0.5, 0.55]} position={[0, 0.5, 0]} />
-          </RigidBody>
-          <Pedestal />
-          <Spin>
-            <Item />
-          </Spin>
-        </group>
-      ))}
-    </group>
-  );
-}
-
-function Spin({ children }: { children: React.ReactNode }) {
-  const g = useRef<THREE.Group>(null);
-  useFrame((_, dt) => {
-    if (g.current) g.current.rotation.y += dt * 0.6;
-  });
-  return (
-    <group ref={g} position={[0, 1.05, 0]}>
-      {children}
-    </group>
-  );
-}
-
-// ------------------------------------------------------------ story boards
-
-function StoryBoards() {
-  const boards = [
-    { id: "story-1" as const, title: "2021", sub: "The solar car", color: C.red },
-    { id: "story-2" as const, title: "2022", sub: "Shark Tank", color: C.orange },
-    { id: "story-3" as const, title: "2023", sub: "Boston", color: C.blue },
-    { id: "story-4" as const, title: "NOW", sub: "Waters", color: C.green },
-  ];
+// Small signposts so the infield places explain themselves.
+function Signposts() {
   return (
     <>
-      {boards.map((b, i) => {
-        const z = zoneById[b.id];
-        const tan = trackCurve.getTangentAt([0.06, 0.31, 0.56, 0.8][i]);
-        const n = new THREE.Vector3(-tan.z, 0, tan.x).normalize();
-        // Put the board on whichever side of the track is closer to the camera (+Z).
-        const side = n.z > 0 ? 1 : -1;
-        const p = new THREE.Vector3(z.pos[0], 0, z.pos[1]).addScaledVector(n, side * (TRACK_WIDTH / 2 + 3));
-        return (
-          <RigidBody key={b.id} type="fixed" colliders={false} position={[p.x, 0, p.z]}>
-            <Billboard title={b.title} subtitle={b.sub} accent={b.color} index={i + 1} />
-            <CylinderCollider args={[0.65, 0.14]} position={[-1.15, 0.65, 0]} />
-            <CylinderCollider args={[0.65, 0.14]} position={[1.15, 0.65, 0]} />
-          </RigidBody>
-        );
-      })}
-      {/* Zone signposts for the places off the track */}
       {(
         [
-          ["garage", "GARAGE", "Projects", C.red, [6, 0, 7]],
-          ["sidequest", "SIDE QUEST", "AI for chips", C.teal, [-8, 0, 7]],
-          ["playbook", "TYRE WALL", "How I use AI", C.yellow, [0, 0, 4]],
-          ["podium", "PODIUM", "Papers", C.purple, [0, 0, 4]],
-          ["work", "PIT WALL", "Experience", C.ink, [6, 0, 2]],
+          ["playbook", "TYRE WALL", "How I use AI", C.yellow, [0, 0, 4.5]],
+          ["podium", "PODIUM", "Papers and patents", C.purple, [0, 0, 4.5]],
           ["contact", "MAILBOX", "Say hi", C.red, [-5, 0, 3]],
+          ["cricket", "CRICKET", "Off the clock", C.green, [0, 0, 6]],
+          ["football", "FOOTBALL", "Off the clock", C.blue, [-10, 0, 8]],
         ] as const
-      ).map(([id, t, s, c, off]) => {
+      ).map(([id, t, sub, c, off]) => {
         const p = at(id);
         return (
-          <group key={id} position={[p[0] + off[0], 0, p[2] + off[2]]} scale={0.75}>
-            <Billboard title={t} subtitle={s} accent={c} />
+          <group key={id} position={[p[0] + off[0], 0, p[2] + off[2]]} scale={0.7}>
+            <Billboard title={t} subtitle={sub} accent={c} />
           </group>
         );
       })}
@@ -489,6 +563,8 @@ function Nature() {
     const out: { kind: "round" | "pine" | "palm" | "bush" | "rock"; p: V3; s: number; rot: number; seed: number }[] = [];
     const avoid = Object.values(zoneById).map((z) => [z.pos[0], z.pos[1], Math.max(z.size[0], z.size[1]) / 2 + 6]);
     avoid.push([0, 3, 14], [LETTERS.origin[0] + 5, LETTERS.origin[1], 9], [GRANDSTAND.pos[0], GRANDSTAND.pos[1], 10]);
+    for (const sc of SECTORS) avoid.push([sc.scene[0], sc.scene[1], 17]);
+    for (let x = PIT.from - 6; x <= PIT.to + 6; x += 6) avoid.push([x, PIT.garageZ, 8], [x, PIT.z, 6]);
     let tries = 0;
     while (out.length < 90 && tries++ < 4000) {
       const a = r() * Math.PI * 2;
@@ -538,7 +614,9 @@ export default function Places() {
   return (
     <>
       <Buildings />
-      <StoryBoards />
+      <PitLane />
+      <Sectors />
+      <Signposts />
       <Letters />
       <Cones />
       <TyreWall />

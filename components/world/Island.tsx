@@ -49,13 +49,13 @@ function Kerbs() {
       const t0 = trackCurve.getTangentAt(u);
       const t1 = trackCurve.getTangentAt((u + 0.01) % 1);
       const bend = Math.abs(t0.angleTo(t1));
-      if (bend < 0.045) continue;
+      if (bend < 0.075) continue;
       const p = trackCurve.getPointAt(u);
       const nrm = new THREE.Vector3(-t0.z, 0, t0.x).normalize();
       for (const side of [-1, 1]) {
-        const q = p.clone().addScaledVector(nrm, side * (TRACK_WIDTH / 2 + 0.45));
+        const q = p.clone().addScaledVector(nrm, side * (TRACK_WIDTH / 2 + 0.3));
         const rot = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(1, 0, 0), t0);
-        m.push(new THREE.Matrix4().compose(new THREE.Vector3(q.x, 0.07, q.z), rot, new THREE.Vector3(1, 1, 1)));
+        m.push(new THREE.Matrix4().compose(new THREE.Vector3(q.x, 0.035, q.z), rot, new THREE.Vector3(1, 1, 1)));
         c.push(new THREE.Color(i % 2 ? C.red : C.white));
       }
     }
@@ -63,7 +63,7 @@ function Kerbs() {
   }, []);
 
   const ref = useRef<THREE.InstancedMesh>(null);
-  const geo = useMemo(() => new THREE.BoxGeometry(1.1, 0.14, 0.9), []);
+  const geo = useMemo(() => new THREE.BoxGeometry(0.95, 0.05, 0.6), []);
   useLayoutEffect(() => {
     const mesh = ref.current;
     if (!mesh) return;
