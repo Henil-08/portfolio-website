@@ -72,12 +72,21 @@ area holding all the places · buildings cute 3D, soft, not harsh; too childish 
 - [x] M toggles the map, Esc closes
 - [x] vercel.json disables deploy-on-push (user may also disconnect the Vercel app in the dashboard)
 - [x] Voice model eleven_v4 @ stability 0.5 (scripts/gen-audio.mjs + app/api/voice)
-- [ ] **Ian voice — blocked**: voice ID is `70HFmYdPmz1aKiKW6Zx3`, but it's a Voice Library
-      voice and the free plan returns 402 `paid_plan_required` for library voices over the API.
-      Needs a paid plan (or lines recorded by hand in the ElevenLabs UI into public/sfx).
-      Then add `ELEVENLABS_VOICE_ID=<id>` to .env.local and run
-      `node scripts/gen-audio.mjs --only radio-sector-1,radio-sector-2,radio-sector-3,radio-sector-4,radio-garage-agents,radio-garage-genai,radio-garage-hardware,radio-garage-ml,radio-garage-vision,radio-playbook,radio-podium,radio-contact,radio-hello,radio-idle,radio-claude,radio-temp-on,radio-temp-off --force`.
-      Commit public/sfx. Set the same env var on the server for /api/voice.
+- [ ] **Radio voice: George** (user's pick, 2026-10-23). Voice ID `JBFqnCBsd6RMkjVDRZzb`
+      (ElevenLabs built-in voice, works on the free plan). Settings: model `eleven_v4`,
+      stability 0.5, similarity_boost 0.8 — natural, conversational tone (audio tags like
+      [calm], [softly], [warmly] in content/radio.ts).
+      1. Make George the default in scripts/gen-audio.mjs (`VOICE`) and app/api/voice/route.ts
+         (`voice` fallback), replacing Daniel `onwK4e9ZLuTAKqWW03F9`. Model and stability are
+         already eleven_v4 / 0.5 in both.
+      2. Optionally loosen content/radio.ts lines to sound conversational, the way the sample
+         reads: "Yeah, radio check, loud and clear. Okay, nice and easy through here, mate."
+         Keep every fact from content/*.
+      3. Re-record: `node scripts/gen-audio.mjs --only radio-sector-1,radio-sector-2,radio-sector-3,radio-sector-4,radio-garage-agents,radio-garage-genai,radio-garage-hardware,radio-garage-ml,radio-garage-vision,radio-playbook,radio-podium,radio-contact,radio-hello,radio-idle,radio-claude,radio-temp-on,radio-temp-off --force`
+      4. Commit public/sfx; on the server set `ELEVENLABS_VOICE_ID=JBFqnCBsd6RMkjVDRZzb` if overridden there.
+      Notes: Voice Library voices (Ian `70HFmYdPmz1aKiKW6Zx3`, John `ssHwp0KCFDTGtFbiUYl6`)
+      return 402 `paid_plan_required` on the free plan. Built-in samples of 11 voices are in
+      media/voice-samples/ (gitignored).
 
 ### 1. Circuit v3: crossover and gentle grades — done (5d83cea)
 - [x] Figure-of-eight street lap: north straight runs under a bridge, a loop climbs
