@@ -8,6 +8,7 @@ const Body = z.object({ text: z.string().min(1).max(400) });
 // ElevenLabs v3 is the expressive one (and reads [excited]-style cues). If it fails or the
 // account can't use it, fall back to Turbo v2.5 with loose, high-style settings.
 const MODELS = [
+  { model_id: "eleven_v4", voice_settings: { stability: 0.5, similarity_boost: 0.8 } },
   { model_id: "eleven_v3", voice_settings: { stability: 0.5, similarity_boost: 0.8 } },
   { model_id: "eleven_turbo_v2_5", voice_settings: { stability: 0.3, similarity_boost: 0.8, style: 0.55, speed: 1.05 } },
 ];

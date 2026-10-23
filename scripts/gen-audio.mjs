@@ -19,7 +19,7 @@ const env = Object.fromEntries(
 const KEY = process.env.ELEVENLABS_API_KEY || env.ELEVENLABS_API_KEY;
 if (!KEY) throw new Error("ELEVENLABS_API_KEY missing");
 const VOICE = env.ELEVENLABS_VOICE_ID || "onwK4e9ZLuTAKqWW03F9"; // Daniel, calm British
-const STABILITY = Number(env.ELEVENLABS_STABILITY ?? 0); // v3: 0 creative, 0.5 natural, 1 robust
+const STABILITY = Number(env.ELEVENLABS_STABILITY ?? 0.5); // 0 creative, 0.5 natural, 1 robust
 const OUT = join(root, "public/sfx");
 mkdirSync(OUT, { recursive: true });
 
@@ -83,7 +83,7 @@ for (const [name, text] of Object.entries(lines)) {
   process.stdout.write(`voice ${name}… `);
   const buf = await post(`/v1/text-to-speech/${VOICE}?output_format=mp3_44100_128`, {
     text,
-    model_id: "eleven_v3",
+    model_id: env.ELEVENLABS_MODEL || "eleven_v4",
     voice_settings: { stability: STABILITY, similarity_boost: 0.8 },
   });
   const raw = join(OUT, `.${name}.raw.mp3`);

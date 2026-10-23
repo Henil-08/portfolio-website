@@ -9,9 +9,9 @@ import type { ZoneId } from "@/components/world/layout";
 
 let msgId = 0;
 
-// The engineer chimes in the first time you reach a place.
+// The engineer speaks when you open a place (Enter), once per place. Never on a drive-by.
 export default function RadioMessages() {
-  const near = useWorld((s) => s.near);
+  const near = useWorld((s) => s.zone);
   const msg = useWorld((s) => s.radioMsg);
   const live = useWorld((s) => s.phase === "world");
   const heard = useRef(new Set<ZoneId>());
@@ -37,16 +37,17 @@ export default function RadioMessages() {
       {msg && (
         <motion.div
           key={msg.id}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -12 }}
-          className="pointer-events-none fixed bottom-[84px] left-3 z-20 max-w-[340px] overflow-hidden rounded-xl bg-[#121216]/90 text-white shadow-xl backdrop-blur sm:left-5"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.35 }}
+          className="pointer-events-none fixed inset-x-0 bottom-[96px] z-20 flex justify-center px-6"
         >
-          <div className="flex items-center gap-2 bg-[#e10600] px-3 py-1">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
-            <span className="font-racing text-[10px] tracking-[0.18em]">TEAM RADIO</span>
-          </div>
-          <p className="px-3 py-2.5 font-racing text-[13px] leading-snug tracking-wide">&ldquo;{msg.text.toUpperCase()}&rdquo;</p>
+          {/* Broadcast-style subtitle: who's talking, then the line. */}
+          <p className="max-w-[560px] text-center text-[15px] leading-relaxed text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.6),0_0_18px_rgba(0,0,0,0.35)]">
+            <span className="mr-2 font-mono text-[10px] uppercase tracking-[0.22em] text-white/60">Pit wall</span>
+            {msg.text}
+          </p>
         </motion.div>
       )}
     </AnimatePresence>

@@ -241,7 +241,7 @@ function PicksCard() {
   );
 }
 
-// E (or Enter) opens the place you're parked at; Escape closes the card.
+// E (or Enter) opens the place you're parked at; M toggles the map; Escape closes either.
 function InteractKey() {
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -250,6 +250,8 @@ function InteractKey() {
       const s = getState();
       if ((e.code === "KeyE" || e.code === "Enter") && s.near && !s.zone) openZone(s.near);
       if (e.code === "Escape" && s.zone) closeZone();
+      if (e.code === "KeyM" && s.phase === "world") setState((w) => ({ menuOpen: !w.menuOpen }));
+      if (e.code === "Escape" && s.menuOpen) setState({ menuOpen: false });
     };
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
