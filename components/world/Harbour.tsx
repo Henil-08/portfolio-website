@@ -14,7 +14,6 @@ import { heightAt } from "./terrain";
 import { compose } from "./street/common";
 import { Instances } from "./street/Instances";
 import { unitCyl } from "./models/props/shared";
-import { seeThrough } from "./seeThrough";
 
 const HALF = TRACK_WIDTH / 2 + 0.85; // deck half width (the kerbs fit inside)
 const DEPTH = 0.55; // deck thickness under the road
@@ -136,8 +135,8 @@ function build() {
 
 export default function Harbour() {
   const parts = useMemo(() => build(), []);
-  const stone = seeThrough(mat(C.rock, { r: 0.9 }));
-  const coping = seeThrough(mat(C.sand, { r: 0.85 }));
+  const stone = mat(C.rock, { r: 0.9 });
+  const coping = mat(C.sand, { r: 0.85 });
   const bottom = SEA_Y - 1.6;
   return (
     <>

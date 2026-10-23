@@ -8,7 +8,6 @@ import { C } from "./palette";
 import { CANALS, LAKES, SEA_Y, canalDist, duneMask, START_T, TRACK_WIDTH, lakeDepthDist, shoreDist, trackCurve } from "./layout";
 import Water from "./Water";
 import Embankments from "./Embankments";
-import { patchSeeThrough } from "./seeThrough";
 import Harbour from "./Harbour";
 import { EXTENT, GRID, heightGrid } from "./terrain";
 import { parkSand as parkSandAt } from "./park/layout";
@@ -156,13 +155,11 @@ function kerbGeometry() {
   return g;
 }
 
-// Road surfaces fade round the car when they pass over it (the crossover deck), like
-// everything else between the car and the camera (see seeThrough.ts).
 const ROAD = {
-  asphalt: patchSeeThrough(new THREE.MeshStandardMaterial({ color: C.asphalt, roughness: 0.9 })),
-  line: patchSeeThrough(new THREE.MeshStandardMaterial({ color: C.asphaltLine, roughness: 0.8 })),
-  centre: patchSeeThrough(new THREE.MeshStandardMaterial({ color: C.yellow, roughness: 0.8, transparent: true, opacity: 0.55 })),
-  kerb: patchSeeThrough(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 })),
+  asphalt: new THREE.MeshStandardMaterial({ color: C.asphalt, roughness: 0.9 }),
+  line: new THREE.MeshStandardMaterial({ color: C.asphaltLine, roughness: 0.8 }),
+  centre: new THREE.MeshStandardMaterial({ color: C.yellow, roughness: 0.8, transparent: true, opacity: 0.55 }),
+  kerb: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }),
 };
 
 function Kerbs() {

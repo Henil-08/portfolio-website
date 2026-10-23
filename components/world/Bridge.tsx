@@ -10,7 +10,6 @@ import { C } from "./palette";
 import { BRIDGE_HALF, CROSSINGS, TRACK_WIDTH, trackCurve, trackPoint, trackTangent, type Crossing } from "./layout";
 import { heightAt } from "./terrain";
 import { mat } from "./models/props/shared";
-import { seeThrough } from "./seeThrough";
 
 const DECK = 0.75; // slab depth under the road
 const PARAPET_H = 0.95;
@@ -98,15 +97,15 @@ function Span({ c }: { c: Crossing }) {
 
   return (
     <group>
-      <mesh geometry={parts.deck} castShadow material={seeThrough(mat(C.greyLight, { r: 0.8, side: THREE.DoubleSide }))} />
+      <mesh geometry={parts.deck} castShadow material={mat(C.greyLight, { r: 0.8, side: THREE.DoubleSide })} />
       {parts.walls.map((g, i) => (
-        <mesh key={i} geometry={g} castShadow material={seeThrough(mat(C.white, { r: 0.6, side: THREE.DoubleSide }))} />
+        <mesh key={i} geometry={g} castShadow material={mat(C.white, { r: 0.6, side: THREE.DoubleSide })} />
       ))}
       {parts.caps.map((g, i) => (
-        <mesh key={i} geometry={g} castShadow material={seeThrough(mat(C.red, { r: 0.45, side: THREE.DoubleSide }))} />
+        <mesh key={i} geometry={g} castShadow material={mat(C.red, { r: 0.45, side: THREE.DoubleSide })} />
       ))}
       {parts.piers.map((p, i) => (
-        <mesh key={i} position={[p.x, (p.top + p.bottom) / 2, p.z]} castShadow receiveShadow material={seeThrough(mat(C.greyLight, { r: 0.75 }))}>
+        <mesh key={i} position={[p.x, (p.top + p.bottom) / 2, p.z]} castShadow receiveShadow material={mat(C.greyLight, { r: 0.75 })}>
           <cylinderGeometry args={[0.55, 0.7, p.top - p.bottom, 20]} />
         </mesh>
       ))}
