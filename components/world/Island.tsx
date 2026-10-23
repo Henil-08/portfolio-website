@@ -1,8 +1,9 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { CuboidCollider, HeightfieldCollider, RigidBody, TrimeshCollider } from "@react-three/rapier";
 import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { C } from "./palette";
 import { CANALS, LAKES, SEA_Y, canalDist, START_T, TRACK_WIDTH, lakeDepthDist, shoreDist, trackCurve } from "./layout";
 import Water from "./Water";
@@ -51,47 +52,111 @@ function ribbon(width: number, y: number, offset = 0) {
   return g;
 }
 
-function Kerbs() {
-  // Red/white blocks along both edges, only where the track bends.
-  const { matrices, colors } = useMemo(() => {
-    const m: THREE.Matrix4[] = [];
-    const c: THREE.Color[] = [];
-    const n = 260;
-    for (let i = 0; i < n; i++) {
-      const u = i / n;
-      const t0 = trackCurve.getTangentAt(u);
-      const t1 = trackCurve.getTangentAt((u + 0.01) % 1);
-      const bend = Math.abs(t0.angleTo(t1));
-      if (bend < 0.075) continue;
-      const p = trackCurve.getPointAt(u);
-      const nrm = new THREE.Vector3(-t0.z, 0, t0.x).normalize();
-      for (const side of [-1, 1]) {
-        const q = p.clone().addScaledVector(nrm, side * (TRACK_WIDTH / 2 + 0.3));
-        const rot = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(1, 0, 0), t0);
-        m.push(new THREE.Matrix4().compose(new THREE.Vector3(q.x, p.y + 0.035, q.z), rot, new THREE.Vector3(1, 1, 1)));
-        c.push(new THREE.Color(i % 2 ? C.red : C.white));
+// Rumble kerbs, Bruno style: one continuous strip hugging each bend on both edges,
+// red and white stripes that touch, a low ramp up from the road, a flat top and a
+// bevelled outer edge. Each run fades up out of the road at its ends.
+const KERB_W = 0.7;
+const KERB_H = 0.06;
+const KERB_STRIPE = 1.2; // metres per stripe
+const KERB_STEP = 0.3; // sampling along the lap
+const KERB_RAMP = 0.9; // metres to rise to full height at a run's ends
+// across the kerb from the road edge: [offset, height]
+const KERB_PROFILE: [number, number][] = [
+  [0, 0],
+  [0.12, KERB_H],
+  [KERB_W - 0.16, KERB_H],
+  [KERB_W, 0.008],
+];
+
+/** Index ranges [start, end) (end may pass n, wrap with % n) of the bends, in samples. */
+function kerbRuns(n: number) {
+  const bend = Array.from({ length: n }, (_, i) => {
+    const u = i / n;
+    return trackCurve.getTangentAt(u).angleTo(trackCurve.getTangentAt((u + 0.01) % 1)) >= 0.075;
+  });
+  // close short gaps between bends, then drop slivers
+  const gap = Math.round(3 / KERB_STEP);
+  const min = Math.round(4 / KERB_STEP);
+  const runs: [number, number][] = [];
+  const first = bend.indexOf(false);
+  if (first < 0) return [[0, n] as [number, number]];
+  for (let k = 0; k < n; k++) {
+    const i = first + k;
+    if (!bend[i % n]) continue;
+    const last = runs[runs.length - 1];
+    if (last && i - last[1] <= gap) last[1] = i + 1;
+    else runs.push([i, i + 1]);
+  }
+  const a = runs[0];
+  const b = runs[runs.length - 1];
+  if (runs.length > 1 && a[0] + n - b[1] <= gap) {
+    b[1] = a[1] + n;
+    runs.shift();
+  }
+  return runs.filter(([s, e]) => e - s >= min);
+}
+
+function kerbGeometry() {
+  const n = Math.round(trackCurve.getLength() / KERB_STEP);
+  const red = new THREE.Color(C.red);
+  const white = new THREE.Color(C.white);
+  const parts: THREE.BufferGeometry[] = [];
+  for (const side of [-1, 1]) {
+    const pos: number[] = [];
+    const col: number[] = [];
+    const idx: number[] = [];
+    for (const [s0, s1] of kerbRuns(n)) {
+      const stripes = Math.max(2, Math.round(((s1 - s0) * KERB_STEP) / KERB_STRIPE));
+      for (let k = 0; k < stripes; k++) {
+        const a = s0 + Math.round(((s1 - s0) * k) / stripes);
+        const b = s0 + Math.round(((s1 - s0) * (k + 1)) / stripes);
+        const c = k % 2 ? white : red;
+        const base = pos.length / 3;
+        for (let i = a; i <= b; i++) {
+          const u = (i % n) / n;
+          const p = trackCurve.getPointAt(u);
+          const t = trackCurve.getTangentAt(u);
+          const nx = -t.z * side;
+          const nz = t.x * side;
+          const lift = Math.min(1, ((i - s0) * KERB_STEP) / KERB_RAMP, ((s1 - i) * KERB_STEP) / KERB_RAMP);
+          for (const [o, h] of KERB_PROFILE) {
+            const d = TRACK_WIDTH / 2 + o;
+            pos.push(p.x + nx * d, p.y + 0.03 + h * lift, p.z + nz * d);
+            col.push(c.r, c.g, c.b);
+          }
+        }
+        const m = KERB_PROFILE.length;
+        for (let i = 0; i < b - a; i++)
+          for (let j = 0; j < m - 1; j++) {
+            const v = base + i * m + j;
+            idx.push(v, v + 1, v + m, v + 1, v + m + 1, v + m);
+          }
       }
     }
-    return { matrices: m, colors: c };
-  }, []);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    // face up whichever way this edge winds
+    if (g.getAttribute("normal").getY(1) < 0) {
+      for (let i = 0; i < idx.length; i += 3) [idx[i + 1], idx[i + 2]] = [idx[i + 2], idx[i + 1]];
+      g.setIndex(idx);
+      g.computeVertexNormals();
+    }
+    parts.push(g);
+  }
+  const g = mergeGeometries(parts);
+  parts.forEach((p) => p.dispose());
+  return g;
+}
 
-  const ref = useRef<THREE.InstancedMesh>(null);
-  const geo = useMemo(() => new THREE.BoxGeometry(0.95, 0.05, 0.6), []);
-  useLayoutEffect(() => {
-    const mesh = ref.current;
-    if (!mesh) return;
-    matrices.forEach((mat, i) => {
-      mesh.setMatrixAt(i, mat);
-      mesh.setColorAt(i, colors[i]);
-    });
-    mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  }, [matrices, colors]);
-
+function Kerbs() {
+  const geo = useMemo(() => kerbGeometry(), []);
   return (
-    <instancedMesh ref={ref} args={[geo, undefined, matrices.length]} receiveShadow castShadow>
-      <meshStandardMaterial roughness={0.7} />
-    </instancedMesh>
+    <mesh geometry={geo} receiveShadow>
+      <meshStandardMaterial vertexColors roughness={0.6} />
+    </mesh>
   );
 }
 
