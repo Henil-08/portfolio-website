@@ -114,8 +114,10 @@ distinct areas threaded by paths, water woven through, shorelines with teal glow
         moved north-east, same sector order and crossover.
   - [x] b. (8c1db86, quays 773f5c0) Harbour arm from the west sea to the garden (quays on the town side) replacing the west lake
         and inlet; harbour bridge with a real gap under the deck.
-  - [ ] c. River from a hilltop spring lake down the east side, under the east esses (road bridge), into
-        the garden pond.
+  - [x] c. (e7453b1) River from a spring lake inside the north-east loop, south past the start, under the
+        east esses (road bridge) and out to the east sea. Changed from the plan: no branch to the garden
+        pond (it is far west; a branch would cut through the timeline and letters). All water is at sea
+        level (one water plane), so the river is a shallow creek you can drive through.
   - [ ] d. Relief: hills in the north-east (~8 m), dunes along the east beach.
   - [ ] e. Park islands east of the garden: football, podium, playbook, contact on Bruno-style grass
         islands with sandy paths and footbridges.
