@@ -26,6 +26,7 @@ function skip(side: 1 | -1, i: number, x: number, z: number) {
   if (nearPlace(x, z, 1)) return true;
   if (nearCones(x, z, 3.5)) return true;
   if (nearTree(x, z, 0.6)) return true;
+  if (!inLand(x, z, 1)) return true;
   if (inner) {
     for (const [u, h] of ACCESS) {
       let du = Math.abs(f.u - u);
@@ -182,10 +183,11 @@ export const BOARDS: (Spot & { text: string })[] = BOARD_WANT.map(([u, text]) =>
     !nearPlace(sp.x, sp.z, 1) &&
     !nearTree(sp.x, sp.z, 1.5) &&
     !nearCrossing(sp.x, sp.z, 20) &&
+    inLand(sp.x, sp.z, 2) &&
     !TYRE_WALLS.some((w) => Math.hypot(w.x - sp.x, w.z - sp.z) < 3) &&
     !STAND_SPOTS.some((st) => Math.hypot(st.x - sp.x, st.z - sp.z) < 8)
 );
 
 export const MARSHALS: Spot[] = [0.235, 0.47, 0.715, 0.79, 0.965]
   .map((u) => farSpot(u, 3.2))
-  .filter((s) => !inSectorScene(s.x, s.z, 1) && !nearPlace(s.x, s.z, 0) && !nearTree(s.x, s.z, 1.5));
+  .filter((s) => !inSectorScene(s.x, s.z, 1) && !nearPlace(s.x, s.z, 0) && !nearTree(s.x, s.z, 1.5) && inLand(s.x, s.z, 2));

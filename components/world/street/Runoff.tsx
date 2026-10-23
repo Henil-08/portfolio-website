@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import * as THREE from "three";
 import { heightAt } from "../terrain";
-import { onBridge } from "../layout";
+import { CANALS, canalDist, onBridge } from "../layout";
 import { FRAMES, HALF, N_FRAMES, RUNOFF, barrierOffset, rng } from "./common";
 
 const PAVED = 1.8;
@@ -18,7 +18,8 @@ function build(inner: (i: number) => number, outer: (i: number) => number, y: nu
   for (let i = 0; i <= N_FRAMES; i++) {
     const j = i % N_FRAMES;
     const f = FRAMES[j];
-    const on = RUNOFF[j] > 0.35 && !onBridge(f.u, 4);
+    // none over water: the harbour and the river pass under bridges
+    const on = RUNOFF[j] > 0.35 && !onBridge(f.u, 4) && CANALS.every((c) => canalDist(c, f.p.x, f.p.z) < -6);
     if (!on) {
       prev = -1;
       continue;

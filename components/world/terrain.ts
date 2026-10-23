@@ -148,7 +148,8 @@ function build() {
           } else if (quay) h[c] = Math.min(h[c], THREE.MathUtils.lerp(QUAY, h[c], THREE.MathUtils.smoothstep(-cd, 2.2, 5.5)));
           else h[c] = Math.min(h[c], THREE.MathUtils.lerp(BEACH, h[c], THREE.MathUtils.smoothstep(-cd, 0, 6)));
         } else {
-          h[c] = quay ? DEEP : THREE.MathUtils.lerp(THREE.MathUtils.lerp(BEACH, SHALLOW, THREE.MathUtils.smoothstep(cd, 0, 1.4)), DEEP, THREE.MathUtils.smoothstep(cd, 1.6, 3.6));
+          const bed = cn.bed ?? DEEP;
+          h[c] = quay ? bed : THREE.MathUtils.lerp(THREE.MathUtils.lerp(BEACH, SHALLOW, THREE.MathUtils.smoothstep(cd, 0, 1.4)), bed, THREE.MathUtils.smoothstep(cd, 1.6, 3.6));
           fixed[c] = 1;
         }
       }

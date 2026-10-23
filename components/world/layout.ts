@@ -23,9 +23,9 @@ export const TRACK_POINTS: [number, number, number][] = [
   [-10, 42, 0],
   [34, 41, 0],
   [54, 36, 0.28],
-  [64, 24, 0.52],
-  [62, 6, 0.82],
-  [52, -6, 1.08],
+  [64, 24, 1.3],
+  [62, 6, 1.75],
+  [52, -6, 1.6],
   [62, -20, 1.5],
   [76, -32, 2.4],
   [86, -50, 3.4],
@@ -114,7 +114,10 @@ export function coastR(angle: number) {
 
 /** Lakes: basins dug into low ground; their water is the sea's, at SEA_Y. */
 export type Lake = { x: number; z: number; rx: number; rz: number; yaw: number };
-export const LAKES: Lake[] = [];
+export const LAKES: Lake[] = [
+  // The river's spring, in the hollow inside the north-east loop.
+  { x: 60, z: -47, rx: 7.5, rz: 5.5, yaw: 0.4 },
+];
 
 /**
  * Channels of sea water cut into the land, with a width at each point. The harbour
@@ -122,12 +125,19 @@ export const LAKES: Lake[] = [];
  * garden's edge. `quay`: the side (as canalSide returns it) that is a stone quay
  * instead of a beach; for the harbour arm, whose points run west, +1 is the north (town) side.
  */
-export type Canal = { pts: [number, number][]; w: number[]; quay?: 1 | -1 };
+export type Canal = { pts: [number, number][]; w: number[]; quay?: 1 | -1; /** bed level mid-channel */ bed?: number };
 export const CANALS: Canal[] = [
   {
     pts: [[-49, 5], [-58, 4], [-70, 3], [-82, 1.5], [-92, 0.5], [-104, 0], [-126, -1]],
     w: [9, 9, 10, 11, 12, 14, 16],
     quay: 1,
+  },
+  // The river: from the spring lake in the north-east loop, south past the start,
+  // under the east esses and out to the east sea. Shallow: you can splash through it.
+  {
+    pts: [[60, -42], [54, -30], [44, -18], [38, -5], [41, 6], [52, 13], [66, 15], [82, 13], [100, 10], [128, 8]],
+    w: [5, 5, 5.5, 5.5, 6, 6, 6.5, 7, 8, 10],
+    bed: SEA_Y - 0.6,
   },
 ];
 

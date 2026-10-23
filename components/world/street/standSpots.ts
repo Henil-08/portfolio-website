@@ -1,10 +1,21 @@
 // Where the extra grandstands go. Kept separate so the skyline, lamps and
 // stands can all avoid each other without import cycles.
 import { farSpot, inSectorScene, nearPlace, nearTree } from "./common";
+import { TRACK_WIDTH, inLand, nearestT } from "../layout";
 
 export type StandSpot = { x: number; z: number; yaw: number; raise: number; label: string };
 
 const placed: { x: number; z: number }[] = [];
+
+/** The stand's footprint (11 x 5 m, local +Z toward the road) stays off every bit of track. */
+function clearOfRoad(x: number, z: number, yaw: number) {
+  const c = Math.cos(yaw);
+  const sn = Math.sin(yaw);
+  for (const lx of [-5.4, -2.7, 0, 2.7, 5.4])
+    for (const lz of [-2.7, 0, 2.1])
+      if (nearestT(x + lx * c + lz * sn, z - lx * sn + lz * c).dist < TRACK_WIDTH / 2 + 1) return false;
+  return true;
+}
 
 /** Nearest clear far-side spot to `u0` (no trees, scenes or places under the stand). */
 function pick(u0: number, label: string): StandSpot | null {
@@ -15,6 +26,8 @@ function pick(u0: number, label: string): StandSpot | null {
       !nearTree(s.x, s.z, 6.2) &&
       !inSectorScene(s.x, s.z, 6) &&
       !nearPlace(s.x, s.z, 4) &&
+      inLand(s.x, s.z, 7) && // a stand is ~11 m wide: keep it out of the river and the harbour
+      clearOfRoad(s.x, s.z, s.yaw) &&
       !placed.some((p) => Math.hypot(p.x - s.x, p.z - s.z) < 12.5);
     if (ok) {
       placed.push(s);
