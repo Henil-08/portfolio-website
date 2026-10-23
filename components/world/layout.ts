@@ -64,6 +64,8 @@ export const trackCurve = new THREE.CatmullRomCurve3(
 /** Sea level, and the sea floor past the beach. */
 export const SEA_Y = -0.3;
 export const SEA_FLOOR = -2.4;
+/** Top of the harbour quays. */
+export const QUAY_Y = SEA_Y + 0.75;
 
 // The coast: a hand-drawn radius by bearing (0 = +x east, 90 = +z south, toward the
 // camera), never closer than 12 m to the track. A bay in the south makes the main

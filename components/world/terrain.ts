@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { CANALS, GRANDSTAND, LAKES, canalDist, canalSide, LETTERS, MAX_R, SEA_FLOOR, SEA_Y, TIMELINE, lakeDepthDist, onBridge, PIT, SCENE_FOOT, SECTORS, shoreDist, TRACK_WIDTH, trackCurve, trackPoint, zones } from "./layout";
+import { CANALS, QUAY_Y, GRANDSTAND, LAKES, canalDist, canalSide, LETTERS, MAX_R, SEA_FLOOR, SEA_Y, TIMELINE, lakeDepthDist, onBridge, PIT, SCENE_FOOT, SECTORS, shoreDist, TRACK_WIDTH, trackCurve, trackPoint, zones } from "./layout";
 
 // Terrain height for the whole island. The land follows the circuit: right next
 // to the road it matches the track's height exactly, further away it blends
@@ -115,7 +115,7 @@ function build() {
   const BEACH = SEA_Y + 0.22;
   const SHALLOW = SEA_Y - 0.38; // lakes, the inlet and the sea's first metres: a car sits in it, body above water
   const DEEP = SEA_Y - 1.3; // the harbour channel
-  const QUAY = SEA_Y + 0.75; // quay top
+  const QUAY = QUAY_Y;
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {
       const c = j * n + i;
@@ -137,7 +137,15 @@ function build() {
         if (cd < -6) continue;
         const quay = cn.quay !== undefined && canalSide(cn, x, z) === cn.quay;
         if (cd < 0) {
-          if (quay) h[c] = Math.min(h[c], THREE.MathUtils.lerp(QUAY, h[c], THREE.MathUtils.smoothstep(-cd, 1.2, 5)));
+          if (quay && -cd < 0.9) {
+            // behind the quay wall's face: kept deep so the grid never pokes out in front of it
+            h[c] = DEEP;
+            fixed[c] = 1;
+          } else if (quay && -cd < 2.2) {
+            // the quay top: pinned, so the slope limit can't drag it down to the channel
+            h[c] = QUAY;
+            fixed[c] = 1;
+          } else if (quay) h[c] = Math.min(h[c], THREE.MathUtils.lerp(QUAY, h[c], THREE.MathUtils.smoothstep(-cd, 2.2, 5.5)));
           else h[c] = Math.min(h[c], THREE.MathUtils.lerp(BEACH, h[c], THREE.MathUtils.smoothstep(-cd, 0, 6)));
         } else {
           h[c] = quay ? DEEP : THREE.MathUtils.lerp(THREE.MathUtils.lerp(BEACH, SHALLOW, THREE.MathUtils.smoothstep(cd, 0, 1.4)), DEEP, THREE.MathUtils.smoothstep(cd, 1.6, 3.6));

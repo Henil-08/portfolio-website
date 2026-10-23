@@ -7,10 +7,13 @@
 import { useMemo } from "react";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
-import { CANALS, SEA_Y, TRACK_WIDTH, canalDist, trackCurve, trackPoint, trackTangent } from "./layout";
+import { CANALS, QUAY_Y, SEA_Y, TRACK_WIDTH, canalDist, nearestT, shoreDist, trackCurve, trackPoint, trackTangent, type Canal } from "./layout";
 import { C } from "./palette";
 import { mat } from "./models/props/shared";
 import { heightAt } from "./terrain";
+import { compose } from "./street/common";
+import { Instances } from "./street/Instances";
+import { unitCyl } from "./models/props/shared";
 
 const HALF = TRACK_WIDTH / 2 + 0.85; // deck half width (the kerbs fit inside)
 const DEPTH = 0.55; // deck thickness under the road
@@ -156,11 +159,108 @@ export default function Harbour() {
           <boxGeometry args={[0.9, p.y - bottom, HALF * 2 - 1.2]} />
         </mesh>
       ))}
+      <Quays />
       <RigidBody type="fixed" colliders={false}>
         {parts.cols.map((k, i) => (
           <CuboidCollider key={i} args={[k.len / 2 + 0.05, PARAPET_H / 2 + 0.2, PARAPET_T / 2]} position={[k.x, k.y + PARAPET_H / 2, k.z]} rotation={[0, k.yaw, 0]} />
         ))}
       </RigidBody>
+    </>
+  );
+}
+
+// ------------------------------------------------------------ quays
+
+/** Runs of points along a canal's quay edge: [x, z, rx, rz] (r points from the water to the land). */
+function quayRuns(c: Canal) {
+  const runs: [number, number, number, number][][] = [];
+  if (c.quay === undefined) return runs;
+  let cur: [number, number, number, number][] = [];
+  for (let i = 0; i < c.pts.length - 1; i++) {
+    const [ax, az] = c.pts[i];
+    const [bx, bz] = c.pts[i + 1];
+    const l = Math.hypot(bx - ax, bz - az);
+    // toward the quay: canalSide is the sign of d x r, so r = (-dz, dx) * quay / |d|
+    const rx = (-(bz - az) / l) * c.quay;
+    const rz = ((bx - ax) / l) * c.quay;
+    const n = Math.ceil(l / 0.6);
+    for (let k = i ? 1 : 0; k <= n; k++) {
+      const f = k / n;
+      const w = c.w[i] + (c.w[i + 1] - c.w[i]) * f;
+      const x = ax + (bx - ax) * f + rx * (w / 2);
+      const z = az + (bz - az) * f + rz * (w / 2);
+      const ok = shoreDist(x, z) > 1.5 && nearestT(x, z).dist > HALF + 1.2;
+      if (ok) cur.push([x, z, rx, rz]);
+      else if (cur.length) {
+        runs.push(cur);
+        cur = [];
+      }
+    }
+  }
+  if (cur.length) runs.push(cur);
+  return runs.filter((r) => r.length > 3);
+}
+
+/** A box swept along a quay run, across [a, b] from the edge (+ toward land), from y0 to y1. */
+function quaySweep(run: [number, number, number, number][], a: number, b: number, y0: number, y1: number) {
+  const pos: number[] = [];
+  const idx: number[] = [];
+  run.forEach(([x, z, rx, rz], k) => {
+    for (const [o, y] of [
+      [a, y1],
+      [b, y1],
+      [b, y0],
+      [a, y0],
+    ])
+      pos.push(x + rx * o, y, z + rz * o);
+    if (k < run.length - 1) {
+      const v = k * 4;
+      for (let f = 0; f < 4; f++) {
+        const c0 = v + f;
+        const c1 = v + ((f + 1) % 4);
+        idx.push(c0, c0 + 4, c1, c1, c0 + 4, c1 + 4);
+      }
+    }
+  });
+  const last = (run.length - 1) * 4;
+  idx.push(0, 1, 2, 0, 2, 3, last, last + 2, last + 1, last, last + 3, last + 2);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  const flat = g.toNonIndexed();
+  flat.computeVertexNormals();
+  return flat;
+}
+
+const QUAYS = (() => {
+  const walls: THREE.BufferGeometry[] = [];
+  const copes: THREE.BufferGeometry[] = [];
+  const bollards = { m: [] as THREE.Matrix4[] };
+  for (const c of CANALS)
+    for (const run of quayRuns(c)) {
+      walls.push(quaySweep(run, 0, 1.4, SEA_Y - 1.6, QUAY_Y + 0.02));
+      copes.push(quaySweep(run, -0.08, 2.5, QUAY_Y + 0.02, QUAY_Y + 0.13));
+      for (let k = 4; k < run.length - 2; k += 9) {
+        const [x, z, rx, rz] = run[k];
+        bollards.m.push(compose(x + rx * 0.45, QUAY_Y + 0.13 + 0.17, z + rz * 0.45, 0, 0.12, 0.34, 0.12));
+      }
+    }
+  return { walls, copes, bollards };
+})();
+
+/** Stone quay walls with a sand coping and iron bollards along the harbour's town side. */
+export function Quays() {
+  const stone = mat(C.rock, { r: 0.9 });
+  const coping = mat(C.sand, { r: 0.85 });
+  return (
+    <>
+      {QUAYS.walls.map((g, i) => (
+        <mesh key={`qw${i}`} geometry={g} material={stone} receiveShadow />
+      ))}
+      {QUAYS.copes.map((g, i) => (
+        <mesh key={`qc${i}`} geometry={g} material={coping} castShadow receiveShadow />
+      ))}
+      <Instances geometry={unitCyl()} material={mat(C.charcoal, { r: 0.45, m: 0.4 })} batch={QUAYS.bollards} />
     </>
   );
 }
