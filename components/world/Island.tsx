@@ -7,6 +7,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { C } from "./palette";
 import { CANALS, LAKES, SEA_Y, canalDist, duneMask, START_T, TRACK_WIDTH, lakeDepthDist, shoreDist, trackCurve } from "./layout";
 import Water from "./Water";
+import Embankments from "./Embankments";
 import Harbour from "./Harbour";
 import { EXTENT, GRID, heightGrid } from "./terrain";
 import { parkSand as parkSandAt } from "./park/layout";
@@ -269,6 +270,7 @@ export default function Island() {
       </mesh>
       <Water />
       <Harbour />
+      <Embankments />
 
       <mesh geometry={asphalt} receiveShadow>
         <meshStandardMaterial color={C.asphalt} roughness={0.9} />
