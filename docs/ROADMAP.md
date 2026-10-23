@@ -145,7 +145,10 @@ distinct areas threaded by paths, water woven through, shorelines with teal glow
         `reliefAt > 0.6` / `duneMask > 0.1` in town.ts `clear()` and the random fill, and let `oldTown`
         use the hill and embankment ground round the crossover. Slopes must stay as they are (don't
         flatten terrain for buildings). Camera blocked under the bridge deck is fine (owner).
-  - [ ] g. District identity: paving, planting, props, one district per commit.
+  - [x] g. District identity (components/world/districts/*; Bruno's benches, lanterns, fences baked by
+        scripts/bake-bruno.mjs into models/props/brunoProps.ts): old town slab forecourts + lanterns
+        (31bc571), harbour quay benches/lanterns/crates (8ba0ff2), hills wildflowers + rocks (a5860d1),
+        dunes sand fences + marram (837d234). Waterfront, garden and park were dressed earlier.
   - [ ] h. See-through when the car is hidden, like Bruno: his Foliage.js fades foliage in a soft
         screen-space circle round the car (`seeThroughPosition`, `seeThroughEdgeMin/Max`, alpha =
         sdf * mix(threshold, 1, distanceFade)). Do the same for anything between car and camera:
