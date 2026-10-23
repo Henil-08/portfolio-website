@@ -13,6 +13,7 @@ import { perlinTexture, seeded } from "./alive/noise";
 import { tracks, tracksTarget } from "./alive/Tracks";
 import { paintGarden } from "./garden/layout";
 import { paintWaterfront } from "./waterfront/layout";
+import { TYRE_WALLS } from "./street/layoutStreet";
 
 // Bruno's grass: one triangle per blade (tip + two base corners), laid out on a
 // jittered grid that loops around the car so the field never runs out. Every
@@ -99,6 +100,12 @@ function makeMask() {
   // Garden paths, beds and the pond.
   paintGarden(g, tx, s);
   paintWaterfront(g, tx, s);
+  // Tyre walls at the corners.
+  for (const w of TYRE_WALLS) {
+    g.beginPath();
+    g.arc(tx(w.x), tx(w.z), (w.end ? 0.95 : 0.7) * s, 0, Math.PI * 2);
+    g.fill();
+  }
   // Pit entry and exit lanes.
   g.lineWidth = (PIT_LANE_WIDTH + 1.5) * s;
   for (const c of pitRoadCurves()) {

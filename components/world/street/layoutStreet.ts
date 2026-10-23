@@ -5,24 +5,8 @@ import { LEN, FRAMES, N_FRAMES, barrierOffset, farSign, farSpot, inPitSide, inSe
 import { STAND_SPOTS } from "./standSpots";
 import { PIT, TRACK_WIDTH, nearCrossing, nearestT, onBridge } from "../layout";
 
-export const BLOCK = 2.0;
-
-export type Block = {
-  x: number;
-  z: number;
-  yaw: number;
-  /** frame index */
-  i: number;
-  side: 1 | -1;
-  far: boolean;
-  /** contiguous run id (breaks at gaps) */
-  run: number;
-  /** running block count, for colours */
-  k: number;
-  /** direction along the barrier */
-  dx: number;
-  dz: number;
-};
+// Bruno's circuit has no walls: open run-off past the kerbs, and a short tyre wall
+// on the outside of the tight corners only, with a rounded block at each end.
 
 // Extra access gaps on the inside (u, half length in m) so the infield is reachable.
 const ACCESS: [number, number][] = [
@@ -36,10 +20,12 @@ function skip(side: 1 | -1, i: number, x: number, z: number) {
   const inner = side !== outSign(f);
   const far = side === farSign(f);
   if (onBridge(f.u, 2)) return true; // the bridge has its own parapets
+  if (nearCrossing(x, z, 20)) return true;
   if (inner && inPitSide(x, z)) return true;
   if (far && inSectorScene(x, z, 2)) return true;
   if (nearPlace(x, z, 1)) return true;
   if (nearCones(x, z, 3.5)) return true;
+  if (nearTree(x, z, 0.6)) return true;
   if (inner) {
     for (const [u, h] of ACCESS) {
       let du = Math.abs(f.u - u);
@@ -50,67 +36,64 @@ function skip(side: 1 | -1, i: number, x: number, z: number) {
   return false;
 }
 
-function offsetLine(side: 1 | -1) {
-  return FRAMES.map((f, i) => f.p.clone().addScaledVector(f.n, barrierOffset(i, side)));
-}
+export const STACK_GAP = 0.92; // tyre stacks touch
+const WALL_MIN = 4; // m
+const WALL_MAX = 16; // m
+const RUN_MIN = 0.35; // run-off amount that marks a tight corner
 
-export const BLOCKS: Block[] = (() => {
-  const out: Block[] = [];
-  let run = 0;
-  for (const side of [1, -1] as const) {
-    const line = offsetLine(side);
-    let acc = 0;
-    let next = BLOCK / 2;
-    let k = 0;
-    let open = false;
-    for (let i = 0; i < N_FRAMES; i++) {
-      const a = line[i];
-      const b = line[(i + 1) % N_FRAMES];
-      const seg = a.distanceTo(b);
-      while (next <= acc + seg) {
-        const t = (next - acc) / seg;
-        const x = a.x + (b.x - a.x) * t;
-        const z = a.z + (b.z - a.z) * t;
-        const dx = (b.x - a.x) / seg;
-        const dz = (b.z - a.z) / seg;
-        if (skip(side, i, x, z)) {
-          if (open) run++;
-          open = false;
-        } else {
-          open = true;
-          out.push({ x, z, yaw: Math.atan2(-dz, dx), i, side, far: side === farSign(FRAMES[i]), run, k: k++, dx, dz });
-        }
-        next += BLOCK;
-      }
-      acc += seg;
+/** A tyre stack (`end` false) or a rounded end block (`end` true) on the outside of a corner. */
+export type WallPiece = { x: number; z: number; yaw: number; k: number; end: boolean };
+
+export const TYRE_WALLS: WallPiece[] = (() => {
+  const out: WallPiece[] = [];
+  // corners: runs of frames with run-off (cyclic)
+  const on = RUNOFF.map((r) => r > RUN_MIN);
+  const first = on.indexOf(false);
+  if (first < 0) return out;
+  const runs: [number, number][] = [];
+  for (let k = 0; k < N_FRAMES; k++) {
+    const i = first + k;
+    if (!on[i % N_FRAMES]) continue;
+    const last = runs[runs.length - 1];
+    if (last && last[1] === i) last[1] = i + 1;
+    else runs.push([i, i + 1]);
+  }
+  let k = 0;
+  for (const [a, b] of runs) {
+    // the wall sits around the deepest run-off, where a car that runs wide ends up
+    let peak = a;
+    for (let i = a; i < b; i++) if (RUNOFF[i % N_FRAMES] > RUNOFF[peak % N_FRAMES]) peak = i;
+    const f = FRAMES[peak % N_FRAMES];
+    const side = (-Math.sign(f.k) || 1) as 1 | -1;
+    const line: THREE.Vector3[] = [];
+    for (let i = a; i < b; i++) {
+      const j = i % N_FRAMES;
+      line.push(FRAMES[j].p.clone().addScaledVector(FRAMES[j].n, barrierOffset(j, side) + side * 0.3));
     }
-    run++;
+    const lens = [0];
+    for (let i = 1; i < line.length; i++) lens.push(lens[i - 1] + line[i].distanceTo(line[i - 1]));
+    const total = lens[lens.length - 1];
+    const want = Math.min(WALL_MAX, total * 0.6);
+    if (want < WALL_MIN) continue;
+    const mid = lens[peak - a];
+    const from = THREE.MathUtils.clamp(mid - want / 2, 0, total - want);
+    const n = Math.floor(want / STACK_GAP);
+    const pieces: WallPiece[] = [];
+    for (let m = 0; m <= n + 1; m++) {
+      const d = from + (m - 0.5) * STACK_GAP;
+      let s = 1;
+      while (s < lens.length - 1 && lens[s] < d) s++;
+      const p0 = line[s - 1];
+      const p1 = line[s];
+      const t = THREE.MathUtils.clamp((d - lens[s - 1]) / Math.max(1e-6, lens[s] - lens[s - 1]), 0, 1);
+      const x = p0.x + (p1.x - p0.x) * t;
+      const z = p0.z + (p1.z - p0.z) * t;
+      const end = m === 0 || m === n + 1;
+      if (skip(side, (a + s) % N_FRAMES, x, z)) continue;
+      pieces.push({ x, z, yaw: Math.atan2(-(p1.z - p0.z), p1.x - p0.x), k: k++, end });
+    }
+    if (pieces.filter((p) => !p.end).length >= 3) out.push(...pieces);
   }
-  return out;
-})();
-
-export type Chunk = { x: number; z: number; yaw: number; len: number };
-
-/** Collider chunks: up to 3 consecutive blocks of the same run. */
-export const CHUNKS: Chunk[] = (() => {
-  const out: Chunk[] = [];
-  let cur: Block[] = [];
-  const flush = () => {
-    if (!cur.length) return;
-    const a = cur[0];
-    const b = cur[cur.length - 1];
-    const ax = a.x - (a.dx * BLOCK) / 2;
-    const az = a.z - (a.dz * BLOCK) / 2;
-    const bx = b.x + (b.dx * BLOCK) / 2;
-    const bz = b.z + (b.dz * BLOCK) / 2;
-    out.push({ x: (ax + bx) / 2, z: (az + bz) / 2, yaw: Math.atan2(-(bz - az), bx - ax), len: Math.hypot(bx - ax, bz - az) });
-    cur = [];
-  };
-  for (const b of BLOCKS) {
-    if (cur.length && (cur[0].run !== b.run || cur.length >= 3)) flush();
-    cur.push(b);
-  }
-  flush();
   return out;
 })();
 
@@ -179,7 +162,7 @@ export const FENCES: FenceRun[] = (() => {
 
 // ------------------------------------------------------------ boards and marshals
 
-/** Sponsor boards sit on top of far-side barrier blocks. */
+/** Sponsor boards on two legs at the far edge of the run-off. */
 const BOARD_WANT: [number, string][] = [
   [0.3, "HG RACING"],
   [0.355, "LIGHTS OUT"],
@@ -194,7 +177,11 @@ const BOARD_WANT: [number, string][] = [
 ];
 export const BOARDS: (Spot & { text: string })[] = BOARD_WANT.map(([u, text]) => ({ ...farSpot(u, 0), text })).filter(
   (sp) =>
-    BLOCKS.some((b) => b.far && Math.hypot(b.x - sp.x, b.z - sp.z) < 1.2) &&
+    !inSectorScene(sp.x, sp.z, 2) &&
+    !nearPlace(sp.x, sp.z, 1) &&
+    !nearTree(sp.x, sp.z, 1.5) &&
+    !nearCrossing(sp.x, sp.z, 20) &&
+    !TYRE_WALLS.some((w) => Math.hypot(w.x - sp.x, w.z - sp.z) < 3) &&
     !STAND_SPOTS.some((st) => Math.hypot(st.x - sp.x, st.z - sp.z) < 8)
 );
 

@@ -20,7 +20,7 @@ export const TYRE_R = 0.45;
 export const TYRE_H = 0.32;
 const R_IN = 0.26;
 
-function rubberGeo() {
+export function rubberGeo() {
   return geo("tyre-rubber", () => {
     // Rounded-rectangle cross section, swept around Y: a fat doughnut.
     const pts: THREE.Vector2[] = [];
@@ -44,7 +44,7 @@ function rubberGeo() {
 
 // Pirelli-style sidewall band: two arcs with gaps that carry the lettering.
 const GAP = 0.55; // radians per gap
-function bandGeo() {
+export function bandGeo() {
   return geo("tyre-band", () => {
     const arc = Math.PI - GAP;
     const parts = [0, Math.PI].map((a0) => {

@@ -99,14 +99,14 @@ const PAINT = (() => {
       }
   }
 
-  // ---- sponsor boards on top of the far barrier (local +Z faces the road)
+  // ---- sponsor boards on two legs at the edge of the run-off (local +Z faces the road)
   for (const b of BOARDS) {
     const put = placer(paint, b.x, b.z, b.yaw);
     const face = b.text === "DRS ZONE" ? INK : b.text === "BOX BOX" ? RED : WHITE;
     put(0, BARRIER_H + 0.42, -0.05, 4.2, 0.84, 0.1, CHAR);
     put(0, BARRIER_H + 0.44, 0.005, 4.04, 0.66, 0.02, face);
     put(0, BARRIER_H + 0.16, 0.006, 4.04, 0.08, 0.022, face === RED ? WHITE : RED);
-    for (const sx of [-1.7, 1.7]) put(sx, BARRIER_H + 0.02, -0.08, 0.12, 0.08, 0.3, CHAR);
+    for (const sx of [-1.7, 1.7]) put(sx, (BARRIER_H + 0.1) / 2, -0.08, 0.1, BARRIER_H + 0.1, 0.1, CHAR);
   }
 
   // ---- marshal posts: white booth, red roof, glazed front, two marshals in orange
