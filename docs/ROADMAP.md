@@ -27,6 +27,13 @@ small, verified with headless screenshots, and committed on its own
 | Store | components/world/store.ts (`near`, `zone`, `menuOpen`, `teleport`, `achievements`) |
 | Audio | components/world/sound.ts, scripts/gen-audio.mjs, app/api/voice, content/radio.ts |
 | Timeline (career plaza) | components/world/Timeline.tsx, components/world/timeline/* |
+| Coast, sea, lakes, inlet | components/world/layout.ts (`COAST_KEYS`, `coastR`, `shoreDist`, `LAKES`, `CANALS`, `inLand`, `SEA_Y`), terrain.ts (beaches/basins), Water.tsx, Harbour.tsx |
+| Garden infield | components/world/garden/* (`PATHS`, `BEDS`, `POND`, `nearGarden`) |
+| Town | components/world/street/town.ts (placement, `BUILDINGS`), street/Skyline.tsx (renderer) |
+| Waterfront | components/world/waterfront/* (`PROMENADE`, `PIER`, `nearPromenade`) |
+| Contact logos | components/world/social/* (`LINKS`, store `nearLink`) |
+| Trees (Bruno's) | components/world/foliage/*, models/props/Tree.tsx, public/bruno/ (MIT) |
+| Opening reveal | components/world/Reveal.tsx, components/ui/Intro.tsx |
 
 ## Working rules
 
@@ -35,8 +42,8 @@ small, verified with headless screenshots, and committed on its own
 2. Verify every visual change with screenshots before committing:
    - Dev server: `npx next dev -p 3100` (if CSS looks stale: stop it, `rm -rf .next/dev`, restart).
    - `node scripts/shoot.mjs /tmp/shots/x "wait:16000|shot:a" 1400 850 "http://localhost:3100/?skip"`
-   - Hooks: `eval:window.__cam=[x,y,z,tx,ty,tz]` pins the camera (null releases); top view `[0,150,90,0,0,-10]`;
-     `eval:window.__placeT(0.3)` drops the car at track t; `eval:window.__world.teleport('garage-agents')`;
+   - Hooks: `eval:window.__cam=[x,y,z,tx,ty,tz]` pins the camera (null releases); top view `[0,190,80,0,0,-5]`;
+     `eval:window.__placeT(0.3)` drops the car at track t; `eval:window.__placeXZ(x,z,heading)` anywhere; `eval:window.__world.teleport('garage-agents')`;
      `eval:window.__world.setState({scene:{time:'night',weather:'clear'}})`; `eval:window.__world.openZone('podium')`.
    - Physics runs in slow motion headless (low fps). Judge looks, not speed.
 3. Before commit: `npx tsc --noEmit -p .` and `npx eslint components app` clean.
@@ -44,7 +51,13 @@ small, verified with headless screenshots, and committed on its own
    (never memoized values), no `Math.random` in render (seeded rng), `useMemo(() => fn())`,
    no setState in effect bodies.
 4. Everything on the ground asks `heightAt(x, z)`; nothing stands within
-   `nearCrossing(x, z, 20)` (the bridge); keep clear of the road with `nearestT(x,z).dist`.
+   `nearCrossing(x, z, 20)` (the bridge); keep clear of the road with `nearestT(x,z).dist`;
+   keep things on land with `inLand(x, z, margin)`, off the garden with `nearGarden`, off the
+   promenade with `nearPromenade`. Places.tsx `Nature` and street/common.ts `TREES` are the same
+   scatter twice: change both together, same checks, same order.
+7. Bruno's repo (MIT, assets included) is the reference and a source to copy from:
+   `git clone --depth 1 https://github.com/brunosimon/folio-2025` into the scratchpad; read, don't run.
+   The owner wants his look and code reused, not reinvented. Keep his license beside copied assets.
 5. This is Next 16: read node_modules/next/dist/docs before using Next APIs.
 6. Never commit secrets (.env.local) or the licensed Racero font (public/fonts is gitignored).
 
@@ -56,190 +69,106 @@ accent), real light and shadow doing the work, very little text in the world.
 UI is quiet broadcast graphics: small, precise, no cartoon colours.
 Fonts are fixed: Racero (display, `font-racing`), Geist (sans), Geist Mono (labels).
 
-## Feedback this plan answers (2026-10-23)
+## Where it stands (2026-10-23)
 
-Map is bad, M should open it, like Bruno's · slopes too steep · circuit boring,
-cross over itself with a bridge · voice: ElevenLabs "Ian - Professional, Warm,
-Calm", Eleven v4, stability 50% · livery not liked · night poor, study Bruno's ·
-pop-up banners childish, voice only on Enter · no Vercel deploy on push ·
-Enter UI bad · timeline tiles out of place on grass · street lap with a garden
-area holding all the places · buildings cute 3D, soft, not harsh; too childish overall.
+Done and working, don't redo: garden infield and timeline terrace; soft town (4 draw calls);
+Bruno's trees; HENIL GAJJAR letters at the start; contact ring of logos; Bruno's bumper collider,
+softer brake, boost release, stuck hint; Bruno's opening reveal; irregular coast with a south bay,
+beaches, a west lake joined to the sea by an inlet under the west sweepers; promenade, pier, boats;
+no wheel smoke or loose leaves; livery picker (six palettes). Commit history has the details.
 
-Second round (2026-10-23, later): the car snags on walls and buildings with a tyre
-hanging out · the brake stops it dead · start in the middle at the name, the full
-name HENIL GAJJAR, letters tight like Bruno's · contact as a ring of logos like
-Bruno's social area · use Bruno's assets and code (MIT) instead of designing from
-scratch, starting with his trees. See step 8.
+Owner feedback still open (2026-10-23, latest first): random glitches (the car breaks apart);
+kerbs on corners should be continuous; red/white barrier walls need rework; the map (the world
+layout itself) is still bad; the map menu is bad; the water, the lake and around it are not up to
+the mark; the E prompt should be animated like Bruno's.
 
-## Steps
+## Steps (do them in order; first unticked one is next)
 
-### 0. Quick fixes — done (c31cb73)
-- [x] Radio only when a place is opened (Enter); red banner -> subtitle caption
-- [x] M toggles the map, Esc closes
-- [x] vercel.json disables deploy-on-push (user may also disconnect the Vercel app in the dashboard)
-- [x] Voice model eleven_v4 @ stability 0.5 (scripts/gen-audio.mjs + app/api/voice)
-- [ ] **Radio voice: George** (user's pick, 2026-10-23). Voice ID `JBFqnCBsd6RMkjVDRZzb`
-      (ElevenLabs built-in voice, works on the free plan). Settings: model `eleven_v4`,
-      stability 0.5, similarity_boost 0.8 — natural, conversational tone (audio tags like
-      [calm], [softly], [warmly] in content/radio.ts).
-      1. Make George the default in scripts/gen-audio.mjs (`VOICE`) and app/api/voice/route.ts
-         (`voice` fallback), replacing Daniel `onwK4e9ZLuTAKqWW03F9`. Model and stability are
-         already eleven_v4 / 0.5 in both.
-      2. Optionally loosen content/radio.ts lines to sound conversational, the way the sample
-         reads: "Yeah, radio check, loud and clear. Okay, nice and easy through here, mate."
-         Keep every fact from content/*.
-      3. Re-record: `node scripts/gen-audio.mjs --only radio-sector-1,radio-sector-2,radio-sector-3,radio-sector-4,radio-garage-agents,radio-garage-genai,radio-garage-hardware,radio-garage-ml,radio-garage-vision,radio-playbook,radio-podium,radio-contact,radio-hello,radio-idle,radio-claude,radio-temp-on,radio-temp-off --force`
-      4. Commit public/sfx; on the server set `ELEVENLABS_VOICE_ID=JBFqnCBsd6RMkjVDRZzb` if overridden there.
-      Notes: Voice Library voices (Ian `70HFmYdPmz1aKiKW6Zx3`, John `ssHwp0KCFDTGtFbiUYl6`)
-      return 402 `paid_plan_required` on the free plan. Built-in samples of 11 voices are in
-      media/voice-samples/ (gitignored).
+### 1. Glitches
+- [ ] **Car breaks apart** (owner screenshot: body small in the middle, the four wheels spread out
+      around it, one wheel off on its own by a lamp post). Reproduce first: hit walls and lamp posts
+      at speed, land jumps, drive into the lake and the inlet, R-respawn mid-air. Suspects, in order:
+      wheel visuals in Vehicle.tsx follow `wheelSuspensionLength` (maxTravel 2 m) with no clamp when a
+      wheel loses contact; the massless bumper collider (Vehicle.tsx) meeting thin colliders (lamp
+      cylinders, posts) and the chassis tunnelling; a respawn (`place`) while wheels are mid-lerp.
+      Clamp the wheel offset to the rest pose +-0.25 m, and snap wheels on respawn.
+- [x] Street lamps standing on the road (two, at T1 and the last corner): fixed in 4e050da/35ba10b.
+- [ ] Sweep for others: drive a full lap at night and by day with the chase camera, plus
+      `__placeT` every 0.05 of the lap; list anything floating, clipping, z-fighting or on the road.
 
-### 1. Circuit v3: crossover and gentle grades — done (5d83cea)
-- [x] Figure-of-eight street lap: north straight runs under a bridge, a loop climbs
-      behind the town and comes back over it 7 m up; grades <= ~10%.
-- [x] Terrain follows the lower road under the bridge; slope limit 28% off-road.
-- [x] Bridge: deck, parapets with colliders, piers; nothing stands under it.
-- [x] R respawns onto the nearest road (height-aware).
+### 2. Kerbs and barriers
+- [ ] Corner kerbs (Island.tsx `Kerbs`) are separate flat red/white tiles with gaps. Make them a
+      continuous, slightly raised rumble kerb hugging the corner (alternating red/white segments
+      that touch, bevelled outer edge), only where the lap bends; straights get the plain white line.
+- [ ] Red/white barrier walls (street/Barriers.tsx): the owner's note was cut off ("the walls red
+      and white can be ..."). Ask what they want before changing; likely lower/softer and only on the
+      outside of corners, or replaced by tyre walls and Bruno-style rounded blocks.
 
-Notes: ~1% of open ground is still >40% where the raised descent leg (t ~0.70–0.80)
-meets the infield. Keep places >= 17 m from that leg.
+### 3. World layout ("the map is still bad")
+The owner wants a map with character like Bruno's, not a loop on a blob. Study Bruno's map image
+(`static/ui/map/map-day.webp` in his repo) and his terrain paint (`static/terrain/terrain.png`):
+distinct areas threaded by paths, water woven through, shorelines with teal glow.
+- [ ] Write a one-page layout proposal first (docs/research/layout-v4.md) with a top-down sketch:
+      named districts (garden, town, harbour, beach, hills), where water goes, what you drive under
+      and past. Get the owner's OK before building.
+- [ ] Then build it: bigger, more irregular water (river or bay arm crossing the island, a real
+      harbour with quays), more relief variety, district identity (paving, planting, props).
 
-### 2. Garden infield, city streets outside — 2a done, 2b two of three done
-Two independent halves; they can be done in parallel by separate agents
-because they own different files.
+### 4. Water, lake and surroundings
+- [ ] The lake and inlet look like flat holes in sand. Bruno's look: ground colour gradient by depth
+      (sand #ffa94e-ish -> teal #5bc2b9 -> navy #13375f, toned to our palette), a soft glowing
+      shoreline, gentle waves/caustics, reeds, rocks, a quay or steps at the harbour, lily pads.
+- [ ] Beaches: wet-sand band, a few rocks and driftwood, softer transition to grass.
+- [ ] Water.tsx shader: add subtle normal ripples (two scrolling noise layers), fresnel toward the
+      horizon, foam that follows the shore contour (sample depth gradient), night reflections of lamps.
+- [ ] Harbour bridge (Harbour.tsx): the causeway is so low the arch is a culvert; either raise the road
+      over the inlet a little (track heights in layout.ts TRACK_POINTS near t ~0.92) or make it a
+      proper low bridge with a gap under the deck.
 
-**2a. Garden infield** — owns components/world/garden/** (new), Timeline.tsx,
-components/world/timeline/**, app/lab/timeline/**, and only the mask function in Grass.tsx.
-- [x] `components/world/garden/index.tsx` exporting default `Garden`, mounted in Places.tsx
-      next to `<Groves />`: soft gravel/stone path ribbons (sand #e9dcc4/#d8c7a6, edging #c9b48e)
-      linking the infield places (zones playbook, podium, cricket, football; TIMELINE; LETTERS;
-      the garages); rounded instanced hedges (#6f8f5a/#5c7a4b); flower beds with sparse instanced
-      flowers in muted colours; a small pond with a stone rim; benches; small garden lamps whose
-      heads brighten with `dayNight.night` (emissive > 1 so they bloom). < ~25 new draw calls.
-      Small colliders on hedges/benches/lamps only; paths and grass stay drivable.
-- [x] Grass.tsx `trackMask()`: paint paths, pond and beds black (no grass) via a helper
-      exported from garden.
-- [x] Timeline rebuilt garden-native: a broad stone terrace/path with the neon lines inset
-      as glowing grooves, soft edging, low planters along the sides, posts as garden bollards.
-      Keep behaviour (lines light up to the car, labels rise, year counter) and API
-      (`Timeline({ position, rotation, colliders })`, mounted at TIMELINE.pos, yaw TIMELINE.rot = π/2,
-      time runs toward world −x). The year counter must read from the chase camera
-      (camera at +X,+Z of the car, looking −X,−Z, ~45°).
-- [x] Remove leftovers that clash (the old cones/flags near the timeline are already gone).
-- Accept when: top view and three ground-level views look like a calm park; nothing floats
-  or clips; the timeline sits naturally in the garden by day and night.
-- Done in 7dcbaf9 (garden), f5429d4 (timeline terrace), and the commit that ticks this.
-  Data lives in components/world/garden/layout.ts (`PATHS`, `BEDS`, `POND`, `HEDGES`, `BENCHES`,
-  `LAMPS_GARDEN`); use `nearGarden(x, z, pad)` to keep scattered props off it. The garden is 13
-  draw calls. The year counter was upside down from the chase camera; fixed. The infield
-  signposts (Billboard) are still there; step 5's in-world prompt should replace them.
-  `window.__placeXZ(x, z, heading)` drops the car anywhere for checks.
-
-**2b. Cute city outside the circuit** — owns components/world/street/** and app/lab/city/**.
-- [x] Replace the box skyline (street/Skyline.tsx, instanced boxes + `facadeMaterial`) with soft
-      buildings from a small instanced kit: bevelled bodies, chunky inset window frames,
-      shop awnings, balconies, pitched/rounded roofs with roof gardens, water tanks, chimneys.
-      Palette cream #f3e9d8, terracotta #d9826b, sage #9fb79a, dusty blue #8fa9c4, butter #f0d48a,
-      warm white. Mostly 2–5 storeys, a few landmarks <= 18 m. Keep the `BUILDINGS` export
-      ({x,z,w,d,h,yaw,...}) — Groves.tsx uses it. Keep per-building CuboidColliders.
-- [x] Night: windows glow warm, seeded lit/unlit per window, driven by `facadeUniforms.uNight`
-      / `dayNight.night`, emissive > 1 so they bloom.
-- [ ] Streets: pavements with kerb edging where buildings front the circuit, zebra crossings,
-      street trees in planters, bollards, a bus stop / kiosk, café tables. Sparse enough to read
-      from the high camera. Use street/common.ts helpers (inSectorScene, nearPlace, nearTree,
-      distToTrack, FRAMES, barrierOffset); never near the bridge.
-- Accept when: from the chase camera the lap feels like driving through a small, cute town;
-  no harsh grey towers; night windows glow.
-- Done so far in ab83e0f: placement in street/town.ts (`BUILDINGS`, palette, `G0`/`FH` storey
-  heights), renderer in street/Skyline.tsx (bodies + trims + roofs merged, roof shrubs instanced:
-  4 draw calls; windows come from the facade shader). The island is small, so the town is a thin
-  ring; frontage stands right behind the pavement, only on the side away from the camera
-  (on the near side it hid the car). Scattered trees keep out of the town belt (`inTownBelt`).
-  NEXT: the streets item. Pavements will make the frontage read as a street.
-
-### 3. Night like Bruno's — partly done (72b9ca7)
-- [x] Night palette: blue moonlight #4a5cff, violet hemisphere bounce, navy-to-plum sky/fog,
-      Bloom (threshold 1, intensity 0.55, mipmap) in World.tsx.
-- [ ] Light pools under street lamps at night (soft additive decals on the road at the lamp
-      `px/pz` positions in street/layoutStreet.ts LAMPS), fading in with `dayNight.night`.
-- [ ] Make every night emissive > 1 with `toneMapped: false` so it blooms: lamp lenses
-      (street/Lamps.tsx, already 4.2), garage headers (models/props/Garage.tsx Header), timeline
-      lines, sector-scene windows/signs (models/sectors/*), car brake light.
-- [ ] Fireflies around trees/garden at night (alive/Fireflies.tsx already exists — add anchors
-      in the garden).
-- [ ] Optional: tint shadows instead of darkening (Bruno multiplies albedo by a shadow colour);
-      only if it can be done with a cheap onBeforeCompile patch shared by all materials.
-- Accept when: a night screenshot from the chase camera reads as calm blue-violet with warm
-  glowing points, not a flat dark frame.
-
-### 4. Map like Bruno's (M)
-Owns components/ui/** (MapMenu in Hud.tsx ~line 399) and a new components/world/MapCapture.tsx.
+### 5. Map menu like Bruno's (M)
+Owns components/ui/** (MapMenu in Hud.tsx) and a new components/world/MapCapture.tsx.
 - [ ] Top-down image of the real world: an orthographic camera renders the scene once into a
-      render target when the map opens (and again when day/night flips), shown in a modal.
-- [ ] Pins for places (zones + SECTORS scenes) as small diamonds; labels pop in on hover with a
-      springy curve; a player arrow rotating with `carState.forward`.
-- [ ] Click a pin: teleport (`setState({ teleport: { id, zone } })`, see store.ts) behind a
-      diagonal wipe; M or Esc closes.
-- [ ] Achievements as a quiet second tab; keep the job-fit check reachable (it opens `fitOpen`).
+      render target when the map opens (and again when day/night flips), shown in a modal on
+      Bruno's dark aubergine panel with the inset hairline. It must show the new coast and water.
+- [ ] Pins for places (zones + SECTORS scenes + contact logos) as white diamonds with dark border;
+      labels pop on hover with Bruno's springy bezier (docs/research/bruno-folio-2025.md §1);
+      player arrow rotating with `carState.forward`.
+- [ ] Click a pin: teleport (`setState({ teleport: { id, zone } })`) behind Bruno's diagonal wipe
+      (his Overlay.js); M or Esc closes.
+- [ ] Achievements as a quiet second tab; keep the job-fit check reachable (`fitOpen`).
 - Accept when: the map is something you'd want to open; works on a 390x844 viewport.
 
-### 5. UI: interaction prompt, panels, toasts
-Same ownership as step 4 plus new components/world/ui3d/**.
-- [ ] In-world prompt above the place you're near (`near` in store): a diamond key icon with the
-      Enter glyph and a short label sliding out, elastic open, fixed tilt facing the camera,
-      drawn on top. Remove the old HTML hint. Position: zone pos / sector scene at heightAt + ~3 m.
-- [ ] Opened panel (Panels.tsx ZoneCard/PanelBody): dark translucent gradient, Racero title only,
-      Geist body, Geist Mono labels, 0.3 s fade/slide, no pills.
-- [ ] Toasts (Hud.tsx Toast): one at a time, queued, top-centre, small, 2 px countdown bar,
-      muted palette with one accent.
-- [ ] Top-bar buttons and bottom key hints in the same language (keep Resume).
+### 6. Interaction prompt like Bruno's (E)
+Owns new components/world/ui3d/** and Race.tsx (`InteractionPoint`, the current HTML pill).
+- [ ] Port Bruno's InteractivePoints.js (research brief §3): in-world diamond with an SDF outline,
+      key icon, label sliding out from the diamond, states HIDDEN / CONCEALED / OPEN with his gsap
+      eases (elastic open 1.5 s), fixed tilt for our chase camera, drawn on top while open.
+      Concealed diamonds sit at every place; open on the nearest within reach. Works for zones
+      (`near`) and contact logos (`nearLink`). Remove the HTML pill.
+- [ ] Opened panel (Panels.tsx): dark translucent gradient, Racero title only, Geist body,
+      Geist Mono labels, 0.3 s fade/slide, no pills.
+- [ ] Toasts (Hud.tsx Toast): Bruno's single queued toast, top-centre, 2 px countdown bar.
+- [ ] Top-bar buttons and bottom key hints in the same language; settings in its own small panel
+      (gear: Livery, Sound, Voice) instead of under Controls.
 
-### 6. Livery — done
-- [x] /lab/livery shows six palettes: Rosso, Papaya, Racing green, Midnight, Silver arrow, Cream & red (7a4eb64).
-- [x] All six selectable in settings (Controls panel, "Livery" swatches); default Cream & red;
-      the choice is remembered per browser (localStorage `hg-livery`). Palettes live in
-      components/world/liveries.ts; store field `livery`; Vehicle passes it to CarBody/CarWheel.
-- [ ] When step 5 restyles the panels, give settings its own small panel (gear icon) with
-      Livery, Sound and Voice toggles, instead of living under Controls.
+### 7. Night
+- [ ] Light pools under street lamps at night (street/layoutStreet.ts LAMPS `px/pz`), fading in
+      with `dayNight.night`.
+- [ ] Every night emissive > 1 with `toneMapped: false` so it blooms: garage headers
+      (models/props/Garage.tsx), sector-scene windows/signs (models/sectors/*), car brake light.
+- [ ] Fireflies in the garden and by the lake at night (alive/Fireflies.tsx, add anchors).
+- [ ] Optional: tinted shadows like Bruno (albedo x shadow colour), only via one cheap shared patch.
 
-### 8. Second-round feedback (2026-10-23)
-- [x] Car snags on walls: Bruno's massless, frictionless bumper collider around wheels and
-      wings (Vehicle.tsx), so walls push the car along (1c35d56).
-- [x] Brake stops dead: the Space brake ramps in over 0.4 s at 4 (Bruno's is 35) and the rear
-      lets go a little while it's held (1c35d56). Tune `HANDBRAKE_*` by feel on a real GPU;
-      headless physics is too slow to judge it.
-- [x] Start at the name: HENIL GAJJAR (G, A, J, R added to Letter.tsx), tight spacing, centre
-      `LETTERS.center`; `SPAWN` sits on the garden path in front of it (3b32a6c).
-- [x] Contact as a ring of logos (components/world/social/): Email, LinkedIn, GitHub, Résumé,
-      Scholar, Hugging Face, Medium from content/profile.ts; store `nearLink`; E/Enter opens the
-      link (60023aa).
-- [x] Bruno's stuck hint (46d4d2f): on the throttle, under 0.5 m in 3 s -> "Stuck? Press R".
-- [x] Bruno's trees (MIT; his repo's static/ is covered by the same license): foliage clumps with
-      the SDF leaf texture, spherical normals and wind, in components/world/foliage/** and
-      models/props/Tree.tsx; assets in public/bruno/ with his license.
-      Oak, cherry (1 in 8 round trees), birch-shaped pine and bush: 4 draw calls (+4 shadow)
-      for ~170 trees via foliage/registry.ts. Palms still old meshes. Colours are a first pass.
-- [ ] More of Bruno to port next, in this order: interaction prompt (step 5), map (step 4),
-      respawn wipe, toasts. Bruno's clone: `git clone --depth 1 https://github.com/brunosimon/folio-2025`.
+### 8. Town streets
+- [ ] Pavements with kerb edging where buildings front the circuit, zebra crossings, street trees
+      in planters, bollards, a bus stop or kiosk, cafe tables (street/**; use common.ts helpers).
 
-### 9. Third-round feedback (2026-10-23): intro, map, water
-- [x] No wheel smoke or loose leaves (Dust, Leaves unmounted) (a772620).
-- [x] Boost lets go with Shift: overspeed brake back to normal top speed in ~1 s (a772620).
-- [x] Bruno's opening reveal (components/world/Reveal.tsx): world only inside a glowing circle
-      round the car on dark aubergine, sweeps out on Enter/W; no turntable, no drop (67eb0df).
-- [x] Town frontage steps round corners (4a460a4).
-- [x] Coast instead of a disc (3730cb6): `COAST_KEYS` in layout.ts, south bay waterfront along the
-      main straight, northern headlands; beaches; lake in the west infield; components/world/Water.tsx
-      (depth-shaded, foam). Use `inLand(x, z, margin)` / `shoreDist` for any placement.
-- [x] Shallow water (0.38 m in lakes, the inlet and the sea's first 6 m): a car in it stays visible;
-      respawn only past 0.7 m deep. Harbour inlet (`CANALS`) from the sea to the west lake, under the
-      west sweepers on a causeway with arched stone faces (Harbour.tsx) (2354ab0).
-- [x] Waterfront (components/world/waterfront/): promenade with railing, benches and night lamps along
-      the bay, a drivable wooden pier, bobbing boats (bf829fb). `nearPromenade` keeps props off it.
-- [ ] Map (step 4) should now render this coastline.
-
-### 7. Later
-- Bruno-style "unstuck" hint if the car barely moves for 3 s.
-- Engine sound regenerate or keep silent; check the music ducking under radio.
-- Garage experience: dolly in, browse project spec sheets.
-- Optional scroll-driven broadcast site.
+### 9. Smaller things
+- [ ] Radio voice George (ElevenLabs `JBFqnCBsd6RMkjVDRZzb`, eleven_v4, stability 0.5,
+      similarity_boost 0.8): set as default in scripts/gen-audio.mjs and app/api/voice/route.ts,
+      re-record with `node scripts/gen-audio.mjs --only radio-sector-1,radio-sector-2,radio-sector-3,radio-sector-4,radio-garage-agents,radio-garage-genai,radio-garage-hardware,radio-garage-ml,radio-garage-vision,radio-playbook,radio-podium,radio-contact,radio-hello,radio-idle,radio-claude,radio-temp-on,radio-temp-off --force`,
+      commit public/sfx. Voice Library voices return 402 on the free plan.
+- [ ] Palms still use the old per-tree meshes; port them to the foliage registry.
+- [ ] Tree colours are a first pass (foliage/species.ts); shade side reads dark.
+- [ ] Brake and boost feel: tune `HANDBRAKE_*` and the overspeed brake in Vehicle.tsx on a real GPU.
+- [ ] Later: engine sound; garage experience (dolly in, project spec sheets); scroll-driven site.
