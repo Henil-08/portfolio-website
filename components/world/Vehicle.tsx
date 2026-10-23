@@ -19,6 +19,7 @@ import {
   WHEEL_POSITIONS,
   WHEEL_RADIUS,
   WING_TIPS,
+  CAR_SCALE as S,
 } from "./models/Car";
 import { Driver, DRIVER_SEAT } from "./models/Avatar";
 import { input } from "./input";
@@ -77,10 +78,11 @@ const BURIED = 0.15;
 const CHASSIS_CLEAR_HALF = 0.95;
 
 // Mount each wheel's suspension so the car settles with the tyres on the road.
+// The wheel layout scales with the car; the springs (and so the sag) do not.
 const WHEELS = WHEEL_POSITIONS.map((w) => ({
-  pos: new THREE.Vector3(w.x, w.y + SUSPENSION.restLength - SAG, w.z),
+  pos: new THREE.Vector3(w.x * S, w.y * S + SUSPENSION.restLength - SAG, w.z * S),
   front: w.front,
-  radius: w.front ? WHEEL_RADIUS : WHEEL_RADIUS * REAR_WHEEL_SCALE,
+  radius: (w.front ? WHEEL_RADIUS : WHEEL_RADIUS * REAR_WHEEL_SCALE) * S,
 }));
 
 const up = new THREE.Vector3(0, 1, 0);
@@ -342,7 +344,7 @@ export default function Vehicle() {
       <RigidBody
         ref={body}
         colliders={false}
-        position={[SPAWN[0], heightAt(SPAWN[0], SPAWN[1]) + 0.45, SPAWN[1]]}
+        position={[SPAWN[0], heightAt(SPAWN[0], SPAWN[1]) + 0.45 * S, SPAWN[1]]}
         linearDamping={0.1}
         angularDamping={0.1}
         canSleep={false}
@@ -353,8 +355,8 @@ export default function Vehicle() {
             0.18) and the chassis box is shorter, so the car never beaches on a crest or
             a bank; the body may dip into the grass a little, which reads as cartoony. */}
         <CuboidCollider
-          args={[CHASSIS_CLEAR_HALF, 0.14, CHASSIS_HALF[2]]}
-          position={[0, 0.14, 0]}
+          args={[CHASSIS_CLEAR_HALF * S, 0.14 * S, CHASSIS_HALF[2] * S]}
+          position={[0, 0.14 * S, 0]}
           friction={0.4}
           massProperties={{
             mass: 2.5,
@@ -367,24 +369,26 @@ export default function Vehicle() {
             so walls push the car along instead of catching a tyre, and no wheel
             ever pokes into a wall or a building. */}
         <CuboidCollider
-          args={[1.5, 0.18, 0.74]}
-          position={[0.02, 0.2, 0]}
+          args={[1.5 * S, 0.18 * S, 0.74 * S]}
+          position={[0.02 * S, 0.2 * S, 0]}
           density={0}
           friction={0}
           frictionCombineRule={CoefficientCombineRule.Min}
           restitution={0.05}
         />
-        <mesh ref={rain} position={[-1.5, -0.05, 0]}>
+        <mesh ref={rain} position={[-1.5 * S, -0.05 * S, 0]} scale={S}>
         <boxGeometry args={[0.04, 0.07, 0.16]} />
         <meshStandardMaterial color="#ff2a1f" emissive="#ff2a1f" emissiveIntensity={0.4} />
       </mesh>
-      <CarBody brakeLight={false} drsRef={drs} livery={livery}>
-          <Driver position={DRIVER_SEAT} />
-        </CarBody>
+        <group scale={S}>
+          <CarBody brakeLight={false} drsRef={drs} livery={livery}>
+            <Driver position={DRIVER_SEAT} />
+          </CarBody>
+        </group>
         {WING_TIPS.map((p, i) => (
           <group
             key={i}
-            position={p}
+            position={[p[0] * S, p[1] * S, p[2] * S]}
             ref={(el) => {
               tipRefs.current[i] = el;
               if (i === 0) tipA.current = el;
@@ -405,7 +409,7 @@ export default function Vehicle() {
                 spinRefs.current[i] = el;
               }}
             >
-              <CarWheel scale={w.front ? 1 : REAR_WHEEL_SCALE} livery={livery} />
+              <CarWheel scale={(w.front ? 1 : REAR_WHEEL_SCALE) * S} livery={livery} />
             </group>
           </group>
         ))}
@@ -414,7 +418,7 @@ export default function Vehicle() {
   );
 }
 
-function place(b: RapierRigidBody, x: number, z: number, heading: number, y = heightAt(x, z) + 0.45) {
+function place(b: RapierRigidBody, x: number, z: number, heading: number, y = heightAt(x, z) + 0.45 * S) {
   const q = new THREE.Quaternion().setFromAxisAngle(up, heading);
   b.setTranslation({ x, y, z }, true);
   b.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);

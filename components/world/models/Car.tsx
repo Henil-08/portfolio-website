@@ -23,6 +23,12 @@ const PI = Math.PI;
 /* Physics-facing constants                                            */
 /* ------------------------------------------------------------------ */
 
+/**
+ * The car is modelled at F1-toy size, then scaled up so it reads like Bruno's jeep next
+ * to the world (owner, 4b-b): the model, wheels and colliders all scale by this.
+ */
+export const CAR_SCALE = 1.38;
+
 /** Front tyre radius (m). */
 export const WHEEL_RADIUS = 0.26;
 /** Rear wheels are the front wheel scaled uniformly by this. */

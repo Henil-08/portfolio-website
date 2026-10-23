@@ -2,6 +2,7 @@
 // Shared by dust, skid marks, ground tracks and leaves.
 import * as THREE from "three";
 import { carState } from "../carState";
+import { CAR_SCALE } from "../models/Car";
 import { heightAt } from "../terrain";
 import { TRACK_WIDTH, inLand, nearestT, trackPoint } from "../layout";
 
@@ -13,13 +14,13 @@ export function offTrack(x: number, z: number) {
   return nearestT(x, z).dist > TRACK_WIDTH / 2 + 0.4;
 }
 
-// Wheel contact points relative to the chassis (see models/Car.tsx WHEEL_POSITIONS):
-// x along the car's forward, z to its side.
+// Wheel contact points relative to the chassis (see models/Car.tsx WHEEL_POSITIONS,
+// times CAR_SCALE): x along the car's forward, z to its side.
 export const WHEEL_LOCAL: { x: number; z: number; rear: boolean }[] = [
-  { x: 0.86, z: 0.5, rear: false },
-  { x: 0.86, z: -0.5, rear: false },
-  { x: -0.94, z: 0.5, rear: true },
-  { x: -0.94, z: -0.5, rear: true },
+  { x: 0.86 * CAR_SCALE, z: 0.5 * CAR_SCALE, rear: false },
+  { x: 0.86 * CAR_SCALE, z: -0.5 * CAR_SCALE, rear: false },
+  { x: -0.94 * CAR_SCALE, z: 0.5 * CAR_SCALE, rear: true },
+  { x: -0.94 * CAR_SCALE, z: -0.5 * CAR_SCALE, rear: true },
 ];
 
 /**
