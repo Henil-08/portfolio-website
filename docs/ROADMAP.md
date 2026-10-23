@@ -83,7 +83,9 @@ Commit history has the details.
 
 Owner feedback still open (latest first): the map menu is bad; the water and its surroundings are
 not up to the mark (now more water to dress: harbour, river, spring lake); the E prompt should be
-animated like Bruno's. Layout v4 sub-step g (district identity) and the street canyon (f) are open.
+animated like Bruno's. New (2026-10-23): buildings on slopes with vertical walls (3f), a Bruno-style
+see-through when the car is hidden (3h), and a compact Bruno-style career timeline with floating rocks
+plus the owner's school journey (3b). Next up, in order: 3f, 3g, 3h, 3b, then step 4.
 
 ## Steps (do them in order; first unticked one is next)
 
@@ -126,10 +128,36 @@ distinct areas threaded by paths, water woven through, shorelines with teal glow
   - [x] e. (2fc6d8e) Park islands (park/layout.ts `ISLANDS`, `parkSand`): football, podium, playbook,
         contact on grass islands in sand, north of the garden (the open infield there, not east: the
         river and the esses leave no room east). One wooden footbridge over the river (park/index.tsx).
-  - [~] f. (4a3aea9) Old town round the crossover: three buildings fit in its corners (town.ts `oldTown`).
-        The street canyon under the deck does not fit: the bridge's ramps fill the ground beside the
-        lower road. Options for the owner: move the crossover to a straighter, flatter stretch, or accept.
+  - [~] f. (4a3aea9) Old town round the crossover: three buildings so far (town.ts `oldTown`).
+        Owner (2026-10-23): buildings may stand on slopes. Walls stay vertical; the base follows the
+        ground (a plinth/foundation skirt that reaches down to `heightAt` at every corner, so the low
+        side shows more stone, never a floating edge). Then lift the slope bans added today:
+        `reliefAt > 0.6` / `duneMask > 0.1` in town.ts `clear()` and the random fill, and let `oldTown`
+        use the hill and embankment ground round the crossover. Slopes must stay as they are (don't
+        flatten terrain for buildings). Camera blocked under the bridge deck is fine (owner).
   - [ ] g. District identity: paving, planting, props, one district per commit.
+  - [ ] h. See-through when the car is hidden, like Bruno: his Foliage.js fades foliage in a soft
+        screen-space circle round the car (`seeThroughPosition`, `seeThroughEdgeMin/Max`, alpha =
+        sdf * mix(threshold, 1, distanceFade)). Do the same for anything between car and camera:
+        project the car to screen each frame into a shared uniform, and in town buildings
+        (street/Skyline.tsx), bridge decks/pillars (Bridge.tsx, Harbour.tsx) and tree crowns
+        (foliage/*) fade or dither-discard fragments inside that circle when they are closer to the
+        camera than the car. One shared onBeforeCompile patch, not per-material copies. Remove the
+        town's `blocksCamera` filter (town.ts) once this works so buildings can come back.
+
+### 3b. Career timeline like Bruno's (owner, 2026-10-23)
+The current timeline plaza (Timeline.tsx, timeline/*, `TIMELINE` in layout.ts, a 31 x 19 m pad in
+the garden) uses too much ground. Bruno's career area (folio-2025 sources/Game/World/Areas/
+CareerArea.js) is small: a few lines of stones laid in the ground; as the car drives along a line the
+stone rises out of the ground (`activeElevation` 2.5, sound), floats with a slow bob, and its label
+wipes in (`labelReveal` 0 -> 1, power2.inOut 1 s); leaving lowers it again. Years sit beside the lines.
+- [ ] Rebuild the timeline Bruno's way: compact (aim under a third of today's footprint), floating
+      rocks that rise and move as you pass, labels revealed by a wipe, years as small markers.
+      Free the old pad back to the garden (garden/layout.ts paths and hedges that point at it).
+- [ ] Add the school journey to it. content/experience.ts `education` only has Nirma University
+      (B.Tech ECE, Ahmedabad) and Northeastern (MS Data Science, 4.0, Dec 2025, Boston). Anything
+      before college (schools, years, places) is not in the repo: ask the owner for it, never invent.
+      Keep entries in content/ (e.g. extend `education`), the world only reads them.
 
 ### 4. Water, lake and surroundings
 - [ ] The lake and inlet look like flat holes in sand. Bruno's look: ground colour gradient by depth
