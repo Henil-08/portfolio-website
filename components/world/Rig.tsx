@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { carState } from "./carState";
-import { enterZone, getState, leaveZone, setState } from "./store";
+import { getState, setNear } from "./store";
+import { SCENES } from "./Effects";
 import { zones, type Zone } from "./layout";
 
 const OFFSET = new THREE.Vector3(10.5, 12.5, 14);
@@ -21,6 +22,7 @@ export function CameraRig() {
   const target = useRef(new THREE.Vector3());
   const prev = useRef(new THREE.Vector2());
   const zoomS = useRef(0);
+  const shot = useRef<{ id: number; style: string; t: number } | null>(null);
 
   useFrame(({ clock }, dt) => {
     const phase = getState().phase;
@@ -48,6 +50,27 @@ export function CameraRig() {
       return;
     }
 
+    // Agent camera shots take over for a few seconds.
+    const want = getState().shot;
+    if (want && want.id !== shot.current?.id) shot.current = { id: want.id, style: want.style, t: 0 };
+    if (shot.current && shot.current.t < 5) {
+      const sh = shot.current;
+      sh.t += dt;
+      const c = target.current;
+      const ang = sh.t * 0.5;
+      const goal =
+        sh.style === "aerial"
+          ? tmp.set(c.x + 8, 55, c.z + 10)
+          : sh.style === "low"
+            ? tmp.set(c.x + Math.cos(ang) * 5, 0.8, c.z + Math.sin(ang) * 5)
+            : sh.style === "chase"
+              ? tmp.copy(carState.forward).multiplyScalar(-6).add(c).setY(2.2)
+              : tmp.set(c.x + Math.cos(ang) * 14, 7, c.z + Math.sin(ang) * 14);
+      camera.position.lerp(goal, Math.min(1, dt * 3));
+      camera.lookAt(c.x, 0.5, c.z);
+      return;
+    }
+
     // Swoop from the orbit down to the car, then follow.
     blend.current = Math.min(1, blend.current + dt * 0.45);
     const k = THREE.MathUtils.smootherstep(blend.current, 0, 1);
@@ -60,8 +83,11 @@ export function CameraRig() {
 }
 
 // The sun follows the car so the shadow map stays sharp where it matters.
+const tmpColor = new THREE.Color();
+
 export function Sun() {
   const light = useRef<THREE.DirectionalLight>(null);
+  const hemi = useRef<THREE.HemisphereLight>(null);
   const { scene } = useThree();
   const tgt = useMemo(() => new THREE.Object3D(), []);
 
@@ -73,18 +99,26 @@ export function Sun() {
     };
   }, [scene, tgt]);
 
-  useFrame(() => {
+  useFrame((_, dt) => {
     const l = light.current;
     if (!l) return;
-    const phase = getState().phase;
-    const c = phase === "world" ? carState.pos : new THREE.Vector3(0, 0, 0);
+    const st = getState();
+    const c = st.phase === "world" ? carState.pos : new THREE.Vector3(0, 0, 0);
     l.position.set(c.x + 24, 40, c.z + 14);
     tgt.position.set(c.x, 0, c.z);
+
+    // Ease toward the current time-of-day preset.
+    const p = SCENES[st.scene.time];
+    const k = Math.min(1, dt * 1.5);
+    l.intensity += (p.sun - l.intensity) * k;
+    l.color.lerp(tmpColor.set(p.sunColor), k);
+    if (hemi.current) hemi.current.intensity += (p.hemi - hemi.current.intensity) * k;
+    if (scene.fog) (scene.fog as THREE.Fog).color.lerp(tmpColor.set(p.fog), k);
   });
 
   return (
     <>
-      <hemisphereLight args={["#f4efe6", "#8f8a80", 0.35]} />
+      <hemisphereLight ref={hemi} args={["#f4efe6", "#8f8a80", 0.35]} />
       <directionalLight
         ref={light}
         intensity={1.9}
@@ -122,6 +156,13 @@ export function Sky() {
       }),
     []
   );
+  useFrame((_, dt) => {
+    const p = SCENES[getState().scene.time];
+    const k = Math.min(1, dt * 1.5);
+    (mat.uniforms.top.value as THREE.Color).lerp(tmpColor.set(p.top), k);
+    (mat.uniforms.mid.value as THREE.Color).lerp(tmpColor.set(p.mid), k);
+    (mat.uniforms.bottom.value as THREE.Color).lerp(tmpColor.set(p.bottom), k);
+  });
   return (
     <mesh material={mat} scale={800} renderOrder={-1}>
       <sphereGeometry args={[1, 32, 16]} />
@@ -138,27 +179,21 @@ function inside(z: Zone, x: number, y: number, pad: number) {
   return Math.abs(lx) <= z.size[0] / 2 + pad && Math.abs(lz) <= z.size[1] / 2 + pad;
 }
 
-// Opens a zone's card when the car rolls into it, with a little hysteresis on the way out.
+// Tracks which place the car is parked at, with a little hysteresis on the way out.
 export function ZoneWatcher() {
   const t = useRef(0);
   useFrame((_, dt) => {
-    const s = getState();
-
     t.current += dt;
+    const s = getState();
     if (t.current < 0.1 || s.phase !== "world") return;
     t.current = 0;
     const { x, z } = carState.pos;
-    if (s.dismissed) {
-      const d = zones.find((q) => q.id === s.dismissed);
-      if (d && !inside(d, x, z, 3)) setState({ dismissed: null });
-    }
-    if (s.zone) {
-      const cur = zones.find((q) => q.id === s.zone);
-      if (cur && !inside(cur, x, z, 3)) leaveZone(cur.id);
+    if (s.near) {
+      const cur = zones.find((q) => q.id === s.near);
       if (cur && inside(cur, x, z, 3)) return;
     }
-    const hit = zones.find((q) => q.id !== getState().dismissed && inside(q, x, z, 0));
-    if (hit && hit.id !== s.zone) enterZone(hit.id);
+    const hit = zones.find((q) => inside(q, x, z, 0)) ?? null;
+    if (hit?.id !== s.near) setNear(hit?.id ?? null);
   });
   return null;
 }

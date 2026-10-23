@@ -2,27 +2,32 @@
 
 import Image from "next/image";
 import { useState, useSyncExternalStore } from "react";
-import type { ZoneId } from "@/components/world/layout";
+import { SECTORS, garageLabel, type ZoneId } from "@/components/world/layout";
 import { profile, story, offTrack } from "@/content/profile";
 import { experience, education } from "@/content/experience";
-import { projects } from "@/content/projects";
+import { DOMAINS, projects, type Domain } from "@/content/projects";
 import { patents, publications, toolbox } from "@/content/research";
 import { playbook, playbookIntro } from "@/content/playbook";
 
-export const zoneMeta: Record<ZoneId, { kicker: string; title: string; color: string }> = {
-  "story-1": { kicker: "Lap 1 · 2021", title: story[0].title, color: "#ff4b3e" },
-  "story-2": { kicker: "Lap 2 · 2022 to 2023", title: story[1].title, color: "#ff8c42" },
-  "story-3": { kicker: "Lap 3 · 2023 to 2025", title: story[2].title, color: "#3d8bff" },
-  "story-4": { kicker: "Lap 4 · now", title: story[3].title, color: "#45c46b" },
-  work: { kicker: "Pit wall", title: "Where I've worked", color: "#1f2133" },
-  garage: { kicker: "Garage", title: "Things I've built", color: "#ff4b3e" },
-  sidequest: { kicker: "Side quest", title: "Teaching AI to design chips", color: "#2ec4b6" },
-  playbook: { kicker: "Tyre wall", title: "How I work with AI", color: "#ffd23f" },
-  podium: { kicker: "Podium", title: "Papers and patents", color: "#9b6bff" },
-  cricket: { kicker: "Off the clock", title: "Cricket", color: "#45c46b" },
-  football: { kicker: "Off the clock", title: "Football", color: "#3d8bff" },
-  contact: { kicker: "Mailbox", title: "Say hi", color: "#ff4b3e" },
-};
+const SECTOR_ROLES: Record<number, number[]> = { 1: [6, 5], 2: [4], 3: [1, 2, 3], 4: [0] };
+const SECTOR_COLOR = ["#d42a2f", "#dc7a45", "#5d7891", "#2fa79c"];
+
+export const zoneMeta = {
+  ...Object.fromEntries(
+    SECTORS.map((s, i) => [
+      `sector-${s.n}`,
+      { kicker: `Sector ${s.n} · ${s.name} · ${s.year}`, title: story[i].title, color: SECTOR_COLOR[i] },
+    ])
+  ),
+  ...Object.fromEntries(
+    DOMAINS.map((d) => [`garage-${d.id}`, { kicker: `Pit garage · ${garageLabel[d.id]}`, title: d.label, color: "#d42a2f" }])
+  ),
+  playbook: { kicker: "Tyre wall", title: "How I work with AI", color: "#d4b062" },
+  podium: { kicker: "Podium", title: "Papers and patents", color: "#7a7391" },
+  cricket: { kicker: "Off the clock", title: "Cricket", color: "#6f9677" },
+  football: { kicker: "Off the clock", title: "Football", color: "#5d7891" },
+  contact: { kicker: "Mailbox", title: "Say hi", color: "#d42a2f" },
+} as Record<ZoneId, { kicker: string; title: string; color: string }>;
 
 const storyPhotos: Partial<Record<number, { src: string; alt: string }>> = {
   1: { src: "/img/mercury.jpg", alt: "Mercury, the Team Stallions solar car" },
@@ -30,50 +35,42 @@ const storyPhotos: Partial<Record<number, { src: string; alt: string }>> = {
 };
 
 export function PanelBody({ zone }: { zone: ZoneId }) {
-  if (zone.startsWith("story-")) {
+  if (zone.startsWith("sector-")) {
     const n = Number(zone.split("-")[1]);
     const s = story[n - 1];
     const photo = storyPhotos[n];
     return (
       <div className="space-y-4">
         {photo && (
-          <Image
-            src={photo.src}
-            alt={photo.alt}
-            width={800}
-            height={500}
-            className="h-44 w-full rounded-2xl object-cover"
-            sizes="420px"
-          />
+          <Image src={photo.src} alt={photo.alt} width={800} height={500} className="h-44 w-full rounded-2xl object-cover" sizes="420px" />
         )}
         {s.body.map((p) => (
           <p key={p.slice(0, 20)} className="text-[15px] leading-relaxed text-ink-soft">
             {p}
           </p>
         ))}
+        <div className="space-y-2 pt-1">
+          {SECTOR_ROLES[n].map((i) => (
+            <Role key={i} i={i} />
+          ))}
+          {n === 3 && (
+            <p className="px-1 text-[13px] text-ink-soft">
+              <span className="font-semibold text-ink">{education[0].degree}</span>, {education[0].school} · {education[0].detail}
+            </p>
+          )}
+        </div>
         <p className="pt-1 text-sm text-ink-soft/70">
-          {n < 4 ? "Keep driving, the next board is down the track." : "That's the story so far. Go find the garage."}
+          {n < 4 ? `Next up: Sector ${n + 1}, ${SECTORS[n].name}.` : "That's the story so far. The pit garages have the projects."}
         </p>
       </div>
     );
   }
 
+  if (zone.startsWith("garage-")) {
+    return <ProjectList domain={zone.replace("garage-", "") as Domain} />;
+  }
+
   switch (zone) {
-    case "work":
-      return <Work />;
-    case "garage":
-      return <ProjectList side={false} />;
-    case "sidequest":
-      return (
-        <div className="space-y-4">
-          <p className="text-[15px] leading-relaxed text-ink-soft">
-            I started in electronics, writing Verilog and Embedded C before I ever trained a model. Chip verification
-            eats most of a hardware team&apos;s time and looks a lot like the agent problems I solve at work. So on
-            nights and weekends I build agents that write testbenches and small models that write RTL.
-          </p>
-          <ProjectList side />
-        </div>
-      );
     case "playbook":
       return (
         <div className="space-y-4">
@@ -87,6 +84,16 @@ export function PanelBody({ zone }: { zone: ZoneId }) {
               </div>
             </div>
           ))}
+          <div className="pt-2">
+            <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-ink-soft">Toolbox</p>
+            <div className="flex flex-wrap gap-1.5">
+              {toolbox.flatMap((t) => t.items).map((x) => (
+                <span key={x} className="rounded-full border border-line px-2 py-0.5 text-[12px] text-ink-soft">
+                  {x}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       );
     case "podium":
@@ -94,7 +101,7 @@ export function PanelBody({ zone }: { zone: ZoneId }) {
         <div className="space-y-3">
           {publications.map((p, i) => (
             <div key={p.title} className="flex gap-3 rounded-2xl bg-cream px-4 py-3">
-              <span className="font-display text-lg font-bold text-purple">P{i + 1}</span>
+              <span className="font-racing text-lg text-[#7a7391]">P{i + 1}</span>
               <div>
                 <p className="text-[14px] font-medium leading-snug text-ink">{p.title}</p>
                 <p className="mt-0.5 font-mono text-[11px] text-ink-soft">
@@ -104,10 +111,8 @@ export function PanelBody({ zone }: { zone: ZoneId }) {
             </div>
           ))}
           {patents.map((p) => (
-            <div key={p.id} className="rounded-2xl border-2 border-yellow/70 px-4 py-3">
-              <p className="font-mono text-[11px] uppercase tracking-wider text-[#b38900]">
-                Patent · {p.status}
-              </p>
+            <div key={p.id} className="rounded-2xl border-2 border-[#d4b062]/70 px-4 py-3">
+              <p className="font-mono text-[11px] uppercase tracking-wider text-[#8a6a00]">Patent · {p.status}</p>
               <p className="mt-1 text-[14px] font-medium leading-snug text-ink">{p.title}</p>
             </div>
           ))}
@@ -142,6 +147,32 @@ export function PanelBody({ zone }: { zone: ZoneId }) {
   return null;
 }
 
+function Role({ i }: { i: number }) {
+  const [open, setOpen] = useState(false);
+  const r = experience[i];
+  return (
+    <div className="overflow-hidden rounded-2xl bg-cream">
+      <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-3 px-4 py-3 text-left">
+        <span className="h-7 w-1 shrink-0 rounded-full bg-red" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-semibold text-ink">{r.title}</span>
+          <span className="block truncate text-[13px] text-ink-soft">{r.company}</span>
+        </span>
+        <span className="shrink-0 font-mono text-[11px] text-ink-soft">{r.dates}</span>
+      </button>
+      {open && (
+        <ul className="space-y-1.5 px-4 pb-4 pl-8 text-[13.5px] leading-relaxed text-ink-soft">
+          {r.points.map((p) => (
+            <li key={p} className="list-disc">
+              {p}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function Compound({ c }: { c: string }) {
   const color = { soft: "#ff4b3e", medium: "#ffd23f", hard: "#d9dbe3", inter: "#45c46b" }[c] ?? "#ccc";
   return (
@@ -154,90 +185,58 @@ function Compound({ c }: { c: string }) {
   );
 }
 
-function Work() {
-  const [open, setOpen] = useState(0);
+// Projects as broadcast-style telemetry: one big number, then the detail.
+function ProjectList({ domain }: { domain: Domain }) {
+  const list = projects.filter((p) => p.domain === domain);
   return (
-    <div className="space-y-2">
-      {experience.map((r, i) => (
-        <div key={r.company + r.title} className="overflow-hidden rounded-2xl bg-cream">
-          <button onClick={() => setOpen(open === i ? -1 : i)} className="flex w-full items-center gap-3 px-4 py-3 text-left">
-            <span className="w-5 font-display text-lg font-bold text-ink/40">{i + 1}</span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate font-semibold text-ink">{r.company}</span>
-              <span className="block truncate text-[13px] text-ink-soft">{r.title}</span>
-            </span>
-            <span className="shrink-0 font-mono text-[11px] text-ink-soft">{r.dates.split(" – ")[0]}</span>
-          </button>
-          {open === i && (
-            <ul className="space-y-1.5 px-4 pb-4 pl-12 text-[13.5px] leading-relaxed text-ink-soft">
-              {r.points.map((p) => (
-                <li key={p} className="list-disc">
-                  {p}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+    <div className="space-y-3">
+      {domain === "hardware" && (
+        <p className="text-[15px] leading-relaxed text-ink-soft">
+          I started in electronics, writing Verilog and Embedded C before I ever trained a model. Chip verification eats
+          most of a hardware team&apos;s time and looks a lot like the agent problems I solve at work, so I&apos;m building
+          agents that write testbenches and small models that write RTL.
+        </p>
+      )}
+      {list.map((p) => (
+        <ProjectItem key={p.slug} p={p} />
       ))}
-      <div className="pt-2 text-[13px] text-ink-soft">
-        {education.map((e) => (
-          <p key={e.school}>
-            <span className="font-semibold text-ink">{e.degree}</span>, {e.school}. {e.detail}
-          </p>
-        ))}
-      </div>
     </div>
   );
 }
 
-function ProjectList({ side }: { side: boolean }) {
-  const list = projects.filter((p) => (p.domain === "hardware") === side);
+export function ProjectItem({ p }: { p: (typeof projects)[number] }) {
   return (
-    <div className="space-y-3">
-      {list.map((p) => (
-        <div key={p.slug} className="rounded-2xl bg-cream p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="font-display text-lg font-semibold leading-tight text-ink">{p.name}</p>
-              <p className="text-[13px] text-ink-soft">{p.tagline}</p>
+        <div className="overflow-hidden rounded-2xl bg-cream">
+          <div className="flex items-stretch">
+            <div className="flex w-[108px] shrink-0 flex-col justify-center bg-ink px-3 py-3 text-white">
+              <span className="font-racing text-[19px] leading-none text-[#c9a7ff]">{p.headline.value}</span>
+              <span className="mt-1.5 text-[10px] leading-tight text-white/60">{p.headline.label}</span>
             </div>
-            <div className="shrink-0 text-right">
-              <p className="font-display text-xl font-bold leading-none text-red">{p.headline.value}</p>
-              <p className="mt-1 max-w-[110px] text-[10px] leading-tight text-ink-soft">{p.headline.label}</p>
+            <div className="min-w-0 flex-1 px-4 py-3">
+              <p className="font-display text-[16px] font-semibold leading-tight text-ink">{p.name}</p>
+              <p className="text-[12.5px] text-ink-soft">{p.tagline}</p>
             </div>
           </div>
-          <ul className="mt-2.5 space-y-1 text-[13px] leading-relaxed text-ink-soft">
-            {p.points.slice(0, side ? 5 : 2).map((x) => (
-              <li key={x}>· {x}</li>
-            ))}
-          </ul>
-          <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            {p.stack.slice(0, 5).map((s) => (
-              <span key={s} className="rounded-full bg-white px-2 py-0.5 font-mono text-[10.5px] text-ink-soft">
-                {s}
-              </span>
-            ))}
-            {p.links.map((l) => (
-              <a key={l.href} href={l.href} target="_blank" rel="noreferrer" className="ml-1 text-[12px] font-semibold text-red">
-                {l.label} ↗
-              </a>
-            ))}
+          <div className="px-4 pb-3.5 pt-2.5">
+            <ul className="space-y-1 text-[13px] leading-relaxed text-ink-soft">
+              {p.points.slice(0, 3).map((x) => (
+                <li key={x}>· {x}</li>
+              ))}
+            </ul>
+            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+              {p.stack.slice(0, 5).map((s) => (
+                <span key={s} className="rounded-full bg-white px-2 py-0.5 font-mono text-[10.5px] text-ink-soft">
+                  {s}
+                </span>
+              ))}
+              {p.links.map((l) => (
+                <a key={l.href} href={l.href} target="_blank" rel="noreferrer" className="ml-1 text-[12px] font-semibold text-red">
+                  {l.label} ↗
+                </a>
+              ))}
+            </div>
           </div>
         </div>
-      ))}
-      {!side && (
-        <div className="pt-2">
-          <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-ink-soft">Toolbox</p>
-          <div className="flex flex-wrap gap-1.5">
-            {toolbox.flatMap((t) => t.items).map((x) => (
-              <span key={x} className="rounded-full border border-line px-2 py-0.5 text-[12px] text-ink-soft">
-                {x}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
   );
 }
 

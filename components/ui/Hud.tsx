@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { dismissZone, setState, teleport, useWorld } from "@/components/world/store";
+import { closeZone, getState, openZone, setState, teleport, useWorld } from "@/components/world/store";
 import { zones } from "@/components/world/layout";
 import { input } from "@/components/world/input";
 import { pop } from "@/components/world/sound";
-import { PanelBody, zoneMeta } from "./Panels";
+import { PanelBody, ProjectItem, zoneMeta } from "./Panels";
+import { projects } from "@/content/projects";
 import Ask from "./Ask";
+import { Minimap } from "./RaceHud";
 
 export default function Hud() {
   const phase = useWorld((s) => s.phase);
@@ -16,7 +18,9 @@ export default function Hud() {
   return (
     <>
       <TopBar />
+      <InteractKey />
       <ZoneCard />
+      <PicksCard />
       <Toast />
       <Hints />
       <Joystick />
@@ -27,7 +31,6 @@ export default function Hud() {
 }
 
 function TopBar() {
-  const found = useWorld((s) => s.found.length);
   const muted = useWorld((s) => s.muted);
   return (
     <motion.div
@@ -40,12 +43,7 @@ function TopBar() {
         <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#e10600] font-racing text-sm text-white">
           08
         </span>
-        <div className="leading-tight">
-          <p className="font-racing text-[14px] tracking-wide text-ink">HENIL GAJJAR</p>
-          <p className="text-[11.5px] text-ink-soft">
-            {found}/{zones.length} places found
-          </p>
-        </div>
+        <p className="font-racing text-[14px] tracking-wide text-ink">HENIL GAJJAR</p>
       </div>
 
       <div className="pointer-events-auto flex items-center gap-2">
@@ -107,7 +105,7 @@ function ZoneCard() {
               </h2>
             </div>
             <button
-              onClick={dismissZone}
+              onClick={closeZone}
               aria-label="Close"
               className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-cream text-ink-soft transition hover:bg-line hover:text-ink"
             >
@@ -121,6 +119,61 @@ function ZoneCard() {
       )}
     </AnimatePresence>
   );
+}
+
+// Projects the race engineer pinned for the visitor.
+function PicksCard() {
+  const picks = useWorld((s) => s.picks);
+  const zone = useWorld((s) => s.zone);
+  const list = picks ? projects.filter((p) => picks.slugs.includes(p.slug)) : [];
+  return (
+    <AnimatePresence>
+      {picks && !zone && list.length > 0 && (
+        <motion.aside
+          initial={{ opacity: 0, x: 40, scale: 0.96 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          exit={{ opacity: 0, x: 40, scale: 0.96 }}
+          transition={{ type: "spring", stiffness: 320, damping: 28 }}
+          className="toy-card fixed inset-x-3 bottom-3 z-30 flex max-h-[58svh] flex-col overflow-hidden rounded-[28px] sm:inset-x-auto sm:bottom-auto sm:right-5 sm:top-24 sm:max-h-[calc(100svh-8rem)] sm:w-[420px]"
+        >
+          <div className="flex items-start gap-3 px-5 pb-3 pt-5">
+            <div className="min-w-0 flex-1">
+              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-soft">Pinned by your engineer</p>
+              <h2 className="mt-1.5 font-racing text-[22px] uppercase leading-[1.05] tracking-wide text-ink">{picks.title}</h2>
+            </div>
+            <button
+              onClick={() => setState({ picks: null })}
+              aria-label="Close"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-cream text-ink-soft transition hover:bg-line hover:text-ink"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="no-scrollbar space-y-3 overflow-y-auto px-5 pb-6">
+            {list.map((p) => (
+              <ProjectItem key={p.slug} p={p} />
+            ))}
+          </div>
+        </motion.aside>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// E (or Enter) opens the place you're parked at; Escape closes the card.
+function InteractKey() {
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+      const s = getState();
+      if ((e.code === "KeyE" || e.code === "Enter") && s.near && !s.zone) openZone(s.near);
+      if (e.code === "Escape" && s.zone) closeZone();
+    };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, []);
+  return null;
 }
 
 function Toast() {
@@ -282,8 +335,15 @@ function MapMenu() {
             className="toy-card w-full max-w-md rounded-[28px] p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="font-racing text-2xl tracking-wide text-ink">WHERE TO?</p>
-            <p className="mt-1 text-sm text-ink-soft">Tap a place and the car goes straight there.</p>
+            <div className="flex items-end justify-between">
+              <p className="font-racing text-2xl tracking-wide text-ink">MAP</p>
+              <p className="font-mono text-[11px] text-ink-soft">
+                {found.length}/{zones.length} found
+              </p>
+            </div>
+            <div className="mt-3 aspect-square w-full rounded-2xl bg-cream p-2">
+              <Minimap />
+            </div>
             <div className="mt-4 grid grid-cols-2 gap-2">
               {zones.map((z) => (
                 <button
