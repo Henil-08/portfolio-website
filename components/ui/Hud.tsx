@@ -12,6 +12,7 @@ import { projects } from "@/content/projects";
 import Ask from "./Ask";
 import { Minimap } from "./RaceHud";
 import AutopilotHud from "./AutopilotHud";
+import FitPanel, { LapChip } from "./FitPanel";
 
 export default function Hud() {
   const phase = useWorld((s) => s.phase);
@@ -23,6 +24,8 @@ export default function Hud() {
       <ZoneCard />
       <PicksCard />
       <AutopilotHud />
+      <FitPanel />
+      <LapChip />
       <Toast />
       <Hints />
       <Joystick />
@@ -362,9 +365,17 @@ function MapMenu() {
                 </button>
               ))}
             </div>
-            <Link href="/resume" className="mt-4 block text-center text-sm font-semibold text-red">
-              In a hurry? Read the one-page version →
-            </Link>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setState({ menuOpen: false, fitOpen: true })}
+                className="toy-btn rounded-2xl bg-ink px-3 py-2.5 text-[13px] font-semibold text-white"
+              >
+                Hiring? Check the fit
+              </button>
+              <Link href="/resume" className="toy-btn grid place-items-center rounded-2xl bg-cream px-3 py-2.5 text-[13px] font-semibold text-ink">
+                One-page resume
+              </Link>
+            </div>
           </motion.div>
         </motion.div>
       )}

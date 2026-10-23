@@ -24,6 +24,8 @@ type State = {
   shot: { id: number; style: "orbit" | "aerial" | "low" | "chase" } | null;
   spawns: { id: number; thing: "cones" | "footballs" | "tyres" | "confetti"; count: number; at: [number, number] }[];
   picks: { title: string; slugs: string[] } | null;
+  fitOpen: boolean;
+  lap: { role: string; route: ZoneId[]; i: number } | null;
   autopilot: { on: boolean; gen: number; alive: number; best: number; history: number[] };
   sector: number | null; // 1..4 while on a sector's stretch of track
   sectorFlash: { id: number; n: number; time: number; tone: "purple" | "green" | "yellow" } | null;
@@ -45,6 +47,8 @@ let state: State = {
   shot: null,
   spawns: [],
   picks: null,
+  fitOpen: false,
+  lap: null,
   autopilot: { on: false, gen: 0, alive: 0, best: 0, history: [] },
   sector: null,
   sectorFlash: null,
