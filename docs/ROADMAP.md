@@ -99,6 +99,12 @@ plus the owner's school journey (3b). Next up, in order: 3f, 3g, 3h, 3b, then st
       pokes through them (red "drips"), and their segments overlap at odd angles in tight corners (step 2);
       the chase camera loses the car under the bridge deck (t ~0.5); the tall building by Boston that
       hid the car (t ~0.6) is fixed in 290b26a.
+- [x] **Car stuck on slopes** (owner, 2026-10-23). The colliders sat 0.18 m off the ground on a 3 m
+      bumper, so 7-degree crests beached it: they now clear 0.3 m (2dffb4f; footprint check 309 -> 75
+      beaching poses). The rest were embankments (crossover ramps, bridge approaches) dropping 1-5 m
+      past the shoulder into pits: parapets along them now (d01cd50, Embankments.tsx). A gentler
+      roadside slope limit was tried and did nothing (the steep bits sit between pinned cells).
+      Left: the north-coast hills still meet the beach steeply (far from the road).
 
 ### 2. Kerbs and barriers
 - [x] (387ab64) Corner kerbs (Island.tsx `Kerbs`) are separate flat red/white tiles with gaps. Make them a
