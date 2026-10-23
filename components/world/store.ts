@@ -25,6 +25,8 @@ type State = {
   spawns: { id: number; thing: "cones" | "footballs" | "tyres" | "confetti"; count: number; at: [number, number] }[];
   picks: { title: string; slugs: string[] } | null;
   fitOpen: boolean;
+  voice: boolean; // race engineer speaks out loud
+  radioMsg: { id: number; text: string } | null; // transient team-radio transcript
   lap: { role: string; route: ZoneId[]; i: number } | null;
   autopilot: { on: boolean; gen: number; alive: number; best: number; history: number[] };
   sector: number | null; // 1..4 while on a sector's stretch of track
@@ -48,6 +50,8 @@ let state: State = {
   spawns: [],
   picks: null,
   fitOpen: false,
+  voice: false,
+  radioMsg: null,
   lap: null,
   autopilot: { on: false, gen: 0, alive: 0, best: 0, history: [] },
   sector: null,

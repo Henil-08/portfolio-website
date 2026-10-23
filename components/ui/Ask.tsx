@@ -6,6 +6,7 @@ import type { ChatMessage } from "@/lib/ask";
 import { setState, useWorld } from "@/components/world/store";
 import { radioBeep, radioSpeak } from "@/components/world/sound";
 import { runAction, type Action } from "@/components/world/actions";
+import { usePushToTalk } from "./usePushToTalk";
 
 type Entry = ChatMessage | { role: "tool"; content: string };
 
@@ -17,7 +18,7 @@ export default function Ask() {
   const [log, setLog] = useState<Entry[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [radio, setRadio] = useState(false);
+  const radio = useWorld((s) => s.voice);
   const box = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLInputElement>(null);
 
@@ -54,8 +55,20 @@ export default function Ask() {
     if (radio) radioSpeak(reply);
   };
 
+  // Hold V (or the mic button) and just say it.
+  const ptt = usePushToTalk((t) => {
+    setState({ askOpen: true });
+    send(t);
+  });
+
   return (
     <>
+      {ptt.state !== "idle" && !open && (
+        <div className="pointer-events-none fixed bottom-20 left-5 z-30 flex items-center gap-2 rounded-full bg-[#121216]/90 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-white">
+          <span className={`h-2 w-2 rounded-full ${ptt.state === "listening" ? "animate-pulse bg-[#e10600]" : "bg-white/50"}`} />
+          {ptt.state === "listening" ? "Transmitting" : ptt.state === "thinking" ? "Copy, one sec" : "Mic blocked"}
+        </div>
+      )}
       <button
         onClick={() => setState((s) => ({ askOpen: !s.askOpen }))}
         className="toy-btn fixed right-3 top-[76px] z-30 flex items-center gap-2 rounded-2xl bg-ink px-3.5 py-2.5 text-sm font-semibold text-white sm:bottom-5 sm:left-5 sm:right-auto sm:top-auto sm:px-4 sm:py-3"
@@ -80,7 +93,7 @@ export default function Ask() {
               <span className="rounded bg-[#e10600] px-2 py-0.5 font-racing text-[10px] tracking-[0.18em]">TEAM RADIO</span>
               <span className="font-mono text-[11px] text-white/45">race engineer</span>
               <button
-                onClick={() => setRadio((r) => !r)}
+                onClick={() => setState((s) => ({ voice: !s.voice }))}
                 className={`ml-auto rounded-full px-3 py-1 font-mono text-[10.5px] uppercase tracking-wider transition ${
                   radio ? "bg-white text-black" : "bg-white/10 text-white/60 hover:text-white"
                 }`}
@@ -138,10 +151,25 @@ export default function Ask() {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 maxLength={400}
-                placeholder="Talk to your engineer…"
+                placeholder={ptt.state === "listening" ? "Listening…" : "Talk to your engineer, or hold V…"}
                 aria-label="Talk to the race engineer"
                 className="flex-1 bg-transparent text-[13.5px] text-white outline-none placeholder:text-white/30"
               />
+              <button
+                type="button"
+                onPointerDown={ptt.start}
+                onPointerUp={ptt.stop}
+                onPointerLeave={ptt.stop}
+                aria-label="Hold to talk"
+                className={`grid h-8 w-8 place-items-center rounded-full transition ${
+                  ptt.state === "listening" ? "bg-[#e10600]" : "bg-white/10 hover:bg-white/20"
+                }`}
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <rect x="9" y="3" width="6" height="11" rx="3" />
+                  <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+                </svg>
+              </button>
               <button disabled={busy || !text.trim()} className="rounded-lg bg-[#e10600] px-3 py-1.5 text-[12px] font-semibold disabled:opacity-40">
                 Send
               </button>
