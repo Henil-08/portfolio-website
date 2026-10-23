@@ -120,7 +120,7 @@ The owner wants a map with character like Bruno's, not a loop on a blob. Study B
 distinct areas threaded by paths, water woven through, shorelines with teal glow.
 - [x] (7fb5950) Layout proposal: docs/research/layout-v4.md. Approved 2026-10-23 as written; keep the
       crossover, park places move to islands east of the garden, island grows ~15%.
-- [ ] Build it (docs/research/layout-v4.md), one sub-step per commit:
+- [x] Build it (docs/research/layout-v4.md), one sub-step per commit:
   - [x] a. (ce14edd) Grow the island ~15% and reshape the track: longer harbour section in the west, hill climb
         moved north-east, same sector order and crossover.
   - [x] b. (8c1db86, quays 773f5c0) Harbour arm from the west sea to the garden (quays on the town side) replacing the west lake
@@ -149,7 +149,12 @@ distinct areas threaded by paths, water woven through, shorelines with teal glow
         scripts/bake-bruno.mjs into models/props/brunoProps.ts): old town slab forecourts + lanterns
         (31bc571), harbour quay benches/lanterns/crates (8ba0ff2), hills wildflowers + rocks (a5860d1),
         dunes sand fences + marram (837d234). Waterfront, garden and park were dressed earlier.
-  - [ ] h. See-through when the car is hidden, like Bruno: his Foliage.js fades foliage in a soft
+  - [x] h. (c2841dd, filter removed 3f75dd8) components/world/seeThrough.ts: `patchSeeThrough` /
+        `seeThrough(mat)`, updated from Rig.tsx. Dither-discard inside the circle, only for fragments in
+        front of the car and over a metre above it (so the road ahead never fades); applied to town,
+        bridge deck/piers/parapets, harbour bridge, embankments, road ribbons and kerbs, tree trunks;
+        crowns use Bruno's exact alpha. Palms (old per-mesh trees) are not patched yet.
+        Original brief: See-through when the car is hidden, like Bruno: his Foliage.js fades foliage in a soft
         screen-space circle round the car (`seeThroughPosition`, `seeThroughEdgeMin/Max`, alpha =
         sdf * mix(threshold, 1, distanceFade)). Do the same for anything between car and camera:
         project the car to screen each frame into a shared uniform, and in town buildings
