@@ -23,10 +23,13 @@ export const ROOF_SAGE = "#7d9879";
 export const AWNINGS = [TERRACOTTA, SAGE, DUSTY_BLUE, BUTTER, "#c4694f", "#6f8f5a"];
 
 // Storeys: a taller ground floor (shops), then even floors, then a parapet.
-export const G0 = 3.6;
-export const FH = 3.0;
+// Kept low so buildings read only a little taller than the car, like Bruno's (4b-b).
+export const G0 = 3.0;
+export const FH = 2.6;
 const bodyH = (floors: number) => G0 + (floors - 1) * FH + 0.7;
-const MAX_TOP = 18;
+const MAX_TOP = 12;
+// Buildings this close to the track (m) stay at one or two storeys.
+const NEAR_TRACK = 30;
 
 // ------------------------------------------------------------ placement
 
@@ -217,7 +220,7 @@ function frontage(out: Bld[]) {
       off += need - nearest;
     }
     const q = f.p.clone().addScaledVector(f.n, s * off);
-    const floors = 2 + Math.floor(Math.pow(r(), 1.2) * 3.999);
+    const floors = r() < 0.45 ? 1 : 2;
     const color = WALLS[Math.floor(r() * WALLS.length)];
     const yaw = Math.atan2(-f.tan.z, f.tan.x);
     const b = dress(r, { x: q.x, z: q.z, w, d, h: bodyH(floors), yaw, color, seed: r() * 100, floors });
@@ -252,7 +255,7 @@ function oldTown(out: Bld[]) {
       const camSide = (-tz * side) * AWAY.x + (tx * side) * AWAY.z < 0;
       const w = 5 + r() * 3.5;
       const d = 5.5 + r() * 2.5;
-      const floors = camSide ? 2 : 3 + Math.floor(r() * 2);
+      const floors = camSide ? 1 : 2;
       const color = WALLS[Math.floor(r() * WALLS.length)];
       const b = dress(r, { x, z, w, d, h: bodyH(floors), yaw, color, seed: r() * 100, floors }, 0.1);
       if (clear(b, out, true)) out.push({ ...b, old: true });
@@ -296,7 +299,8 @@ export const BUILDINGS: Bld[] = (() => {
     const yaw = dt < 34 ? Math.atan2(-f.tan.z, f.tan.x) : Math.atan2(z, -x) + Math.PI / 2;
     // storeys: more on the far side, low where the camera looks over them
     const camSide = vx * AWAY.x + vz * AWAY.z < 0;
-    let floors = 2 + Math.floor(Math.pow(r(), 1.3) * (1.5 + far01 * 2.5));
+    let floors = 1 + Math.floor(Math.pow(r(), 1.3) * (1.5 + far01 * 1.5));
+    if (dt < NEAR_TRACK) floors = Math.min(floors, 2);
     if (camSide) floors = Math.min(floors, Math.floor((4.3 + Math.max(0, dt - 13) * 0.55 - 0.7 - G0) / FH) + 1);
     const color = WALLS[Math.floor(r() * WALLS.length)];
     const b = dress(r, { x, z, w, d, h: bodyH(floors), yaw, color, seed: r() * 100, floors });
@@ -310,9 +314,9 @@ export const BUILDINGS: Bld[] = (() => {
   for (const b of out) {
     if (marks >= 4) break;
     const g = (b.x * AWAY.x + b.z * AWAY.z) / Math.hypot(b.x, b.z);
-    if (g < 0.55 || b.floors < 4 || (marks && b.seed % 3 > 1)) continue;
-    const mark = { ...b, w: Math.min(b.w, b.d, 5.6), d: Math.min(b.w, b.d, 5.6), floors: 4, h: bodyH(4), roof: 1 as Roof, style: 2 };
-    mark.rh = Math.min(4.4, MAX_TOP - mark.h);
+    if (g < 0.55 || b.floors < 3 || (marks && b.seed % 3 > 1)) continue;
+    const mark = { ...b, w: Math.min(b.w, b.d, 5.6), d: Math.min(b.w, b.d, 5.6), floors: 3, h: bodyH(3), roof: 1 as Roof, style: 2 };
+    mark.rh = Math.min(3.4, MAX_TOP - mark.h);
     if (blocksCamera(mark)) continue; // taller now: it mustn't hide the car
     Object.assign(b, mark);
     marks++;
