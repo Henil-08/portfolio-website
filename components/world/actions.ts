@@ -44,6 +44,11 @@ export function runAction(a: Action): string {
       if (thing === "confetti") honk();
       return `Spawned ${count} ${thing}`;
     }
+    case "autopilot": {
+      const on = a.args.on !== false;
+      setState((s) => ({ autopilot: { ...s.autopilot, on } }));
+      return on ? "Autopilot lab started" : "Autopilot lab stopped";
+    }
   }
   return `${a.name}: not available`;
 }

@@ -87,6 +87,15 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "autopilot",
+      description:
+        "Start or stop the self-driving lab: 40 ghost cars with tiny neural nets that learn to lap the circuit by neuroevolution, live in the browser. Great for 'show me some AI' or 'impress me'.",
+      parameters: { type: "object", properties: { on: { type: "boolean" } }, required: ["on"] },
+    },
+  },
 ];
 
 const extra = `You also control the 3D world the visitor is driving in, through tools. Use them when they help: go_to a place when they want to see something, feature_projects when they ask about skills or fit, set_scene or spawn when they're playing around. Always write a one or two sentence reply in the same message as any tool calls; the pinned card shows the detail, so don't list projects in the reply.
@@ -120,6 +129,7 @@ function fallbackReply(actions: Action[]) {
   if (a.name === "feature_projects") return `Pinned: ${String(a.args.title ?? "a few projects")}.`;
   if (a.name === "set_scene") return "Copy, changing conditions.";
   if (a.name === "spawn") return "Incoming.";
+  if (a.name === "autopilot") return a.args.on ? "Copy. Forty rookies on track, watch them learn." : "Copy, ghosts in.";
   return "Copy.";
 }
 
