@@ -19,6 +19,7 @@ import {
   zones,
 } from "../layout";
 import { nearGarden } from "../garden/layout";
+import { nearPromenade } from "../waterfront/layout";
 
 export const HALF = TRACK_WIDTH / 2;
 /** Barrier centre line, measured from the track centre (kerbs end at ~4.6 m). */
@@ -171,6 +172,7 @@ export const TREES: [number, number, number][] = (() => {
     if (avoid.some(([ax, az, ar]) => Math.hypot(x - ax, z - az) < ar)) continue;
     if (nearGarden(x, z, 1.5)) continue;
     if (inTownBelt(x, z)) continue;
+    if (nearPromenade(x, z, 2)) continue;
     const roll = r();
     const tree = roll < 0.7; // round / pine / palm; the rest are bushes and rocks
     r();

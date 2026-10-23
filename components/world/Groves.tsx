@@ -11,6 +11,7 @@ import { BUILDINGS } from "./street/Skyline";
 import { STAND_SPOTS } from "./street/standSpots";
 import { LAMPS } from "./street/layoutStreet";
 import { inSectorScene } from "./street/common";
+import { nearPromenade } from "./waterfront/layout";
 
 type Item = { kind: "round" | "pine" | "bush"; x: number; z: number; s: number; rot: number; seed: number };
 
@@ -21,6 +22,7 @@ function rng(seed: number) {
 
 function free(x: number, z: number, pad: number, out: Item[]) {
   if (!inLand(x, z, 4)) return false;
+  if (nearPromenade(x, z, 2)) return false;
   const n = nearestT(x, z);
   if (n.dist < TRACK_WIDTH / 2 + 6) return false;
   // outside the loop only: further from the centre than the nearest stretch of track

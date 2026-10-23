@@ -44,6 +44,8 @@ import Timeline from "./Timeline";
 import Groves from "./Groves";
 import Garden from "./garden";
 import Social from "./social";
+import Waterfront from "./waterfront";
+import { nearPromenade } from "./waterfront/layout";
 import { nearGarden } from "./garden/layout";
 import { inTownBelt } from "./street/common";
 import Bridge from "./Bridge";
@@ -582,6 +584,7 @@ function Nature() {
       if (avoid.some(([ax, az, ar]) => Math.hypot(x - ax, z - az) < ar)) continue;
       if (nearGarden(x, z, 1.5)) continue;
       if (inTownBelt(x, z)) continue;
+      if (nearPromenade(x, z, 2)) continue;
       const beach = shoreDist(x, z) < 10;
       const roll = r();
       const kind = beach ? (roll < 0.7 ? "palm" : "rock") : roll < 0.4 ? "round" : roll < 0.7 ? "pine" : roll < 0.88 ? "bush" : "rock";
@@ -637,6 +640,7 @@ export default function Places() {
       <Groves />
       <Garden />
       <Social />
+      <Waterfront />
       <Bridge />
     </>
   );

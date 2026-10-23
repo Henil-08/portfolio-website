@@ -3,6 +3,7 @@
 import { MAX_R, PIT, inLand } from "../layout";
 import { AWAY, FRAMES, RUNOFF, barrierOffset, distToTrack, farSign, inSectorScene, nearPlace, nearTree, nearestFrame, outSign, rng } from "./common";
 import { LAMPS } from "./layoutStreet";
+import { nearPromenade } from "../waterfront/layout";
 import { STAND_SPOTS } from "./standSpots";
 
 // ------------------------------------------------------------ palette
@@ -89,6 +90,7 @@ function overlaps(a: Bld, b: Bld, gap: number) {
 function clear(b: Bld, out: Bld[]) {
   const hd = Math.hypot(b.w, b.d) / 2;
   if (!inLand(b.x, b.z, Math.max(b.w, b.d) * 0.45 + 2)) return false;
+  if (nearPromenade(b.x, b.z, Math.max(b.w, b.d) * 0.55 + 1)) return false;
   if (inSectorScene(b.x, b.z, hd + 5, 14)) return false;
   if (nearPlace(b.x, b.z, hd)) return false;
   if (nearTree(b.x, b.z, Math.min(b.w, b.d) * 0.45)) return false;
@@ -175,6 +177,7 @@ export const BUILDINGS: Bld[] = (() => {
     const d = 5 + r() * (3.5 + far01 * 3);
     const hd = Math.hypot(w, d) / 2;
     if (!inLand(x, z, hd + 2)) continue;
+    if (nearPromenade(x, z, hd + 1)) continue;
     const f = nearestFrame(x, z);
     const dt = distToTrack(x, z);
     const ri = Math.round(f.u * RUNOFF.length) % RUNOFF.length;
