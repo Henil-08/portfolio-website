@@ -134,7 +134,11 @@ distinct areas threaded by paths, water woven through, shorelines with teal glow
   - [x] e. (2fc6d8e) Park islands (park/layout.ts `ISLANDS`, `parkSand`): football, podium, playbook,
         contact on grass islands in sand, north of the garden (the open infield there, not east: the
         river and the esses leave no room east). One wooden footbridge over the river (park/index.tsx).
-  - [~] f. (4a3aea9) Old town round the crossover: three buildings so far (town.ts `oldTown`).
+  - [x] f. (4a3aea9, slopes 3143f16) Old town round the crossover. Done: `footing()` in town.ts; floor at
+        the highest ground, stone plinth + sand coping down to the lowest, past 2.5 m the building sits
+        into the high side; bans lifted (19 -> 42 buildings); old town skips the 20 m crossing circle and
+        keeps corners 6.5 m off both roads (8 buildings within 45 m). Camera-side ones still wait for h.
+        Original brief:
         Owner (2026-10-23): buildings may stand on slopes. Walls stay vertical; the base follows the
         ground (a plinth/foundation skirt that reaches down to `heightAt` at every corner, so the low
         side shows more stone, never a floating edge). Then lift the slope bans added today:
