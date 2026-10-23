@@ -110,7 +110,7 @@ distinct areas threaded by paths, water woven through, shorelines with teal glow
 - [x] (7fb5950) Layout proposal: docs/research/layout-v4.md. Approved 2026-10-23 as written; keep the
       crossover, park places move to islands east of the garden, island grows ~15%.
 - [ ] Build it (docs/research/layout-v4.md), one sub-step per commit:
-  - [ ] a. Grow the island ~15% and reshape the track: longer harbour section in the west, hill climb
+  - [x] a. (ce14edd) Grow the island ~15% and reshape the track: longer harbour section in the west, hill climb
         moved north-east, same sector order and crossover.
   - [ ] b. Harbour arm from the west sea to the garden (quays on the town side) replacing the west lake
         and inlet; harbour bridge with a real gap under the deck.
