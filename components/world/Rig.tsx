@@ -53,6 +53,14 @@ export function CameraRig() {
     const a = clock.elapsedTime * 0.06 + 0.7;
     orbit.set(Math.cos(a) * 95, 62, Math.sin(a) * 95);
 
+    // Dev and headless checks: window.__cam = [x, y, z, tx, ty, tz] pins the camera.
+    const dbg = (window as unknown as { __cam?: number[] }).__cam;
+    if (dbg) {
+      camera.position.set(dbg[0], dbg[1], dbg[2]);
+      camera.lookAt(dbg[3], dbg[4], dbg[5]);
+      return;
+    }
+
     if (phase !== "world") {
       camera.position.copy(orbit);
       camera.lookAt(0, 0, 0);

@@ -161,7 +161,6 @@ export default function Island() {
     const g = ribbon(TRACK_WIDTH + 3, 0.03);
     return [g.getAttribute("position").array as Float32Array, g.getIndex()!.array as Uint32Array] as const;
   }, []);
-  const plazaY = heightAt(0, 3);
 
   return (
     <group>
@@ -205,15 +204,6 @@ export default function Island() {
       <Kerbs />
       <StartLine />
 
-      {/* Plaza where the car starts */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, plazaY + 0.02, 3]} receiveShadow>
-        <circleGeometry args={[9, 64]} />
-        <meshStandardMaterial color={C.greyLight} roughness={0.75} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, plazaY + 0.025, 3]}>
-        <ringGeometry args={[8.75, 9, 64]} />
-        <meshStandardMaterial color={C.red} roughness={0.8} />
-      </mesh>
 
     </group>
   );

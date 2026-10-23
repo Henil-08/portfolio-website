@@ -39,6 +39,8 @@ import {
   type Compound,
 } from "./models/props";
 import { Label } from "./models/props/Label";
+import PitRoads from "./PitRoads";
+import Timeline from "./Timeline";
 import { Avatar } from "./models/Avatar";
 import { ProjectObject } from "./models/projects";
 import { AhmedabadSector, BostonSector, HyperlabSector, WatersSector } from "./models/sectors";
@@ -50,6 +52,7 @@ import {
   GRANDSTAND,
   ISLAND_RADIUS,
   LETTERS,
+  TIMELINE,
   PIT,
   SECTORS,
   TRACK_WIDTH,
@@ -341,7 +344,7 @@ function Buildings() {
   const ct = at("contact");
   const start = trackPoint(GANTRY_T);
   const sTan = trackCurve.getTangentAt(GANTRY_T);
-  const sRot = Math.atan2(sTan.x, sTan.z) + Math.PI / 2;
+  const sRot = Math.atan2(sTan.x, sTan.z); // local +Z (through the arch) along the road
 
   return (
     <>
@@ -571,7 +574,7 @@ function Nature() {
     const r = rng(42);
     const out: { kind: "round" | "pine" | "palm" | "bush" | "rock"; p: V3; s: number; rot: number; seed: number }[] = [];
     const avoid = Object.values(zoneById).map((z) => [z.pos[0], z.pos[1], Math.max(z.size[0], z.size[1]) / 2 + 6]);
-    avoid.push([0, 3, 14], [LETTERS.origin[0] + 5, LETTERS.origin[1], 9], [GRANDSTAND.pos[0], GRANDSTAND.pos[1], 10]);
+    avoid.push([TIMELINE.pos[0], TIMELINE.pos[1], 19], [LETTERS.origin[0] + 5, LETTERS.origin[1], 9], [GRANDSTAND.pos[0], GRANDSTAND.pos[1], 10]);
     for (const sc of SECTORS) avoid.push([sc.scene[0], sc.scene[1], 17]);
     for (let x = PIT.from - 6; x <= PIT.to + 6; x += 6) avoid.push([x, PIT.garageZ, 8], [x, PIT.z, 6]);
     let tries = 0;
@@ -624,6 +627,8 @@ export default function Places() {
     <>
       <Buildings />
       <PitLane />
+      <PitRoads />
+      <Timeline position={[TIMELINE.pos[0], heightAt(TIMELINE.pos[0], TIMELINE.pos[1]), TIMELINE.pos[1]]} rotation={0} />
       <Sectors />
       <Signposts />
       <Letters />

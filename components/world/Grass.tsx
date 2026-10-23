@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { carState } from "./carState";
-import { GARAGES, ISLAND_RADIUS, PIT, SECTORS, TRACK_WIDTH, trackCurve, zones } from "./layout";
+import { GARAGES, ISLAND_RADIUS, PIT, TIMELINE, PIT_LANE_WIDTH, SCENE_FOOT, SECTORS, TRACK_WIDTH, pitRoadCurves, trackCurve, zones } from "./layout";
 import { C } from "./palette";
 import { getWindUniforms, terrainShader, updateWind, TERRAIN_GLSL, WIND_GLSL } from "./alive/wind";
 import { perlinTexture, seeded } from "./alive/noise";
@@ -64,16 +64,21 @@ function makeMask() {
   g.fillRect(tx(PIT.from - 6), tx(PIT.z - 4), (PIT.to - PIT.from + 12) * s, 9 * s);
   for (const gr of GARAGES) g.fillRect(tx(gr.x - 5), tx(PIT.garageZ - 5), 10 * s, 9 * s);
   // Plaza and the places.
-  g.beginPath();
-  g.arc(tx(0), tx(3), 10 * s, 0, Math.PI * 2);
-  g.fill();
+  g.fillRect(tx(TIMELINE.pos[0] - TIMELINE.hx), tx(TIMELINE.pos[1] - TIMELINE.hz), TIMELINE.hx * 2 * s, TIMELINE.hz * 2 * s);
   for (const z of zones) g.fillRect(tx(z.pos[0] - z.size[0] / 2), tx(z.pos[1] - z.size[1] / 2), z.size[0] * s, z.size[1] * s);
   for (const sc of SECTORS) {
     g.save();
     g.translate(tx(sc.scene[0]), tx(sc.scene[1]));
     g.rotate(-sc.sceneRot);
-    g.fillRect(-14 * s, -10 * s, 28 * s, 20 * s);
+    g.fillRect(-(SCENE_FOOT.hx + 1) * s, -(SCENE_FOOT.back + 1) * s, (SCENE_FOOT.hx + 1) * 2 * s, (SCENE_FOOT.back + SCENE_FOOT.front + 3) * s);
     g.restore();
+  }
+  // Pit entry and exit lanes.
+  g.lineWidth = (PIT_LANE_WIDTH + 1.5) * s;
+  for (const c of pitRoadCurves()) {
+    g.beginPath();
+    c.getPoints(30).forEach((p, i) => (i ? g.lineTo(tx(p.x), tx(p.z)) : g.moveTo(tx(p.x), tx(p.z))));
+    g.stroke();
   }
   const tex = new THREE.CanvasTexture(c);
   tex.flipY = false;

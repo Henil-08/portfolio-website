@@ -94,20 +94,94 @@ const SECTOR_DEFS = [
   { n: 4, id: "waters", name: "Waters", place: "Waters", year: "2026 →", from: 0.74, to: 0.97 },
 ] as const;
 
+export const PIT = { z: 32, from: -34, to: 26, garageZ: 22 };
+
+// Pit entry and exit lanes: from the straight's inner lane into each end of the pit lane.
+export const PIT_LANE_WIDTH = 5.6;
+const LANE = PIT_LANE_WIDTH;
+/** From a point on the track's inner lane to one end of the pit lane. */
+function laneCurve(tTrack: number, pitX: number, dir: 1 | -1) {
+  const p = trackPoint(tTrack);
+  const tan = trackTangent(tTrack);
+  const inner = new THREE.Vector3(-tan.z, 0, tan.x);
+  if (inner.z > 0) inner.negate(); // the pit lane is on the -z side of the straight
+  const a = p.clone().addScaledVector(inner, TRACK_WIDTH / 2 - LANE / 2 + 0.4);
+  const end = new THREE.Vector3(pitX, 0, PIT.z);
+  const pts = [a, a.clone().addScaledVector(tan, 10 * dir), end.clone().add(new THREE.Vector3(-10 * dir, 0, 0)), end];
+  return new THREE.CubicBezierCurve3(pts[0], pts[1], pts[2], pts[3]);
+}
+
+let curves: THREE.CubicBezierCurve3[] | null = null;
+/** The entry and exit lane centrelines (the grass mask clears them too). */
+export function pitRoadCurves() {
+  curves ??= [laneCurve(nearestT(PIT.from - 22, 41).t, PIT.from - 4, 1), laneCurve(nearestT(PIT.to + 20, 40).t, PIT.to + 4, -1)];
+  return curves;
+}
+
+
 const AWAY = new THREE.Vector3(-1, 0, -1).normalize();
+
+// Each scene is about 28 x 10 m (local x across, -z away from the road). Find
+// a spot along the sector's stretch where that whole footprint stays clear of
+// every part of the track, inside the island, away from the infield zones.
+export const SCENE_FOOT = { hx: 14.5, back: 10.5, front: 1 };
+const INFIELD: [number, number][] = [[20, 8], [-28, 8], [-30, -20], [14, -18], [42, 26], [0, 3], [6, -78]];
+
+function footprintClear(cx: number, cz: number, rot: number) {
+  const c = Math.cos(rot);
+  const sn = Math.sin(rot);
+  for (let i = 0; i <= 8; i++) {
+    for (let j = 0; j <= 4; j++) {
+      const lx = -SCENE_FOOT.hx + (i / 8) * SCENE_FOOT.hx * 2;
+      const lz = SCENE_FOOT.front - (j / 4) * (SCENE_FOOT.back + SCENE_FOOT.front);
+      // local -> world for a group rotated by `rot` about Y
+      const x = cx + lx * c + lz * sn;
+      const z = cz - lx * sn + lz * c;
+      if (nearestT(x, z).dist < TRACK_WIDTH / 2 + 2.2) return false;
+      if (Math.hypot(x, z) > ISLAND_RADIUS - 6) return false;
+      if (x > PIT.from - 10 && x < PIT.to + 10 && z > PIT.garageZ - 8 && z < PIT.z + 6) return false;
+      for (const [ix, iz] of INFIELD) if (Math.hypot(x - ix, z - iz) < 12) return false;
+    }
+  }
+  return true;
+}
+
+function placeScene(from: number, to: number) {
+  const mid = (from + to) / 2;
+  let best: { c: THREE.Vector3; rot: number; t: number; score: number } | null = null;
+  for (let k = 0; k <= 24; k++) {
+    const t = from + 0.02 + ((to - from - 0.04) * k) / 24;
+    const p = trackPoint(t);
+    const tan = trackTangent(t);
+    for (const side of [1, -1]) {
+      const n = new THREE.Vector3(-tan.z, 0, tan.x).multiplyScalar(side);
+      for (let off = 3.5; off <= 12; off += 1.5) {
+        const c = p.clone().addScaledVector(n, TRACK_WIDTH / 2 + off);
+        const rot = Math.atan2(-n.x, -n.z); // local +Z faces the track
+        if (!footprintClear(c.x, c.z, rot)) continue;
+        const score = Math.abs(t - mid) * 40 + off + (n.dot(AWAY) < 0 ? 6 : 0);
+        if (!best || score < best.score) best = { c, rot, t, score };
+      }
+    }
+  }
+  if (best) return best;
+  const p = trackPoint(mid);
+  const tan = trackTangent(mid);
+  const n = new THREE.Vector3(-tan.z, 0, tan.x);
+  if (n.dot(AWAY) < 0) n.negate();
+  return { c: p.clone().addScaledVector(n, TRACK_WIDTH / 2 + 3.5), rot: Math.atan2(-n.x, -n.z), t: mid, score: 0 };
+}
 
 export const SECTORS = SECTOR_DEFS.map((d) => {
   const t = (d.from + d.to) / 2;
-  const p = trackPoint(t);
-  const tan = trackTangent(t);
-  const n = new THREE.Vector3(-tan.z, 0, tan.x);
-  if (n.dot(AWAY) < 0) n.negate();
-  const c = p.clone().addScaledVector(n, TRACK_WIDTH / 2 + 3.5);
+  const at = placeScene(d.from, d.to);
   return {
     ...d,
     t,
-    scene: [c.x, c.z] as [number, number],
-    sceneRot: Math.atan2(-n.x, -n.z), // local +Z faces the track
+    /** Where along the track the scene sits (its ground level is the road height there). */
+    sceneT: at.t,
+    scene: [at.c.x, at.c.z] as [number, number],
+    sceneRot: at.rot,
   };
 });
 
@@ -118,7 +192,6 @@ export function sectorAt(t: number) {
 }
 
 // Pit lane runs just inside the main straight. One garage per project domain.
-export const PIT = { z: 32, from: -34, to: 26, garageZ: 22 };
 export const GARAGES: { domain: Domain; x: number }[] = [
   { domain: "agents", x: -28 },
   { domain: "genai", x: -16 },
@@ -201,6 +274,8 @@ export const zoneById = Object.fromEntries(zones.map((z) => [z.id, z])) as Recor
 const sp = trackPoint(START_T - 0.012);
 export const SPAWN: [number, number, number] = [sp.x, sp.z, headingFromTangent(trackTangent(START_T))];
 
-export const LETTERS = { chars: ["H", "E", "N", "I", "L"] as const, origin: [-6.5, -4] as [number, number], gap: 3 };
+export const LETTERS = { chars: ["H", "E", "N", "I", "L"] as const, origin: [12, -3] as [number, number], gap: 3 };
+/** Career timeline plaza (components/world/Timeline.tsx): centre, half size. Time runs toward -z. */
+export const TIMELINE = { pos: [-6.5, -4] as [number, number], hx: 9.5, hz: 15.5 };
 export const GRANDSTAND = { pos: [6, -78] as [number, number] };
 export const GANTRY_T = START_T;

@@ -7,6 +7,7 @@ import {
   GRANDSTAND,
   ISLAND_RADIUS,
   LETTERS,
+  TIMELINE,
   PIT,
   SECTORS,
   TRACK_WIDTH,
@@ -138,7 +139,7 @@ export const TREES: [number, number, number][] = (() => {
     return b;
   };
   const avoid = Object.values(zoneById).map((zn) => [zn.pos[0], zn.pos[1], Math.max(zn.size[0], zn.size[1]) / 2 + 6]);
-  avoid.push([0, 3, 14], [LETTERS.origin[0] + 5, LETTERS.origin[1], 9], [GRANDSTAND.pos[0], GRANDSTAND.pos[1], 10]);
+  avoid.push([TIMELINE.pos[0], TIMELINE.pos[1], 19], [LETTERS.origin[0] + 5, LETTERS.origin[1], 9], [GRANDSTAND.pos[0], GRANDSTAND.pos[1], 10]);
   for (const sc of SECTORS) avoid.push([sc.scene[0], sc.scene[1], 17]);
   for (let x = PIT.from - 6; x <= PIT.to + 6; x += 6) avoid.push([x, PIT.garageZ, 8], [x, PIT.z, 6]);
   const out: [number, number, number][] = [];
@@ -252,7 +253,7 @@ export function yawOf(dx: number, dz: number) {
 
 /** Main straight inside (pit lane side): left open. */
 export function inPitSide(x: number, z: number) {
-  return z > PIT.z - 10 && z < 46 && Math.abs(x) < PIT.to + 10;
+  return z > PIT.z - 10 && z < 46 && x > PIT.from - 28 && x < PIT.to + 26;
 }
 
 export type Spot = { x: number; z: number; yaw: number; u: number };

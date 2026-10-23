@@ -59,7 +59,7 @@ function overlaps(a: Bld, b: Bld, gap: number) {
 function clear(b: Bld, out: Bld[]) {
   const hd = Math.hypot(b.w, b.d) / 2;
   if (Math.hypot(b.x, b.z) + hd > ISLAND_RADIUS - 1.5) return false;
-  if (inSectorScene(b.x, b.z, hd + 1)) return false;
+  if (inSectorScene(b.x, b.z, hd + 5, 14)) return false;
   if (nearPlace(b.x, b.z, hd)) return false;
   if (nearTree(b.x, b.z, Math.min(b.w, b.d) * 0.45)) return false;
   if (LAMPS.some((l) => Math.hypot(l.x - b.x, l.z - b.z) < hd + 1)) return false;
@@ -121,7 +121,7 @@ export const BUILDINGS: Bld[] = (() => {
     const vz = z - f.p.z;
     const outside = vx * f.p.x + vz * (f.p.z + 3) > 0;
     if (!outside) continue;
-    if (inSectorScene(x, z, hd + 1)) continue;
+    if (inSectorScene(x, z, hd + 5, 14)) continue;
     if (nearPlace(x, z, hd)) continue;
     if (nearTree(x, z, Math.min(w, d) * 0.45)) continue;
     if (LAMPS.some((l) => Math.hypot(l.x - x, l.z - z) < hd + 1)) continue;
