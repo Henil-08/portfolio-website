@@ -17,6 +17,7 @@ import {
   zoneById,
   zones,
 } from "../layout";
+import { nearGarden } from "../garden/layout";
 
 export const HALF = TRACK_WIDTH / 2;
 /** Barrier centre line, measured from the track centre (kerbs end at ~4.6 m). */
@@ -113,6 +114,19 @@ export function nearestFrame(x: number, z: number) {
 
 // ------------------------------------------------------------ obstacles
 
+/**
+ * The town's belt: outside the lap and within 30 m of it. The island's scattered
+ * trees keep out of it (Places.tsx Nature and TREES below) so the town has room;
+ * its greenery comes from Groves and the street trees instead.
+ */
+export function inTownBelt(x: number, z: number) {
+  const f = nearestFrame(x, z);
+  const vx = x - f.p.x;
+  const vz = z - f.p.z;
+  const outside = vx * f.p.x + vz * (f.p.z + 3) > 0;
+  return outside && Math.hypot(vx, vz) < 30;
+}
+
 /** Sector scenery footprint test (local +Z faces the track). */
 export function inSectorScene(x: number, z: number, margin = 0, back = 11) {
   for (const s of SECTORS) {
@@ -153,6 +167,8 @@ export const TREES: [number, number, number][] = (() => {
     const z = Math.sin(a) * rad;
     if (dTrack(x, z) < TRACK_WIDTH / 2 + 4) continue;
     if (avoid.some(([ax, az, ar]) => Math.hypot(x - ax, z - az) < ar)) continue;
+    if (nearGarden(x, z, 1.5)) continue;
+    if (inTownBelt(x, z)) continue;
     const roll = r();
     const tree = roll < 0.7; // round / pine / palm; the rest are bushes and rocks
     r();
