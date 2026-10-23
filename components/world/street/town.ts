@@ -115,31 +115,6 @@ function overlaps(a: Bld, b: Bld, gap: number) {
   return true;
 }
 
-// The chase camera's offset from the car (Rig.tsx OFFSET at zoom 1).
-const CAM = { x: 10.5, y: 12.5, z: 14 };
-
-/** True if the building would stand between the car and the chase camera anywhere along the lap nearby. */
-function blocksCamera(b: Bld) {
-  const c = Math.cos(b.yaw);
-  const sn = Math.sin(b.yaw);
-  const floor = footing(b).floor;
-  for (const f of FRAMES) {
-    if (Math.hypot(f.p.x - b.x, f.p.z - b.z) > 40) continue;
-    const top = floor - f.p.y + b.h + b.rh + 0.5; // roof above this bit of road
-    for (let k = 1; k <= 20; k++) {
-      const t = k / 20;
-      if (CAM.y * t > top) break; // the sight line is above the roof from here on
-      const dx = f.p.x + CAM.x * t - b.x;
-      const dz = f.p.z + CAM.z * t - b.z;
-      // into the building's frame (inverse of a Y rotation by yaw)
-      const lx = dx * c - dz * sn;
-      const lz = dx * sn + dz * c;
-      if (Math.abs(lx) < b.w / 2 + 0.5 && Math.abs(lz) < b.d / 2 + 0.5) return true;
-    }
-  }
-  return false;
-}
-
 /** True if every corner of the footprint is at least `gap` from every road centreline. */
 function cornersClear(b: Bld, gap: number) {
   const c = Math.cos(b.yaw);
@@ -163,8 +138,7 @@ function clear(b: Bld, out: Bld[], tight = false) {
   if (LAMPS.some((l) => Math.hypot(l.x - b.x, l.z - b.z) < hd + 1)) return false;
   if (STAND_SPOTS.some((s) => Math.hypot(s.x - b.x, s.z - b.z) < hd + 8)) return false;
   if (tight ? !cornersClear(b, 6.5) : distToTrack(b.x, b.z) - Math.min(b.w, b.d) / 2 < 7.5) return false;
-  if (out.some((o) => overlaps(o, b, 1.1))) return false;
-  return !blocksCamera(b);
+  return !out.some((o) => overlaps(o, b, 1.1));
 }
 
 /** Which way local +z points relative to the road beside the building. */
@@ -302,7 +276,6 @@ export const BUILDINGS: Bld[] = (() => {
     const b = dress(r, { x, z, w, d, h: bodyH(floors), yaw, color, seed: r() * 100, floors });
     if (out.some((o) => overlaps(o, b, 1.1))) continue;
     if (footing(b).fall > MAX_FALL) continue;
-    if (blocksCamera(b)) continue;
     out.push(b);
   }
   // A few landmarks on the far side: slim towers with tall windows and a steep roof.
@@ -313,7 +286,6 @@ export const BUILDINGS: Bld[] = (() => {
     if (g < 0.55 || b.floors < 4 || (marks && b.seed % 3 > 1)) continue;
     const mark = { ...b, w: Math.min(b.w, b.d, 5.6), d: Math.min(b.w, b.d, 5.6), floors: 4, h: bodyH(4), roof: 1 as Roof, style: 2 };
     mark.rh = Math.min(4.4, MAX_TOP - mark.h);
-    if (blocksCamera(mark)) continue; // taller now: it mustn't hide the car
     Object.assign(b, mark);
     marks++;
   }
