@@ -231,9 +231,9 @@ Same ownership as step 4 plus new components/world/ui3d/**.
 - [x] Coast instead of a disc (3730cb6): `COAST_KEYS` in layout.ts, south bay waterfront along the
       main straight, northern headlands; beaches; lake in the west infield; components/world/Water.tsx
       (depth-shaded, foam). Use `inLand(x, z, margin)` / `shoreDist` for any placement.
-- [ ] Water to drive *under*: a canal under the bridge doesn't fit (embankments and piers under the
-      deck, barriers right beside the tunnel straight). Options: lengthen the bridge into a viaduct over
-      a widened lake, or a harbour inlet the main straight crosses on a low bridge.
+- [x] Shallow water (0.38 m in lakes, the inlet and the sea's first 6 m): a car in it stays visible;
+      respawn only past 0.7 m deep. Harbour inlet (`CANALS`) from the sea to the west lake, under the
+      west sweepers on a causeway with arched stone faces (Harbour.tsx) (2354ab0).
 - [ ] Waterfront dressing: a promenade with railings and lamps along the bay, a pier, boats.
 - [ ] Map (step 4) should now render this coastline.
 
