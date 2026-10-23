@@ -119,10 +119,10 @@ function frontage(out: Bld[]) {
   let i = 0;
   while (i < FRAMES.length) {
     const f = FRAMES[i];
-    // The outer side of the lap, on straights and gentle bends.
+    // The outer side of the lap where it is also the side away from the camera
+    // (buildings on the camera's side would hide the car), straights and gentle bends.
     const s = outSign(f);
-    const far = s === farSign(f);
-    if (Math.abs(f.k) > 0.1) {
+    if (s !== farSign(f) || Math.abs(f.k) > 0.1) {
       i += 2;
       continue;
     }
@@ -131,8 +131,7 @@ function frontage(out: Bld[]) {
     // right behind the pavement
     const off = Math.abs(barrierOffset(i, s as 1 | -1)) + 3.6 + r() * 1.2 + d / 2;
     const q = f.p.clone().addScaledVector(f.n, s * off);
-    // Tall on the far side; on the camera's side one storey, so the car stays in view.
-    const floors = far ? 2 + Math.floor(Math.pow(r(), 1.2) * 3.999) : 1;
+    const floors = 2 + Math.floor(Math.pow(r(), 1.2) * 3.999);
     const color = WALLS[Math.floor(r() * WALLS.length)];
     const yaw = Math.atan2(-f.tan.z, f.tan.x);
     const b = dress(r, { x: q.x, z: q.z, w, d, h: bodyH(floors), yaw, color, seed: r() * 100, floors });

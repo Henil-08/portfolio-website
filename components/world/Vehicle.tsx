@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
+  CoefficientCombineRule,
   CuboidCollider,
   RigidBody,
   useBeforePhysicsStep,
@@ -43,7 +44,12 @@ const ENGINE_FORCE = 300;
 const BOOST_MULTIPLIER = 2;
 const TOP_SPEED = 5;
 const TOP_SPEED_BOOST = 40;
-const BRAKE_AMPLITUDE = 35;
+const BRAKE_AMPLITUDE = 35; // Bruno's value, used for the idle and reverse brake
+// Space brake: Bruno's full 35 on every wheel stops the car dead. Ours ramps in
+// and is gentler, and the rear lets go a little, so it slides down to a stop.
+const HANDBRAKE_AMPLITUDE = 4;
+const HANDBRAKE_RAMP = 0.4; // seconds to full brake
+const HANDBRAKE_REAR_GRIP = 1.6; // rear side friction while braking (normal: SIDE_FRICTION)
 const IDLE_BRAKE = 0.06;
 const REVERSE_BRAKE = 0.4;
 
@@ -89,6 +95,7 @@ export default function Vehicle() {
   const goingForward = useRef(true);
   const speed = useRef(0); // simulation units per second, like Bruno's
   const boosting = useRef(false);
+  const brakeHeld = useRef(0); // seconds the brake has been held
   const { world } = useRapier();
 
   useEffect(() => {
@@ -173,23 +180,28 @@ export default function Vehicle() {
         (1 + overflow)) *
       dts;
 
-    let brake = braking;
-    if (!braking && Math.abs(accelerating) < 0.1) brake = IDLE_BRAKE;
-    if (
-      speed.current > 0.5 &&
-      ((accelerating > 0 && !goingForward.current) ||
-        (accelerating < 0 && goingForward.current))
-    ) {
-      brake = REVERSE_BRAKE;
-      engine = 0;
+    brakeHeld.current = braking ? brakeHeld.current + dts / 2 : 0; // dts runs at 2x
+    let brake = 0;
+    if (braking) brake = Math.min(1, brakeHeld.current / HANDBRAKE_RAMP) ** 1.5 * HANDBRAKE_AMPLITUDE * dts;
+    else {
+      let b = Math.abs(accelerating) < 0.1 ? IDLE_BRAKE : 0;
+      if (
+        speed.current > 0.5 &&
+        ((accelerating > 0 && !goingForward.current) ||
+          (accelerating < 0 && goingForward.current))
+      ) {
+        b = REVERSE_BRAKE;
+        engine = 0;
+      }
+      brake = b * BRAKE_AMPLITUDE * dts;
     }
-    brake *= BRAKE_AMPLITUDE * dts;
 
     const steer = steering * STEERING_AMPLITUDE;
     for (let i = 0; i < WHEELS.length; i++) {
       v.setWheelSteering(i, WHEELS[i].front ? steer : 0);
       v.setWheelBrake(i, brake);
       v.setWheelEngineForce(i, engine);
+      if (!WHEELS[i].front) v.setWheelSideFrictionStiffness(i, braking ? HANDBRAKE_REAR_GRIP : SIDE_FRICTION);
     }
     v.updateVehicle(1 / 60);
 
@@ -303,6 +315,17 @@ export default function Vehicle() {
             principalAngularInertia: { x: 1, y: 1, z: 1 },
             angularInertiaLocalFrame: { x: 0, y: 0, z: 0, w: 1 },
           }}
+        />
+        {/* Bruno's bumper: a massless, frictionless box around the wheels and wings,
+            so walls push the car along instead of catching a tyre, and no wheel
+            ever pokes into a wall or a building. */}
+        <CuboidCollider
+          args={[1.5, 0.22, 0.74]}
+          position={[0.02, 0.1, 0]}
+          density={0}
+          friction={0}
+          frictionCombineRule={CoefficientCombineRule.Min}
+          restitution={0.05}
         />
         <mesh ref={rain} position={[-1.5, -0.05, 0]}>
         <boxGeometry args={[0.04, 0.07, 0.16]} />
