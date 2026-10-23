@@ -11,10 +11,13 @@ import { heightAt } from "./terrain";
 import { BALL_R, Cone, Football, TYRE_H, TYRE_R, Tyre } from "./models/props";
 
 // Lighting keyframes. The day/night cycle blends between them by sun elevation.
+// Night follows Bruno Simon's folio-2025 (MIT): a strong blue moonlight, a violet
+// bounce from below instead of black shadows, a navy-to-plum sky and fog, and
+// emissives pushed past 1.0 so only they bloom.
 export const SCENES = {
-  day: { sun: 1.9, sunColor: "#fff1e0", hemi: 0.35, exposure: 0.82, top: "#b9c9d3", mid: "#e6e4df", bottom: "#d8d2c8", fog: "#e6e4df" },
-  golden: { sun: 1.6, sunColor: "#ffb36b", hemi: 0.3, exposure: 0.85, top: "#e9a37a", mid: "#f3d3b2", bottom: "#e7c4a0", fog: "#efcfae" },
-  night: { sun: 0.18, sunColor: "#8fa6ff", hemi: 0.08, exposure: 0.9, top: "#0b1022", mid: "#1b2340", bottom: "#141a30", fog: "#151b33" },
+  day: { sun: 1.9, sunColor: "#fff1e0", hemi: 0.35, hemiSky: "#f4efe6", hemiGround: "#8f8a80", exposure: 0.82, top: "#b9c9d3", mid: "#e6e4df", bottom: "#d8d2c8", fog: "#e6e4df" },
+  golden: { sun: 1.6, sunColor: "#ffb36b", hemi: 0.32, hemiSky: "#ffe2c4", hemiGround: "#9a6f63", exposure: 0.85, top: "#e9a37a", mid: "#f3d3b2", bottom: "#e7c4a0", fog: "#efcfae" },
+  night: { sun: 0.75, sunColor: "#4a5cff", hemi: 0.6, hemiSky: "#4f5bd6", hemiGround: "#5a1f7a", exposure: 0.95, top: "#10266f", mid: "#2b1f63", bottom: "#490a42", fog: "#22205e" },
 } as const;
 
 const WEATHER_N = 2200;
@@ -75,20 +78,22 @@ export function Weather() {
   );
 }
 
-type Params = { sun: number; sunColor: THREE.Color; hemi: number; exposure: number; top: THREE.Color; mid: THREE.Color; bottom: THREE.Color; fog: THREE.Color };
+type Params = { sun: number; sunColor: THREE.Color; hemi: number; hemiSky: THREE.Color; hemiGround: THREE.Color; exposure: number; top: THREE.Color; mid: THREE.Color; bottom: THREE.Color; fog: THREE.Color };
 const K = Object.fromEntries(
   Object.entries(SCENES).map(([k, v]) => [
     k,
-    { ...v, sunColor: new THREE.Color(v.sunColor), top: new THREE.Color(v.top), mid: new THREE.Color(v.mid), bottom: new THREE.Color(v.bottom), fog: new THREE.Color(v.fog) },
+    { ...v, sunColor: new THREE.Color(v.sunColor), hemiSky: new THREE.Color(v.hemiSky), hemiGround: new THREE.Color(v.hemiGround), top: new THREE.Color(v.top), mid: new THREE.Color(v.mid), bottom: new THREE.Color(v.bottom), fog: new THREE.Color(v.fog) },
   ])
 ) as Record<keyof typeof SCENES, Params>;
-const out: Params = { ...K.day, sunColor: new THREE.Color(), top: new THREE.Color(), mid: new THREE.Color(), bottom: new THREE.Color(), fog: new THREE.Color() };
+const out: Params = { ...K.day, sunColor: new THREE.Color(), hemiSky: new THREE.Color(), hemiGround: new THREE.Color(), top: new THREE.Color(), mid: new THREE.Color(), bottom: new THREE.Color(), fog: new THREE.Color() };
 
 function blend(a: Params, b: Params, k: number) {
   out.sun = THREE.MathUtils.lerp(a.sun, b.sun, k);
   out.hemi = THREE.MathUtils.lerp(a.hemi, b.hemi, k);
   out.exposure = THREE.MathUtils.lerp(a.exposure, b.exposure, k);
   out.sunColor.lerpColors(a.sunColor, b.sunColor, k);
+  out.hemiSky.lerpColors(a.hemiSky, b.hemiSky, k);
+  out.hemiGround.lerpColors(a.hemiGround, b.hemiGround, k);
   out.top.lerpColors(a.top, b.top, k);
   out.mid.lerpColors(a.mid, b.mid, k);
   out.bottom.lerpColors(a.bottom, b.bottom, k);
@@ -134,7 +139,7 @@ export function Exposure() {
     const want = sceneParams().exposure;
     gl.toneMappingExposure += (want - gl.toneMappingExposure) * Math.min(1, dt * 2);
     // The studio environment light dims at night too, or nothing would get dark.
-    scene.environmentIntensity = THREE.MathUtils.lerp(0.55, 0.06, dayNight.night);
+    scene.environmentIntensity = THREE.MathUtils.lerp(0.55, 0.14, dayNight.night);
   });
   return null;
 }

@@ -5,7 +5,7 @@ import { Canvas } from "@react-three/fiber";
 import { Physics, useRapier } from "@react-three/rapier";
 import { useFrame } from "@react-three/fiber";
 import { ticker } from "./carState";
-import { EffectComposer, N8AO, SMAA, Vignette } from "@react-three/postprocessing";
+import { Bloom, EffectComposer, N8AO, SMAA, Vignette } from "@react-three/postprocessing";
 import { Environment, Lightformer, PerformanceMonitor, SoftShadows } from "@react-three/drei";
 import * as THREE from "three";
 import Island from "./Island";
@@ -70,6 +70,8 @@ export default function World() {
       {fancy && (
         <EffectComposer multisampling={0} enableNormalPass={false}>
           <N8AO halfRes aoRadius={1.6} intensity={1.6} distanceFalloff={0.7} color="#2a2420" />
+          {/* Only emissives pushed past 1.0 bloom (lamps, windows, garage headers, neon). */}
+          <Bloom luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0.55} mipmapBlur />
           <SMAA />
           <Vignette offset={0.3} darkness={0.28} />
         </EffectComposer>

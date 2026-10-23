@@ -135,7 +135,11 @@ export function Sun() {
     const k = Math.min(1, dt * 3);
     l.intensity += (p.sun - l.intensity) * k;
     l.color.lerp(p.sunColor, k);
-    if (hemi.current) hemi.current.intensity += (p.hemi - hemi.current.intensity) * k;
+    if (hemi.current) {
+      hemi.current.intensity += (p.hemi - hemi.current.intensity) * k;
+      hemi.current.color.lerp(p.hemiSky, k);
+      hemi.current.groundColor.lerp(p.hemiGround, k);
+    }
     if (scene.fog) (scene.fog as THREE.Fog).color.lerp(p.fog, k);
   });
 
