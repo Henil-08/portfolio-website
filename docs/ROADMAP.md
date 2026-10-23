@@ -237,7 +237,10 @@ straight with pit wall, fences and stands). Do these in order, one commit per it
 - [x] e. (7a2d602) park/bushes.ts: single round clumps (species `bush` is now his one-clump bush) beside
       the garden paths, round the park islands and in infield clusters. Was: Bushes like Bruno's (sources/Game/World/Bushes.js + Foliage.js clumps on the ground), scattered
       through the infield, park and along paths. Reuse foliage/* (his clump material is already ported).
-- [ ] f. The infield common area in the middle is too empty: fill it Bruno-style (bushes, paths, his
+- [x] f. (ee3750f) districts/park.ts: slab paths between the islands, lanterns, benches, flowers, a fence
+      arc north of the football island; bushes came in e. Not done: a second small footbridge (it needs new
+      water in the middle, a layout change: ask the owner); park benches have no colliders.
+      Was: The infield common area in the middle is too empty: fill it Bruno-style (bushes, paths, his
       benches/lanterns/fences from models/props/brunoProps.ts, a small wooden footbridge, flower beds).
       No invented text or facts.
 - [ ] g. Team Stallions (Sector 1 Ahmedabad scene, models/sectors/Ahmedabad.tsx, placed by layout.ts
