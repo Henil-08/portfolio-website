@@ -25,6 +25,7 @@ function load(url: string) {
       if (!a) return null;
       try {
         const res = await fetch(url);
+        if (!res.ok) return null;
         return await a.decodeAudioData(await res.arrayBuffer());
       } catch {
         return null;
@@ -37,7 +38,7 @@ function load(url: string) {
 
 export function unlockAudio() {
   audio();
-  ["/sfx/radio.mp3", "/sfx/ask.mp3", "/sfx/go.mp3"].forEach(load);
+  ["/sfx/radio.mp3", "/sfx/ask.mp3", "/sfx/go.mp3", "/sfx/theme.mp3"].forEach(load);
 }
 
 // Plays a buffer, optionally through the radio chain (band-pass, drive, compression).
@@ -137,4 +138,26 @@ export function pop() {
 
 export function cheer() {
   [523, 659, 784, 1047].forEach((f, i) => beep(f, i * 0.07, 0.16, "sine", 0.04));
+}
+
+// Intro theme. Plays /sfx/theme.mp3 if it exists, otherwise stays silent.
+let themeGain: GainNode | null = null;
+export async function playTheme() {
+  const a = audio();
+  if (!a) return;
+  const buf = await load("/sfx/theme.mp3");
+  if (!buf) return;
+  const src = a.createBufferSource();
+  src.buffer = buf;
+  themeGain = a.createGain();
+  themeGain.gain.setValueAtTime(0.0001, a.currentTime);
+  themeGain.gain.exponentialRampToValueAtTime(0.7, a.currentTime + 0.6);
+  src.connect(themeGain).connect(a.destination);
+  src.start();
+}
+
+export function fadeTheme(seconds = 2.5) {
+  const a = ctx;
+  if (!a || !themeGain) return;
+  themeGain.gain.setTargetAtTime(0.0001, a.currentTime, seconds / 4);
 }
