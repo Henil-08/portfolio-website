@@ -7,7 +7,7 @@
 // The timeline terrace (TIMELINE) is the garden's east-west spine; the paths
 // run around it and out to each place.
 import * as THREE from "three";
-import { nearCrossing, nearestT, TRACK_WIDTH } from "../layout";
+import { nearCrossing, nearestT, TIMELINE, TRACK_WIDTH } from "../layout";
 
 export type Path = { pts: [number, number][]; w: number };
 
@@ -17,9 +17,9 @@ export const PATHS: Path[] = [
   // West: past the pond, down to the cricket ground.
   { pts: [[-42, 14.5], [-41, 6], [-38.5, -2.5]], w: 2 },
   // From the terrace's west end out to the west path.
-  { pts: [[-22, 3], [-31, 3.4], [-40.8, 4]], w: 2 },
+  { pts: [[TIMELINE.pos[0] - TIMELINE.hx - 0.3, 3], [-31, 3.4], [-40.8, 4]], w: 2 },
   // From the terrace's east end, along the tyre wall, out to the east path.
-  { pts: [[10, 3], [19, 3.4], [31, 3]], w: 2 },
+  { pts: [[TIMELINE.pos[0] + TIMELINE.hx + 0.3, 3], [19, 3.4], [31, 3]], w: 2 },
   // East: from the promenade, down past the letters and out to the park.
   { pts: [[27, 14.2], [31, 6], [31.2, -2], [25.5, -10]], w: 2 },
   // From the east path, between HENIL and GAJJAR (the word gap is at x ~18), down to the park.

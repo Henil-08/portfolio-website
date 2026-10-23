@@ -112,7 +112,7 @@ export default function TimelineLab({ night, cam, t, lane, rot }: { night: boole
           <planeGeometry args={[160, 160]} />
           <meshStandardMaterial color={C.grass} roughness={0.92} />
         </mesh>
-        <Timeline position={[0, 0, 0]} rotation={r} colliders={false} />
+        <Timeline position={[0, 0, 0]} rotation={r} />
         <FakeCar ctl={ctl} rot={r} follow={cam === "follow"} />
       </Canvas>
     </div>

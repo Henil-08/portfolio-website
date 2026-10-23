@@ -3,11 +3,11 @@
 // only says things that are already in the experience file.
 import { experience, type Role } from "@/content/experience";
 
-export const T0 = 2021; // left edge of the plaza (Jan 2021)
-export const T1 = 2027; // right edge (end of 2026)
-export const PER_YEAR = 4; // metres of plaza per year
-export const LANE_GAP = 1.3; // metres between lanes
-export const LENGTH = (T1 - T0) * PER_YEAR; // 24 m of time axis
+export const T0 = 2021; // start of the time axis (Jan 2021)
+export const T1 = 2027; // end (end of 2026)
+export const PER_YEAR = 1.5; // metres per year: compact, like Bruno's career strip
+export const LANE_GAP = 1.0; // metres between lanes
+export const LENGTH = (T1 - T0) * PER_YEAR; // 9 m of time axis
 
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
@@ -70,13 +70,14 @@ export const LANES: Lane[] = [...experience]
   .sort((a, b) => a.s - b.s)
   .map(({ r }, i) => laneFor(r, i));
 
-// Local layout. Time runs along local -z (Jan 2021 at +z, end of 2026 at -z);
-// lanes are spread along +x, the year counter sits on the -x side.
+// Local layout. Time runs along local -z (T0 at +z, T1 at -z); lanes are spread
+// along +x, centred, and the year markers sit on the -x side.
 export const Z_START = LENGTH / 2;
 export const zOf = (t: number) => Z_START - (t - T0) * PER_YEAR;
 export const tOf = (z: number) => T0 + (Z_START - z) / PER_YEAR;
-export const laneX = (i: number) => -3.85 + i * LANE_GAP;
-export const COUNTER_X = laneX(0) - 2.5;
+const HALF_LANES = ((LANES.length - 1) * LANE_GAP) / 2;
+export const laneX = (i: number) => -HALF_LANES + 0.5 + i * LANE_GAP;
+export const YEAR_X = laneX(0) - 1.1;
 
-// Paved plaza footprint (local, centred on the origin).
-export const PLAZA = { minX: COUNTER_X - 2, maxX: laneX(LANES.length - 1) + 1.8, minZ: -Z_START - 2.5, maxZ: Z_START + 2.5 };
+// Paved terrace footprint (local, centred on the origin).
+export const PLAZA = { minX: YEAR_X - 0.8, maxX: laneX(LANES.length - 1) + 0.8, minZ: -Z_START - 1.2, maxZ: Z_START + 1.2 };

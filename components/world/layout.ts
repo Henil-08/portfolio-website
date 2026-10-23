@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { Domain } from "@/content/projects";
+import { PLAZA } from "./timeline/data";
 
 // Where everything lives on the island. Units are meters, Y up.
 // The camera looks from +X/+Z, so signs and buildings face +Z.
@@ -516,8 +517,14 @@ export const LETTERS = { text: "HENIL GAJJAR", center: [19, -3.2] as [number, nu
 // Spawn in front of the name, on the garden path, facing east: the chase
 // camera opens on the car with HENIL GAJJAR behind it.
 export const SPAWN: [number, number, number] = [LETTERS.center[0] - 3, LETTERS.center[1] + 6.2, 0];
-/** Career timeline plaza (components/world/Timeline.tsx): centre, world-axis half size, yaw. */
-export const TIMELINE = { pos: [-6, 3] as [number, number], hx: 15.5, hz: 9.5, rot: Math.PI / 2 }; // time runs west
+/** Career timeline terrace (components/world/Timeline.tsx): centre, world-axis half size, yaw.
+ *  Turned a quarter, so its local z (time) runs along world x; sized from its own footprint. */
+export const TIMELINE = {
+  pos: [-6, 3] as [number, number],
+  hx: Math.max(-PLAZA.minZ, PLAZA.maxZ) + 0.4,
+  hz: Math.max(-PLAZA.minX, PLAZA.maxX) + 0.4,
+  rot: Math.PI / 2, // time runs west
+};
 /** Infield grandstand looking north over the tunnel straight and the bridge. */
 export const GRANDSTAND = { pos: [44, -44] as [number, number], rot: Math.PI };
 export const GANTRY_T = START_T;

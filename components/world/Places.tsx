@@ -571,7 +571,7 @@ function Nature() {
     const r = rng(42);
     const out: { kind: "round" | "pine" | "palm" | "bush" | "rock"; p: V3; s: number; rot: number; seed: number }[] = [];
     const avoid = Object.values(zoneById).map((z) => [z.pos[0], z.pos[1], Math.max(z.size[0], z.size[1]) / 2 + 6]);
-    avoid.push([TIMELINE.pos[0], TIMELINE.pos[1], 19], [LETTERS.center[0], LETTERS.center[1], LETTERS.hx + 1.5], [GRANDSTAND.pos[0], GRANDSTAND.pos[1], 10]);
+    avoid.push([TIMELINE.pos[0], TIMELINE.pos[1], Math.hypot(TIMELINE.hx, TIMELINE.hz) + 2], [LETTERS.center[0], LETTERS.center[1], LETTERS.hx + 1.5], [GRANDSTAND.pos[0], GRANDSTAND.pos[1], 10]);
     for (const sc of SECTORS) avoid.push([sc.scene[0], sc.scene[1], 17]);
     for (let x = PIT.from - 6; x <= PIT.to + 6; x += 6) avoid.push([x, PIT.garageZ, 8], [x, PIT.z, 6]);
     let tries = 0;
