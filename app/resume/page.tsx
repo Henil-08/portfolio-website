@@ -5,6 +5,7 @@ import { profile, stats } from "@/content/profile";
 import { experience, education } from "@/content/experience";
 import { DOMAINS, projects } from "@/content/projects";
 import { patents, publications, toolbox } from "@/content/research";
+import Tailored from "./Tailored";
 
 export const metadata: Metadata = {
   title: "Resume · Henil Gajjar",
@@ -86,6 +87,8 @@ export default function Resume() {
             </div>
           ))}
         </div>
+
+        <Tailored />
 
         <Block title="Experience">
           <ol className="relative space-y-7 border-l border-line pl-6 sm:border-0 sm:pl-0">
