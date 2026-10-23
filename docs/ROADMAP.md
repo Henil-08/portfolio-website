@@ -96,7 +96,7 @@ the mark; the E prompt should be animated like Bruno's.
       by Boston (t ~0.6).
 
 ### 2. Kerbs and barriers
-- [ ] Corner kerbs (Island.tsx `Kerbs`) are separate flat red/white tiles with gaps. Make them a
+- [x] (387ab64) Corner kerbs (Island.tsx `Kerbs`) are separate flat red/white tiles with gaps. Make them a
       continuous, slightly raised rumble kerb hugging the corner (alternating red/white segments
       that touch, bevelled outer edge), only where the lap bends; straights get the plain white line.
 - [ ] Red/white barrier walls (street/Barriers.tsx): the owner's note was cut off ("the walls red
