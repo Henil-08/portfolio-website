@@ -8,6 +8,7 @@ import { Population } from "./sim";
 import { getState, setState, useWorld } from "../store";
 import { START_T } from "../layout";
 import { ghostLeader } from "../carState";
+import { heightAt } from "../terrain";
 
 const SIZE = 40;
 const SIM_DT = 1 / 30;
@@ -74,7 +75,7 @@ function Ghosts() {
     let alive = 0;
     pop.cars.forEach((c, i) => {
       if (c.alive) alive++;
-      m.position.set(c.x, c.alive ? 0.02 : -5, c.z);
+      m.position.set(c.x, c.alive ? heightAt(c.x, c.z) + 0.02 : -50, c.z);
       m.rotation.set(0, c.h, 0);
       m.updateMatrix();
       b.setMatrixAt(i, m.matrix);
@@ -82,10 +83,10 @@ function Ghosts() {
     b.instanceMatrix.needsUpdate = true;
 
     const L = pop.leader();
-    ghostLeader.pos.set(L.x, 0, L.z);
+    ghostLeader.pos.set(L.x, heightAt(L.x, L.z), L.z);
     ghostLeader.active = true;
     if (lead.current) {
-      lead.current.position.set(L.x, 0.02, L.z);
+      lead.current.position.set(L.x, heightAt(L.x, L.z) + 0.02, L.z);
       lead.current.rotation.set(0, L.h, 0);
     }
 

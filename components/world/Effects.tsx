@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { carState } from "./carState";
 import { getState, subscribe, useWorld } from "./store";
 import { dayNight } from "./daynight";
+import { heightAt } from "./terrain";
 import { BALL_R, Cone, Football, TYRE_H, TYRE_R, Tyre } from "./models/props";
 
 // Lighting keyframes. The day/night cycle blends between them by sun elevation.
@@ -150,7 +151,9 @@ export function Spawns() {
           Array.from({ length: s.count }).map((_, i) => {
             const a = (i / s.count) * Math.PI * 2;
             const r = 1.5 + (i % 3);
-            const pos: [number, number, number] = [s.at[0] + Math.cos(a) * r, 6 + i * 0.6, s.at[1] + Math.sin(a) * r];
+            const px = s.at[0] + Math.cos(a) * r;
+            const pz = s.at[1] + Math.sin(a) * r;
+            const pos: [number, number, number] = [px, heightAt(px, pz) + 6 + i * 0.6, pz];
             if (s.thing === "footballs")
               return (
                 <RigidBody key={`${s.id}-${i}`} colliders={false} position={pos} mass={0.35} restitution={0.7}>
@@ -205,8 +208,9 @@ function Confetti({ at }: { at: [number, number] }) {
       c.v.y -= 9 * dt;
       c.v.multiplyScalar(1 - dt * 0.8);
       c.p.addScaledVector(c.v, dt);
-      if (c.p.y < 0.02) {
-        c.p.y = 0.02;
+      const floor = heightAt(c.p.x, c.p.z) + 0.02;
+      if (c.p.y < floor) {
+        c.p.y = floor;
         c.v.set(0, 0, 0);
       }
       c.r.x += dt * c.s;

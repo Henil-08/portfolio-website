@@ -42,7 +42,8 @@ export function CameraRig() {
     prev.current.set(target.current.x, target.current.z);
     target.current.x += (follow.x - target.current.x) * kf;
     target.current.z += (follow.z - target.current.z) * kf;
-    target.current.y = 0;
+    // Follow the car up and down the hills, gently.
+    target.current.y += (follow.y - 0.3 - target.current.y) * Math.min(1, dt * 3);
 
     // Pull back a little at speed.
     const spd = Math.hypot(target.current.x - prev.current.x, target.current.z - prev.current.y) / Math.max(dt, 1e-4);
@@ -69,14 +70,14 @@ export function CameraRig() {
       const ang = sh.t * 0.5;
       const goal =
         sh.style === "aerial"
-          ? tmp.set(c.x + 8, 55, c.z + 10)
+          ? tmp.set(c.x + 8, c.y + 55, c.z + 10)
           : sh.style === "low"
-            ? tmp.set(c.x + Math.cos(ang) * 5, 0.8, c.z + Math.sin(ang) * 5)
+            ? tmp.set(c.x + Math.cos(ang) * 5, c.y + 0.8, c.z + Math.sin(ang) * 5)
             : sh.style === "chase"
-              ? tmp.copy(carState.forward).multiplyScalar(-6).add(c).setY(2.2)
-              : tmp.set(c.x + Math.cos(ang) * 14, 7, c.z + Math.sin(ang) * 14);
+              ? tmp.copy(carState.forward).multiplyScalar(-6).add(c).setY(c.y + 2.2)
+              : tmp.set(c.x + Math.cos(ang) * 14, c.y + 7, c.z + Math.sin(ang) * 14);
       camera.position.lerp(goal, Math.min(1, dt * 3));
-      camera.lookAt(c.x, 0.5, c.z);
+      camera.lookAt(c.x, c.y + 0.5, c.z);
       return;
     }
 
@@ -116,8 +117,8 @@ export function Sun() {
     // shadows; at night it becomes a dim blue moonlight).
     const a = dayNight.t * Math.PI * 2;
     const elev = Math.max(0.35, Math.abs(Math.sin(a)));
-    l.position.set(c.x + Math.cos(a) * 40, 40 * elev + 8, c.z + 14 + Math.sin(a) * 10);
-    tgt.position.set(c.x, 0, c.z);
+    l.position.set(c.x + Math.cos(a) * 40, c.y + 40 * elev + 8, c.z + 14 + Math.sin(a) * 10);
+    tgt.position.set(c.x, c.y, c.z);
 
     const p = sceneParams();
     const k = Math.min(1, dt * 3);

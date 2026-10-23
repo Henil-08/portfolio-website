@@ -25,6 +25,7 @@ import { carState, ticker } from "./carState";
 import { getState, setState, subscribe } from "./store";
 import { BoostTrail } from "./BoostTrail";
 import { dayNight } from "./daynight";
+import { heightAt } from "./terrain";
 import { SPAWN, zoneById } from "./layout";
 import { engineIdle, engineUpdate, honk } from "./sound";
 
@@ -230,11 +231,11 @@ export default function Vehicle() {
     // Recover from flips and falls.
     tmpV.set(0, 1, 0).applyQuaternion(tmpQ);
     flipped.current = tmpV.y < 0.25 ? flipped.current + dt : 0;
-    if (input.reset || flipped.current > 1.6 || t.y < -4) {
+    if (input.reset || flipped.current > 1.6 || t.y < heightAt(t.x, t.z) - 4) {
       input.reset = false;
       flipped.current = 0;
       const heading = Math.atan2(-carState.forward.z, carState.forward.x);
-      if (t.y < -4) place(b, SPAWN[0], SPAWN[1], SPAWN[2]);
+      if (t.y < heightAt(t.x, t.z) - 4) place(b, SPAWN[0], SPAWN[1], SPAWN[2]);
       else place(b, t.x, t.z, heading);
       prevPos.copy(b.translation() as THREE.Vector3);
     }
@@ -262,7 +263,7 @@ export default function Vehicle() {
       <RigidBody
         ref={body}
         colliders={false}
-        position={[SPAWN[0], 0.9, SPAWN[1]]}
+        position={[SPAWN[0], heightAt(SPAWN[0], SPAWN[1]) + 0.9, SPAWN[1]]}
         linearDamping={0.1}
         angularDamping={0.1}
         canSleep={false}
@@ -321,7 +322,7 @@ export default function Vehicle() {
 
 function place(b: RapierRigidBody, x: number, z: number, heading: number) {
   const q = new THREE.Quaternion().setFromAxisAngle(up, heading);
-  b.setTranslation({ x, y: 0.9, z }, true);
+  b.setTranslation({ x, y: heightAt(x, z) + 0.9, z }, true);
   b.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
   b.setLinvel({ x: 0, y: 0, z: 0 }, true);
   b.setAngvel({ x: 0, y: 0, z: 0 }, true);

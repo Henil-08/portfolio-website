@@ -62,12 +62,13 @@ import {
 } from "./layout";
 import { cheer, pop } from "./sound";
 import { achieve, toast } from "./store";
+import { heightAt } from "./terrain";
 
 type V3 = [number, number, number];
 
 function at(id: ZoneId): V3 {
   const z = zoneById[id];
-  return [z.pos[0], 0, z.pos[1]];
+  return [z.pos[0], heightAt(z.pos[0], z.pos[1]), z.pos[1]];
 }
 
 // Deterministic pseudo random so the island looks the same on every visit.
@@ -96,7 +97,7 @@ function Letters() {
         <RigidBody
           key={ch + i}
           colliders={false}
-          position={[LETTERS.origin[0] + i * LETTERS.gap, 0.8, LETTERS.origin[1]]}
+          position={[LETTERS.origin[0] + i * LETTERS.gap, heightAt(LETTERS.origin[0] + i * LETTERS.gap, LETTERS.origin[1]) + 0.8, LETTERS.origin[1]]}
           mass={3}
           linearDamping={0.3}
           angularDamping={0.4}
@@ -113,7 +114,7 @@ function Letters() {
 
 function ConeBody({ p }: { p: V3 }) {
   return (
-    <RigidBody colliders={false} position={[p[0], 0.27, p[2]]} mass={0.25} linearDamping={0.4} angularDamping={0.4}>
+    <RigidBody colliders={false} position={[p[0], heightAt(p[0], p[2]) + 0.27, p[2]]} mass={0.25} linearDamping={0.4} angularDamping={0.4}>
       <CylinderCollider args={[0.27, 0.2]} friction={0.6} restitution={0.3} />
       <group position={[0, -0.27, 0]}>
         <Cone />
@@ -149,7 +150,7 @@ function Cones() {
 
 // Tyre wall: four stacks, one per compound. Tyres are separate bodies so they topple.
 function TyreWall() {
-  const [x, , z] = at("playbook");
+  const [x, gy, z] = at("playbook");
   const compounds: Compound[] = ["soft", "medium", "hard", "inter"];
   return (
     <>
@@ -158,7 +159,7 @@ function TyreWall() {
           <RigidBody
             key={c + k}
             colliders={false}
-            position={[x - 3.3 + i * 2.2, TYRE_H / 2 + k * (TYRE_H + 0.005), z - 1]}
+            position={[x - 3.3 + i * 2.2, gy + TYRE_H / 2 + k * (TYRE_H + 0.005), z - 1]}
             mass={0.6}
             linearDamping={0.3}
             angularDamping={0.5}
@@ -175,11 +176,11 @@ function TyreWall() {
 }
 
 function FootballPitch() {
-  const [x, , z] = at("football");
+  const [x, gy, z] = at("football");
   const ball = useRef<RapierRigidBody>(null);
   const scored = useRef(0);
   const goals = useRef(0);
-  const home: V3 = [x, BALL_R + 0.05, z + 2];
+  const home: V3 = [x, gy + BALL_R + 0.05, z + 2];
   const goalZ = z - 6;
 
   useFrame(({ clock }) => {
@@ -187,7 +188,7 @@ function FootballPitch() {
     if (!b) return;
     const p = b.translation();
     // Goal: ball inside the mouth volume.
-    if (Math.abs(p.x - x) < 1.9 && p.z < goalZ + 0.6 && p.z > goalZ - 0.9 && p.y < 1.8) {
+    if (Math.abs(p.x - x) < 1.9 && p.z < goalZ + 0.6 && p.z > goalZ - 0.9 && p.y < gy + 1.8) {
       if (clock.elapsedTime - scored.current > 3) {
         scored.current = clock.elapsedTime;
         toast("GOAL!", "yellow");
@@ -202,7 +203,7 @@ function FootballPitch() {
         }, 1500);
       }
     }
-    if (p.y < -3 || Math.hypot(p.x, p.z) > ISLAND_RADIUS + 4) {
+    if (p.y < gy - 3 || Math.hypot(p.x, p.z) > ISLAND_RADIUS + 4) {
       b.setTranslation({ x: home[0], y: home[1] + 1, z: home[2] }, true);
       b.setLinvel({ x: 0, y: 0, z: 0 }, true);
     }
@@ -211,20 +212,20 @@ function FootballPitch() {
   return (
     <>
       {/* Pitch paint */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.015, z]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[x, gy + 0.015, z]} receiveShadow>
         <planeGeometry args={[16, 13]} />
         <meshStandardMaterial color={C.grassDark} roughness={1} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.02, z]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[x, gy + 0.02, z]}>
         <ringGeometry args={[2, 2.2, 40]} />
         <meshStandardMaterial color={C.white} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.02, z + 6.4]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[x, gy + 0.02, z + 6.4]}>
         <planeGeometry args={[16, 0.2]} />
         <meshStandardMaterial color={C.white} />
       </mesh>
 
-      <RigidBody type="fixed" colliders={false} position={[x, 0, goalZ]}>
+      <RigidBody type="fixed" colliders={false} position={[x, gy, goalZ]}>
         <Goal />
         <CylinderCollider args={[0.9, 0.1]} position={[-2, 0.9, 0.75]} />
         <CylinderCollider args={[0.9, 0.1]} position={[2, 0.9, 0.75]} />
@@ -245,7 +246,7 @@ function FootballPitch() {
 }
 
 function Cricket() {
-  const [x, , z] = at("cricket");
+  const [x, gy, z] = at("cricket");
   const stumps = useRef<(RapierRigidBody | null)[]>([]);
   const out = useRef(false);
   const wickets = useRef(0);
@@ -259,8 +260,8 @@ function Cricket() {
       const sx = x + ends[end];
       const pos =
         k < 3
-          ? { x: sx, y: STUMP_H / 2, z: z + (k - 1) * STUMP_GAP }
-          : { x: sx, y: STUMP_H + 0.04, z: z + (k === 3 ? -0.5 : 0.5) * STUMP_GAP };
+          ? { x: sx, y: gy + STUMP_H / 2, z: z + (k - 1) * STUMP_GAP }
+          : { x: sx, y: gy + STUMP_H + 0.04, z: z + (k === 3 ? -0.5 : 0.5) * STUMP_GAP };
       b.setTranslation(pos, true);
       b.setRotation(k < 3 ? { x: 0, y: 0, z: 0, w: 1 } : new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2), true);
       b.setLinvel({ x: 0, y: 0, z: 0 }, true);
@@ -291,7 +292,7 @@ function Cricket() {
 
   return (
     <>
-      <group position={[x, 0, z]} rotation={[0, Math.PI / 2, 0]}>
+      <group position={[x, gy, z]} rotation={[0, Math.PI / 2, 0]}>
         <CricketPitch />
       </group>
       {ends.map((ex, e) => (
@@ -303,7 +304,7 @@ function Cricket() {
                 stumps.current[e * 5 + j] = r;
               }}
               colliders={false}
-              position={[x + ex, STUMP_H / 2, z + k * STUMP_GAP]}
+              position={[x + ex, gy + STUMP_H / 2, z + k * STUMP_GAP]}
               mass={0.15}
             >
               <CylinderCollider args={[STUMP_H / 2, STUMP_R]} friction={0.5} />
@@ -319,7 +320,7 @@ function Cricket() {
                 stumps.current[e * 5 + 3 + j] = r;
               }}
               colliders={false}
-              position={[x + ex, STUMP_H + 0.04, z + k * STUMP_GAP]}
+              position={[x + ex, gy + STUMP_H + 0.04, z + k * STUMP_GAP]}
               rotation={[0, Math.PI / 2, 0]}
               mass={0.03}
             >
@@ -344,7 +345,7 @@ function Buildings() {
 
   return (
     <>
-      <RigidBody type="fixed" colliders={false} position={[pd[0], 0, pd[2] - 1]}>
+      <RigidBody type="fixed" colliders={false} position={[pd[0], pd[1], pd[2] - 1]}>
         <Podium />
         <CuboidCollider args={[2.5, 0.6, 1]} position={[0, 0.6, 0]} />
       </RigidBody>
@@ -356,11 +357,11 @@ function Buildings() {
         <Flag position={[-3, 0, -1]} color={C.red} />
       </group>
 
-      <group position={[GRANDSTAND.pos[0], 0, GRANDSTAND.pos[1]]}>
+      <group position={[GRANDSTAND.pos[0], heightAt(GRANDSTAND.pos[0], GRANDSTAND.pos[1]), GRANDSTAND.pos[1]]}>
         <Grandstand cheer />
       </group>
 
-      <group position={[start.x, 0, start.z]} rotation={[0, sRot, 0]}>
+      <group position={[start.x, start.y, start.z]} rotation={[0, sRot, 0]}>
         <Gantry lights={0} />
       </group>
     </>
@@ -370,20 +371,21 @@ function Buildings() {
 // Pit lane: a pit wall between the lane and the main straight, and one garage
 // per project domain with that domain's projects on plinths inside.
 function PitLane() {
+  const pitY = heightAt((PIT.from + PIT.to) / 2, PIT.z);
   return (
     <>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, PIT.z]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[(PIT.from + PIT.to) / 2, pitY + 0.025, PIT.z]} receiveShadow>
         <planeGeometry args={[PIT.to - PIT.from + 10, 6]} />
         <meshStandardMaterial color={C.asphalt} roughness={0.9} />
       </mesh>
       {[-1, 1].map((side) => (
-        <mesh key={side} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, PIT.z + side * 3]}>
+        <mesh key={side} rotation={[-Math.PI / 2, 0, 0]} position={[(PIT.from + PIT.to) / 2, pitY + 0.03, PIT.z + side * 3]}>
           <planeGeometry args={[PIT.to - PIT.from + 10, 0.18]} />
           <meshStandardMaterial color={C.asphaltLine} />
         </mesh>
       ))}
       {[-18, 18].map((x) => (
-        <RigidBody key={x} type="fixed" colliders={false} position={[x, 0, PIT.z + 4.6]}>
+        <RigidBody key={x} type="fixed" colliders={false} position={[x, pitY, PIT.z + 4.6]}>
           <PitWall />
           <CuboidCollider args={[2.6, 0.6, 0.5]} position={[0, 0.6, 0]} />
         </RigidBody>
@@ -393,7 +395,7 @@ function PitLane() {
         const list = projects.filter((p) => p.domain === g.domain);
         const span = Math.min(7, list.length * 1.8);
         return (
-          <group key={g.domain} position={[g.x, 0, PIT.garageZ - 1]}>
+          <group key={g.domain} position={[g.x, pitY, PIT.garageZ - 1]}>
             <RigidBody type="fixed" colliders={false}>
               <Garage />
               <CuboidCollider args={[4.5, 2.25, 0.15]} position={[0, 2.25, -3.35]} />
@@ -494,7 +496,7 @@ function Sectors() {
         const q = groundTextRotation(trackCurve.getTangentAt(t));
         return (
           <group key={s.id}>
-            <RigidBody type="fixed" colliders={false} position={[s.scene[0], 0, s.scene[1]]} rotation={[0, s.sceneRot, 0]}>
+            <RigidBody type="fixed" colliders={false} position={[s.scene[0], heightAt(s.scene[0], s.scene[1]) - 0.15, s.scene[1]]} rotation={[0, s.sceneRot, 0]}>
               <Scene />
               {SCENE_BOXES[s.id].map(([c, size], i) => (
                 <CuboidCollider key={i} args={[size[0] / 2, size[1] / 2, size[2] / 2]} position={c} />
@@ -502,7 +504,7 @@ function Sectors() {
             </RigidBody>
             {/* The place name is painted on the asphalt, like names on a grid slot. */}
             <Label
-              position={[p.x, 0.06, p.z]}
+              position={[p.x, p.y + 0.06, p.z]}
               quaternion={q}
               fontSize={1.6}
               letterSpacing={0.08}
@@ -556,7 +558,7 @@ function Signposts() {
       ).map(([id, t, sub, c, off]) => {
         const p = at(id);
         return (
-          <group key={id} position={[p[0] + off[0], 0, p[2] + off[2]]} scale={0.7}>
+          <group key={id} position={[p[0] + off[0], heightAt(p[0] + off[0], p[2] + off[2]), p[2] + off[2]]} scale={0.7}>
             <Billboard title={t} subtitle={sub} accent={c} />
           </group>
         );
@@ -586,7 +588,7 @@ function Nature() {
       const beach = rad > ISLAND_RADIUS - 10;
       const roll = r();
       const kind = beach ? (roll < 0.7 ? "palm" : "rock") : roll < 0.4 ? "round" : roll < 0.7 ? "pine" : roll < 0.88 ? "bush" : "rock";
-      out.push({ kind, p: [x, 0, z], s: 0.85 + r() * 0.5, rot: r() * Math.PI * 2, seed: Math.floor(r() * 1000) });
+      out.push({ kind, p: [x, heightAt(x, z), z], s: 0.85 + r() * 0.5, rot: r() * Math.PI * 2, seed: Math.floor(r() * 1000) });
     }
     return out;
   }, []);
