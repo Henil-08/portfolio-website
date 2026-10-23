@@ -1,6 +1,7 @@
 // Where the town's buildings stand and what they look like: pure data, shared
 // by the renderer (./Skyline.tsx) and anything that must keep clear of them.
-import { CROSSINGS, MAX_R, PIT, duneMask, inLand, reliefAt, trackTangent } from "../layout";
+import { CROSSINGS, MAX_R, PIT, inLand, trackTangent } from "../layout";
+import { heightAt } from "../terrain";
 import { AWAY, FRAMES, RUNOFF, barrierOffset, distToTrack, farSign, inSectorScene, nearPlace, nearTree, nearestFrame, outSign, rng } from "./common";
 import { LAMPS } from "./layoutStreet";
 import { nearPromenade } from "../waterfront/layout";
@@ -50,6 +51,31 @@ export type Bld = {
   rh: number;
 };
 
+// Buildings may stand on slopes. The walls stay vertical: the floor sits at the
+// highest ground under the footprint and a stone plinth reaches down to the
+// lowest, so the low side shows more stone and no edge ever floats. On steeper
+// ground (an embankment) the plinth stops at PLINTH m and the building sits into
+// the high side instead.
+const MAX_FALL = 5;
+const PLINTH = 2.5;
+
+/** Ground under a building's footprint: its `floor`, and `low`, where its plinth ends. */
+export function footing(b: Pick<Bld, "x" | "z" | "w" | "d" | "yaw">) {
+  const c = Math.cos(b.yaw);
+  const sn = Math.sin(b.yaw);
+  let top = -Infinity;
+  let low = Infinity;
+  for (let i = -2; i <= 2; i++)
+    for (let j = -2; j <= 2; j++) {
+      const lx = (i / 2) * (b.w / 2 + 0.2);
+      const lz = (j / 2) * (b.d / 2 + 0.2);
+      const y = heightAt(b.x + lx * c + lz * sn, b.z - lx * sn + lz * c);
+      top = Math.max(top, y);
+      low = Math.min(low, y);
+    }
+  return { floor: Math.min(top, low + PLINTH), low, fall: top - low };
+}
+
 function overlaps(a: Bld, b: Bld, gap: number) {
   // separating axis test for two rotated rectangles
   const axes = [a.yaw, a.yaw + Math.PI / 2, b.yaw, b.yaw + Math.PI / 2].map((t) => [Math.cos(t), -Math.sin(t)]);
@@ -94,9 +120,10 @@ const CAM = { x: 10.5, y: 12.5, z: 14 };
 function blocksCamera(b: Bld) {
   const c = Math.cos(b.yaw);
   const sn = Math.sin(b.yaw);
-  const top = b.h + b.rh + 0.5;
+  const floor = footing(b).floor;
   for (const f of FRAMES) {
     if (Math.hypot(f.p.x - b.x, f.p.z - b.z) > 40) continue;
+    const top = floor - f.p.y + b.h + b.rh + 0.5; // roof above this bit of road
     for (let k = 1; k <= 20; k++) {
       const t = k / 20;
       if (CAM.y * t > top) break; // the sight line is above the roof from here on
@@ -126,10 +153,10 @@ function cornersClear(b: Bld, gap: number) {
 function clear(b: Bld, out: Bld[], tight = false) {
   const hd = Math.hypot(b.w, b.d) / 2;
   if (!inLand(b.x, b.z, Math.max(b.w, b.d) * 0.45 + 2)) return false;
-  if (reliefAt(b.x, b.z) > 0.6 || duneMask(b.x, b.z) > 0.1) return false; // not on the hills or the dunes, a box would float on the slope
+  if (footing(b).fall > MAX_FALL) return false;
   if (nearPromenade(b.x, b.z, Math.max(b.w, b.d) * 0.55 + 1)) return false;
   if (inSectorScene(b.x, b.z, hd + 5, 14)) return false;
-  if (nearPlace(b.x, b.z, hd)) return false;
+  if (nearPlace(b.x, b.z, hd, !tight)) return false;
   if (nearTree(b.x, b.z, Math.min(b.w, b.d) * 0.45)) return false;
   if (LAMPS.some((l) => Math.hypot(l.x - b.x, l.z - b.z) < hd + 1)) return false;
   if (STAND_SPOTS.some((s) => Math.hypot(s.x - b.x, s.z - b.z) < hd + 8)) return false;
@@ -213,11 +240,11 @@ function oldTown(out: Bld[]) {
     const yaw = Math.atan2(-t.z, t.x);
     const tx = t.x / Math.hypot(t.x, t.z);
     const tz = t.z / Math.hypot(t.x, t.z);
-    for (let k = 0; k < 90; k++) {
+    for (let k = 0; k < 240; k++) {
       // along the lower road, and out to one side of it
-      const along = (r() * 2 - 1) * 30;
+      const along = (r() * 2 - 1) * 40;
       const side = r() < 0.5 ? 1 : -1;
-      const off = 7 + r() * 9;
+      const off = 7 + r() * 15;
       const x = c.x + tx * along - tz * off * side;
       const z = c.z + tz * along + tx * off * side;
       const camSide = (-tz * side) * AWAY.x + (tx * side) * AWAY.z < 0;
@@ -247,7 +274,6 @@ export const BUILDINGS: Bld[] = (() => {
     const d = 5 + r() * (3.5 + far01 * 3);
     const hd = Math.hypot(w, d) / 2;
     if (!inLand(x, z, hd + 2)) continue;
-    if (reliefAt(x, z) > 0.6 || duneMask(x, z) > 0.1) continue; // the hills and the dunes stay open
     if (nearPromenade(x, z, hd + 1)) continue;
     const f = nearestFrame(x, z);
     const dt = distToTrack(x, z);
@@ -273,6 +299,7 @@ export const BUILDINGS: Bld[] = (() => {
     const color = WALLS[Math.floor(r() * WALLS.length)];
     const b = dress(r, { x, z, w, d, h: bodyH(floors), yaw, color, seed: r() * 100, floors });
     if (out.some((o) => overlaps(o, b, 1.1))) continue;
+    if (footing(b).fall > MAX_FALL) continue;
     if (blocksCamera(b)) continue;
     out.push(b);
   }

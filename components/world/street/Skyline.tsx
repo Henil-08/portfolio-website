@@ -11,12 +11,12 @@ import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { heightAt } from "../terrain";
 import { dayNight } from "../daynight";
 import { lowSphere, mat } from "../models/props/shared";
 import { compose, distToTrack, rng } from "./common";
 import { Instances } from "./Instances";
-import { AWNINGS, BUILDINGS, CREAM, DUSTY_BLUE, FH, G0, ROOF_SAGE, ROOF_SLATE, ROOF_TILE, TERRACOTTA, WARM_WHITE } from "./town";
+import { C } from "../palette";
+import { AWNINGS, BUILDINGS, CREAM, DUSTY_BLUE, FH, G0, ROOF_SAGE, ROOF_SLATE, ROOF_TILE, TERRACOTTA, WARM_WHITE, footing } from "./town";
 
 export { BUILDINGS };
 
@@ -227,10 +227,17 @@ const PARTS = (() => {
   const greens = ["#6f8f5a", "#5c7a4b", "#7f9670", "#8aa27a"].map((c) => new THREE.Color(c));
 
   for (const b of BUILDINGS) {
-    // Buildings stand on the terrain (sunk a little so slopes never show a gap).
-    const ground = heightAt(b.x, b.z);
-    const sink = 0.6;
+    // The floor sits at the highest ground under the building; on a slope a stone
+    // plinth with a sand coping reaches down to the lowest (and a little below).
+    const ft = footing(b);
+    const ground = ft.floor;
+    const sink = 0.3;
     const world = compose(b.x, ground, b.z, b.yaw);
+    if (ft.fall > 0.12) {
+      const ph = ft.floor - ft.low + 0.4;
+      trims.push(box(world, C.rock, 0, 0.12 - ph / 2, 0, b.w + 0.36, ph, b.d + 0.36, 0, 0, 0.08));
+      trims.push(box(world, C.sand, 0, 0.14, 0, b.w + 0.5, 0.16, b.d + 0.5, 0, 0, 0.05));
+    }
     const fz = b.front * (b.d / 2); // the street face, in local z
 
     // Body: one bevelled block, with local coordinates for the window shader.
@@ -355,9 +362,12 @@ export function Skyline() {
       <mesh geometry={PARTS.roofs} material={mat("#ffffff", { r: 0.75, vc: true, side: THREE.DoubleSide })} castShadow receiveShadow frustumCulled={false} />
       <Instances geometry={lowSphere()} material={mat("#ffffff", { r: 0.85 })} batch={shrubBatch} />
       <RigidBody type="fixed" colliders={false}>
-        {BUILDINGS.filter((b) => distToTrack(b.x, b.z) < 40).map((b, i) => (
-          <CuboidCollider key={i} args={[b.w / 2, Math.min(b.h, 4) / 2, b.d / 2]} position={[b.x, heightAt(b.x, b.z) + Math.min(b.h, 4) / 2, b.z]} rotation={[0, b.yaw, 0]} />
-        ))}
+        {BUILDINGS.filter((b) => distToTrack(b.x, b.z) < 40).map((b, i) => {
+          // from the foot of the plinth to 4 m above the floor
+          const { floor, low } = footing(b);
+          const h = floor + 4 - (low - 0.3);
+          return <CuboidCollider key={i} args={[b.w / 2 + 0.18, h / 2, b.d / 2 + 0.18]} position={[b.x, low - 0.3 + h / 2, b.z]} rotation={[0, b.yaw, 0]} />;
+        })}
       </RigidBody>
     </>
   );

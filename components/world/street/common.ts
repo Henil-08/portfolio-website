@@ -191,15 +191,16 @@ export function nearTree(x: number, z: number, r: number) {
 const CONE_T = [0.18, 0.44, 0.68, 0.9];
 
 /** Things placed by Places that sit near the track and need clear access. */
-export function nearPlace(x: number, z: number, pad = 0) {
+export function nearPlace(x: number, z: number, pad = 0, bridge = true) {
   for (const zn of zones) {
     if (zn.id.startsWith("sector") || zn.id.startsWith("garage")) continue;
     const r = Math.hypot(zn.size[0], zn.size[1]) / 2 + 6 + pad;
     if (Math.hypot(x - zn.pos[0], z - zn.pos[1]) < r) return true;
   }
   if (Math.hypot(x - GRANDSTAND.pos[0], z - GRANDSTAND.pos[1]) < 9 + pad) return true;
-  // Nothing stands under or through the bridge.
-  if (nearCrossing(x, z, BRIDGE_HALF + 1 + pad)) return true;
+  // Nothing stands under or through the bridge. (The old town opts out: it keeps every
+  // corner 6.5 m off both roads instead, which keeps it off the deck and the piers.)
+  if (bridge && nearCrossing(x, z, BRIDGE_HALF + 1 + pad)) return true;
   return false;
 }
 
