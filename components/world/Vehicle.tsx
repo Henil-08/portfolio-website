@@ -73,6 +73,8 @@ const WHEEL_PLAY = 0.25;
 // shoved through the terrain (a post or wall at speed): respawn instead of
 // leaving the body buried with the wheels sticking out.
 const BURIED = 0.15;
+// Half length of the chassis collider: between the axles, so a crest meets the tyres first.
+const CHASSIS_CLEAR_HALF = 0.95;
 
 // Mount each wheel's suspension so the car settles with the tyres on the road.
 const WHEELS = WHEEL_POSITIONS.map((w) => ({
@@ -157,9 +159,10 @@ export default function Vehicle() {
   }, []);
 
   // Dev and headless checks: window.__placeT(t) drops the car on the track at t;
-  // window.__placeXZ(x, z, heading) drops it anywhere on the ground.
+  // window.__placeXZ(x, z, heading) drops it anywhere on the ground; window.__car is carState.
   useEffect(() => {
-    const w = window as unknown as { __placeT: (t: number) => void; __placeXZ: (x: number, z: number, h?: number) => void };
+    const w = window as unknown as { __placeT: (t: number) => void; __placeXZ: (x: number, z: number, h?: number) => void; __car: typeof carState };
+    w.__car = carState;
     w.__placeT = (t: number) => {
       if (!body.current) return;
       const p = trackPoint(t);
@@ -345,10 +348,13 @@ export default function Vehicle() {
         canSleep={false}
         ccd
       >
-        {/* Bruno's chassis: mass 2.5 with the centre of mass well below the body. */}
+        {/* Bruno's chassis: mass 2.5 with the centre of mass well below the body.
+            The colliders ride higher than the low F1 body (0.3 m off the ground, not
+            0.18) and the chassis box is shorter, so the car never beaches on a crest or
+            a bank; the body may dip into the grass a little, which reads as cartoony. */}
         <CuboidCollider
-          args={[CHASSIS_HALF[0], 0.17, CHASSIS_HALF[2]]}
-          position={[0, 0.05, 0]}
+          args={[CHASSIS_CLEAR_HALF, 0.14, CHASSIS_HALF[2]]}
+          position={[0, 0.14, 0]}
           friction={0.4}
           massProperties={{
             mass: 2.5,
@@ -361,8 +367,8 @@ export default function Vehicle() {
             so walls push the car along instead of catching a tyre, and no wheel
             ever pokes into a wall or a building. */}
         <CuboidCollider
-          args={[1.5, 0.22, 0.74]}
-          position={[0.02, 0.1, 0]}
+          args={[1.5, 0.18, 0.74]}
+          position={[0.02, 0.2, 0]}
           density={0}
           friction={0}
           frictionCombineRule={CoefficientCombineRule.Min}
