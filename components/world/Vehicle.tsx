@@ -195,6 +195,9 @@ export default function Vehicle() {
         b = REVERSE_BRAKE;
         engine = 0;
       }
+      // Off the boost and over normal top speed: ease back to it in about a second
+      // (Bruno lets the car coast down from boost speed, which feels like boost lingers).
+      if (!boost && speed.current > TOP_SPEED * 1.15) b = Math.max(b, Math.min(0.35, ((speed.current - TOP_SPEED) / TOP_SPEED) * 0.12));
       brake = b * BRAKE_AMPLITUDE * dts;
     }
 

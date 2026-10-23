@@ -1,5 +1,5 @@
 // The living world: one wind field (alive/wind.ts) moving grass, foliage, flags,
-// leaves, wind lines, dust and birds, plus wheel tracks, skid marks, confetti and
+// wind lines and birds (no wheel dust or loose leaves: they read as smoke and litter), plus wheel tracks, skid marks, confetti and
 // fireflies. Most of it is adapted from Bruno Simon's folio-2025 (MIT,
 // (c) 2025 Bruno Simon); each file names its source.
 //
@@ -10,9 +10,7 @@
 import { useFrame } from "@react-three/fiber";
 import { updateWind } from "./wind";
 import { Tracks } from "./Tracks";
-import { Leaves } from "./Leaves";
 import { WindLines } from "./WindLines";
-import { Dust } from "./Dust";
 import { Skids } from "./Skids";
 import { Confetti } from "./Confetti";
 import { Birds } from "./Birds";
@@ -44,9 +42,7 @@ export default function Alive({
       <WindClock />
       <Tracks />
       <Skids />
-      <Leaves />
       <WindLines />
-      <Dust />
       <Confetti />
       {birds && <Birds perches={birdPerches} />}
       {fireflies && <Fireflies />}
