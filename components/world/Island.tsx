@@ -9,6 +9,7 @@ import { CANALS, LAKES, SEA_Y, canalDist, duneMask, START_T, TRACK_WIDTH, lakeDe
 import Water from "./Water";
 import Harbour from "./Harbour";
 import { EXTENT, GRID, heightGrid } from "./terrain";
+import { parkSand as parkSandAt } from "./park/layout";
 
 const SEGMENTS = 320;
 
@@ -198,6 +199,7 @@ function terrainGeometry() {
   const grass = new THREE.Color(C.grass);
   const sand = new THREE.Color(C.sand);
   const wet = new THREE.Color(C.sand).multiplyScalar(0.78);
+  const parkSand = new THREE.Color("#e8cfa6"); // Bruno's park sand, toned to our palette
   const tmp = new THREE.Color();
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {
@@ -210,6 +212,7 @@ function terrainGeometry() {
       const d = Math.min(shoreDist(x, z), ...LAKES.map((l) => -lakeDepthDist(l, x, z)), ...CANALS.map((c) => -canalDist(c, x, z)));
       tmp.copy(grass).lerp(sand, 1 - THREE.MathUtils.smoothstep(d, 2.5, 6.5));
       tmp.lerp(sand, duneMask(x, z) * 0.85); // the east dunes are sand with a little grass
+      tmp.lerp(parkSand, parkSandAt(x, z)); // the park: grass islands in warm sand
       tmp.lerp(wet, 1 - THREE.MathUtils.smoothstep(y - SEA_Y, 0.02, 0.18));
       col.set([tmp.r, tmp.g, tmp.b], k * 3);
     }

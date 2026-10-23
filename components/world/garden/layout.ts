@@ -12,22 +12,18 @@ import { nearCrossing, nearestT, TRACK_WIDTH } from "../layout";
 export type Path = { pts: [number, number][]; w: number };
 
 export const PATHS: Path[] = [
-  // Promenade behind the garages, from the pond to the mailbox corner.
+  // Promenade behind the garages, from the pond to the east corner.
   { pts: [[-42, 14.5], [-30, 15], [-14, 15.2], [2, 15.2], [16, 15], [27, 14.2]], w: 2.6 },
   // West: past the pond, down to the cricket ground.
   { pts: [[-42, 14.5], [-41, 6], [-38.5, -2.5]], w: 2 },
-  // Spur to the podium.
-  { pts: [[-24, 15.1], [-24, 10]], w: 1.8 },
   // From the terrace's west end out to the west path.
   { pts: [[-22, 3], [-31, 3.4], [-40.8, 4]], w: 2 },
   // From the terrace's east end, along the tyre wall, out to the east path.
   { pts: [[10, 3], [19, 3.4], [31, 3]], w: 2 },
-  // East: from the promenade, round the tyre wall and down to the football.
+  // East: from the promenade, down past the letters and out to the park.
   { pts: [[27, 14.2], [31, 6], [31.2, -2], [25.5, -10]], w: 2 },
-  // From the east path, between HENIL and GAJJAR (the word gap is at x ~18), down to the football.
+  // From the east path, between HENIL and GAJJAR (the word gap is at x ~18), down to the park.
   { pts: [[18, 3.2], [18, -3.2], [17.2, -10.5]], w: 1.2 },
-  // To the mailbox.
-  { pts: [[27, 14.2], [33, 18.5], [37, 22]], w: 1.8 },
 ];
 
 /** Dense polyline of a path (about every 0.5 m), smoothed through its points. */
@@ -81,11 +77,9 @@ export const POND = { x: -46, z: 21, r: 3.4 };
 export const HEDGES: [number, number, number, number][] = [
   // Framing the pond's back.
   [-51, 16.5, -51, 25],
-  // Behind the podium.
-  [-32, 4.8, -25, 4.8],
   // Along the east path's outer side, between it and the run-off.
   [34, 8, 34, 0],
-  // Behind the tyre wall, screening the letters.
+  // Behind the letters.
   [15.5, 5.6, 25, 5.6],
   // Low line along the cricket ground's north side.
   [-52, -1.5, -42, -1.5],

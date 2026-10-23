@@ -14,6 +14,7 @@ import { tracks, tracksTarget } from "./alive/Tracks";
 import { paintGarden } from "./garden/layout";
 import { paintWaterfront } from "./waterfront/layout";
 import { TYRE_WALLS } from "./street/layoutStreet";
+import { paintPark } from "./park/layout";
 
 // Bruno's grass: one triangle per blade (tip + two base corners), laid out on a
 // jittered grid that loops around the car so the field never runs out. Every
@@ -61,6 +62,8 @@ function makeMask() {
   }
   g.fill();
   g.globalCompositeOperation = "source-over";
+  // The park: sand between its islands (first, so later features cut into the islands).
+  paintPark(g, tx);
   g.fillStyle = g.strokeStyle = "#000";
   // The harbour arm and its banks.
   g.lineCap = g.lineJoin = "round";

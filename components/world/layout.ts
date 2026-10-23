@@ -135,7 +135,7 @@ export const CANALS: Canal[] = [
   // The river: from the spring lake in the north-east loop, south past the start,
   // under the east esses and out to the east sea. Shallow: you can splash through it.
   {
-    pts: [[60, -42], [54, -30], [44, -18], [38, -5], [41, 6], [52, 13], [66, 15], [82, 13], [100, 10], [128, 8]],
+    pts: [[60, -42], [56, -31], [47, -17], [40, -5], [41, 6], [52, 13], [66, 15], [82, 13], [100, 10], [128, 8]],
     w: [5, 5, 5.5, 5.5, 6, 6, 6.5, 7, 8, 10],
     bed: SEA_Y - 0.6,
   },
@@ -360,7 +360,7 @@ const AWAY = new THREE.Vector3(-1, 0, -1).normalize();
 // a spot along the sector's stretch where that whole footprint stays clear of
 // every part of the track, inside the island, away from the infield zones.
 export const SCENE_FOOT = { hx: 14.5, back: 10.5, front: 1 };
-const INFIELD: [number, number][] = [[20, 8], [-28, 8], [-30, -20], [14, -18], [42, 26], [0, 3], [6, -78]];
+const INFIELD: [number, number][] = [[34, -23], [-2, -18], [-30, -20], [15, -21], [24, -39], [0, 3], [6, -78], [44, -44]];
 
 function footprintClear(cx: number, cz: number, rot: number) {
   const c = Math.cos(rot);
@@ -496,11 +496,12 @@ export const zones: Zone[] = [
     size: [9, 8],
     spawn: [g.x, PIT.z, Math.PI / 2],
   })),
-  { id: "playbook", label: "Tyre wall", hint: "How I work with AI", pos: [20, 8], size: [11, 8], spawn: [12, 12, 0] },
-  { id: "podium", label: "Podium", hint: "Papers and patents", pos: [-28, 8], size: [10, 8], spawn: [-20, 12, Math.PI] },
+  // The park: each on its own grass island north of the garden (park/layout.ts).
+  { id: "playbook", label: "Tyre wall", hint: "How I work with AI", pos: [34, -23], size: [11, 8], spawn: [26, -19, 0] },
+  { id: "podium", label: "Podium", hint: "Papers and patents", pos: [-2, -18], size: [10, 8], spawn: [6, -14, Math.PI] },
   { id: "cricket", label: "Cricket", hint: "Off the clock", pos: [-46, -8], size: [22, 8], spawn: [-32, -8, Math.PI] },
-  { id: "football", label: "Football", hint: "Off the clock", pos: [14, -18], size: [18, 14], spawn: [2, -10, 0] },
-  { id: "contact", label: "Mailbox", hint: "Say hi", pos: [42, 26], size: [9, 8], spawn: [36, 30, -Math.PI / 4] },
+  { id: "football", label: "Football", hint: "Off the clock", pos: [15, -21], size: [18, 14], spawn: [3, -13, 0] },
+  { id: "contact", label: "Mailbox", hint: "Say hi", pos: [24, -36], size: [9, 8], spawn: [14, -31, 0.67] },
 ];
 
 export const zoneById = Object.fromEntries(zones.map((z) => [z.id, z])) as Record<ZoneId, Zone>;
@@ -518,5 +519,5 @@ export const SPAWN: [number, number, number] = [LETTERS.center[0] - 3, LETTERS.c
 /** Career timeline plaza (components/world/Timeline.tsx): centre, world-axis half size, yaw. */
 export const TIMELINE = { pos: [-6, 3] as [number, number], hx: 15.5, hz: 9.5, rot: Math.PI / 2 }; // time runs west
 /** Infield grandstand looking north over the tunnel straight and the bridge. */
-export const GRANDSTAND = { pos: [26, -37] as [number, number], rot: Math.PI };
+export const GRANDSTAND = { pos: [44, -44] as [number, number], rot: Math.PI };
 export const GANTRY_T = START_T;

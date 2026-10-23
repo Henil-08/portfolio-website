@@ -75,6 +75,7 @@ import {
 import { cheer, pop } from "./sound";
 import { achieve, toast } from "./store";
 import { heightAt } from "./terrain";
+import Park from "./park";
 
 type V3 = [number, number, number];
 
@@ -640,6 +641,7 @@ export default function Places() {
       <Groves />
       <Garden />
       <Social />
+      <Park />
       <Waterfront />
       <Bridge />
     </>

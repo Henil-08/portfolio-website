@@ -13,6 +13,7 @@ import { profile } from "@/content/profile";
 import { carState } from "../carState";
 import { C } from "../palette";
 import { heightAt } from "../terrain";
+import { zoneById } from "../layout";
 import { getState, setState } from "../store";
 import { geo, mat } from "../models/props/shared";
 import { Avatar } from "../models/Avatar";
@@ -31,7 +32,8 @@ export const LINKS: SocialLink[] = [
 ];
 
 /** Centre of the ring: the medallions bow away from the camera (to -z), open side toward it. */
-export const SOCIAL = { center: [42, 23] as [number, number], radius: 6.2, reach: 2.6 };
+// The ring stands on its park island, 3 m behind the contact zone's hotspot.
+export const SOCIAL = { center: [zoneById.contact.pos[0], zoneById.contact.pos[1] - 3] as [number, number], radius: 6.2, reach: 2.6 };
 
 /** World x, z of each medallion. */
 export const LINK_SPOTS: [number, number][] = LINKS.map((_, i) => {

@@ -82,7 +82,7 @@ function build() {
     { x: (PIT.from + PIT.to) / 2, z: (PIT.z + PIT.garageZ) / 2 - 1, hx: (PIT.to - PIT.from) / 2 + 8, hz: 11 },
     { x: LETTERS.center[0], z: LETTERS.center[1], hx: LETTERS.hx + 1.5, hz: 4, y: infieldY },
     { x: GRANDSTAND.pos[0], z: GRANDSTAND.pos[1], hx: 8, hz: 5 },
-    ...zones.filter((zz) => !zz.id.startsWith("sector-") && !zz.id.startsWith("garage-")).map((zz) => ({ x: zz.pos[0], z: zz.pos[1], hx: zz.size[0] / 2 + 3, hz: zz.size[1] / 2 + 3, y: zz.id === "contact" ? undefined : infieldY })),
+    ...zones.filter((zz) => !zz.id.startsWith("sector-") && !zz.id.startsWith("garage-")).map((zz) => ({ x: zz.pos[0], z: zz.pos[1], hx: zz.size[0] / 2 + 3, hz: zz.size[1] / 2 + 3, y: infieldY })),
     // Last, so it wins where its edge meets a neighbour's slope.
     { x: TIMELINE.pos[0], z: TIMELINE.pos[1], hx: TIMELINE.hx, hz: TIMELINE.hz, y: infieldY },
   ];
@@ -103,6 +103,8 @@ function build() {
         const dz = Math.max(0, Math.abs(lz) - pad.hz);
         const d = Math.hypot(dx, dz);
         if (d > 8) continue;
+        // a pad's sloping rim never bends an earlier pad's level top
+        if (d > 0 && fixed[j * n + i]) continue;
         if (d === 0) fixed[j * n + i] = 1;
         const k = 1 - THREE.MathUtils.smoothstep(d, 0, 8);
         h[j * n + i] = THREE.MathUtils.lerp(h[j * n + i], y0, k);
