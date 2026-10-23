@@ -24,8 +24,9 @@ import { input } from "./input";
 import { carState, ticker } from "./carState";
 import { getState, setState, subscribe } from "./store";
 import { BoostTrail } from "./BoostTrail";
+import { dayNight } from "./daynight";
 import { SPAWN, zoneById } from "./layout";
-import { honk } from "./sound";
+import { engineIdle, engineUpdate, honk } from "./sound";
 
 // Driving model ported from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon),
 // sources/Game/Physics/PhysicsVehicle.js and Player.js: same engine, brake and
@@ -80,6 +81,8 @@ export default function Vehicle() {
   const tipRefs = useRef<(THREE.Group | null)[]>([]);
   const tipA = useRef<THREE.Group | null>(null);
   const tipB = useRef<THREE.Group | null>(null);
+  const glow = useRef<THREE.PointLight>(null);
+  const rain = useRef<THREE.Mesh<THREE.BoxGeometry, THREE.MeshStandardMaterial>>(null);
   const flipped = useRef(0);
   const lastHud = useRef(0);
   const goingForward = useRef(true);
@@ -215,6 +218,10 @@ export default function Vehicle() {
         s.rotation.z -= (carState.speed / WHEELS[i].radius) * dt;
     }
 
+    // At night the car carries a soft pool of light and its rain light glows.
+    if (glow.current) glow.current.intensity = dayNight.night * 14;
+    if (rain.current) rain.current.material.emissiveIntensity = 0.4 + dayNight.night * 3.5;
+
     // DRS: the flap opens while boosting.
     if (drs.current) {
       const want = boosting.current ? 0.75 : 0;
@@ -237,6 +244,10 @@ export default function Vehicle() {
       input.honk = false;
       honk();
     }
+
+    if (getState().phase === "world") {
+      engineUpdate(Math.abs(carState.speed) * 3.6, Math.abs(input.forward - input.back), boosting.current, input.handbrake);
+    } else engineIdle();
 
     lastHud.current += dt;
     if (lastHud.current > 0.1) {
@@ -270,7 +281,12 @@ export default function Vehicle() {
             angularInertiaLocalFrame: { x: 0, y: 0, z: 0, w: 1 },
           }}
         />
-        <CarBody brakeLight={false} drsRef={drs}>
+        <pointLight ref={glow} position={[1.6, 1.4, 0]} intensity={0} distance={11} decay={1.6} color="#ffe6c4" />
+      <mesh ref={rain} position={[-1.5, -0.05, 0]}>
+        <boxGeometry args={[0.04, 0.07, 0.16]} />
+        <meshStandardMaterial color="#ff2a1f" emissive="#ff2a1f" emissiveIntensity={0.4} />
+      </mesh>
+      <CarBody brakeLight={false} drsRef={drs}>
           <Driver position={DRIVER_SEAT} />
         </CarBody>
         {WING_TIPS.map((p, i) => (

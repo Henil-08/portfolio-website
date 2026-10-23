@@ -427,6 +427,9 @@ function PitLane() {
 // Each sector has its own scenery set beside the track.
 const SCENES = { ahmedabad: AhmedabadSector, hyperlab: HyperlabSector, boston: BostonSector, waters: WatersSector };
 
+// Painted road text that reacts to light (so it darkens at night).
+const GROUND_TEXT = new THREE.MeshStandardMaterial({ color: "#f3f1ec", roughness: 0.8, transparent: true, opacity: 0.55 });
+
 // Text lying flat on the road, running along the track and upright as seen
 // from the camera (which looks from +X/+Z).
 const TOWARD_CAMERA = new THREE.Vector3(1, 0, 1).normalize();
@@ -502,9 +505,8 @@ function Sectors() {
               position={[p.x, 0.06, p.z]}
               quaternion={q}
               fontSize={1.6}
-              color="#f3f1ec"
-              fillOpacity={0.55}
               letterSpacing={0.08}
+              material={GROUND_TEXT}
             >
               {s.place.toUpperCase()}
             </Label>
