@@ -26,6 +26,7 @@ type State = {
   spawns: { id: number; thing: "cones" | "footballs" | "tyres" | "confetti"; count: number; at: [number, number] }[];
   picks: { title: string; slugs: string[] } | null;
   fitOpen: boolean;
+  controlsOpen: boolean;
   voice: boolean; // race engineer speaks out loud
   hallucinating: boolean;
   achievements: string[];
@@ -54,6 +55,7 @@ let state: State = {
   spawns: [],
   picks: null,
   fitOpen: false,
+  controlsOpen: false,
   voice: true,
   hallucinating: false,
   achievements: [],

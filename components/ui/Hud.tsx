@@ -36,6 +36,7 @@ export default function Hud() {
       <Joystick />
       <Ask />
       <MapMenu />
+      <Controls />
     </>
   );
 }
@@ -57,6 +58,9 @@ function TopBar() {
       </div>
 
       <div className="pointer-events-auto flex items-center gap-2">
+        <IconBtn label="Controls" onClick={() => setState((s) => ({ controlsOpen: !s.controlsOpen }))}>
+          <path d="M3 7h18v10H3zM7 11h.01M11 11h.01M15 11h.01M7 14h10" />
+        </IconBtn>
         <IconBtn label="Map" onClick={() => setState((s) => ({ menuOpen: !s.menuOpen }))}>
           <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14" />
         </IconBtn>
@@ -126,6 +130,53 @@ function ZoneCard() {
             <PanelBody zone={zone} />
           </div>
         </motion.aside>
+      )}
+    </AnimatePresence>
+  );
+}
+
+const CONTROLS: [string, string][] = [
+  ["W A S D / arrows", "Drive"],
+  ["Shift", "Boost, opens DRS"],
+  ["Space", "Brake"],
+  ["E", "Look at the place you're parked at"],
+  ["V (hold)", "Talk to your race engineer"],
+  ["R", "Reset the car"],
+  ["H", "Honk"],
+  ["Esc", "Close a card"],
+];
+
+function Controls() {
+  const open = useWorld((s) => s.controlsOpen);
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-40 grid place-items-center bg-ink/30 p-4 backdrop-blur-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setState({ controlsOpen: false })}
+        >
+          <motion.div
+            initial={{ scale: 0.94, y: 16 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.96 }}
+            className="toy-card w-full max-w-sm rounded-[28px] p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="font-racing text-2xl tracking-wide text-ink">CONTROLS</p>
+            <div className="mt-4 divide-y divide-line">
+              {CONTROLS.map(([k, d]) => (
+                <div key={k} className="flex items-center justify-between gap-4 py-2.5">
+                  <Key k={k} />
+                  <span className="text-right text-[13px] text-ink-soft">{d}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-4 text-[12px] text-ink-soft/70">On a phone: thumb stick to steer, gas and brake on the right. A few keys are secret.</p>
+          </motion.div>
+        </motion.div>
       )}
     </AnimatePresence>
   );
@@ -256,8 +307,8 @@ function Hints() {
             className="toy-card pointer-events-none fixed bottom-5 left-1/2 z-20 hidden -translate-x-1/2 items-center gap-5 rounded-2xl px-5 py-3 text-[13px] text-ink-soft [@media(pointer:fine)]:flex"
           >
             <Key k="W A S D" /> drive
-            <Key k="Shift" /> boost
-            <Key k="Space" /> drift
+            <Key k="Shift" /> boost · DRS
+            <Key k="Space" /> brake
             <Key k="R" /> reset
             <Key k="H" /> honk
           </motion.div>
