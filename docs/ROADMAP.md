@@ -222,6 +222,21 @@ Same ownership as step 4 plus new components/world/ui3d/**.
 - [ ] More of Bruno to port next, in this order: interaction prompt (step 5), map (step 4),
       respawn wipe, toasts. Bruno's clone: `git clone --depth 1 https://github.com/brunosimon/folio-2025`.
 
+### 9. Third-round feedback (2026-10-23): intro, map, water
+- [x] No wheel smoke or loose leaves (Dust, Leaves unmounted) (a772620).
+- [x] Boost lets go with Shift: overspeed brake back to normal top speed in ~1 s (a772620).
+- [x] Bruno's opening reveal (components/world/Reveal.tsx): world only inside a glowing circle
+      round the car on dark aubergine, sweeps out on Enter/W; no turntable, no drop (67eb0df).
+- [x] Town frontage steps round corners (4a460a4).
+- [x] Coast instead of a disc (3730cb6): `COAST_KEYS` in layout.ts, south bay waterfront along the
+      main straight, northern headlands; beaches; lake in the west infield; components/world/Water.tsx
+      (depth-shaded, foam). Use `inLand(x, z, margin)` / `shoreDist` for any placement.
+- [ ] Water to drive *under*: a canal under the bridge doesn't fit (embankments and piers under the
+      deck, barriers right beside the tunnel straight). Options: lengthen the bridge into a viaduct over
+      a widened lake, or a harbour inlet the main straight crosses on a low bridge.
+- [ ] Waterfront dressing: a promenade with railings and lamps along the bay, a pier, boats.
+- [ ] Map (step 4) should now render this coastline.
+
 ### 7. Later
 - Bruno-style "unstuck" hint if the car barely moves for 3 s.
 - Engine sound regenerate or keep silent; check the music ducking under radio.
