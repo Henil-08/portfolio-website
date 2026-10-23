@@ -9,16 +9,18 @@ import { dayNight } from "../daynight";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { mat, unitCyl } from "../models/props/shared";
 import { propGeometry } from "../models/props/bruno";
+import { withWind } from "../alive/sway";
 import { BENCH, LANTERN, LANTERN_LIGHT } from "../models/props/brunoProps";
 import { Instances } from "../street/Instances";
 import { HARBOUR } from "./harbour";
+import { HILLS, flowerGeometry } from "./hills";
 import { OLD_TOWN } from "./oldTown";
 
 /** Lantern glass: a soft glow by day, blooming at night. Owned here so it's safe to animate. */
 const glass = new THREE.MeshStandardMaterial({ color: "#ffd9a8", emissive: new THREE.Color("#ff9440"), emissiveIntensity: 0.1, roughness: 0.4, toneMapped: false });
 
 export default function Districts() {
-  const props = useMemo(() => ({ lantern: propGeometry(LANTERN), light: propGeometry(LANTERN_LIGHT), bench: propGeometry(BENCH), crate: new RoundedBoxGeometry(1, 1, 1, 2, 0.08) }), []);
+  const props = useMemo(() => ({ lantern: propGeometry(LANTERN), light: propGeometry(LANTERN_LIGHT), bench: propGeometry(BENCH), crate: new RoundedBoxGeometry(1, 1, 1, 2, 0.08), flower: flowerGeometry(), rock: new THREE.IcosahedronGeometry(1, 0) }), []);
   const lanterns = useMemo(() => ({ m: [...OLD_TOWN.lanterns, ...HARBOUR.lanterns] }), []);
   const benches = useMemo(() => ({ m: [...OLD_TOWN.benches, ...HARBOUR.benches] }), []);
   useFrame(() => {
@@ -33,6 +35,8 @@ export default function Districts() {
       <Instances geometry={props.bench} material={vc} batch={benches} />
       <Instances geometry={props.crate} material={mat("#ffffff", { r: 0.85 })} batch={HARBOUR.crates} />
       <Instances geometry={unitCyl()} material={mat("#ffffff", { r: 0.6 })} batch={HARBOUR.barrels} />
+      <Instances geometry={props.flower} material={withWind(mat("#ffffff", { r: 0.7, side: THREE.DoubleSide }), { amount: 0.25, maxHeight: 0.4 })} batch={HILLS.flowers} shadow={false} />
+      <Instances geometry={props.rock} material={mat("#ffffff", { r: 0.95, flat: true })} batch={HILLS.rocks} />
     </group>
   );
 }
