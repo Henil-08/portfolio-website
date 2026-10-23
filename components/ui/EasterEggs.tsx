@@ -7,17 +7,19 @@ import { input } from "@/components/world/input";
 import { carState } from "@/components/world/carState";
 import { zones } from "@/components/world/layout";
 import { ACHIEVEMENTS } from "@/content/achievements";
+import { radioExtras, radioText } from "@/content/radio";
 
 const KONAMI = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "KeyB", "KeyA"];
 
 // Radio line, played from its pre-voiced file if the voice is on.
-function radio(text: string, file?: string) {
+function radio(line: string, file?: string) {
+  const text = radioText(line);
   setState({ radioMsg: { id: Date.now(), text } });
   if (getState().voice && file) void radioLine(file);
   else void radioBeep();
   setTimeout(() => {
     if (getState().radioMsg?.text === text) setState({ radioMsg: null });
-  }, 6000);
+  }, 8000);
 }
 
 function unlocked(id: string) {
@@ -29,7 +31,7 @@ function unlocked(id: string) {
 // Typed words that do things. Nothing on screen mentions them.
 const WORDS: Record<string, () => void> = {
   claude: () => {
-    radio("Claude here. He gave me context, tools and this island. Best prompt I've had all week.", "claude");
+    radio(radioExtras.claude, "claude");
     unlocked("claude");
   },
   gpu: () => {
@@ -43,7 +45,7 @@ const WORDS: Record<string, () => void> = {
     toast("TRAINING LOSS 0.000", "yellow");
     radio("Training loss zero, validation loss through the roof. Classic.");
   },
-  hello: () => radio("Radio check. Hold V if you want to talk to me. Box, box.", "hello"),
+  hello: () => radio(radioExtras.hello, "hello"),
 };
 
 export default function EasterEggs() {
@@ -61,9 +63,9 @@ export default function EasterEggs() {
         const on = !getState().hallucinating;
         setState({ hallucinating: on });
         if (on) {
-          radio("Temperature set to two point oh. The car is fine. The car has always been purple.", "temp-on");
+          radio(radioExtras["temp-on"], "temp-on");
           unlocked("hallucination");
-        } else radio("Temperature back to zero. Grounded again.", "temp-off");
+        } else radio(radioExtras["temp-off"], "temp-off");
       }
 
       if (e.key.length === 1) {
@@ -92,7 +94,7 @@ export default function EasterEggs() {
       const moving = input.forward || input.back || input.steer;
       still = moving || s.phase !== "world" || s.askOpen || s.zone ? 0 : still + 1;
       if (still === 60) {
-        radio("Driver, do you copy? Car's warm, tyres are getting cold.", "idle");
+        radio(radioExtras.idle, "idle");
         unlocked("idle");
       }
     }, 1000);

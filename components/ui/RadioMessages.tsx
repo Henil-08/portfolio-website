@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef } from "react";
 import { getState, setState, useWorld } from "@/components/world/store";
 import { radioBeep, radioLine } from "@/components/world/sound";
-import { radioLines } from "@/content/radio";
+import { radioLines, radioText } from "@/content/radio";
 import type { ZoneId } from "@/components/world/layout";
 
 let msgId = 0;
@@ -13,22 +13,24 @@ let msgId = 0;
 export default function RadioMessages() {
   const near = useWorld((s) => s.near);
   const msg = useWorld((s) => s.radioMsg);
+  const live = useWorld((s) => s.phase === "world");
   const heard = useRef(new Set<ZoneId>());
 
   useEffect(() => {
-    if (!near || heard.current.has(near)) return;
+    // Nothing plays behind the start screen.
+    if (!live || !near || heard.current.has(near)) return;
     heard.current.add(near);
     const line = radioLines[near];
     if (!line) return;
     const id = ++msgId;
-    setState({ radioMsg: { id, text: line } });
+    setState({ radioMsg: { id, text: radioText(line) } });
     if (getState().voice) void radioLine(near);
     else void radioBeep();
     const t = setTimeout(() => {
       if (getState().radioMsg?.id === id) setState({ radioMsg: null });
-    }, 6500);
+    }, 8500);
     return () => clearTimeout(t);
-  }, [near]);
+  }, [near, live]);
 
   return (
     <AnimatePresence>

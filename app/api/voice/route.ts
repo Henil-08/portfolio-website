@@ -5,26 +5,33 @@ import { clientIp, hit } from "@/lib/ratelimit";
 // fallback. The browser adds the radio effect, so this returns clean audio.
 const Body = z.object({ text: z.string().min(1).max(400) });
 
+// ElevenLabs v3 is the expressive one (and reads [excited]-style cues). If it fails or the
+// account can't use it, fall back to Turbo v2.5 with loose, high-style settings.
+const MODELS = [
+  { model_id: "eleven_v3", voice_settings: { stability: 0.5, similarity_boost: 0.8 } },
+  { model_id: "eleven_turbo_v2_5", voice_settings: { stability: 0.3, similarity_boost: 0.8, style: 0.55, speed: 1.05 } },
+];
+
 async function elevenlabs(text: string, signal: AbortSignal) {
   const key = process.env.ELEVENLABS_API_KEY;
   if (!key) return null;
-  // Default: a warm British male premade voice. Override with ELEVENLABS_VOICE_ID.
-  const voice = process.env.ELEVENLABS_VOICE_ID || "JBFqnCBsd6RMkjVDRZzb";
-  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=mp3_44100_64`, {
-    method: "POST",
-    headers: { "xi-api-key": key, "content-type": "application/json", accept: "audio/mpeg" },
-    body: JSON.stringify({
-      text,
-      model_id: process.env.ELEVENLABS_MODEL || "eleven_flash_v2_5",
-      voice_settings: { stability: 0.45, similarity_boost: 0.8, style: 0.25, speed: 1.05 },
-    }),
-    signal,
-  }).catch(() => null);
-  if (!res?.ok || !res.body) {
-    if (res) console.warn(`elevenlabs -> ${res.status}`);
-    return null;
+  // Default: Daniel, a calm British premade voice (same as the pre-voiced lines).
+  const voice = process.env.ELEVENLABS_VOICE_ID || "onwK4e9ZLuTAKqWW03F9";
+  const models = process.env.ELEVENLABS_MODEL ? MODELS.filter((m) => m.model_id === process.env.ELEVENLABS_MODEL) : MODELS;
+  for (const m of models.length ? models : MODELS) {
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=mp3_44100_64`, {
+      method: "POST",
+      headers: { "xi-api-key": key, "content-type": "application/json", accept: "audio/mpeg" },
+      body: JSON.stringify({ text, ...m }),
+      signal,
+    }).catch(() => null);
+    if (res?.ok && res.body) {
+      return new Response(res.body, { headers: { "content-type": "audio/mpeg", "cache-control": "no-store" } });
+    }
+    if (res) console.warn(`elevenlabs ${m.model_id} -> ${res.status}`);
+    if (signal.aborted) return null;
   }
-  return new Response(res.body, { headers: { "content-type": "audio/mpeg", "cache-control": "no-store" } });
+  return null;
 }
 
 async function orpheus(text: string, signal: AbortSignal) {
