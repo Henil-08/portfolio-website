@@ -14,6 +14,7 @@ function build(inner: (i: number) => number, outer: (i: number) => number, y: nu
   const uv: number[] = [];
   const idx: number[] = [];
   let prev = -1;
+  let side = 0;
   for (let i = 0; i <= N_FRAMES; i++) {
     const j = i % N_FRAMES;
     const f = FRAMES[j];
@@ -23,6 +24,8 @@ function build(inner: (i: number) => number, outer: (i: number) => number, y: nu
       continue;
     }
     const s = -Math.sign(f.k) || 1;
+    if (s !== side) prev = -1; // the corner changed hands: start a new strip, don't bridge the road
+    side = s;
     const a = inner(j);
     const b = Math.max(a + 0.01, outer(j));
     const pa = f.p.clone().addScaledVector(f.n, s * a);
