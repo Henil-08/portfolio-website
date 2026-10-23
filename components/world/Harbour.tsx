@@ -172,7 +172,7 @@ export default function Harbour() {
 // ------------------------------------------------------------ quays
 
 /** Runs of points along a canal's quay edge: [x, z, rx, rz] (r points from the water to the land). */
-function quayRuns(c: Canal) {
+export function quayRuns(c: Canal) {
   const runs: [number, number, number, number][][] = [];
   if (c.quay === undefined) return runs;
   let cur: [number, number, number, number][] = [];
