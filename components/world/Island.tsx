@@ -10,6 +10,7 @@ import Water from "./Water";
 import Embankments from "./Embankments";
 import Harbour from "./Harbour";
 import { EXTENT, GRID, heightGrid } from "./terrain";
+import { tracks } from "./alive/Tracks";
 import { parkSand as parkSandAt } from "./park/layout";
 
 const SEGMENTS = 320;
@@ -155,6 +156,28 @@ function kerbGeometry() {
   return g;
 }
 
+// The land. Where wheel tracks have parted the grass (alive/Tracks.tsx), grassy
+// ground turns to bare earth, like Bruno's terrain losing its grass channel.
+const LAND = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92 });
+LAND.onBeforeCompile = (shader) => {
+  Object.assign(shader.uniforms, tracks.uniforms);
+  shader.vertexShader = shader.vertexShader
+    .replace("#include <common>", "#include <common>\nvarying vec2 vLandXZ;")
+    .replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvLandXZ = (modelMatrix * vec4(transformed, 1.0)).xz;");
+  shader.fragmentShader = shader.fragmentShader
+    .replace("#include <common>", "#include <common>\nvarying vec2 vLandXZ;\nuniform sampler2D uTracks; uniform vec2 uTracksFocus; uniform float uTracksSize;")
+    .replace(
+      "#include <color_fragment>",
+      `#include <color_fragment>
+      vec2 tuv = (vLandXZ - uTracksFocus) / uTracksSize + 0.5;
+      if (tuv.x > 0.0 && tuv.x < 1.0 && tuv.y > 0.0 && tuv.y < 1.0) {
+        float tr = texture2D(uTracks, tuv).r;
+        float green = clamp((diffuseColor.g - max(diffuseColor.r, diffuseColor.b)) * 12.0, 0.0, 1.0);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.42, 0.33, 0.22), clamp(tr, 0.0, 1.0) * green * 0.75);
+      }`,
+    );
+};
+
 const ROAD = {
   asphalt: new THREE.MeshStandardMaterial({ color: C.asphalt, roughness: 0.9 }),
   line: new THREE.MeshStandardMaterial({ color: C.asphaltLine, roughness: 0.8 }),
@@ -268,9 +291,7 @@ export default function Island() {
       </RigidBody>
 
       {/* The land with its beaches, then the sea and the lakes over it. */}
-      <mesh geometry={ground} receiveShadow>
-        <meshStandardMaterial vertexColors roughness={0.92} />
-      </mesh>
+      <mesh geometry={ground} receiveShadow material={LAND} />
       <Water />
       <Harbour />
       <Embankments />

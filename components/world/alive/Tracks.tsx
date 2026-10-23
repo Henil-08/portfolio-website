@@ -8,7 +8,9 @@
 // one mesh (one draw call), the ribbon vertices are built on the CPU from the
 // trail samples (same maths as his vertex node), and we project to the target in the vertex shader
 // instead of with an orthographic camera (WebGL's render target origin is bottom
-// left). Ribbon half width is 0.3 m instead of 0.5 because our car is narrower.
+// left). Ribbon half width is 0.38 m instead of 0.5 because our tyres are narrower.
+// Added: the trail also fades with time (REGROW), so parted grass grows back even
+// where the car stopped, not only once it has driven 25 m on.
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -23,7 +25,9 @@ const RESOLUTION = 512;
 const SIZE = 40;
 const TIME_THROTTLE = 1 / 30;
 const DISTANCE_THROTTLE = 0.2;
-const THICKNESS = 0.3;
+const THICKNESS = 0.38;
+/** Seconds for parted grass to grow most of the way back (time constant of the fade). */
+const REGROW = 4;
 
 /** Shared: the grass samples these. */
 export const tracks = {
@@ -172,7 +176,7 @@ export function Tracks() {
     };
   }, []);
 
-  useFrame(({ clock, gl }) => {
+  useFrame(({ clock, gl }, dt) => {
     const sys = ref.current;
     if (!sys) return;
     const target = tracksTarget();
@@ -180,6 +184,8 @@ export function Tracks() {
     const { data, rows } = sys;
     // Touching the ground: the chassis is grounded and low.
     const touching = carState.grounded;
+    const fade = Math.exp(-Math.min(dt, 0.1) / REGROW);
+    for (let i = 3; i < data.length; i += 4) data[i] *= fade;
     for (let r = 0; r < ROWS; r++) {
       wheelContact(r, contact);
       const row = rows[r];
