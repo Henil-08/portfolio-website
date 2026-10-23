@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { carState } from "./carState";
+import { carState, ghostLeader } from "./carState";
+import { input } from "./input";
 import { getState, setNear } from "./store";
 import { SCENES } from "./Effects";
 import { zones, type Zone } from "./layout";
@@ -23,6 +24,7 @@ export function CameraRig() {
   const prev = useRef(new THREE.Vector2());
   const zoomS = useRef(0);
   const shot = useRef<{ id: number; style: string; t: number } | null>(null);
+  const idle = useRef(0);
 
   useFrame(({ clock }, dt) => {
     const phase = getState().phase;
@@ -30,9 +32,15 @@ export function CameraRig() {
     const zoom = portrait ? 1.45 : 1;
     const k1 = Math.min(1, dt * 10);
 
+    // Hands off the controls with the autopilot lab running: watch the leading ghost.
+    const touching = input.forward || input.back || input.steer;
+    idle.current = touching ? 0 : idle.current + dt;
+    const follow = ghostLeader.active && idle.current > 1.5 ? ghostLeader.pos : carState.pos;
+    const kf = follow === ghostLeader.pos ? Math.min(1, dt * 4) : k1;
+
     prev.current.set(target.current.x, target.current.z);
-    target.current.x += (carState.pos.x - target.current.x) * k1;
-    target.current.z += (carState.pos.z - target.current.z) * k1;
+    target.current.x += (follow.x - target.current.x) * kf;
+    target.current.z += (follow.z - target.current.z) * kf;
     target.current.y = 0;
 
     // Pull back a little at speed.

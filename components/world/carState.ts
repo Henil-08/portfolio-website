@@ -9,5 +9,8 @@ export const carState = {
   grounded: true,
 };
 
+// Leader of the autopilot run, so the camera can watch it while you're hands-off.
+export const ghostLeader = { pos: new THREE.Vector3(), active: false };
+
 // Handy in the console, and used by the headless screenshot checks.
 if (typeof window !== "undefined") (window as unknown as { __car: typeof carState }).__car = carState;

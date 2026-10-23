@@ -11,6 +11,7 @@ import { PanelBody, ProjectItem, zoneMeta } from "./Panels";
 import { projects } from "@/content/projects";
 import Ask from "./Ask";
 import { Minimap } from "./RaceHud";
+import AutopilotHud from "./AutopilotHud";
 
 export default function Hud() {
   const phase = useWorld((s) => s.phase);
@@ -21,6 +22,7 @@ export default function Hud() {
       <InteractKey />
       <ZoneCard />
       <PicksCard />
+      <AutopilotHud />
       <Toast />
       <Hints />
       <Joystick />

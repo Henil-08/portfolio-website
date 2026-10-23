@@ -12,6 +12,7 @@ import Places from "./Places";
 import { CameraRig, Sky, Sun, ZoneWatcher } from "./Rig";
 import { InteractionPoint } from "./Race";
 import { Exposure, Spawns, Weather } from "./Effects";
+import Autopilot from "./autopilot/Autopilot";
 import { bindKeyboard } from "./input";
 
 export default function World() {
@@ -52,6 +53,7 @@ export default function World() {
       <ZoneWatcher />
       <InteractionPoint />
       <Weather />
+      <Autopilot />
       <Exposure />
       {fancy && (
         <EffectComposer multisampling={0} enableNormalPass={false}>
