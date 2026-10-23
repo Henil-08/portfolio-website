@@ -9,50 +9,50 @@ import { zones, type Zone } from "./layout";
 
 const OFFSET = new THREE.Vector3(10.5, 12.5, 14);
 const look = new THREE.Vector3();
-const want = new THREE.Vector3();
 const tmp = new THREE.Vector3();
+const orbit = new THREE.Vector3();
 
-// Camera: slow orbit over the island during the intro, then a smooth follow cam.
+// Camera: slow orbit during the intro, then Bruno Simon's follow pattern (MIT,
+// folio-2025): smooth the target's X/Z once, fixed offset, look at the target.
+// No velocity lead and no second lag, which is what made the car look jittery.
 export function CameraRig() {
   const { camera, size } = useThree();
   const blend = useRef(0);
   const target = useRef(new THREE.Vector3());
+  const prev = useRef(new THREE.Vector2());
+  const zoomS = useRef(0);
 
   useFrame(({ clock }, dt) => {
     const phase = getState().phase;
     const portrait = size.height > size.width;
     const zoom = portrait ? 1.45 : 1;
+    const k1 = Math.min(1, dt * 10);
 
-    // Follow target leads the car a little in the direction it's moving.
-    tmp.copy(carState.vel).setY(0).multiplyScalar(0.35).clampLength(0, 6);
-    want.copy(carState.pos).add(tmp);
-    want.y = 0;
-    target.current.lerp(want, 1 - Math.exp(-dt * 4));
+    prev.current.set(target.current.x, target.current.z);
+    target.current.x += (carState.pos.x - target.current.x) * k1;
+    target.current.z += (carState.pos.z - target.current.z) * k1;
+    target.current.y = 0;
 
-    const followPos = tmp.copy(OFFSET).multiplyScalar(zoom).add(target.current);
+    // Pull back a little at speed.
+    const spd = Math.hypot(target.current.x - prev.current.x, target.current.z - prev.current.y) / Math.max(dt, 1e-4);
+    zoomS.current += (THREE.MathUtils.smoothstep(spd, 5, 30) * 0.22 - zoomS.current) * k1;
+    const followPos = tmp.copy(OFFSET).multiplyScalar(zoom * (1 + zoomS.current)).add(target.current);
+
+    const a = clock.elapsedTime * 0.06 + 0.7;
+    orbit.set(Math.cos(a) * 95, 62, Math.sin(a) * 95);
 
     if (phase !== "world") {
-      // Intro: wide, slow orbit.
-      const a = clock.elapsedTime * 0.06 + 0.7;
-      const r = 95;
-      camera.position.set(Math.cos(a) * r, 62, Math.sin(a) * r);
+      camera.position.copy(orbit);
       camera.lookAt(0, 0, 0);
       blend.current = 0;
       return;
     }
 
+    // Swoop from the orbit down to the car, then follow.
     blend.current = Math.min(1, blend.current + dt * 0.45);
     const k = THREE.MathUtils.smootherstep(blend.current, 0, 1);
-    if (k < 1) {
-      // Swoop from the orbit down to the car.
-      const a = clock.elapsedTime * 0.06 + 0.7;
-      const orbit = new THREE.Vector3(Math.cos(a) * 95, 62, Math.sin(a) * 95);
-      camera.position.lerpVectors(orbit, followPos, k);
-      look.lerpVectors(new THREE.Vector3(0, 0, 0), target.current, k);
-    } else {
-      camera.position.lerp(followPos, 1 - Math.exp(-dt * 6));
-      look.copy(target.current);
-    }
+    camera.position.lerpVectors(orbit, followPos, k);
+    look.set(0, 0, 0).lerp(target.current, k);
     camera.lookAt(look);
   });
 

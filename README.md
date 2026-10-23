@@ -21,3 +21,7 @@ All content lives in `content/`. Edit those files and the page, the resume, the 
 ## Stack
 
 Next.js 16, React 19, Tailwind 4, React Three Fiber, Framer Motion, Groq. Deployed as a Docker container behind Caddy on Oracle Cloud. See [deploy/DEPLOY.md](deploy/DEPLOY.md).
+
+## Credits
+
+The vehicle feel and follow camera are adapted from [Bruno Simon's folio-2025](https://github.com/brunosimon/folio-2025) (MIT, © 2025 Bruno Simon): suspension damping ratios, centre-of-mass setup, soft top speed and the single-pass camera smoothing.
