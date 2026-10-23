@@ -424,23 +424,39 @@ const POD: Station[] = [
 ];
 
 /* ------------------------------------------------------------------ */
+/* Liveries                                                            */
+/* ------------------------------------------------------------------ */
+
+/** body = main paint, low = lower body / undersides, accent = pinstripes and small marks, number = race number. */
+export type Palette = { body: string; low: string; accent: string; number: string; label: string };
+export const LIVERIES = {
+  rosso: { label: "Rosso", body: LIVERY.red, low: LIVERY.carbon, accent: LIVERY.yellow, number: LIVERY.white },
+  papaya: { label: "Papaya", body: "#ff7a1a", low: "#1d2733", accent: "#4fb3ff", number: "#ffffff" },
+  green: { label: "Racing green", body: "#0f5a3d", low: "#16181b", accent: "#d9b45c", number: "#f4ecd8" },
+  midnight: { label: "Midnight", body: "#1c2b4d", low: "#121318", accent: "#ff6a4d", number: "#ffffff" },
+  silver: { label: "Silver arrow", body: "#c9ced5", low: "#17191d", accent: "#22b8a7", number: "#17191d" },
+  cream: { label: "Cream & red", body: "#efe5d0", low: "#c8161f", accent: "#1c1d21", number: "#c8161f" },
+} satisfies Record<string, Palette>;
+export type LiveryName = keyof typeof LIVERIES;
+/** The livery the player's car wears. */
+export const DEFAULT_LIVERY: LiveryName = "rosso";
+
+/* ------------------------------------------------------------------ */
 /* Materials                                                           */
 /* ------------------------------------------------------------------ */
 
-const R = glslColor(LIVERY.red);
-const K = glslColor(LIVERY.carbon);
-const Y = glslColor(LIVERY.yellow);
+const Y = glslColor(LIVERY.yellow); // tyre sidewalls stay yellow on every livery
 
 // Satin red body, black lower body, and a thin yellow pinstripe riding the
 // shoulder line between them.
-const BODY_GLSL = /* glsl */ `
+const bodyGlsl = (R: string, K: string, A: string) => /* glsl */ `
 vec4 livery(vec3 p, vec3 n) {
   vec3 col = ${R};
   float rough = 0.42;
   float under = lvAA(-n.y - 0.35) * lvAA(-0.02 - p.y);
   float low = max(lvAA(-0.172 - p.y), under);
   float pin = lvBand(p.y, -0.16, -0.148) * (1.0 - under) * lvAA(0.62 - p.x) * lvAA(p.x + 0.8);
-  col = mix(col, ${Y}, pin);
+  col = mix(col, ${A}, pin);
   col = mix(col, ${K}, low);
   rough = mix(rough, 0.6, low);
   return vec4(col, rough);
@@ -448,7 +464,7 @@ vec4 livery(vec3 p, vec3 n) {
 `;
 
 // Wing elements: painted top, black underside.
-const wingGlsl = (top: string) => /* glsl */ `
+const wingGlsl = (top: string, K: string) => /* glsl */ `
 vec4 livery(vec3 p, vec3 n) {
   float under = lvAA(-n.y - 0.05);
   return vec4(mix(${top}, ${K}, under), mix(0.42, 0.6, under));
@@ -456,13 +472,13 @@ vec4 livery(vec3 p, vec3 n) {
 `;
 
 // Endplates: black with a red cap along the top edge and a yellow pin under it.
-const ENDPLATE_GLSL = /* glsl */ `
+const endplateGlsl = (R: string, K: string, A: string) => /* glsl */ `
 vec4 livery(vec3 p, vec3 n) {
   float top = p.x > 0.0 ? ${(G + 0.168).toFixed(4)} : ${(G + 0.742).toFixed(4)};
   float cap = lvAA(p.y - top);
   float pin = lvBand(p.y - top, -0.02, -0.011);
   vec3 col = mix(${K}, ${R}, cap);
-  col = mix(col, ${Y}, pin);
+  col = mix(col, ${A}, pin);
   return vec4(col, mix(0.58, 0.42, cap));
 }
 `;
@@ -484,28 +500,36 @@ vec4 livery(vec3 p, vec3 n) {
 }
 `;
 
-let MATS: ReturnType<typeof makeMaterials> | null = null;
-function makeMaterials() {
+const MATS = new Map<LiveryName, ReturnType<typeof makeMaterials>>();
+function makeMaterials(name: LiveryName) {
   const satin = { clearcoat: 0.35, clearcoatRoughness: 0.45 };
+  const L: Palette = LIVERIES[name];
+  const R = glslColor(L.body);
+  const K = glslColor(L.low);
+  const A = glslColor(L.accent);
   return {
-    body: liveryMaterial("car-body-cute", BODY_GLSL, satin),
-    wingRed: liveryMaterial("wing-red-cute", wingGlsl(R), satin),
-    wingBlack: liveryMaterial("wing-black-cute", wingGlsl(K), satin),
-    red: physical(LIVERY.red, 0.42, satin),
-    yellow: physical(LIVERY.yellow, 0.45, satin),
-    endplate: liveryMaterial("endplate-cute", ENDPLATE_GLSL, satin),
-    carbon: physical(LIVERY.carbon, 0.58, { clearcoat: 0.25, clearcoatRoughness: 0.5 }),
+    body: liveryMaterial(`car-body-${name}`, bodyGlsl(R, K, A), satin),
+    wingRed: liveryMaterial(`wing-top-${name}`, wingGlsl(R, K), satin),
+    wingBlack: liveryMaterial(`wing-low-${name}`, wingGlsl(K, K), satin),
+    red: physical(L.body, 0.42, satin),
+    yellow: physical(L.accent, 0.45, satin),
+    endplate: liveryMaterial(`endplate-${name}`, endplateGlsl(R, K, A), satin),
+    carbon: physical(L.low, 0.58, { clearcoat: 0.25, clearcoatRoughness: 0.5 }),
     hole: physical("#050506", 0.9),
     mirror: physical("#c9ced6", 0.08, { metalness: 1 }),
     tyre: liveryMaterial("tyre-cute", TYRE_GLSL, { clearcoat: 0, roughness: 0.85 }),
     rim: physical(LIVERY.gun, 0.45, { metalness: 0.4 }),
-    hub: physical(LIVERY.red, 0.4, { metalness: 0.2, ...satin }),
-    textWhite: physical(LIVERY.white, 0.4, satin),
-    textYellow: physical(LIVERY.yellow, 0.4, satin),
+    hub: physical(L.body, 0.4, { metalness: 0.2, ...satin }),
+    textWhite: physical(L.number, 0.4, satin),
+    textYellow: physical(L.accent, 0.4, satin),
   };
 }
-function useMaterials() {
-  return useMemo(() => (MATS ??= makeMaterials()), []);
+function useMaterials(name: LiveryName = DEFAULT_LIVERY) {
+  return useMemo(() => {
+    let m = MATS.get(name);
+    if (!m) MATS.set(name, (m = makeMaterials(name)));
+    return m;
+  }, [name]);
 }
 
 const FONT = "/fonts/racero.otf";
@@ -594,8 +618,8 @@ function makeWheelGeometry() {
 }
 
 /** One wheel. Origin at wheel centre, rolling axis = local Z. Rear wheels: scale by REAR_WHEEL_SCALE. */
-export function CarWheel(props: GroupProps) {
-  const m = useMaterials();
+export function CarWheel({ livery, ...props }: GroupProps & { livery?: LiveryName }) {
+  const m = useMaterials(livery);
   const g = useMemo(() => (WHEEL_GEO ??= makeWheelGeometry()), []);
   return (
     <group {...props}>
@@ -943,6 +967,7 @@ export type CarBodyProps = GroupProps & {
   brakeLight?: boolean;
   /** Group around the DRS flap, pivoting at its leading edge. Rotate +Z to open. */
   drsRef?: React.Ref<THREE.Group>;
+  livery?: LiveryName;
 };
 
 /** Leading edge of the DRS flap, the hinge it opens around (chassis space). */
@@ -953,8 +978,8 @@ export const WING_TIPS: [number, number, number][] = [
   [-1.42, GROUND_Y + 0.72, -0.44],
 ];
 
-export function CarBody({ brakeLight = false, drsRef, children, ...props }: CarBodyProps) {
-  const m = useMaterials();
+export function CarBody({ brakeLight = false, drsRef, livery, children, ...props }: CarBodyProps) {
+  const m = useMaterials(livery);
   const g = useMemo(() => (BODY_GEO ??= makeBodyGeometry()), []);
   const NEG_X = useMemo(() => v(-1, 0, 0), []);
   const POS_Z = useMemo(() => v(0, 0, 1), []);
@@ -1039,13 +1064,16 @@ export function CarBody({ brakeLight = false, drsRef, children, ...props }: CarB
 /* ------------------------------------------------------------------ */
 
 /** Body + 4 wheels, origin at chassis centre (lift by -GROUND_Y to sit on the ground). */
-export function CarPreview({ brakeLight, children, steer = 0, ...props }: CarBodyProps & { steer?: number }) {
+export function CarPreview({ brakeLight, children, steer = 0, livery, ...props }: CarBodyProps & { steer?: number }) {
   return (
     <group {...props}>
-      <CarBody brakeLight={brakeLight}>{children}</CarBody>
+      <CarBody brakeLight={brakeLight} livery={livery}>
+        {children}
+      </CarBody>
       {WHEEL_POSITIONS.map((p, i) => (
         <CarWheel
           key={i}
+          livery={livery}
           position={[p.x, p.y, p.z]}
           rotation={[0, p.front ? steer * 0.4 : 0, 0]}
           scale={p.front ? 1 : REAR_WHEEL_SCALE}
