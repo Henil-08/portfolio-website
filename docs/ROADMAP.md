@@ -220,7 +220,11 @@ straight with pit wall, fences and stands). Do these in order, one commit per it
       shots side by side with Bruno's), then: pull the camera in, cut grass to about a third of the car's
       height, cap buildings near the track to 1-2 low storeys, and scale props up relative to the car.
       Owner thinks "mine is too zoomed out or the car is smaller": try both, show him.
-- [ ] c. Flat world. Owner: "no need for ups and downs, it's an F1 theme world". Flatten the track
+- [x] c. (cedccf6) Track at 0 except the crossover's eased ramps (deck 4.5 m, was 7.1) and the low decks
+      over the river and harbour arm (kept: layout-v4 has a real gap under them). `reliefAt` removed;
+      `meadowAt` keeps the old hill spots as the wildflower/rock mask. Plinths, parapets and the slope
+      limit are already conditional, so they now only appear at the ramps and shores: nothing to delete.
+      Was: Flat world. Owner: "no need for ups and downs, it's an F1 theme world". Flatten the track
       heights in layout.ts `TRACK_POINTS` and drop the relief (`reliefAt` hills and dunes, terrain.ts),
       keeping only the crossover bridge's ramps (approved in layout-v4). Then the building plinths
       (3f), embankment parapets (Embankments.tsx) and slope caps mostly fall away: remove what is no
