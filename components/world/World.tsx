@@ -13,8 +13,9 @@ import Vehicle from "./Vehicle";
 import Places from "./Places";
 import { CameraRig, Sky, Sun, ZoneWatcher } from "./Rig";
 import { InteractionPoint } from "./Race";
-import { Exposure, Spawns, Weather } from "./Effects";
+import { DayNight, Exposure, Spawns, Weather } from "./Effects";
 import Autopilot from "./autopilot/Autopilot";
+import Grass from "./Grass";
 import { bindKeyboard } from "./input";
 import { useWorld } from "./store";
 
@@ -58,6 +59,8 @@ export default function World() {
       <ZoneWatcher />
       <InteractionPoint />
       <Weather />
+      <DayNight />
+      <Grass />
       <Autopilot />
       <Exposure />
       {fancy && (
