@@ -3,6 +3,7 @@
 import { useFrame } from "@react-three/fiber";
 import { CylinderCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
+import { heightAt } from "../terrain";
 import { C } from "../palette";
 import { dayNight } from "../daynight";
 import { geo, mat, unitBox } from "../models/props/shared";
@@ -71,7 +72,7 @@ const B = (() => {
   const pool = { m: [] as THREE.Matrix4[] };
   const local = new THREE.Matrix4();
   for (const l of LAMPS) {
-    const root = compose(l.x, 0, l.z, l.yaw);
+    const root = compose(l.x, heightAt(l.x, l.z), l.z, l.yaw);
     const put = (list: THREE.Matrix4[], x: number, y: number, z: number, sx: number, sy: number, sz: number, rz = 0) => {
       local.copy(compose(x, y, z, 0, sx, sy, sz, 0, rz));
       list.push(root.clone().multiply(local));
@@ -84,7 +85,7 @@ const B = (() => {
     put(arm.m, 0, POLE_H - 0.02, 0, 0.16, 0.08, 0.16);
     put(head.m, LAMP_ARM, HEAD_Y + 0.06, 0, 1.05, 0.12, 0.4);
     put(lens.m, LAMP_ARM, HEAD_Y - 0.01, 0, 1, 1, 1);
-    pool.m.push(compose(l.px, 0.07, l.pz, l.yaw, 11, 1, 9.5));
+    pool.m.push(compose(l.px, heightAt(l.px, l.pz) + 0.07, l.pz, l.yaw, 11, 1, 9.5));
   }
   return { base, pole, arm, head, lens, pool };
 })();
@@ -105,7 +106,7 @@ export function Lamps() {
       <Instances geometry={poolGeo()} material={poolMat} batch={B.pool} shadow={false} receive={false} order={2} />
       <RigidBody type="fixed" colliders={false}>
         {LAMPS.map((l, i) => (
-          <CylinderCollider key={i} args={[1.5, 0.25]} position={[l.x, 1.5, l.z]} />
+          <CylinderCollider key={i} args={[1.5, 0.25]} position={[l.x, heightAt(l.x, l.z) + 1.5, l.z]} />
         ))}
       </RigidBody>
     </>

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import * as THREE from "three";
+import { heightAt } from "../terrain";
 import { FRAMES, HALF, N_FRAMES, RUNOFF, barrierOffset, rng } from "./common";
 
 const PAVED = 1.8;
@@ -26,7 +27,7 @@ function build(inner: (i: number) => number, outer: (i: number) => number, y: nu
     const pa = f.p.clone().addScaledVector(f.n, s * a);
     const pb = f.p.clone().addScaledVector(f.n, s * b);
     const k = pos.length / 3;
-    pos.push(pa.x, y, pa.z, pb.x, y, pb.z);
+    pos.push(pa.x, heightAt(pa.x, pa.z) + y, pa.z, pb.x, heightAt(pb.x, pb.z) + y, pb.z);
     uv.push(pa.x / 6, pa.z / 6, pb.x / 6, pb.z / 6);
     if (prev >= 0) idx.push(prev, prev + 1, k, k, prev + 1, k + 1);
     prev = k;
@@ -44,12 +45,12 @@ function build(inner: (i: number) => number, outer: (i: number) => number, y: nu
 const PAVED_GEO = build(
   () => HALF + 0.6,
   (i) => Math.min(HALF + 0.6 + PAVED, Math.abs(barrierOffset(i, (-Math.sign(FRAMES[i].k) || 1) as 1 | -1)) - 0.3),
-  0.014
+  0.07
 );
 const GRAVEL_GEO = build(
   () => HALF + 0.6 + PAVED,
   (i) => Math.abs(barrierOffset(i, (-Math.sign(FRAMES[i].k) || 1) as 1 | -1)) - 0.3,
-  0.012
+  0.06
 );
 
 function gravelTexture() {

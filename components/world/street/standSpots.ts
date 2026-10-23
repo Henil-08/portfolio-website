@@ -26,8 +26,8 @@ function pick(u0: number, label: string): StandSpot | null {
 
 export const STAND_SPOTS: StandSpot[] = [
   // main straight: raised on a podium behind the garages, looking over the pit roofs
-  { x: -6.2, z: 16.2, yaw: 0, raise: 3.2, label: "PIT STRAIGHT · A" },
-  { x: 6.2, z: 16.2, yaw: 0, raise: 3.2, label: "PIT STRAIGHT · B" },
+  { x: -10.2, z: 14.4, yaw: 0, raise: 3.2, label: "PIT STRAIGHT · A" },
+  { x: 2.2, z: 14.4, yaw: 0, raise: 3.2, label: "PIT STRAIGHT · B" },
   // back straight and the west side, on the far side of the barrier
   pick(0.655, "BACK STRAIGHT"),
   pick(0.62, "BACK STRAIGHT"),

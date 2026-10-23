@@ -3,6 +3,7 @@
 import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
+import { heightAt } from "../terrain";
 import { C } from "../palette";
 import { dayNight } from "../daynight";
 import { ISLAND_RADIUS, PIT } from "../layout";
@@ -248,16 +249,19 @@ const PARTS = (() => {
   };
 
   for (const b of BUILDINGS) {
+    // Buildings stand on the terrain (sunk a little so slopes never show a gap).
+    const base = heightAt(b.x, b.z) - 0.4;
+    const cmp = (x: number, y: number, z: number, ...rest: number[]) => compose(x, y + base, z, ...rest);
     const col = new THREE.Color(b.color);
     const dark = b.color === C.charcoal || b.color === C.greyDark;
-    blocks.push({ x: b.x, y: 0, z: b.z, w: b.w, h: b.h, d: b.d, yaw: b.yaw, style: b.style, seed: b.seed, color: col });
+    blocks.push({ x: b.x, y: base, z: b.z, w: b.w, h: b.h, d: b.d, yaw: b.yaw, style: b.style, seed: b.seed, color: col });
     let top = b.h;
     let tw = b.w;
     let td = b.d;
     let ox = 0;
     let oz = 0;
     // parapet cap
-    caps.m.push(compose(b.x, top + 0.12, b.z, b.yaw, tw + 0.25, 0.24, td + 0.25));
+    caps.m.push(cmp(b.x, top + 0.12, b.z, b.yaw, tw + 0.25, 0.24, td + 0.25));
     caps.c.push(dark ? capGrey : b.color === C.white ? capGrey : capWhite);
     // tall ones step back once or twice
     if (b.h > 13 && r() < 0.6) {
@@ -268,11 +272,11 @@ const PARTS = (() => {
       oz = (r() - 0.5) * (td - sd) * 0.8;
       const [sx, sz] = local(b, ox, oz);
       const c2 = r() < 0.3 ? new THREE.Color(dark ? C.greyLight : C.charcoal) : col;
-      blocks.push({ x: sx, y: top + 0.24, z: sz, w: sw, h: sh, d: sd, yaw: b.yaw, style: c2 === col ? b.style : 1, seed: b.seed + 1, color: c2 });
+      blocks.push({ x: sx, y: base + top + 0.24, z: sz, w: sw, h: sh, d: sd, yaw: b.yaw, style: c2 === col ? b.style : 1, seed: b.seed + 1, color: c2 });
       top += 0.24 + sh;
       tw = sw;
       td = sd;
-      caps.m.push(compose(sx, top + 0.1, sz, b.yaw, tw + 0.2, 0.2, td + 0.2));
+      caps.m.push(cmp(sx, top + 0.1, sz, b.yaw, tw + 0.2, 0.2, td + 0.2));
       caps.c.push(capWhite);
     }
     const [cx, cz] = local(b, ox, oz);
@@ -285,28 +289,28 @@ const PARTS = (() => {
       const lx = ox + (r() - 0.5) * (tw - uw - 0.8);
       const lz = oz + (r() - 0.5) * (td - ud - 0.8);
       const [ux, uz] = local(b, lx, lz);
-      units.m.push(compose(ux, top + 0.2 + uh / 2, uz, b.yaw, uw, uh, ud));
+      units.m.push(cmp(ux, top + 0.2 + uh / 2, uz, b.yaw, uw, uh, ud));
       units.c.push(unitCols[Math.floor(r() * unitCols.length)]);
     }
     // masts with an aviation light on the tallest
     if (top > 18 && r() < 0.65) {
       const mh = 3 + r() * 5;
-      masts.m.push(compose(cx, top + 0.2 + mh / 2, cz, 0, 0.07, mh, 0.07));
-      beacons.m.push(compose(cx, top + 0.25 + mh, cz, 0, 0.22, 0.22, 0.22));
+      masts.m.push(cmp(cx, top + 0.2 + mh / 2, cz, 0, 0.07, mh, 0.07));
+      beacons.m.push(cmp(cx, top + 0.25 + mh, cz, 0, 0.22, 0.22, 0.22));
     } else if (top > 12) {
       for (const sx of [-1, 1]) {
         const [bx, bz] = local(b, ox + (sx * tw) / 2 - sx * 0.3, oz + td / 2 - 0.3);
-        beacons.m.push(compose(bx, top + 0.35, bz, 0, 0.13, 0.13, 0.13));
+        beacons.m.push(cmp(bx, top + 0.35, bz, 0, 0.13, 0.13, 0.13));
       }
     }
     // a few carry the team red as a thin floor band
     if (r() < 0.16 && b.h > 8) {
       const y = 3.6 + 3.1 * Math.floor(1 + r() * Math.min(4, (b.h - 6) / 3.1)) - 0.1;
-      trims.m.push(compose(b.x, y, b.z, b.yaw, b.w + 0.08, 0.22, b.d + 0.08));
+      trims.m.push(cmp(b.x, y, b.z, b.yaw, b.w + 0.08, 0.22, b.d + 0.08));
     } else if (r() < 0.35) {
       // or a white ground-floor canopy
       const [qx, qz] = local(b, 0, b.d / 2 + 0.5);
-      caps.m.push(compose(qx, 3.5, qz, b.yaw, b.w * 0.6, 0.12, 1.1));
+      caps.m.push(cmp(qx, 3.5, qz, b.yaw, b.w * 0.6, 0.12, 1.1));
       caps.c.push(capWhite);
     }
   }
@@ -347,7 +351,7 @@ export function Skyline() {
       <Instances geometry={unitCyl()} material={beaconMat} batch={PARTS.beacons} shadow={false} />
       <RigidBody type="fixed" colliders={false}>
         {BUILDINGS.filter((b) => distToTrack(b.x, b.z) < 40).map((b, i) => (
-          <CuboidCollider key={i} args={[b.w / 2, Math.min(b.h, 4) / 2, b.d / 2]} position={[b.x, Math.min(b.h, 4) / 2, b.z]} rotation={[0, b.yaw, 0]} />
+          <CuboidCollider key={i} args={[b.w / 2, Math.min(b.h, 4) / 2, b.d / 2]} position={[b.x, heightAt(b.x, b.z) + Math.min(b.h, 4) / 2, b.z]} rotation={[0, b.yaw, 0]} />
         ))}
       </RigidBody>
     </>

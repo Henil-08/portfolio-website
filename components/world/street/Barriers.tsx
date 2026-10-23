@@ -2,6 +2,7 @@
 
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
+import { heightAt } from "../terrain";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { C } from "../palette";
 import { geo, mat } from "../models/props/shared";
@@ -29,7 +30,7 @@ const WHITE = new THREE.Color(C.white);
 const BLOCK_BATCH = (() => {
   const b = batch();
   for (const k of BLOCKS) {
-    b.m.push(compose(k.x, 0, k.z, k.yaw));
+    b.m.push(compose(k.x, heightAt(k.x, k.z), k.z, k.yaw));
     b.c.push(k.k % 2 ? RED : WHITE);
   }
   return b;
@@ -37,7 +38,7 @@ const BLOCK_BATCH = (() => {
 const STRAP_BATCH = (() => {
   const b = batch();
   for (const k of BLOCKS) {
-    b.m.push(compose(k.x, 0, k.z, k.yaw));
+    b.m.push(compose(k.x, heightAt(k.x, k.z), k.z, k.yaw));
   }
   return { m: b.m };
 })();
@@ -52,7 +53,7 @@ export function Barriers() {
           <CuboidCollider
             key={i}
             args={[c.len / 2, 0.75, BARRIER_D / 2 + 0.05]}
-            position={[c.x, 0.75, c.z]}
+            position={[c.x, heightAt(c.x, c.z) + 0.75, c.z]}
             rotation={[0, c.yaw, 0]}
             friction={0.25}
             restitution={0.35}

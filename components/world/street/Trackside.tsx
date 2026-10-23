@@ -4,6 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, CylinderCollider, RigidBody } from "@react-three/rapier";
 import { useMemo } from "react";
 import * as THREE from "three";
+import { heightAt } from "../terrain";
 import { C } from "../palette";
 import { geo, mat, unitBox, unitCyl } from "../models/props/shared";
 import { Label } from "../models/props/Label";
@@ -38,7 +39,7 @@ const PER_ROW = 16;
 type Put = (x: number, y: number, z: number, sx: number, sy: number, sz: number, c: THREE.Color, rx?: number) => void;
 
 function placer(list: { m: THREE.Matrix4[]; c: THREE.Color[] }, x0: number, z0: number, yaw: number): Put {
-  const root = compose(x0, 0, z0, yaw);
+  const root = compose(x0, heightAt(x0, z0), z0, yaw);
   return (x, y, z, sx, sy, sz, c, rx = 0) => {
     list.m.push(root.clone().multiply(compose(x, y, z, 0, sx, sy, sz, rx)));
     list.c.push(c);
@@ -187,9 +188,9 @@ const FENCE = (() => {
         const q = run.pts[i - 1];
         const len = p.distanceTo(q);
         const yaw = Math.atan2(-(p.z - q.z), p.x - q.x);
-        for (const y of [FENCE_H, 1.2]) rails.m.push(compose((p.x + q.x) / 2, y, (p.z + q.z) / 2, yaw, len + 0.04, 0.06, 0.06));
+        for (const y of [FENCE_H, 1.2]) rails.m.push(compose((p.x + q.x) / 2, heightAt((p.x + q.x) / 2, (p.z + q.z) / 2) + y, (p.z + q.z) / 2, yaw, len + 0.04, 0.06, 0.06));
       }
-      if (i % 2 === 0 || i === run.pts.length - 1) posts.m.push(compose(p.x, (FENCE_H + 0.3) / 2, p.z, 0, 0.06, FENCE_H + 0.3, 0.06));
+      if (i % 2 === 0 || i === run.pts.length - 1) posts.m.push(compose(p.x, heightAt(p.x, p.z) + (FENCE_H + 0.3) / 2, p.z, 0, 0.06, FENCE_H + 0.3, 0.06));
     });
   }
   const g = new THREE.BufferGeometry();
@@ -270,9 +271,10 @@ const FLAGS = (() => {
   // the wind blows across the camera's view so the cloth reads broadside
   const yaw = yawOf(-1, 1);
   for (const f of FLAG_SPOTS) {
-    poles.m.push(compose(f.x, POLE / 2, f.z, 0, 0.045, POLE, 0.045));
-    feet.m.push(compose(f.x, 0.06, f.z, 0, 0.22, 0.12, 0.22));
-    cloth.m.push(compose(f.x + 0.04, POLE - FH / 2 - 0.1, f.z, yaw));
+    const fy = heightAt(f.x, f.z);
+    poles.m.push(compose(f.x, fy + POLE / 2, f.z, 0, 0.045, POLE, 0.045));
+    feet.m.push(compose(f.x, fy + 0.06, f.z, 0, 0.22, 0.12, 0.22));
+    cloth.m.push(compose(f.x + 0.04, fy + POLE - FH / 2 - 0.1, f.z, yaw));
     cloth.c.push(f.c);
   }
   return { poles, feet, cloth };
@@ -297,7 +299,7 @@ const DRS = (() => {
   return {
     p: f.p,
     q: groundQuat(f.tan),
-    line: compose(line.p.x, 0.052, line.p.z, Math.atan2(-line.tan.z, line.tan.x), 0.35, 0.01, 7.6),
+    line: compose(line.p.x, line.p.y + 0.052, line.p.z, Math.atan2(-line.tan.z, line.tan.x), 0.35, 0.01, 7.6),
   };
 })();
 
@@ -328,7 +330,7 @@ export function Trackside() {
 
       {/* signage text */}
       {BOARDS.map((b, i) => (
-        <group key={i} position={[b.x, BARRIER_H + 0.44, b.z]} rotation={[0, b.yaw, 0]}>
+        <group key={i} position={[b.x, heightAt(b.x, b.z) + BARRIER_H + 0.44, b.z]} rotation={[0, b.yaw, 0]}>
           <Label
             position={[0, 0, 0.03]}
             fontSize={b.text.length <= 2 ? 0.55 : 0.4}
@@ -340,13 +342,13 @@ export function Trackside() {
         </group>
       ))}
       {STAND_SPOTS.map((s, i) => (
-        <group key={i} position={[s.x, 0, s.z]} rotation={[0, s.yaw, 0]}>
+        <group key={i} position={[s.x, heightAt(s.x, s.z), s.z]} rotation={[0, s.yaw, 0]}>
           <Label position={[-W / 2 + 1.5, s.raise + 0.27, Z0 + 0.16]} anchorX="left" fontSize={0.24} color={C.ink} letterSpacing={0.1}>
             {`HG RACING   ${s.label}`}
           </Label>
         </group>
       ))}
-      <Label position={[DRS.p.x, 0.06, DRS.p.z]} quaternion={DRS.q} fontSize={1.5} color="#f3f1ec" fillOpacity={0.55} letterSpacing={0.1}>
+      <Label position={[DRS.p.x, DRS.p.y + 0.06, DRS.p.z]} quaternion={DRS.q} fontSize={1.5} color="#f3f1ec" fillOpacity={0.55} letterSpacing={0.1}>
         DRS ZONE
       </Label>
       <Instances geometry={unitBox()} material={mat(C.asphaltLine, { r: 0.8 })} batch={{ m: [DRS.line] }} shadow={false} />
@@ -360,16 +362,16 @@ export function Trackside() {
             <CuboidCollider
               key={i}
               args={[5.4, (2.4 + s.raise) / 2, 2.4]}
-              position={[s.x + lz * sn, (2.4 + s.raise) / 2, s.z + lz * c]}
+              position={[s.x + lz * sn, heightAt(s.x, s.z) + (2.4 + s.raise) / 2, s.z + lz * c]}
               rotation={[0, s.yaw, 0]}
             />
           );
         })}
         {MARSHALS.map((m, i) => (
-          <CuboidCollider key={i} args={[0.95, 1.1, 0.75]} position={[m.x, 1.1, m.z]} rotation={[0, m.yaw, 0]} />
+          <CuboidCollider key={i} args={[0.95, 1.1, 0.75]} position={[m.x, heightAt(m.x, m.z) + 1.1, m.z]} rotation={[0, m.yaw, 0]} />
         ))}
         {FLAG_SPOTS.map((f, i) => (
-          <CylinderCollider key={i} args={[1, 0.12]} position={[f.x, 1, f.z]} />
+          <CylinderCollider key={i} args={[1, 0.12]} position={[f.x, heightAt(f.x, f.z) + 1, f.z]} />
         ))}
       </RigidBody>
     </>
