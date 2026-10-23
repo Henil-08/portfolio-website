@@ -120,8 +120,9 @@ distinct areas threaded by paths, water woven through, shorelines with teal glow
         level (one water plane), so the river is a shallow creek you can drive through.
   - [x] d. (b8a42f0) Relief: `reliefAt` in layout.ts. Hills along the north coast behind the old town and the
         NE hairpin (the NE loop itself had no room), knolls round the spring lake, dunes on the east beach.
-  - [ ] e. Park islands east of the garden: football, podium, playbook, contact on Bruno-style grass
-        islands with sandy paths and footbridges.
+  - [x] e. (2fc6d8e) Park islands (park/layout.ts `ISLANDS`, `parkSand`): football, podium, playbook,
+        contact on grass islands in sand, north of the garden (the open infield there, not east: the
+        river and the esses leave no room east). One wooden footbridge over the river (park/index.tsx).
   - [ ] f. Old town packed around the crossover bridge (street canyon under the deck).
   - [ ] g. District identity: paving, planting, props, one district per commit.
 
