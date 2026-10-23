@@ -229,7 +229,9 @@ straight with pit wall, fences and stands). Do these in order, one commit per it
       keeping only the crossover bridge's ramps (approved in layout-v4). Then the building plinths
       (3f), embankment parapets (Embankments.tsx) and slope caps mostly fall away: remove what is no
       longer needed. This is a layout change the owner asked for; anything beyond flattening, ask.
-- [ ] d. Grass like Bruno's (Grass.tsx, alive/Tracks.tsx already ports his wheel tracks): wheels part
+- [x] d. (f19b671) Trails fade with time too (`REGROW` 4 s in alive/Tracks.tsx), so grass grows back where
+      the car stopped; Island.tsx `LAND` reads the tracks and shows bare earth under them on grassy ground.
+      Blade height was cut in b. Was: Grass like Bruno's (Grass.tsx, alive/Tracks.tsx already ports his wheel tracks): wheels part
       the grass and show the ground; it grows back after a while and is whole again when you return.
       Check it really reads like his (see his Grass.js / Terrain.js), tune blade density and colour.
 - [ ] e. Bushes like Bruno's (sources/Game/World/Bushes.js + Foliage.js clumps on the ground), scattered
