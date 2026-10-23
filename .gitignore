@@ -48,3 +48,6 @@ next-env.d.ts
 /Profile.pdf
 /theme.mp3
 /media/
+
+# graphify
+graphify-out/
