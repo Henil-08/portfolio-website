@@ -88,8 +88,12 @@ the mark; the E prompt should be animated like Bruno's.
 - [x] **Car breaks apart** (5af6d89: a boost into a lamp drove the chassis through the terrain;
       now CCD, respawn when buried, wheel visuals clamped to rest +-0.25 m and snapped on respawn).
 - [x] Street lamps standing on the road (two, at T1 and the last corner): fixed in 4e050da/35ba10b.
-- [ ] Sweep for others: drive a full lap at night and by day with the chase camera, plus
-      `__placeT` every 0.05 of the lap; list anything floating, clipping, z-fighting or on the road.
+- [x] Sweep (`__placeT` every 0.05, day and night, plus crash tests). Fixed: run-off strips bridged
+      the road where a corner changed hands (355d63c); hairline across the road at the start line
+      where the road ribbon closes (e45804d). Left for later steps: barriers sink into slopes and grass
+      pokes through them (red "drips"), and their segments overlap at odd angles in tight corners (step 2);
+      the chase camera loses the car under the bridge deck (t ~0.5) and behind the tall town building
+      by Boston (t ~0.6).
 
 ### 2. Kerbs and barriers
 - [ ] Corner kerbs (Island.tsx `Kerbs`) are separate flat red/white tiles with gaps. Make them a
