@@ -6,7 +6,6 @@ services:
     volumes:
       # Licensed assets that aren't in the public repo. Copy them to ~/portfolio/assets.
       - ./assets/racero.otf:/app/public/fonts/racero.otf:ro
-      - ./assets/radio.mp3:/app/public/sfx/radio.mp3:ro
     expose:
       - "3000"
 
