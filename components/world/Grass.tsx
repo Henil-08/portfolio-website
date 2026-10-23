@@ -11,6 +11,7 @@ import { C } from "./palette";
 import { getWindUniforms, terrainShader, updateWind, TERRAIN_GLSL, WIND_GLSL } from "./alive/wind";
 import { perlinTexture, seeded } from "./alive/noise";
 import { tracks, tracksTarget } from "./alive/Tracks";
+import { paintGarden } from "./garden/layout";
 
 // Bruno's grass: one triangle per blade (tip + two base corners), laid out on a
 // jittered grid that loops around the car so the field never runs out. Every
@@ -73,6 +74,8 @@ function makeMask() {
     g.fillRect(-(SCENE_FOOT.hx + 1) * s, -(SCENE_FOOT.back + 1) * s, (SCENE_FOOT.hx + 1) * 2 * s, (SCENE_FOOT.back + SCENE_FOOT.front + 3) * s);
     g.restore();
   }
+  // Garden paths, beds and the pond.
+  paintGarden(g, tx, s);
   // Pit entry and exit lanes.
   g.lineWidth = (PIT_LANE_WIDTH + 1.5) * s;
   for (const c of pitRoadCurves()) {

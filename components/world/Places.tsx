@@ -42,6 +42,8 @@ import { Label } from "./models/props/Label";
 import PitRoads from "./PitRoads";
 import Timeline from "./Timeline";
 import Groves from "./Groves";
+import Garden from "./garden";
+import { nearGarden } from "./garden/layout";
 import Bridge from "./Bridge";
 import { Avatar } from "./models/Avatar";
 import { ProjectObject } from "./models/projects";
@@ -586,6 +588,7 @@ function Nature() {
       const z = Math.sin(a) * rad;
       if (distToTrack(x, z) < TRACK_WIDTH / 2 + 4) continue;
       if (avoid.some(([ax, az, ar]) => Math.hypot(x - ax, z - az) < ar)) continue;
+      if (nearGarden(x, z, 1.5)) continue;
       const beach = rad > ISLAND_RADIUS - 10;
       const roll = r();
       const kind = beach ? (roll < 0.7 ? "palm" : "rock") : roll < 0.4 ? "round" : roll < 0.7 ? "pine" : roll < 0.88 ? "bush" : "rock";
@@ -639,6 +642,7 @@ export default function Places() {
       <Cricket />
       <Nature />
       <Groves />
+      <Garden />
       <Bridge />
     </>
   );
