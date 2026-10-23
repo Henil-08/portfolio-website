@@ -15,6 +15,7 @@ import { dayNight } from "../daynight";
 import { C } from "../palette";
 import { geo, lowSphere, mat, unitCyl } from "../models/props/shared";
 import { compose } from "../street/common";
+import { PROP_SCALE } from "../models/props/bruno";
 import { batch, Instances } from "../street/Instances";
 import { seeded } from "../alive/noise";
 import { BEDS, BENCHES, HEDGE, HEDGES, LAMPS_GARDEN, PATHS, POND, bedLocal, clearOfRoad, pathDist, pathSamples } from "./layout";
@@ -269,6 +270,7 @@ function Benches() {
     const put = (out: ReturnType<typeof batch>, bx: number, by: number, bz: number, yaw: number, lx: number, ly: number, lz: number, sx: number, sy: number, sz: number, tilt = 0) => {
       world.position.set(bx, by, bz);
       world.rotation.set(0, yaw, 0);
+      world.scale.setScalar(PROP_SCALE);
       world.updateMatrix();
       local.position.set(lx, ly, lz);
       local.rotation.set(tilt, 0, 0);
@@ -295,7 +297,8 @@ function Benches() {
   );
 }
 
-const LAMP_H = 2.3;
+const LAMP_H = 2.3 * PROP_SCALE;
+const LS = PROP_SCALE;
 /** Owned by the garden, so it is safe to animate: dim by day, warm and blooming at night. */
 const lampHeadMat = new THREE.MeshStandardMaterial({
   color: "#fff1dc",
@@ -317,10 +320,10 @@ function Lamps() {
     const caps = batch();
     for (const [x, z] of LAMPS_GARDEN) {
       const y = heightAt(x, z);
-      posts.m.push(compose(x, y + LAMP_H / 2, z, 0, 0.05, LAMP_H, 0.05));
-      posts.m.push(compose(x, y + 0.08, z, 0, 0.12, 0.16, 0.12));
-      heads.m.push(compose(x, y + LAMP_H + 0.14, z, 0, 0.16, 0.18, 0.16));
-      caps.m.push(compose(x, y + LAMP_H + 0.36, z));
+      posts.m.push(compose(x, y + LAMP_H / 2, z, 0, 0.05 * LS, LAMP_H, 0.05 * LS));
+      posts.m.push(compose(x, y + 0.08 * LS, z, 0, 0.12 * LS, 0.16 * LS, 0.12 * LS));
+      heads.m.push(compose(x, y + LAMP_H + 0.14 * LS, z, 0, 0.16 * LS, 0.18 * LS, 0.16 * LS));
+      caps.m.push(compose(x, y + LAMP_H + 0.36 * LS, z, 0, LS, LS, LS));
     }
     return { posts, heads, caps };
   }, []);
@@ -345,10 +348,10 @@ function Colliders({ blocks }: { blocks: ReturnType<typeof hedgeBlocks> }) {
         <CuboidCollider key={`h${i}`} args={[h.len / 2, HEDGE.h / 2, HEDGE.d / 2]} position={[h.x, heightAt(h.x, h.z) + HEDGE.h / 2, h.z]} rotation={[0, h.yaw, 0]} />
       ))}
       {BENCHES.map((b, i) => (
-        <CuboidCollider key={`b${i}`} args={[0.85, 0.45, 0.3]} position={[b.x, heightAt(b.x, b.z) + 0.45, b.z]} rotation={[0, b.yaw, 0]} />
+        <CuboidCollider key={`b${i}`} args={[0.85 * PROP_SCALE, 0.45 * PROP_SCALE, 0.3 * PROP_SCALE]} position={[b.x, heightAt(b.x, b.z) + 0.45 * PROP_SCALE, b.z]} rotation={[0, b.yaw, 0]} />
       ))}
       {LAMPS_GARDEN.map(([x, z], i) => (
-        <CylinderCollider key={`l${i}`} args={[LAMP_H / 2, 0.12]} position={[x, heightAt(x, z) + LAMP_H / 2, z]} />
+        <CylinderCollider key={`l${i}`} args={[LAMP_H / 2, 0.12 * PROP_SCALE]} position={[x, heightAt(x, z) + LAMP_H / 2, z]} />
       ))}
     </RigidBody>
   );

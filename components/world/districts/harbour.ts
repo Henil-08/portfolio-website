@@ -6,7 +6,7 @@ import { CANALS, QUAY_Y } from "../layout";
 import { quayRuns } from "../Harbour";
 import { compose, rng } from "../street/common";
 import { BENCH, LANTERN } from "../models/props/brunoProps";
-import { propFoot } from "../models/props/bruno";
+import { PROP_SCALE, propFoot } from "../models/props/bruno";
 
 const TOP = QUAY_Y + 0.13; // the coping's top
 const WOOD = ["#b98a62", "#a8784f", "#c79a70"].map((c) => new THREE.Color(c));
@@ -25,10 +25,10 @@ export const HARBOUR = (() => {
         const water = Math.atan2(-rx, -rz); // local +z toward the water
         if (k % 16 === 8) {
           const [lx, lz] = at(2.05);
-          lanterns.push(compose(lx, TOP + propFoot(LANTERN) * 0.85, lz, r() * 6, 0.85, 0.85, 0.85));
+          lanterns.push(compose(lx, TOP + propFoot(LANTERN) * 0.85 * PROP_SCALE, lz, r() * 6, 0.85 * PROP_SCALE, 0.85 * PROP_SCALE, 0.85 * PROP_SCALE));
         } else if (k % 16 === 0) {
           const [bx, bz] = at(1.35);
-          benches.push(compose(bx, TOP + propFoot(BENCH) * 0.85, bz, water, 0.85, 0.85, 0.85));
+          benches.push(compose(bx, TOP + propFoot(BENCH) * 0.85 * PROP_SCALE, bz, water, 0.85 * PROP_SCALE, 0.85 * PROP_SCALE, 0.85 * PROP_SCALE));
         } else if (k % 32 === 12) {
           // a small stack: two or three crates, and a barrel or two behind them
           const [sx, sz] = at(1.7);

@@ -100,5 +100,5 @@ export const FOOTBRIDGES = (() => {
   const dx = -(bz - az) / l;
   const dz = (bx - ax) / l;
   const w = river.w[1] + (river.w[2] - river.w[1]) * f;
-  return [{ x: ax + (bx - ax) * f, z: az + (bz - az) * f, dx, dz, len: w + 4.5, width: 2.6 }];
+  return [{ x: ax + (bx - ax) * f, z: az + (bz - az) * f, dx, dz, len: w + 4.5, width: 3.6 }]; // wide enough for the scaled car (4b-b)
 })();

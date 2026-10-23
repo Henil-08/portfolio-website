@@ -32,6 +32,12 @@ export function propGeometry(model: PropModel) {
   return g;
 }
 
+/**
+ * Props (benches, lanterns, fences, garden lamps) are scaled up by this so they read
+ * chunky next to the car, like in Bruno's world (owner, 4b-b; the car is CAR_SCALE).
+ */
+export const PROP_SCALE = 1.3;
+
 /** Height of the prop's origin above its lowest point: place it at ground + this. */
 export function propFoot(model: PropModel) {
   let lo = Infinity;

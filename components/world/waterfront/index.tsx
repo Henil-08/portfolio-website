@@ -16,6 +16,7 @@ import { dayNight } from "../daynight";
 import { C } from "../palette";
 import { geo, lowSphere, mat, unitBox, unitCyl } from "../models/props/shared";
 import { compose } from "../street/common";
+import { PROP_SCALE } from "../models/props/bruno";
 import { batch, Instances } from "../street/Instances";
 
 // ------------------------------------------------------------ promenade
@@ -90,8 +91,9 @@ function Promenade() {
       const z = PROMENADE[i][1] - f.nz * (PROM_W / 2 - 0.45);
       const y = heightAt(x, z) + 0.05;
       const yaw = Math.atan2(f.nx, f.nz); // local +z toward the sea
-      benches.m.push(compose(x, y + 0.45, z, yaw, 1.6, 0.08, 0.42));
-      benches.m.push(compose(x - f.nx * 0.22, y + 0.75, z - f.nz * 0.22, yaw, 1.6, 0.36, 0.07));
+      const s = PROP_SCALE;
+      benches.m.push(compose(x, y + 0.45 * s, z, yaw, 1.6 * s, 0.08 * s, 0.42 * s));
+      benches.m.push(compose(x - f.nx * 0.22 * s, y + 0.75 * s, z - f.nz * 0.22 * s, yaw, 1.6 * s, 0.36 * s, 0.07 * s));
     }
     return { posts, rails, benches };
   }, []);

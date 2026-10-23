@@ -33,14 +33,14 @@ const B = (() => {
       const t = (k + 0.5) / n;
       const [x, z] = pos(t);
       const slope = Math.atan2(ARCH * Math.PI * Math.cos(Math.PI * t), b.len);
-      planks.m.push(compose(x, yAt(t), z, yaw, 0.28, 0.08, b.width, 0, slope));
+      planks.m.push(compose(x, yAt(t), z, yaw, 0.28, 0.1, b.width, 0, slope));
     }
     for (const side of [-1, 1]) {
       const off = side * (b.width / 2 - 0.08);
       for (let k = 0; k <= 6; k++) {
         const t = k / 6;
         const [x, z] = pos(t, off);
-        rails.m.push(compose(x, yAt(t) + 0.45, z, yaw, 0.09, 0.9, 0.09));
+        rails.m.push(compose(x, yAt(t) + 0.5, z, yaw, 0.13, 1.0, 0.13));
       }
       for (let k = 0; k < 6; k++) {
         const t0 = k / 6;
@@ -49,7 +49,7 @@ const B = (() => {
         const [x1, z1] = pos(t1, off);
         const len = Math.hypot(x1 - x0, z1 - z0, yAt(t1) - yAt(t0));
         const pitch = Math.atan2(yAt(t1) - yAt(t0), Math.hypot(x1 - x0, z1 - z0));
-        rails.m.push(compose((x0 + x1) / 2, (yAt(t0) + yAt(t1)) / 2 + 0.88, (z0 + z1) / 2, yaw, len + 0.04, 0.07, 0.08, 0, pitch));
+        rails.m.push(compose((x0 + x1) / 2, (yAt(t0) + yAt(t1)) / 2 + 0.98, (z0 + z1) / 2, yaw, len + 0.04, 0.1, 0.11, 0, pitch));
       }
     }
     for (let k = 0; k < SEG; k++) {

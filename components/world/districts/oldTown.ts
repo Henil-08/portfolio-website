@@ -8,7 +8,7 @@ import { heightAt } from "../terrain";
 import { BUILDINGS, type Bld } from "../street/town";
 import { compose, distToTrack, rng } from "../street/common";
 import { BENCH, LANTERN } from "../models/props/brunoProps";
-import { propFoot } from "../models/props/bruno";
+import { PROP_SCALE, propFoot } from "../models/props/bruno";
 
 const SLAB = 0.9; // slab pitch
 const GAP = 0.07; // joint between slabs
@@ -92,19 +92,19 @@ function furniture() {
   const r = rng(913);
   const lanterns: THREE.Matrix4[] = [];
   const benches: THREE.Matrix4[] = [];
-  const lFoot = propFoot(LANTERN);
-  const bFoot = propFoot(BENCH);
+  const lFoot = propFoot(LANTERN) * PROP_SCALE;
+  const bFoot = propFoot(BENCH) * PROP_SCALE;
   for (const b of old) {
     const fz = b.front * (b.d / 2);
     for (const sx of [-1, 1]) {
       const [x, z] = toWorld(b, sx * (b.w / 2 + SIDE - 0.5), fz + b.front * (DEPTH - 0.6));
       if (onRoad(x, z) || inBuilding(x, z, 0.4)) continue;
       if (lanterns.some((m) => Math.hypot(m.elements[12] - x, m.elements[14] - z) < 2.5)) continue;
-      lanterns.push(compose(x, heightAt(x, z) + lFoot * 0.9, z, r() * 6, 0.9, 0.9, 0.9));
+      lanterns.push(compose(x, heightAt(x, z) + lFoot * 0.9, z, r() * 6, 0.9 * PROP_SCALE, 0.9 * PROP_SCALE, 0.9 * PROP_SCALE));
     }
     if (b.w > 5.5 && r() < 0.6) {
       const [x, z] = toWorld(b, (r() - 0.5) * (b.w - 3), fz + b.front * 0.95);
-      if (!onRoad(x, z) && !inBuilding(x, z, 0.3)) benches.push(compose(x, heightAt(x, z) + bFoot * 0.85, z, b.yaw + (b.front < 0 ? Math.PI : 0), 0.85, 0.85, 0.85));
+      if (!onRoad(x, z) && !inBuilding(x, z, 0.3)) benches.push(compose(x, heightAt(x, z) + bFoot * 0.85, z, b.yaw + (b.front < 0 ? Math.PI : 0), 0.85 * PROP_SCALE, 0.85 * PROP_SCALE, 0.85 * PROP_SCALE));
     }
   }
   return { lanterns, benches };
