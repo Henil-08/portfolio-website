@@ -31,10 +31,8 @@ export const SPECIES: Record<SpeciesId, Species> = {
   bush: {
     trunk: null,
     scale: 1,
-    crowns: [
-      [-0.12, 0.42, 0, 0.44],
-      [0.38, 0.32, 0.1, 0.34],
-    ],
+    // Bruno's bush: one round clump about as tall as his jeep (Bushes.js references)
+    crowns: [[0, 0.55, 0, 0.75]],
     colA: "#5f7a52",
     colB: "#a2b27c",
     sway: 0.12,

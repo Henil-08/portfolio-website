@@ -10,6 +10,9 @@ import { heightAt } from "../terrain";
 import { compose } from "../street/common";
 import { Instances } from "../street/Instances";
 import { FOOTBRIDGES } from "./layout";
+import { BUSHES } from "./bushes";
+import { Bush } from "../models/props";
+
 
 const WOOD = "#a47c58";
 const ARCH = 0.55;
@@ -82,6 +85,9 @@ export default function Park() {
           <CuboidCollider key={i} args={[c.len / 2 + 0.05, 0.06, c.w / 2]} position={[c.x, c.y, c.z]} rotation={[0, c.yaw, c.pitch]} />
         ))}
       </RigidBody>
+      {BUSHES.map((b, i) => (
+        <Bush key={`bush${i}`} seed={b.seed} position={[b.x, heightAt(b.x, b.z), b.z]} rotation={[0, b.rot, 0]} scale={b.s} />
+      ))}
     </>
   );
 }
