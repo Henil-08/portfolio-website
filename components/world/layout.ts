@@ -1,3 +1,4 @@
+import { START_SPOT } from "./startSpot";
 import * as THREE from "three";
 import type { Domain } from "@/content/projects";
 import { PLAZA } from "./timeline/data";
@@ -510,9 +511,8 @@ export const zoneById = Object.fromEntries(zones.map((z) => [z.id, z])) as Recor
  * `hx` is the half width of the whole word pair, for pads and clearances.
  */
 export const LETTERS = { text: "HENIL GAJJAR", center: [19, -3.2] as [number, number], scale: 1.2, hx: 10 };
-// Spawn in front of the name, on the garden path, facing east: the chase
-// camera opens on the car with HENIL GAJJAR behind it.
-export const SPAWN: [number, number, number] = [LETTERS.center[0] - 3, LETTERS.center[1] + 6.2, 0];
+// Spawn on the verge beside the main straight, facing the path onto it (./start.ts).
+export const SPAWN: [number, number, number] = START_SPOT;
 /** Career timeline terrace (components/world/Timeline.tsx): centre, world-axis half size, yaw.
  *  Turned a quarter, so its local z (time) runs along world x; sized from its own footprint. */
 export const TIMELINE = {
