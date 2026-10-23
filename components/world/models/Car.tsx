@@ -1,11 +1,11 @@
 "use client";
 
-// Collectible-grade modern F1 car. CarBody origin is the CHASSIS CENTRE,
-// forward is +X, right is +Z, ground sits at y = GROUND_Y.
+// Toy-like F1 car: soft, chunky bodywork, fat balloon tyres and thick
+// wings that read well from a high game camera. CarBody origin is the
+// CHASSIS CENTRE, forward is +X, right is +Z, ground sits at y = GROUND_Y.
 // Bodywork is lofted from cross-sections and painted with a small
-// position-based livery shader so the wave stays crisp on curved panels.
-// Parts that share a material are baked into one geometry to keep the
-// draw count low (about 45 meshes with wheels and decals).
+// position-based livery shader. Parts that share a material are baked into
+// one geometry to keep the draw count low.
 
 import { useMemo } from "react";
 import type { ThreeElements } from "@react-three/fiber";
@@ -47,12 +47,12 @@ export const WHEEL_POSITIONS: { x: number; y: number; z: number; front: boolean 
 const G = GROUND_Y;
 
 export const LIVERY = {
-  white: "#f4f3ef",
-  red: "#d8101c",
-  carbon: "#141519",
-  yellow: "#f6c400",
-  rubber: "#1a1a1d",
-  gun: "#1f2126",
+  white: "#f7f5ef",
+  red: "#d3121c",
+  carbon: "#1a1b1f",
+  yellow: "#ffc20e",
+  rubber: "#1c1c1f",
+  gun: "#25272c",
 };
 
 /* ------------------------------------------------------------------ */
@@ -376,201 +376,132 @@ function merge(list: THREE.BufferGeometry[]) {
   return out;
 }
 
-/** GLSL function `float name(float x)`: Catmull-Rom through (x, y) keys. */
-function glslCurve(name: string, keys: [number, number][]) {
-  const p = [...keys].sort((a, b) => a[0] - b[0]);
-  const f = (v: number) => v.toFixed(4);
-  const P = (i: number) => p[Math.max(0, Math.min(p.length - 1, i))][1];
-  let s = `float ${name}(float x) {\n  x = clamp(x, ${f(p[0][0])}, ${f(p[p.length - 1][0])});\n`;
-  for (let i = 0; i < p.length - 1; i++) {
-    const x0 = p[i][0];
-    const x1 = p[i + 1][0];
-    s += `  if (x <= ${f(x1)}) return lvCat(${f(P(i - 1))}, ${f(P(i))}, ${f(P(i + 1))}, ${f(P(i + 2))}, (x - ${f(x0)}) / ${f(x1 - x0)});\n`;
-  }
-  return s + `  return ${f(p[p.length - 1][1])};\n}\n`;
-}
-
 /* ------------------------------------------------------------------ */
 /* Body stations                                                       */
 /* ------------------------------------------------------------------ */
 
-// Monocoque + nose, from the nose tip (resting on the front wing main
-// plane) back into the engine cover. Narrow, low, gently rising nose.
+// Monocoque + nose. Toy proportions: a fat, blunt, rounded nose that
+// swells into a wide tub around the cockpit.
 const TUB: Station[] = [
-  { x: 1.484, t: -0.197, b: -0.2, w: 0.001, n: 2.6 },
-  { x: 1.48, t: -0.19, b: -0.207, w: 0.012, n: 2.6 },
-  { x: 1.46, t: -0.168, b: -0.214, w: 0.044, n: 3.2 },
-  { x: 1.3, t: -0.135, b: -0.222, w: 0.054, n: 3.2 },
-  { x: 1.06, t: -0.088, b: -0.224, w: 0.06, n: 3 },
-  { x: 0.8, t: -0.025, b: -0.222, w: 0.07, n: 3 },
-  { x: 0.52, t: 0.045, b: -0.226, w: 0.112, wb: 0.085, n: 3.2 },
-  { x: 0.26, t: 0.084, b: -0.235, w: 0.168, wb: 0.12, n: 3.4 },
-  { x: -0.04, t: 0.088, b: -0.24, w: 0.186, wb: 0.13, n: 3.4 },
-  { x: -0.32, t: 0.07, b: -0.24, w: 0.17, wb: 0.12, n: 3.2 },
-  { x: -0.5, t: 0.04, b: -0.22, w: 0.1, n: 3 },
-  { x: -0.55, t: 0.0, b: -0.18, w: 0.02, n: 3 },
+  { x: 1.38, t: -0.115, b: -0.16, w: 0.001, n: 2.2 },
+  { x: 1.374, t: -0.085, b: -0.192, w: 0.05, n: 2.2 },
+  { x: 1.33, t: -0.055, b: -0.208, w: 0.108, n: 2.4 },
+  { x: 1.18, t: -0.02, b: -0.215, w: 0.126, n: 2.5 },
+  { x: 0.96, t: 0.03, b: -0.22, w: 0.138, n: 2.5 },
+  { x: 0.64, t: 0.09, b: -0.225, w: 0.172, wb: 0.135, n: 2.5 },
+  { x: 0.32, t: 0.13, b: -0.232, w: 0.21, wb: 0.15, n: 2.6 },
+  { x: -0.04, t: 0.13, b: -0.236, w: 0.222, wb: 0.16, n: 2.7 },
+  { x: -0.32, t: 0.1, b: -0.236, w: 0.2, wb: 0.15, n: 2.6 },
+  { x: -0.5, t: 0.05, b: -0.21, w: 0.12, n: 2.5 },
+  { x: -0.56, t: 0.0, b: -0.17, w: 0.02, n: 2.5 },
 ];
 
-// Engine cover: roll-hoop airbox over the driver's head, a pronounced
-// spine, then a tight coke-bottle taper to the gearbox and crash structure.
+// Engine cover: a tall, rounded hump with a big airbox over the driver's
+// head, tapering in a soft curve to the gearbox.
 const COVER: Station[] = [
-  { x: -0.13, t: 0.345, b: 0.285, w: 0.022, n: 2, nb: 3 },
-  { x: -0.148, t: 0.375, b: 0.07, w: 0.058, wb: 0.09, n: 1.8, nb: 3, m: 0.25 },
-  { x: -0.24, t: 0.405, b: 0.0, w: 0.072, wb: 0.14, n: 1.8, nb: 3, m: 0.2 },
-  { x: -0.42, t: 0.37, b: -0.12, w: 0.1, wb: 0.165, n: 1.9, nb: 3, m: 0.1 },
-  { x: -0.62, t: 0.265, b: -0.17, w: 0.11, wb: 0.15, n: 2.1, nb: 3, m: 0.04 },
-  { x: -0.84, t: 0.13, b: -0.17, w: 0.085, wb: 0.1, n: 2.4 },
-  { x: -1.02, t: 0.03, b: -0.15, w: 0.06, n: 2.6 },
-  { x: -1.16, t: -0.03, b: -0.13, w: 0.045, n: 2.8 },
-  { x: -1.205, t: -0.05, b: -0.11, w: 0.01, n: 2.8 },
-  { x: -1.21, t: -0.079, b: -0.081, w: 0.001, n: 2.8 },
+  { x: -0.115, t: 0.375, b: 0.305, w: 0.03, n: 2, nb: 2.4 },
+  { x: -0.135, t: 0.415, b: 0.08, w: 0.08, wb: 0.12, n: 2, nb: 2.6, m: 0.28 },
+  { x: -0.24, t: 0.455, b: 0.0, w: 0.105, wb: 0.17, n: 2, nb: 2.6, m: 0.23 },
+  { x: -0.42, t: 0.425, b: -0.12, w: 0.135, wb: 0.2, n: 2.1, nb: 2.6, m: 0.12 },
+  { x: -0.64, t: 0.31, b: -0.17, w: 0.145, wb: 0.17, n: 2.2, nb: 2.6, m: 0.05 },
+  { x: -0.86, t: 0.165, b: -0.17, w: 0.115, wb: 0.12, n: 2.3 },
+  { x: -1.04, t: 0.065, b: -0.15, w: 0.085, n: 2.4 },
+  { x: -1.17, t: 0.005, b: -0.13, w: 0.062, n: 2.4 },
+  { x: -1.215, t: -0.03, b: -0.108, w: 0.022, n: 2.4 },
+  { x: -1.222, t: -0.068, b: -0.072, w: 0.001, n: 2.4 },
 ];
 
-// Sidepod (right side, mirrored). Small high inlet, deep undercut pulled
-// inboard (zb), steep downwash ramp sweeping into the coke bottle.
+// Sidepod (right side, mirrored). Big, soft and rounded, a small undercut.
 const POD: Station[] = [
-  { x: 0.485, t: 0.06, b: -0.02, w: 0.06, z: 0.27, zb: 0.26, n: 3.2, m: 0.025 },
-  { x: 0.47, t: 0.085, b: -0.06, w: 0.095, wb: 0.06, z: 0.275, zb: 0.24, n: 3.4, m: 0.025 },
-  { x: 0.36, t: 0.1, b: -0.12, w: 0.105, wb: 0.055, z: 0.27, zb: 0.205, n: 3.6, nb: 2.2, m: 0.02 },
-  { x: 0.12, t: 0.088, b: -0.18, w: 0.105, wb: 0.06, z: 0.26, zb: 0.19, n: 3.4, nb: 2.2, m: 0.0 },
-  { x: -0.18, t: 0.035, b: -0.205, w: 0.095, wb: 0.065, z: 0.235, zb: 0.18, n: 3, nb: 2.4, m: -0.04 },
-  { x: -0.48, t: -0.055, b: -0.21, w: 0.075, wb: 0.06, z: 0.185, zb: 0.16, n: 2.8, nb: 2.6, m: -0.11 },
-  { x: -0.74, t: -0.13, b: -0.21, w: 0.04, z: 0.12, n: 2.6 },
-  { x: -0.83, t: -0.16, b: -0.2, w: 0.01, z: 0.1, n: 2.6 },
+  { x: 0.505, t: 0.055, b: -0.035, w: 0.05, z: 0.28, n: 2.3, m: 0.01 },
+  { x: 0.48, t: 0.115, b: -0.11, w: 0.1, wb: 0.085, z: 0.288, zb: 0.27, n: 2.4, m: 0.0 },
+  { x: 0.34, t: 0.145, b: -0.175, w: 0.125, wb: 0.095, z: 0.288, zb: 0.255, n: 2.6, nb: 2.3, m: -0.01 },
+  { x: 0.08, t: 0.13, b: -0.2, w: 0.125, wb: 0.095, z: 0.278, zb: 0.245, n: 2.6, nb: 2.3, m: -0.03 },
+  { x: -0.2, t: 0.075, b: -0.21, w: 0.112, wb: 0.085, z: 0.25, zb: 0.225, n: 2.5, nb: 2.4, m: -0.065 },
+  { x: -0.48, t: -0.02, b: -0.21, w: 0.08, wb: 0.065, z: 0.2, zb: 0.185, n: 2.4, m: -0.11 },
+  { x: -0.7, t: -0.1, b: -0.2, w: 0.04, z: 0.15, n: 2.4 },
+  { x: -0.78, t: -0.13, b: -0.19, w: 0.01, z: 0.13, n: 2.4 },
 ];
-
-function coverTop(x: number) {
-  for (let i = 1; i < COVER.length; i++) {
-    const a = COVER[i - 1];
-    const b = COVER[i];
-    if (x <= a.x && x >= b.x) return a.t + ((b.t - a.t) * (x - a.x)) / (b.x - a.x);
-  }
-  return 0;
-}
 
 /* ------------------------------------------------------------------ */
 /* Materials                                                           */
 /* ------------------------------------------------------------------ */
 
-const W = glslColor(LIVERY.white);
 const R = glslColor(LIVERY.red);
 const K = glslColor(LIVERY.carbon);
+const Y = glslColor(LIVERY.yellow);
 
-// The red wave, in side projection (x -> y). Below `waveHi` and above
-// `waveLo` is red. It fills the nose tip, runs back along the nose flanks,
-// rides the sidepod shoulders and climbs the engine cover to the fin.
-const WAVE_HI: [number, number][] = [
-  [1.6, 0.2],
-  [1.22, -0.1],
-  [1.0, -0.125],
-  [0.78, -0.105],
-  [0.56, -0.05],
-  [0.36, 0.02],
-  [0.1, 0.012],
-  [-0.2, -0.012],
-  [-0.44, 0.04],
-  [-0.66, 0.17],
-  [-0.86, 0.33],
-  [-1.1, 0.5],
-  [-1.4, 0.6],
-];
-const WAVE_LO: [number, number][] = [
-  [1.6, -0.5],
-  [0.9, -0.5],
-  [0.62, -0.4],
-  [0.44, -0.05],
-  [0.2, -0.065],
-  [-0.1, -0.09],
-  [-0.4, -0.1],
-  [-0.64, -0.02],
-  [-0.86, 0.04],
-  [-1.1, 0.0],
-  [-1.4, -0.05],
-];
-
+// Satin red body, black lower body, and a thin yellow pinstripe riding the
+// shoulder line between them.
 const BODY_GLSL = /* glsl */ `
-${glslCurve("waveHi", WAVE_HI)}
-${glslCurve("waveLo", WAVE_LO)}
 vec4 livery(vec3 p, vec3 n) {
-  vec3 col = ${W};
-  float rough = 0.24;
-  float hi = waveHi(p.x);
-  float lo = waveLo(p.x);
-  float wave = lvAA(hi - p.y) * lvAA(p.y - lo);
-  // a fine red speed line riding just above the wave
-  float line = lvBand(p.y - hi, 0.016, 0.023) * lvAA(0.95 - p.x) * lvAA(p.x + 0.7);
-  col = mix(col, ${R}, max(wave, line));
-  // carbon lower body, and carbon in the shadowed undercuts beneath the sidepods
-  float under = lvAA(-n.y - 0.45) * lvAA(0.0 - p.y) * lvAA(0.47 - p.x) * lvAA(abs(p.z) - 0.17);
-  float low = max(lvAA(-0.195 - p.y), under);
+  vec3 col = ${R};
+  float rough = 0.42;
+  float under = lvAA(-n.y - 0.35) * lvAA(-0.02 - p.y);
+  float low = max(lvAA(-0.172 - p.y), under);
+  float pin = lvBand(p.y, -0.16, -0.148) * (1.0 - under) * lvAA(0.62 - p.x) * lvAA(p.x + 0.8);
+  col = mix(col, ${Y}, pin);
   col = mix(col, ${K}, low);
-  rough = mix(rough, 0.42, low);
+  rough = mix(rough, 0.6, low);
   return vec4(col, rough);
 }
 `;
 
-// Wing elements: painted top, carbon underside.
+// Wing elements: painted top, black underside.
 const wingGlsl = (top: string) => /* glsl */ `
 vec4 livery(vec3 p, vec3 n) {
   float under = lvAA(-n.y - 0.05);
-  return vec4(mix(${top}, ${K}, under), mix(0.26, 0.45, under));
+  return vec4(mix(${top}, ${K}, under), mix(0.42, 0.6, under));
 }
 `;
 
-// Wing endplates: carbon with a red cap following the top edge.
+// Endplates: black with a red cap along the top edge and a yellow pin under it.
 const ENDPLATE_GLSL = /* glsl */ `
 vec4 livery(vec3 p, vec3 n) {
-  float top = p.x > 0.0 ? ${(G + 0.09).toFixed(4)} + (1.58 - p.x) * 0.4 - 0.032 : ${(G + 0.752).toFixed(4)};
+  float top = p.x > 0.0 ? ${(G + 0.168).toFixed(4)} : ${(G + 0.742).toFixed(4)};
   float cap = lvAA(p.y - top);
-  float pin = lvBand(p.y - top, -0.014, -0.008);
-  return vec4(mix(${K}, ${R}, max(cap, pin)), mix(0.42, 0.26, cap));
+  float pin = lvBand(p.y - top, -0.02, -0.011);
+  vec3 col = mix(${K}, ${R}, cap);
+  col = mix(col, ${Y}, pin);
+  return vec4(col, mix(0.58, 0.42, cap));
 }
 `;
 
-// Tyre: rubber with a yellow sidewall band (Pirelli-style), axis = local Z.
+// Tyre: soft rubber with a fat yellow sidewall band broken into logo blocks.
 const TYRE_GLSL = /* glsl */ `
 vec4 livery(vec3 p, vec3 n) {
   float r = length(p.xy);
-  float side = lvAA(abs(p.z) - 0.07);
-  float band = lvBand(r, 0.207, 0.226) * side;
-  float thin = lvBand(r, 0.186, 0.191) * side;
-  // short arcs break the band like the maker's logo blocks
+  float side = lvAA(abs(p.z) - 0.1);
+  float band = lvBand(r, 0.196, 0.224) * side;
   float a = atan(p.y, p.x);
-  float gaps = lvBand(abs(fract(a / 6.2832 * 2.0 + 0.25) - 0.5), -1.0, 0.055);
-  float y = max(band * (1.0 - gaps), thin);
-  vec3 col = mix(${glslColor(LIVERY.rubber)}, ${glslColor(LIVERY.yellow)}, y);
-  return vec4(col, mix(0.86, 0.5, y));
-}
-`;
-
-// Wheel cover ring: black with a red pinstripe.
-const COVER_GLSL = /* glsl */ `
-vec4 livery(vec3 p, vec3 n) {
-  float r = length(p.xy);
-  float pin = lvBand(r, 0.151, 0.157);
-  return vec4(mix(vec3(0.012), ${R}, pin), 0.22);
+  float seg = fract(a / 6.2832 * 3.0 + 0.1);
+  float gaps = lvBand(seg, 0.0, 0.07);
+  // small tick marks inside each block, like lettering
+  float ticks = lvBand(fract(seg * 18.0), 0.0, 0.32) * lvBand(seg, 0.14, 0.62) * lvBand(r, 0.203, 0.217);
+  float y = band * (1.0 - gaps) * (1.0 - ticks);
+  vec3 col = mix(${glslColor(LIVERY.rubber)}, ${Y}, y);
+  return vec4(col, mix(0.82, 0.5, y));
 }
 `;
 
 let MATS: ReturnType<typeof makeMaterials> | null = null;
 function makeMaterials() {
-  const gloss = { clearcoat: 1, clearcoatRoughness: 0.12 };
+  const satin = { clearcoat: 0.35, clearcoatRoughness: 0.45 };
   return {
-    body: liveryMaterial("car-body-v2", BODY_GLSL),
-    wingRed: liveryMaterial("wing-red-v2", wingGlsl(R)),
-    wingWhite: liveryMaterial("wing-white-v2", wingGlsl(W)),
-    red: physical(LIVERY.red, 0.26, gloss),
-    endplate: liveryMaterial("endplate", ENDPLATE_GLSL, { clearcoat: 0.9, clearcoatRoughness: 0.2 }),
-    carbon: physical(LIVERY.carbon, 0.42, { clearcoat: 0.8, clearcoatRoughness: 0.25 }),
-    hole: physical("#050506", 0.85),
+    body: liveryMaterial("car-body-cute", BODY_GLSL, satin),
+    wingRed: liveryMaterial("wing-red-cute", wingGlsl(R), satin),
+    wingBlack: liveryMaterial("wing-black-cute", wingGlsl(K), satin),
+    red: physical(LIVERY.red, 0.42, satin),
+    yellow: physical(LIVERY.yellow, 0.45, satin),
+    endplate: liveryMaterial("endplate-cute", ENDPLATE_GLSL, satin),
+    carbon: physical(LIVERY.carbon, 0.58, { clearcoat: 0.25, clearcoatRoughness: 0.5 }),
+    hole: physical("#050506", 0.9),
     mirror: physical("#c9ced6", 0.08, { metalness: 1 }),
-    tyre: liveryMaterial("tyre-v2", TYRE_GLSL, { clearcoat: 0, roughness: 0.9 }),
-    gun: physical(LIVERY.gun, 0.3, { metalness: 0.85 }),
-    cover: liveryMaterial("wheel-cover", COVER_GLSL, { clearcoat: 1, clearcoatRoughness: 0.1 }),
-    hub: physical(LIVERY.red, 0.25, { metalness: 0.5, ...gloss }),
-    textWhite: physical(LIVERY.white, 0.3, gloss),
-    textRed: physical(LIVERY.red, 0.3, gloss),
-    textBlack: physical("#0d0d10", 0.3, gloss),
+    tyre: liveryMaterial("tyre-cute", TYRE_GLSL, { clearcoat: 0, roughness: 0.85 }),
+    rim: physical(LIVERY.gun, 0.45, { metalness: 0.4 }),
+    hub: physical(LIVERY.red, 0.4, { metalness: 0.2, ...satin }),
+    textWhite: physical(LIVERY.white, 0.4, satin),
+    textYellow: physical(LIVERY.yellow, 0.4, satin),
   };
 }
 function useMaterials() {
@@ -586,74 +517,80 @@ const FONT = "/fonts/racero.otf";
 let WHEEL_GEO: ReturnType<typeof makeWheelGeometry> | null = null;
 function makeWheelGeometry() {
   const R0 = WHEEL_RADIUS;
-  const RIM = 0.17;
-  const HW = 0.12;
-  // low-profile tyre: superellipse profile revolved about the axle
+  const RIM = 0.145;
+  const HW = 0.165;
+  // balloon tyre: tall sidewall, round shoulders, revolved about the axle
   const pts: THREE.Vector2[] = [];
   const n = 56;
   for (let i = 0; i <= n; i++) {
     const phi = -PI / 2 + (PI * i) / n;
     const c = Math.cos(phi);
     const s = Math.sin(phi);
-    const r = RIM + (R0 - RIM) * Math.pow(Math.abs(c), 2 / 3.8);
-    const z = HW * spow(s, 2 / 4.4);
+    const r = RIM + (R0 - RIM) * Math.pow(Math.abs(c), 2 / 3);
+    const z = HW * spow(s, 2 / 3.2);
     pts.push(new THREE.Vector2(r, z));
   }
   const tyre = new THREE.LatheGeometry(pts, 72).rotateX(PI / 2);
 
-  const disc = (outer: number, holes: (s: THREE.Shape) => void, depth: number) => {
+  const disc = (outer: number, holes: (s: THREE.Shape) => void, depth: number, bevel = 0.006) => {
     const s = new THREE.Shape();
     s.absarc(0, 0, outer, 0, PI * 2, false);
     holes(s);
     return new THREE.ExtrudeGeometry(s, {
       depth,
       bevelEnabled: true,
-      bevelThickness: 0.004,
-      bevelSize: 0.004,
-      bevelSegments: 2,
+      bevelThickness: bevel,
+      bevelSize: bevel,
+      bevelSegments: 3,
       curveSegments: 40,
     });
   };
-  // ten slim spokes
+  // six chunky spokes
   const spokes = disc(
-    0.142,
+    0.138,
     (s) => {
-      const N = 10;
+      const N = 6;
       for (let k = 0; k < N; k++) {
-        const a0 = (k / N) * PI * 2 + 0.07;
-        const a1 = ((k + 1) / N) * PI * 2 - 0.07;
+        const a0 = (k / N) * PI * 2 + 0.17;
+        const a1 = ((k + 1) / N) * PI * 2 - 0.17;
         const h = new THREE.Path();
-        h.absarc(0, 0, 0.13, a0, a1, false);
-        h.absarc(0, 0, 0.052, a1 - 0.14, a0 + 0.14, true);
+        h.absarc(0, 0, 0.118, a0, a1, false);
+        h.absarc(0, 0, 0.056, a1 - 0.22, a0 + 0.22, true);
         h.closePath();
         s.holes.push(h);
       }
     },
-    0.01,
+    0.014,
   );
-  // aero cover ring over the rim lip
+  // red rim lip
   const ring = disc(
-    0.172,
+    0.152,
     (s) => {
       const h = new THREE.Path();
-      h.absarc(0, 0, 0.136, 0, PI * 2, true);
+      h.absarc(0, 0, 0.137, 0, PI * 2, true);
       s.holes.push(h);
     },
-    0.006,
+    0.01,
+    0.005,
   );
-  const barrel = new THREE.CylinderGeometry(0.165, 0.165, 0.2, 40, 1, true).rotateX(PI / 2);
-  const hubDisc = new THREE.CylinderGeometry(0.05, 0.05, 0.02, 24).rotateX(PI / 2);
-  const nut = new THREE.CylinderGeometry(0.028, 0.034, 0.032, 6).rotateX(PI / 2);
+  const barrel = new THREE.CylinderGeometry(0.148, 0.148, 0.26, 40, 1, true).rotateX(PI / 2);
+  const dish = new THREE.CylinderGeometry(0.13, 0.13, 0.01, 40).rotateX(PI / 2);
+  const hubCap = new THREE.SphereGeometry(0.042, 20, 12).scale(1, 1, 0.55);
   const flip: V3 = [0, PI, 0];
-  const rim = merge([barrel, bake(spokes, [0, 0, 0.068]), bake(spokes, [0, 0, -0.068], [1, 1, 1], flip)]);
-  const cover = merge([bake(ring, [0, 0, 0.082]), bake(ring, [0, 0, -0.082], [1, 1, 1], flip)]);
-  const hub = merge([
-    bake(hubDisc, [0, 0, 0.074]),
-    bake(hubDisc, [0, 0, -0.074]),
-    bake(nut, [0, 0, 0.09]),
-    bake(nut, [0, 0, -0.09]),
+  const rim = merge([
+    barrel,
+    bake(dish, [0, 0, 0.06]),
+    bake(dish, [0, 0, -0.06]),
+    bake(spokes, [0, 0, 0.08]),
+    bake(spokes, [0, 0, -0.08], [1, 1, 1], flip),
   ]);
-  return { tyre, rim, cover, hub };
+  const hub = merge([
+    bake(ring, [0, 0, 0.1]),
+    bake(ring, [0, 0, -0.1], [1, 1, 1], flip),
+    bake(hubCap, [0, 0, 0.1]),
+    bake(hubCap, [0, 0, -0.1]),
+  ]);
+  return { tyre, rim, hub };
 }
 
 /** One wheel. Origin at wheel centre, rolling axis = local Z. Rear wheels: scale by REAR_WHEEL_SCALE. */
@@ -663,8 +600,7 @@ export function CarWheel(props: GroupProps) {
   return (
     <group {...props}>
       <mesh geometry={g.tyre} material={m.tyre} castShadow receiveShadow />
-      <mesh geometry={g.rim} material={m.gun} castShadow />
-      <mesh geometry={g.cover} material={m.cover} castShadow />
+      <mesh geometry={g.rim} material={m.rim} castShadow />
       <mesh geometry={g.hub} material={m.hub} />
     </group>
   );
@@ -673,6 +609,11 @@ export function CarWheel(props: GroupProps) {
 /* ------------------------------------------------------------------ */
 /* Body geometry                                                       */
 /* ------------------------------------------------------------------ */
+
+/** Chunky rounded slab between two side-view outlines (endplates, pylons). */
+function slab(pts: [number, number][], thick: number, z: number, r: number | number[]) {
+  return plate(roundedPoly(pts, r), thick, z, Math.min(0.012, thick * 0.35));
+}
 
 let BODY_GEO: ReturnType<typeof makeBodyGeometry> | null = null;
 function makeBodyGeometry() {
@@ -685,19 +626,20 @@ function makeBodyGeometry() {
 
   const carbon: THREE.BufferGeometry[] = [];
   const red: THREE.BufferGeometry[] = [];
+  const yellow: THREE.BufferGeometry[] = [];
   const hole: THREE.BufferGeometry[] = [];
   const plates: THREE.BufferGeometry[] = [];
 
-  /* ---- floor ---- */
+  /* ---- floor: rounded tray ---- */
   const fl: [number, number][] = [
-    [0.6, 0.0],
-    [0.6, 0.12],
-    [0.52, 0.3],
-    [0.38, 0.45],
-    [-0.42, 0.47],
-    [-0.56, 0.41],
-    [-0.64, 0.35],
-    [-1.12, 0.34],
+    [0.62, 0.0],
+    [0.62, 0.12],
+    [0.54, 0.3],
+    [0.4, 0.43],
+    [-0.42, 0.45],
+    [-0.56, 0.38],
+    [-0.64, 0.3],
+    [-1.14, 0.29],
   ];
   const floorShape = new THREE.Shape();
   const outline = [...fl, ...fl.slice().reverse().map(([x, z]) => [x, -z] as [number, number])];
@@ -705,269 +647,203 @@ function makeBodyGeometry() {
   outline.slice(1).forEach(([x, z]) => floorShape.lineTo(x, z));
   carbon.push(
     new THREE.ExtrudeGeometry(floorShape, {
-      depth: 0.012,
+      depth: 0.016,
       bevelEnabled: true,
-      bevelThickness: 0.004,
-      bevelSize: 0.005,
-      bevelSegments: 2,
+      bevelThickness: 0.008,
+      bevelSize: 0.012,
+      bevelSegments: 3,
     })
       .rotateX(PI / 2)
-      .translate(0, G + 0.062, 0),
+      .translate(0, G + 0.07, 0),
   );
-  for (const s of [1, -1]) {
-    // upturned floor edge wing
+  // diffuser ramp
+  carbon.push(new RoundedBoxGeometry(0.44, 0.026, 0.56, 2, 0.01).rotateZ(-0.32).translate(-0.92, G + 0.12, 0));
+  for (const z of [0.15, -0.15])
     carbon.push(
-      plate(
-        [
-          [0.34, G + 0.058],
-          [0.26, G + 0.088],
-          [-0.36, G + 0.098],
-          [-0.42, G + 0.058],
-        ],
-        0.01,
-        s * 0.466,
-      ),
-    );
-    // red edge stripe along the floor lip
-    red.push(
-      plate(
-        [
-          [0.3, G + 0.05],
-          [0.3, G + 0.056],
-          [-0.4, G + 0.056],
-          [-0.4, G + 0.05],
-        ],
-        0.012,
-        s * 0.466,
-        0.002,
-      ),
-    );
-    // floor fences under the leading edge, toeing outboard
-    for (const [z, h] of [
-      [0.12, 0.034],
-      [0.2, 0.038],
-      [0.28, 0.04],
-      [0.36, 0.036],
-    ]) {
-      const f = plate(
-        [
-          [0.58, G + 0.062],
-          [0.56, G + 0.062 - h],
-          [0.22, G + 0.062 - h * 0.8],
-          [0.16, G + 0.062],
-        ],
-        0.007,
-        0,
-        0.002,
-      );
-      f.rotateY(s * 0.12);
-      f.translate(0, 0, s * z);
-      carbon.push(f);
-    }
-  }
-  // diffuser ramp + strakes
-  carbon.push(new THREE.BoxGeometry(0.46, 0.01, 0.66).rotateZ(-0.3).translate(-0.9, G + 0.12, 0));
-  for (const z of [0.12, -0.12, 0.26, -0.26])
-    carbon.push(
-      plate(
+      slab(
         [
           [-0.68, G + 0.06],
-          [-1.12, G + 0.2],
-          [-1.12, G + 0.06],
+          [-1.13, G + 0.21],
+          [-1.13, G + 0.06],
         ],
-        0.008,
+        0.018,
         z,
+        0.02,
       ),
     );
 
-  /* ---- front wing: main plane + three flaps, swept, rising inboard ---- */
-  const inner = (z: number) => 1 - THREE.MathUtils.smoothstep(Math.abs(z), 0.06, 0.5);
-  const sweep = (z: number) => -0.045 * (Math.abs(z) / 0.6) ** 2;
-  const fwBend = (lift: number, shrink: number) => (z: number): [number, number, number] => {
-    const k = inner(z);
-    return [sweep(z) + k * 0.012, k * lift, 1 - k * shrink];
+  /* ---- front wing: one fat main plane + one flap, thick endplates ---- */
+  const FW = 0.585;
+  const sweep = (z: number): [number, number, number] => {
+    const k = 1 - THREE.MathUtils.smoothstep(Math.abs(z), 0.08, 0.45);
+    return [-0.03 * (Math.abs(z) / 0.6) ** 2, k * 0.018, 1];
   };
-  const FW = 0.598;
-  const fwMain = airfoil({ x: 1.56, y: G + 0.058, chord: 0.2, thick: 0.065, camber: 0.06, aoa: 0.05, z0: -FW, z1: FW, bend: fwBend(0.02, 0), rows: 40 });
-  const fwFlaps = merge([
-    airfoil({ x: 1.385, y: G + 0.082, chord: 0.1, thick: 0.08, camber: 0.05, aoa: 0.36, z0: -FW, z1: FW, bend: fwBend(0.022, 0.2), rows: 40 }),
-    airfoil({ x: 1.305, y: G + 0.118, chord: 0.082, thick: 0.08, camber: 0.05, aoa: 0.62, z0: -FW, z1: FW, bend: fwBend(0.03, 0.3), rows: 40 }),
-    airfoil({ x: 1.252, y: G + 0.163, chord: 0.064, thick: 0.08, camber: 0.04, aoa: 0.92, z0: -FW, z1: FW, bend: fwBend(0.036, 0.35), rows: 40 }),
-  ]);
+  const fwMain = airfoil({ x: 1.49, y: G + 0.064, chord: 0.22, thick: 0.14, camber: 0.05, aoa: 0.06, z0: -FW, z1: FW, bend: sweep, rows: 36 });
+  const fwFlaps = airfoil({ x: 1.31, y: G + 0.108, chord: 0.12, thick: 0.15, camber: 0.04, aoa: 0.5, z0: -FW, z1: FW, bend: sweep, rows: 36 });
   for (const s of [1, -1])
     plates.push(
-      plate(
-        roundedPoly(
-          [
-            [1.58, G + 0.028],
-            [1.58, G + 0.09],
-            [1.47, G + 0.15],
-            [1.28, G + 0.21],
-            [1.225, G + 0.19],
-            [1.235, G + 0.1],
-            [1.31, G + 0.028],
-          ],
-          [0.01, 0.03, 0.06, 0.03, 0.02, 0.04, 0.02],
-        ),
+      slab(
+        [
+          [1.525, G + 0.03],
+          [1.525, G + 0.14],
+          [1.44, G + 0.2],
+          [1.23, G + 0.215],
+          [1.195, G + 0.17],
+          [1.23, G + 0.03],
+        ],
+        0.036,
+        s * 0.6,
+        [0.02, 0.04, 0.08, 0.04, 0.03, 0.03],
+      ),
+    );
+  // nose pillars down to the wing
+  for (const s of [1, -1])
+    carbon.push(
+      slab(
+        [
+          [1.33, G + 0.13],
+          [1.28, G + 0.1],
+          [1.16, G + 0.1],
+          [1.18, G + 0.13],
+        ],
+        0.016,
+        s * 0.06,
         0.01,
-        s * 0.605,
       ),
     );
 
-  /* ---- rear wing: spoon main plane, DRS flap, beam wing, swan neck ---- */
-  const spoon = (z: number): [number, number] => [0, -0.02 * (1 - (z / 0.425) ** 2)];
-  const rwMain = airfoil({ x: -1.12, y: G + 0.6, chord: 0.2, thick: 0.1, camber: 0.08, aoa: 0.12, z0: -0.426, z1: 0.426, bend: spoon });
+  /* ---- rear wing: fat main plane, DRS flap, beam wing, chunky pylon ---- */
+  const rwMain = airfoil({ x: -1.1, y: G + 0.6, chord: 0.21, thick: 0.15, camber: 0.06, aoa: 0.1, z0: -0.42, z1: 0.42 });
   // flap leading edge sits on the DRS hinge
   const rwFlap = airfoil({
     x: DRS_PIVOT[0],
     y: DRS_PIVOT[1],
-    chord: 0.145,
-    thick: 0.08,
-    camber: 0.05,
-    aoa: 0.58,
-    z0: -0.426,
-    z1: 0.426,
-    bend: spoon,
+    chord: 0.15,
+    thick: 0.14,
+    camber: 0.04,
+    aoa: 0.5,
+    z0: -0.42,
+    z1: 0.42,
   });
-  carbon.push(
-    airfoil({ x: -1.275, y: G + 0.3, chord: 0.095, thick: 0.1, camber: 0.05, aoa: 0.12, z0: -0.426, z1: 0.426 }),
-    airfoil({ x: -1.36, y: G + 0.335, chord: 0.07, thick: 0.1, camber: 0.05, aoa: 0.5, z0: -0.426, z1: 0.426 }),
-  );
+  carbon.push(airfoil({ x: -1.28, y: G + 0.31, chord: 0.12, thick: 0.15, camber: 0.04, aoa: 0.18, z0: -0.42, z1: 0.42 }));
   for (const s of [1, -1])
     plates.push(
-      plate(
-        roundedPoly(
-          [
-            [-1.095, G + 0.55],
-            [-1.095, G + 0.73],
-            [-1.17, G + 0.795],
-            [-1.47, G + 0.795],
-            [-1.47, G + 0.5],
-            [-1.43, G + 0.29],
-            [-1.31, G + 0.29],
-            [-1.3, G + 0.42],
-          ],
-          [0.02, 0.04, 0.06, 0.02, 0.06, 0.02, 0.02, 0.08],
-        ),
-        0.012,
+      slab(
+        [
+          [-1.08, G + 0.55],
+          [-1.08, G + 0.79],
+          [-1.48, G + 0.79],
+          [-1.48, G + 0.5],
+          [-1.42, G + 0.28],
+          [-1.27, G + 0.28],
+          [-1.27, G + 0.46],
+        ],
+        0.036,
         s * 0.432,
+        [0.04, 0.06, 0.06, 0.06, 0.04, 0.04, 0.1],
       ),
     );
   carbon.push(
-    plate(
-      roundedPoly(
-        [
-          [-1.03, G + 0.2],
-          [-1.13, G + 0.5],
-          [-1.15, G + 0.566],
-          [-1.215, G + 0.566],
-          [-1.18, G + 0.48],
-          [-1.1, G + 0.19],
-        ],
-        0.025,
-      ),
-      0.014,
-      0,
-    ),
-  );
-
-  /* ---- shark fin ---- */
-  carbon.push(
-    plate(
+    slab(
       [
-        [-0.27, coverTop(-0.27) - 0.02],
-        [-0.33, 0.43],
-        [-0.93, 0.24],
-        [-0.99, 0.17],
-        [-0.99, coverTop(-0.99) - 0.02],
-        [-0.7, coverTop(-0.7) - 0.02],
-        [-0.45, coverTop(-0.45) - 0.02],
+        [-1.02, G + 0.2],
+        [-1.12, G + 0.52],
+        [-1.15, G + 0.57],
+        [-1.23, G + 0.57],
+        [-1.19, G + 0.48],
+        [-1.11, G + 0.19],
       ],
-      0.008,
+      0.03,
       0,
-      0.003,
+      0.03,
     ),
   );
 
-  /* ---- halo ---- */
+  /* ---- halo: chunky hoop + centre pillar ---- */
   const hoop = new THREE.CatmullRomCurve3(
     (
       [
-        [-0.215, 0.07, 0.178],
-        [-0.195, 0.2, 0.174],
-        [-0.12, 0.29, 0.16],
-        [0.02, 0.326, 0.126],
-        [0.13, 0.332, 0.05],
-        [0.152, 0.332, 0],
-        [0.13, 0.332, -0.05],
-        [0.02, 0.326, -0.126],
-        [-0.12, 0.29, -0.16],
-        [-0.195, 0.2, -0.174],
-        [-0.215, 0.07, -0.178],
+        [-0.2, 0.09, 0.19],
+        [-0.18, 0.22, 0.185],
+        [-0.1, 0.31, 0.17],
+        [0.03, 0.345, 0.13],
+        [0.14, 0.352, 0.05],
+        [0.163, 0.352, 0],
+        [0.14, 0.352, -0.05],
+        [0.03, 0.345, -0.13],
+        [-0.1, 0.31, -0.17],
+        [-0.18, 0.22, -0.185],
+        [-0.2, 0.09, -0.19],
       ] as V3[]
     ).map(([a, b, c]) => new THREE.Vector3(a, b, c)),
     false,
     "centripetal",
   );
-  carbon.push(new THREE.TubeGeometry(hoop, 100, 0.023, 12, false));
+  carbon.push(new THREE.TubeGeometry(hoop, 100, 0.032, 14, false));
   const pillarCurve = new THREE.CatmullRomCurve3(
     (
       [
-        [0.14, 0.338, 0],
-        [0.25, 0.262, 0],
-        [0.33, 0.15, 0],
-        [0.37, 0.05, 0],
+        [0.15, 0.36, 0],
+        [0.26, 0.28, 0],
+        [0.34, 0.18, 0],
+        [0.38, 0.09, 0],
       ] as V3[]
     ).map(([a, b, c]) => new THREE.Vector3(a, b, c)),
   );
-  carbon.push(new THREE.TubeGeometry(pillarCurve, 24, 0.017, 10, false).scale(1, 1, 1.4));
+  carbon.push(new THREE.TubeGeometry(pillarCurve, 24, 0.024, 12, false).scale(1, 1, 1.3));
 
-  /* ---- suspension, brake ducts ---- */
-  const unit = new THREE.CylinderGeometry(1, 1, 1, 10);
+  /* ---- suspension: two thick wishbones per corner, brake drums ---- */
+  const unit = new THREE.CylinderGeometry(1, 1, 1, 12);
   const ry = G + WHEEL_RADIUS;
   const rry = G + REAR_R;
+  const IN = 0.31; // inner face of the fat tyres
   for (const s of [1, -1]) {
     const z = (v: number) => v * s;
     carbon.push(
-      rod(unit, [1.0, ry + 0.03, z(0.06)], [FRONT_X, ry + 0.09, z(0.38)], 0.0075),
-      rod(unit, [0.7, ry + 0.07, z(0.12)], [FRONT_X, ry + 0.09, z(0.38)], 0.0075),
-      rod(unit, [1.04, ry - 0.09, z(0.05)], [FRONT_X, ry - 0.09, z(0.38)], 0.0075),
-      rod(unit, [0.66, ry - 0.1, z(0.12)], [FRONT_X, ry - 0.09, z(0.38)], 0.0075),
-      rod(unit, [FRONT_X + 0.03, ry - 0.07, z(0.36)], [0.8, ry + 0.11, z(0.08)], 0.006),
-      rod(unit, [-0.78, rry + 0.06, z(0.08)], [REAR_X, rry + 0.1, z(0.37)], 0.0075),
-      rod(unit, [-1.08, rry + 0.08, z(0.06)], [REAR_X, rry + 0.1, z(0.37)], 0.0075),
-      rod(unit, [-0.8, rry - 0.1, z(0.12)], [REAR_X, rry - 0.09, z(0.37)], 0.0075),
-      rod(unit, [-1.06, rry - 0.1, z(0.07)], [REAR_X, rry - 0.09, z(0.37)], 0.0075),
+      rod(unit, [0.96, ry + 0.05, z(0.07)], [FRONT_X, ry + 0.07, z(IN)], 0.011),
+      rod(unit, [0.72, ry + 0.08, z(0.12)], [FRONT_X, ry + 0.07, z(IN)], 0.011),
+      rod(unit, [1.0, ry - 0.07, z(0.07)], [FRONT_X, ry - 0.07, z(IN)], 0.011),
+      rod(unit, [0.7, ry - 0.08, z(0.12)], [FRONT_X, ry - 0.07, z(IN)], 0.011),
+      rod(unit, [-0.8, rry + 0.06, z(0.1)], [REAR_X, rry + 0.08, z(IN - 0.01)], 0.011),
+      rod(unit, [-1.06, rry + 0.08, z(0.07)], [REAR_X, rry + 0.08, z(IN - 0.01)], 0.011),
+      rod(unit, [-0.8, rry - 0.09, z(0.12)], [REAR_X, rry - 0.08, z(IN - 0.01)], 0.011),
+      rod(unit, [-1.06, rry - 0.09, z(0.08)], [REAR_X, rry - 0.08, z(IN - 0.01)], 0.011),
     );
-    const drum = new THREE.CylinderGeometry(0.075, 0.09, 0.05, 20).rotateX(PI / 2);
-    carbon.push(bake(drum, [FRONT_X, ry, z(0.385)]), bake(drum, [REAR_X, rry, z(0.385)]));
+    const drum = new THREE.CylinderGeometry(0.08, 0.095, 0.05, 24).rotateX(PI / 2);
+    carbon.push(bake(drum, [FRONT_X, ry, z(IN)]), bake(drum, [REAR_X, rry, z(IN - 0.01)]));
   }
 
-  /* ---- mirrors ---- */
-  const housing = new RoundedBoxGeometry(0.048, 0.032, 0.1, 3, 0.014);
+  /* ---- mirrors: round red pods on black stalks ---- */
+  const housing = new RoundedBoxGeometry(0.06, 0.05, 0.12, 4, 0.022);
   const glass = new THREE.SphereGeometry(1, 20, 12);
   const mirrorGlass: THREE.BufferGeometry[] = [];
   for (const s of [1, -1]) {
-    const p: V3 = [0.2, 0.17, s * 0.29];
+    const p: V3 = [0.22, 0.2, s * 0.31];
     red.push(bake(housing, p, [1, 1, 1], [s * 0.1, 0, 0]));
-    mirrorGlass.push(bake(glass, [p[0] - 0.023, p[1], p[2]], [0.004, 0.011, 0.038]));
-    carbon.push(rod(unit, [0.235, 0.08, s * 0.2], [0.205, 0.16, s * 0.28], 0.007));
-    carbon.push(rod(unit, [0.21, 0.08, s * 0.3], [0.2, 0.155, s * 0.3], 0.006));
+    mirrorGlass.push(bake(glass, [p[0] - 0.029, p[1], p[2]], [0.004, 0.016, 0.045]));
+    carbon.push(rod(unit, [0.25, 0.1, s * 0.2], [0.225, 0.19, s * 0.3], 0.011));
   }
 
-  /* ---- cockpit, intakes ---- */
+  /* ---- cockpit, intakes, T-cam ---- */
   const sph = new THREE.SphereGeometry(1, 24, 16);
   const cockpit = stationAt(TUB, -0.03);
-  hole.push(bake(new THREE.CylinderGeometry(1, 1, 0.02, 40), [-0.03, cockpit.t - 0.002, 0], [0.25, 1, 0.152]));
-  carbon.push(bake(new THREE.TorusGeometry(1, 0.08, 10, 48).rotateX(PI / 2), [-0.03, cockpit.t + 0.004, 0], [0.255, 0.17, 0.158]));
-  // roll-hoop airbox mouth, sidepod letterbox inlets
-  hole.push(bake(sph, [-0.137, 0.315, 0], [0.012, 0.036, 0.036]));
-  for (const s of [1, -1]) hole.push(bake(sph, [0.478, 0.022, s * 0.272], [0.01, 0.036, 0.075]));
+  hole.push(bake(new THREE.CylinderGeometry(1, 1, 0.02, 40), [-0.03, cockpit.t - 0.004, 0], [0.26, 1, 0.16]));
+  carbon.push(bake(new THREE.TorusGeometry(1, 0.13, 12, 48).rotateX(PI / 2), [-0.03, cockpit.t + 0.006, 0], [0.27, 0.2, 0.168]));
+  // airbox mouth and sidepod inlets: soft rounded holes
+  hole.push(bake(sph, [-0.122, 0.34, 0], [0.016, 0.05, 0.05]));
+  carbon.push(bake(new THREE.TorusGeometry(1, 0.16, 10, 32).rotateY(PI / 2), [-0.124, 0.34, 0], [1, 0.055, 0.055]));
+  for (const s of [1, -1]) hole.push(bake(sph, [0.49, 0.015, s * 0.29], [0.014, 0.06, 0.075]));
+  // T-cam on the airbox
+  yellow.push(bake(new RoundedBoxGeometry(0.05, 0.022, 0.13, 3, 0.009), [-0.21, 0.475, 0]));
+  carbon.push(bake(new THREE.CylinderGeometry(0.008, 0.01, 0.03, 10), [-0.21, 0.455, 0]));
+  // floor-edge accent
+  for (const s of [1, -1]) yellow.push(bake(new RoundedBoxGeometry(0.7, 0.012, 0.016, 2, 0.005), [-0.04, G + 0.07, s * 0.455]));
 
   return {
     body,
     carbon: merge(carbon),
     red: merge(red),
+    yellow: merge(yellow),
     hole: merge(hole),
     plates: merge(plates),
     mirror: merge(mirrorGlass),
@@ -1028,24 +904,35 @@ function Decal({
 
 const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
 
+/** A decal laid on the right-hand flank of a loft at (x, y), with its mirror on the left. */
+function flankDecal(st: Station[], x: number, y: number) {
+  const d = 0.05;
+  const pos: V3 = [x, y, surfaceZ(st, x, y) + 0.004];
+  const right = v(2 * d, 0, surfaceZ(st, x + d, y) - surfaceZ(st, x - d, y)).normalize();
+  const up = v(0, 0.04, surfaceZ(st, x, y + 0.02) - surfaceZ(st, x, y - 0.02)).normalize();
+  return {
+    pos,
+    right,
+    up,
+    posL: [x, y, -pos[2]] as V3,
+    rightL: right.clone().multiply(v(-1, 1, -1)),
+    upL: up.clone().multiply(v(1, 1, -1)),
+  };
+}
+
 // Decal placements, read off the lofted skin.
 const DECALS = (() => {
   // nose number: lies on the nose top, reads from behind the car (from the cockpit)
-  const nx = 1.08;
+  const nx = 1.1;
   const a = stationAt(TUB, nx + 0.05);
   const b = stationAt(TUB, nx - 0.05);
   const nose = stationAt(TUB, nx);
   const noseUp = v(a.x - b.x, a.t - b.t, 0).normalize();
-  // name on the engine cover flank behind the cockpit
-  const fx = -0.42;
-  const fy = 0.175;
-  const d = 0.08;
-  const flank = {
-    pos: [fx, fy, surfaceZ(COVER, fx, fy) + 0.004] as V3,
-    right: v(2 * d, 0, surfaceZ(COVER, fx + d, fy) - surfaceZ(COVER, fx - d, fy)).normalize(),
-    up: v(0, 0.04, surfaceZ(COVER, fx, fy + 0.02) - surfaceZ(COVER, fx, fy - 0.02)).normalize(),
+  return {
+    nose: { pos: [nx, nose.t + 0.004, 0] as V3, up: noseUp },
+    num: flankDecal(COVER, -0.5, 0.2),
+    name: flankDecal(POD, 0.2, 0.06),
   };
-  return { nose: { pos: [nx, nose.t + 0.0035, 0] as V3, up: noseUp }, flank };
 })();
 
 /* ------------------------------------------------------------------ */
@@ -1071,26 +958,25 @@ export function CarBody({ brakeLight = false, drsRef, children, ...props }: CarB
   const g = useMemo(() => (BODY_GEO ??= makeBodyGeometry()), []);
   const NEG_X = useMemo(() => v(-1, 0, 0), []);
   const POS_Z = useMemo(() => v(0, 0, 1), []);
-  const flankL = useMemo(
-    () => ({ right: DECALS.flank.right.clone().multiply(v(-1, 1, -1)), up: DECALS.flank.up.clone().multiply(v(1, 1, -1)) }),
-    [],
-  );
+  const WING_UP = useMemo(() => v(1, 0.1, 0), []);
+  const { num, name } = DECALS;
 
   return (
     <group {...props}>
       <mesh geometry={g.body} material={m.body} castShadow receiveShadow />
       <mesh geometry={g.carbon} material={m.carbon} castShadow receiveShadow />
       <mesh geometry={g.red} material={m.red} castShadow />
+      <mesh geometry={g.yellow} material={m.yellow} />
       <mesh geometry={g.hole} material={m.hole} />
       <mesh geometry={g.plates} material={m.endplate} castShadow />
       <mesh geometry={g.mirror} material={m.mirror} />
 
       {/* front wing */}
-      <mesh geometry={g.fwMain} material={m.carbon} castShadow receiveShadow />
+      <mesh geometry={g.fwMain} material={m.wingBlack} castShadow receiveShadow />
       <mesh geometry={g.fwFlaps} material={m.wingRed} castShadow />
 
       {/* rear wing */}
-      <mesh geometry={g.rwMain} material={m.wingWhite} castShadow receiveShadow />
+      <mesh geometry={g.rwMain} material={m.wingBlack} castShadow receiveShadow />
       <group ref={drsRef} position={DRS_PIVOT} name="drs-flap">
         <mesh
           geometry={g.rwFlap}
@@ -1101,7 +987,7 @@ export function CarBody({ brakeLight = false, drsRef, children, ...props }: CarB
       </group>
 
       {/* rain light */}
-      <mesh position={[-1.205, -0.08, 0]} scale={[0.012, 0.035, 0.045]} geometry={g.light}>
+      <mesh position={[-1.222, -0.07, 0]} scale={[0.014, 0.04, 0.05]} geometry={g.light}>
         <meshStandardMaterial
           color={brakeLight ? "#ff2a2a" : "#5a0d10"}
           emissive="#ff1a1a"
@@ -1111,51 +997,37 @@ export function CarBody({ brakeLight = false, drsRef, children, ...props }: CarB
         />
       </mesh>
 
-      {/* 08 on the nose, the fin and the rear wing endplates */}
-      <Decal position={DECALS.nose.pos} right={POS_Z} up={DECALS.nose.up} size={0.075} material={m.textBlack}>
+      {/* 08 on the nose, the engine cover and the rear wing */}
+      <Decal position={DECALS.nose.pos} right={POS_Z} up={DECALS.nose.up} size={0.1} material={m.textWhite}>
+        08
+      </Decal>
+      <Decal position={num.pos} right={num.right} up={num.up} size={0.15} material={m.textWhite}>
+        08
+      </Decal>
+      <Decal position={num.posL} right={num.rightL} up={num.upL} size={0.15} material={m.textWhite}>
         08
       </Decal>
       {[1, -1].map((s) => (
-        <Decal key={"fin" + s} position={[-0.765, 0.238, s * 0.0045]} right={s > 0 ? X_AXIS : NEG_X} size={0.08} material={m.textWhite}>
+        <Decal key={"rw" + s} position={[-1.29, G + 0.6, s * 0.4505]} right={s > 0 ? X_AXIS : NEG_X} size={0.16} material={m.textWhite}>
           08
         </Decal>
       ))}
-      {[1, -1].map((s) => (
-        <Decal key={"rw" + s} position={[-1.3, G + 0.68, s * 0.4385]} right={s > 0 ? X_AXIS : NEG_X} size={0.12} material={m.textWhite}>
-          08
-        </Decal>
-      ))}
+      <Decal position={[-1.19, G + 0.628, 0]} right={POS_Z} up={WING_UP} size={0.075} material={m.textYellow} spacing={0.06}>
+        HG 08
+      </Decal>
 
-      {/* sponsor-style marks */}
-      {[1, -1].map((s) => (
-        <Decal
-          key={"name" + s}
-          position={[DECALS.flank.pos[0], DECALS.flank.pos[1], s * DECALS.flank.pos[2]]}
-          right={s > 0 ? DECALS.flank.right : flankL.right}
-          up={s > 0 ? DECALS.flank.up : flankL.up}
-          size={0.03}
-          spacing={0.06}
-          material={m.textBlack}
-        >
-          HENIL GAJJAR
-        </Decal>
-      ))}
-      {[1, -1].map((s) => (
-        <Decal key={"fw" + s} position={[1.4, G + 0.135, s * 0.6115]} right={s > 0 ? X_AXIS : NEG_X} size={0.05} material={m.textWhite}>
-          HG
-        </Decal>
-      ))}
-      {[1, -1].map((s) => (
-        <Decal key={"rwhg" + s} position={[-1.37, G + 0.36, s * 0.4385]} right={s > 0 ? X_AXIS : NEG_X} size={0.05} material={m.textRed}>
-          HG
-        </Decal>
-      ))}
-      <Decal position={[0.2, 0.32, 0]} right={POS_Z} up={v(1, -0.69, 0)} size={0.02} material={m.textWhite}>
+      {/* small HG marks */}
+      <Decal position={name.pos} right={name.right} up={name.up} size={0.06} spacing={0.05} material={m.textYellow}>
         HG
       </Decal>
-      <Decal position={[-1.2, G + 0.62, 0]} right={POS_Z} up={v(1, 0.12, 0)} size={0.05} material={m.textRed} spacing={0.08}>
-        HENIL GAJJAR
+      <Decal position={name.posL} right={name.rightL} up={name.upL} size={0.06} spacing={0.05} material={m.textYellow}>
+        HG
       </Decal>
+      {[1, -1].map((s) => (
+        <Decal key={"fw" + s} position={[1.36, G + 0.1, s * 0.6185]} right={s > 0 ? X_AXIS : NEG_X} size={0.06} material={m.textYellow}>
+          HG
+        </Decal>
+      ))}
 
       {children}
     </group>
