@@ -13,6 +13,7 @@ import { propGeometry } from "../models/props/bruno";
 import { withWind } from "../alive/sway";
 import { BENCH, FENCE, LANTERN, LANTERN_LIGHT } from "../models/props/brunoProps";
 import { Instances } from "../street/Instances";
+import { BEACHES } from "./beaches";
 import { DUNES, tuftGeometry } from "./dunes";
 import { HARBOUR } from "./harbour";
 import { HILLS, flowerGeometry } from "./hills";
@@ -48,6 +49,8 @@ export default function Districts() {
       <Instances geometry={props.rock} material={mat("#ffffff", { r: 0.95, flat: true })} batch={WATERSIDE.rocks} />
       <Instances geometry={props.pad} material={mat("#ffffff", { r: 0.6, side: THREE.DoubleSide })} batch={WATERSIDE.pads} shadow={false} />
       <Instances geometry={lowSphere()} material={mat(C.pink, { r: 0.5 })} batch={lilies} shadow={false} />
+      <Instances geometry={props.rock} material={mat("#ffffff", { r: 0.95, flat: true })} batch={BEACHES.rocks} />
+      <Instances geometry={unitCyl()} material={mat("#ffffff", { r: 0.95, flat: true })} batch={BEACHES.wood} />
     </group>
   );
 }

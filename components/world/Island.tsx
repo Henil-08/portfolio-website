@@ -217,7 +217,7 @@ function terrainGeometry() {
       pos.set([x, y, z], k * 3);
       // sand along the shores (by distance to the water), darker where it's wet
       const d = Math.min(shoreDist(x, z), ...LAKES.map((l) => -lakeDepthDist(l, x, z)), ...CANALS.map((c) => -canalDist(c, x, z)));
-      tmp.copy(grass).lerp(sand, 1 - THREE.MathUtils.smoothstep(d, 2.5, 6.5));
+      tmp.copy(grass).lerp(sand, 1 - THREE.MathUtils.smoothstep(d, 2, 9.5)); // a soft, wide blend from sand into grass
       tmp.lerp(sand, duneMask(x, z) * 0.85); // the east dunes are sand with a little grass
       tmp.lerp(parkSand, parkSandAt(x, z)); // the park: grass islands in warm sand
       tmp.lerp(wet, 1 - THREE.MathUtils.smoothstep(y - SEA_Y, 0.02, 0.18));
