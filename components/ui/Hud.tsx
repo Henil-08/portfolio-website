@@ -50,12 +50,7 @@ function TopBar() {
       transition={{ delay: 1.2, type: "spring", stiffness: 200, damping: 20 }}
       className="pointer-events-none fixed inset-x-0 top-0 z-30 flex items-start justify-between gap-3 p-3 sm:p-5"
     >
-      <div className="toy-card pointer-events-auto flex items-center gap-3 rounded-2xl py-2 pl-2 pr-4">
-        <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#e10600] font-racing text-sm text-white">
-          08
-        </span>
-        <p className="font-racing text-[14px] tracking-wide text-ink">HENIL GAJJAR</p>
-      </div>
+      <span />
 
       <div className="pointer-events-auto flex items-center gap-2">
         <IconBtn label="Controls" onClick={() => setState((s) => ({ controlsOpen: !s.controlsOpen }))}>
