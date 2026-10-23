@@ -112,7 +112,7 @@ distinct areas threaded by paths, water woven through, shorelines with teal glow
 - [ ] Build it (docs/research/layout-v4.md), one sub-step per commit:
   - [x] a. (ce14edd) Grow the island ~15% and reshape the track: longer harbour section in the west, hill climb
         moved north-east, same sector order and crossover.
-  - [ ] b. Harbour arm from the west sea to the garden (quays on the town side) replacing the west lake
+  - [x] b. (8c1db86, quays 773f5c0) Harbour arm from the west sea to the garden (quays on the town side) replacing the west lake
         and inlet; harbour bridge with a real gap under the deck.
   - [ ] c. River from a hilltop spring lake down the east side, under the east esses (road bridge), into
         the garden pond.
