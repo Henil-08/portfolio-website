@@ -107,9 +107,8 @@ the mark; the E prompt should be animated like Bruno's.
 The owner wants a map with character like Bruno's, not a loop on a blob. Study Bruno's map image
 (`static/ui/map/map-day.webp` in his repo) and his terrain paint (`static/terrain/terrain.png`):
 distinct areas threaded by paths, water woven through, shorelines with teal glow.
-- [ ] Write a one-page layout proposal first (docs/research/layout-v4.md) with a top-down sketch:
-      named districts (garden, town, harbour, beach, hills), where water goes, what you drive under
-      and past. Get the owner's OK before building.
+- [x] (7fb5950) Layout proposal: docs/research/layout-v4.md. Approved 2026-10-23 as written; keep the
+      crossover, park places move to islands east of the garden, island grows ~15%.
 - [ ] Then build it: bigger, more irregular water (river or bay arm crossing the island, a real
       harbour with quays), more relief variety, district identity (paving, planting, props).
 

@@ -1,6 +1,7 @@
 # World layout v4: proposal
 
-Status: proposal, waiting for the owner's OK (roadmap step 3). Nothing here is built yet.
+Status: approved by the owner on 2026-10-23, as written. Answers: keep the crossover bridge; move
+football, podium, playbook and contact onto park islands east of the garden; grow the island by about 15%.
 
 ## Why change it
 
@@ -86,9 +87,8 @@ Legend: `~` sea, `^` hills, `[]` town blocks, `=` road over water or bridge, `:`
   walls, trees, town) follows the new track by itself.
 - District identity (paving, planting, props) comes after the shape is in, one district per commit.
 
-## Questions for the owner
+## Owner's answers (2026-10-23)
 
-1. Keep the crossover bridge? (The sketch keeps it.)
-2. Is it fine for the park places (football, podium, playbook, contact) to leave the central
-   infield for their own islands east of the garden?
-3. Same island size, or grow it by about 15% to fit the harbour arm and the hills?
+1. Keep the crossover bridge: yes.
+2. Park places move to their own islands: yes.
+3. Island size: grow by about 15%.
