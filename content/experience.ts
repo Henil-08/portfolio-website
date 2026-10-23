@@ -2,7 +2,7 @@ export type Role = {
   company: string;
   title: string;
   dates: string;
-  kind: "Full time" | "Internship" | "Founding team" | "Research" | "Team lead";
+  kind: "Full time" | "Internship" | "Founding team" | "Research" | "Team lead" | "Teaching";
   tags: string[];
   points: string[];
 };
@@ -34,6 +34,17 @@ export const experience: Role[] = [
       "Integrated OpenSearch + S3 retrieval over 400K+ chunks, scaling resources 2.5x across teams",
       "Shipped a WebSocket Streamlit dashboard so SMEs could track metrics and steer improvements",
       "Closed 24 story points in one sprint and demoed live to 200+ employees across the US and India",
+    ],
+  },
+  {
+    company: "Northeastern University",
+    title: "Teaching Assistant, Khoury College",
+    dates: "Jan 2024 – Dec 2025",
+    kind: "Teaching",
+    tags: ["AI", "Machine learning", "Data science"],
+    points: [
+      "Head TA for CS2810 Mathematics of Data Modelling, then TA for DS3000, DS4400, DS4420 and CS4100 Artificial Intelligence",
+      "Mentored 400+ students across data science and AI courses",
     ],
   },
   {
@@ -74,6 +85,17 @@ export const experience: Role[] = [
       "Built a vector store from 30K+ files with semantic chunking and fine-tuned Llama 3, cutting hallucinations by 60%",
       "Wrote ETL on AWS Glue, Spark and Kinesis over 10TB+ of athlete performance data",
       "Trained a CNN table tennis ball predictor on SageMaker and ran multi-GPU LSTM training with Ray on 4 GPUs",
+    ],
+  },
+  {
+    company: "SAE Nirma Collegiate Club",
+    title: "Team Lead, Electric ATV",
+    dates: "Aug 2021 – Jul 2022",
+    kind: "Team lead",
+    tags: ["Leadership", "EV", "SAE e-BAJA"],
+    points: [
+      "Led a 40-person team building an electric ATV for SAE e-BAJA, then mentored the next team until 2023",
+      "10% better energy efficiency than the previous car; 5th of 47 teams and the Best Acceleration award",
     ],
   },
   {

@@ -9,7 +9,13 @@ import { DOMAINS, projects, type Domain } from "@/content/projects";
 import { patents, publications, toolbox } from "@/content/research";
 import { playbook, playbookIntro } from "@/content/playbook";
 
-const SECTOR_ROLES: Record<number, number[]> = { 1: [6, 5], 2: [4], 3: [1, 2, 3], 4: [0] };
+// Which roles belong to each place, matched by company and title.
+const SECTOR_ROLES: Record<number, (r: (typeof experience)[number]) => boolean> = {
+  1: (r) => ["Team Stallions", "SAE Nirma Collegiate Club", "Nirma University"].includes(r.company),
+  2: (r) => r.company === "Hyperlab Sportech",
+  3: (r) => ["Northeastern University", "Edlight, PBC", "Impacter AI"].includes(r.company) || r.kind === "Internship",
+  4: (r) => r.company === "Waters Corporation" && r.kind === "Full time",
+};
 const SECTOR_COLOR = ["#d42a2f", "#dc7a45", "#5d7891", "#2fa79c"];
 
 export const zoneMeta = {
@@ -50,9 +56,7 @@ export function PanelBody({ zone }: { zone: ZoneId }) {
           </p>
         ))}
         <div className="space-y-2 pt-1">
-          {SECTOR_ROLES[n].map((i) => (
-            <Role key={i} i={i} />
-          ))}
+          {experience.map((r, i) => (SECTOR_ROLES[n](r) ? <Role key={i} i={i} /> : null))}
           {n === 3 && (
             <p className="px-1 text-[13px] text-ink-soft">
               <span className="font-semibold text-ink">{education[0].degree}</span>, {education[0].school} · {education[0].detail}

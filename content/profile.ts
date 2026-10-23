@@ -34,7 +34,7 @@ export const story = [
     years: "2021",
     title: "A solar car and a pile of traffic cones",
     body: [
-      "I've been writing code since I was 18, but ML found me by accident. I was studying Electronics and Communication at Nirma University and captaining Team Stallions, 40 students building Mercury, a solar electric car, for Asia's biggest solar vehicle competition.",
+      "I'm the first in my family to get a college degree. I've been writing code since I was 18, but ML found me by accident. I was studying Electronics and Communication at Nirma University and captaining Team Stallions, 40 students building Mercury, a solar electric car, for Asia's biggest solar vehicle competition.",
       "One round needed the car to drive itself. So I learned computer vision on the fly, trained a model to tell two kinds of cones apart, and got it steering at 24 FPS on a Jetson Nano. We won 8 of 11 trophies, including Best Autonomous Round, and the steering system we built got patented. Watching something I trained move a real car is the moment I got hooked.",
     ],
   },
@@ -55,7 +55,7 @@ export const story = [
     title: "Moved countries, then GenAI happened",
     body: [
       "I moved to Boston for an MS in Data Science at Northeastern and finished with a 4.0. Right around the time I landed, the GenAI wave hit, and I went all in on agents, RAG, fine-tuning and the boring production parts that make them hold up.",
-      "Three co-ops gave me reps. At Edlight I shipped a multi-agent chatbot with a 180ms TTFT and helped win the hackathon that became their biggest release of the quarter. At Impacter AI I built sales agents on Kubernetes. At Waters I built the evaluation system for their AI search engine.",
+      "I also TA'd five courses there, from data modelling to AI, and got to mentor 400+ students along the way. Three co-ops gave me reps. At Edlight I shipped a multi-agent chatbot with a 180ms TTFT and helped win the hackathon that became their biggest release of the quarter. At Impacter AI I built sales agents on Kubernetes. At Waters I built the evaluation system for their AI search engine.",
     ],
   },
   {
