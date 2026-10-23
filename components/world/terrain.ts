@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { GRANDSTAND, ISLAND_RADIUS, LETTERS, TIMELINE, PIT, SCENE_FOOT, SECTORS, TRACK_WIDTH, trackCurve, trackPoint, zones } from "./layout";
+import { GRANDSTAND, ISLAND_RADIUS, LETTERS, TIMELINE, onBridge, PIT, SCENE_FOOT, SECTORS, TRACK_WIDTH, trackCurve, trackPoint, zones } from "./layout";
 
 // Terrain height for the whole island. The land follows the circuit: right next
 // to the road it matches the track's height exactly, further away it blends
@@ -17,7 +17,9 @@ let maxY = 0;
 const SAMPLES = 360;
 
 function build() {
-  const pts = trackCurve.getSpacedPoints(SAMPLES);
+  // Samples on a bridge deck don't shape the land: under a bridge it follows the lower road.
+  const pts = trackCurve.getSpacedPoints(SAMPLES).filter((_, k) => !onBridge(k / SAMPLES, 2));
+  const S = pts.length;
   const n = GRID + 1;
   const h = new Float32Array(n * n);
   const roadY = new Float32Array(n * n); // nearest road height per cell
@@ -32,7 +34,7 @@ function build() {
       let bestY = 0;
       let wSum = 0;
       let ySum = 0;
-      for (let k = 0; k < SAMPLES; k++) {
+      for (let k = 0; k < S; k++) {
         const p = pts[k];
         const d2 = (p.x - x) ** 2 + (p.z - z) ** 2;
         if (d2 < best) {
@@ -64,7 +66,9 @@ function build() {
     return h[fz * n + fx];
   };
   // The infield (timeline, pitches, podium, letters) is one level terrace, so no pad tilts its neighbour.
-  const infieldY = sample(TIMELINE.pos[0], TIMELINE.pos[1]);
+  // Same level as the pit lane, so the two terraces meet without a bank.
+  const infieldY = sample((PIT.from + PIT.to) / 2, (PIT.z + PIT.garageZ) / 2 - 1);
+  const fixed = new Uint8Array(n * n); // cells the slope limit must not move
   const pads: { x: number; z: number; hx: number; hz: number; rot?: number; y?: number }[] = [
     // Each place's scenery sits on a level terrace at the height of the road beside it.
     ...SECTORS.map((sc) => {
@@ -102,6 +106,7 @@ function build() {
         const dz = Math.max(0, Math.abs(lz) - pad.hz);
         const d = Math.hypot(dx, dz);
         if (d > 8) continue;
+        if (d === 0) fixed[j * n + i] = 1;
         const k = 1 - THREE.MathUtils.smoothstep(d, 0, 8);
         h[j * n + i] = THREE.MathUtils.lerp(h[j * n + i], y0, k);
       }
@@ -112,6 +117,47 @@ function build() {
   for (let i = 0; i < h.length; i++) {
     if (roadD[i] < TRACK_WIDTH / 2 + 0.5) h[i] = Math.min(h[i], roadY[i] - 0.22);
     else if (roadD[i] < TRACK_WIDTH / 2 + 2.5) h[i] = Math.min(h[i], roadY[i]);
+  }
+
+  // Slope limit: away from the road and the terraces the land never gets steeper
+  // than MAX_SLOPE, so a car that runs wide can always drive back up.
+  const MAX_SLOPE = 0.28;
+  const cell = EXTENT / GRID;
+  for (let i = 0; i < h.length; i++) {
+    const x = ((i % n) / GRID - 0.5) * EXTENT;
+    const z = (Math.floor(i / n) / GRID - 0.5) * EXTENT;
+    if (roadD[i] < TRACK_WIDTH / 2 + 2.5 || Math.hypot(x, z) > ISLAND_RADIUS - 2) fixed[i] = 1;
+  }
+  const nb = [
+    [1, 0, 1],
+    [-1, 0, 1],
+    [0, 1, 1],
+    [0, -1, 1],
+    [1, 1, Math.SQRT2],
+    [-1, 1, Math.SQRT2],
+    [1, -1, Math.SQRT2],
+    [-1, -1, Math.SQRT2],
+  ];
+  for (let pass = 0; pass < 60; pass++) {
+    let moved = 0;
+    for (let j = 1; j < n - 1; j++) {
+      for (let i = 1; i < n - 1; i++) {
+        const c = j * n + i;
+        if (fixed[c]) continue;
+        let lo = -Infinity;
+        let hi = Infinity;
+        for (const [di, dj, w] of nb) {
+          const hn = h[(j + dj) * n + i + di];
+          const m = MAX_SLOPE * cell * w;
+          lo = Math.max(lo, hn - m);
+          hi = Math.min(hi, hn + m);
+        }
+        const y = lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, h[c]));
+        if (Math.abs(y - h[c]) > 1e-4) moved++;
+        h[c] = y;
+      }
+    }
+    if (!moved) break;
   }
 
   heights = h;

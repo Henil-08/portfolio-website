@@ -3,7 +3,7 @@
 import * as THREE from "three";
 import { LEN, FRAMES, N_FRAMES, barrierOffset, farSign, farSpot, inPitSide, inSectorScene, nearCones, nearPlace, nearTree, outSign, RUNOFF, type Spot } from "./common";
 import { STAND_SPOTS } from "./standSpots";
-import { PIT } from "../layout";
+import { PIT, nearCrossing, onBridge } from "../layout";
 
 export const BLOCK = 2.0;
 
@@ -35,6 +35,7 @@ function skip(side: 1 | -1, i: number, x: number, z: number) {
   const f = FRAMES[i];
   const inner = side !== outSign(f);
   const far = side === farSign(f);
+  if (onBridge(f.u, 2)) return true; // the bridge has its own parapets
   if (inner && inPitSide(x, z)) return true;
   if (far && inSectorScene(x, z, 2)) return true;
   if (nearPlace(x, z, 1)) return true;
@@ -125,6 +126,7 @@ export const LAMPS: Lamp[] = (() => {
   const step = Math.round(N_FRAMES / (LEN / LAMP_SPACING));
   for (let i = 3; i < N_FRAMES; i += step) {
     const f = FRAMES[i];
+    if (onBridge(f.u, 6)) continue;
     const s = farSign(f);
     let off = Math.abs(barrierOffset(i, s as 1 | -1)) + 1.6;
     let q = f.p.clone().addScaledVector(f.n, s * off);
@@ -134,10 +136,12 @@ export const LAMPS: Lamp[] = (() => {
       q = f.p.clone().addScaledVector(f.n, s * off);
       if (Math.abs(Math.abs(q.x) - 18) < 3.6) continue;
     }
+    if (nearCrossing(q.x, q.z)) continue;
     if (inSectorScene(q.x, q.z, 2.5) || nearPlace(q.x, q.z, 2) || nearTree(q.x, q.z, 0.8) || nearCones(q.x, q.z, 3)) continue;
     if (STAND_SPOTS.some((st) => Math.hypot(st.x - q.x, st.z - q.z) < 8)) continue;
     // head and pool on the road side
     const h = f.p.clone().addScaledVector(f.n, s * (off - LAMP_ARM));
+    if (nearCrossing(h.x, h.z)) continue;
     const pool = f.p.clone().addScaledVector(f.n, s * Math.min(off - LAMP_ARM - 1, 2.6));
     out.push({ x: q.x, z: q.z, yaw: Math.atan2(-(-s * f.n.z), -s * f.n.x), hx: h.x, hz: h.z, px: pool.x, pz: pool.z });
   }

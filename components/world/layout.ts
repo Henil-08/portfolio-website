@@ -12,35 +12,40 @@ import type { Domain } from "@/content/projects";
 export const ISLAND_RADIUS = 98;
 export const TRACK_WIDTH = 8;
 
-// A proper street circuit, with elevation: [x, z, height].
-// Main straight (low, DRS) -> T1 Mercury hairpin -> Stallion esses climbing ->
-// T4 crest at Hyperlab (+9 m) -> The Pitch chicane -> Charles River sweep diving
-// downhill like Eau Rouge -> Lab complex -> MCP corner -> back onto the straight.
+// A street circuit with a crossover, [x, z, height].
+// Main straight (low, DRS) -> T1 sweeper east -> the east esses -> NE hairpin ->
+// the north tunnel straight, which runs UNDER the bridge -> the climbing loop
+// behind the town -> over the bridge, 7 m up -> a long descent through the
+// infield's edge -> the west sweepers -> back onto the straight.
+// Heights are spread by distance so no grade passes ~9%.
 export const TRACK_POINTS: [number, number, number][] = [
   [-56, 41, 0],
   [-10, 42, 0],
   [34, 41, 0],
-  [54, 36, 0.3],
-  [64, 25, 0.8],
-  [58, 13, 1.5],
-  [45, 9, 2.4],
-  [36, 0, 3.4],
-  [44, -9, 4.6],
-  [58, -15, 6],
-  [67, -27, 7.6],
-  [59, -41, 9],
-  [41, -46, 9.2],
-  [27, -38, 8.6],
-  [16, -42, 7.8],
-  [5, -51, 6.6],
-  [-11, -55, 4.6],
-  [-27, -50, 2.8],
-  [-36, -39, 2],
-  [-49, -41, 1.8],
-  [-63, -35, 1.4],
-  [-71, -22, 1],
-  [-69, -6, 0.6],
-  [-60, 6, 0.2],
+  [54, 36, 0.28],
+  [64, 24, 0.52],
+  [62, 6, 0.82],
+  [52, -6, 1.08],
+  [60, -22, 1.36],
+  [62, -40, 1.6],
+  [50, -55, 1.19],
+  [30, -54, 0.7],
+  [12, -50, 0.3],
+  [-12, -50, 0.4],
+  [-26, -58, 1.57],
+  [-28, -70, 2.58],
+  [-14, -77, 3.95],
+  [2, -72, 5.41],
+  [4, -62, 6.22],
+  [1, -50, 7.1],
+  [-1, -38, 6.53],
+  [-10, -28, 5.83],
+  [-26, -25, 4.92],
+  [-42, -30, 3.93],
+  [-60, -36, 2.79],
+  [-72, -22, 1.71],
+  [-70, -4, 0.74],
+  [-60, 8, 0],
   [-66, 22, 0],
   [-63, 35, 0],
 ];
@@ -81,6 +86,58 @@ export function nearestT(x: number, z: number) {
   return { t: best / SAMPLES, dist: Math.sqrt(bd) };
 }
 
+// Where the circuit crosses itself: the upper road runs over the lower one on a
+// bridge. The land follows the lower road; the bridge spans BRIDGE_HALF metres
+// either side of the crossing along the upper road.
+export const BRIDGE_HALF = 15;
+export type Crossing = { x: number; z: number; upperT: number; lowerT: number; yUpper: number; yLower: number };
+export const CROSSINGS: Crossing[] = (() => {
+  const N = 900;
+  const pts = trackCurve.getSpacedPoints(N);
+  const out: Crossing[] = [];
+  for (let i = 0; i < N; i++) {
+    for (let j = i + 60; j < N; j++) {
+      if (N - (j - i) < 60) continue;
+      const a = pts[i];
+      const b = pts[j];
+      if (Math.hypot(a.x - b.x, a.z - b.z) > 1.2 || Math.abs(a.y - b.y) < 3) continue;
+      const [u, l] = a.y > b.y ? [i, j] : [j, i];
+      if (out.some((c) => Math.abs(c.upperT - u / N) < 0.03)) continue;
+      out.push({ x: (a.x + b.x) / 2, z: (a.z + b.z) / 2, upperT: u / N, lowerT: l / N, yUpper: pts[u].y, yLower: pts[l].y });
+    }
+  }
+  return out;
+})();
+
+/** True if this stretch of track (by t) is on a bridge deck. */
+export function onBridge(t: number, extra = 0) {
+  const L = trackCurve.getLength();
+  return CROSSINGS.some((c) => {
+    const dt = Math.abs(((t - c.upperT + 1.5) % 1) - 0.5);
+    return dt * L < BRIDGE_HALF + extra;
+  });
+}
+
+/** True within r metres (plan) of a crossing: nothing tall may stand under or through the bridge. */
+export function nearCrossing(x: number, z: number, r = BRIDGE_HALF + 3) {
+  return CROSSINGS.some((c) => Math.hypot(x - c.x, z - c.z) < r);
+}
+
+/** Nearest track parameter in 3D: tells the bridge from the road under it. */
+export function nearestT3(x: number, y: number, z: number) {
+  let best = 0;
+  let bd = Infinity;
+  for (let i = 0; i < SAMPLES; i++) {
+    const p = samplePts[i];
+    const d = (p.x - x) ** 2 + 4 * (p.y - y) ** 2 + (p.z - z) ** 2;
+    if (d < bd) {
+      bd = d;
+      best = i;
+    }
+  }
+  return best / SAMPLES;
+}
+
 export const START_T = 0.06;
 
 // Sectors: the stretch of track each one covers. Each place's scenery is placed
@@ -88,10 +145,10 @@ export const START_T = 0.06;
 // camera (which sits to the +X/+Z of the car), a few metres past the kerb,
 // facing the road. That way it's always in frame and never blocks the view.
 const SECTOR_DEFS = [
-  { n: 1, id: "ahmedabad", name: "Ahmedabad", place: "Nirma University", year: "2021", from: 0.24, to: 0.42 },
-  { n: 2, id: "hyperlab", name: "Hyperlab", place: "Hyperlab", year: "2022–23", from: 0.42, to: 0.56 },
-  { n: 3, id: "boston", name: "Boston", place: "Boston", year: "2023–25", from: 0.56, to: 0.74 },
-  { n: 4, id: "waters", name: "Waters", place: "Waters", year: "2026 →", from: 0.74, to: 0.97 },
+  { n: 1, id: "ahmedabad", name: "Ahmedabad", place: "Nirma University", year: "2021", from: 0.18, to: 0.36 },
+  { n: 2, id: "hyperlab", name: "Hyperlab", place: "Hyperlab", year: "2022–23", from: 0.36, to: 0.49 },
+  { n: 3, id: "boston", name: "Boston", place: "Boston", year: "2023–25", from: 0.49, to: 0.7 },
+  { n: 4, id: "waters", name: "Waters", place: "Waters", year: "2026 →", from: 0.7, to: 0.97 },
 ] as const;
 
 export const PIT = { z: 32, from: -34, to: 26, garageZ: 22 };
@@ -263,7 +320,7 @@ export const zones: Zone[] = [
   })),
   { id: "playbook", label: "Tyre wall", hint: "How I work with AI", pos: [20, 8], size: [11, 8], spawn: [12, 12, 0] },
   { id: "podium", label: "Podium", hint: "Papers and patents", pos: [-28, 8], size: [10, 8], spawn: [-20, 12, Math.PI] },
-  { id: "cricket", label: "Cricket", hint: "Off the clock", pos: [-30, -20], size: [22, 8], spawn: [-16, -20, Math.PI] },
+  { id: "cricket", label: "Cricket", hint: "Off the clock", pos: [-46, -8], size: [22, 8], spawn: [-32, -8, Math.PI] },
   { id: "football", label: "Football", hint: "Off the clock", pos: [14, -18], size: [18, 14], spawn: [2, -10, 0] },
   { id: "contact", label: "Mailbox", hint: "Say hi", pos: [42, 26], size: [9, 8], spawn: [36, 30, -Math.PI / 4] },
 ];
@@ -275,7 +332,8 @@ const sp = trackPoint(START_T - 0.012);
 export const SPAWN: [number, number, number] = [sp.x, sp.z, headingFromTangent(trackTangent(START_T))];
 
 export const LETTERS = { chars: ["H", "E", "N", "I", "L"] as const, origin: [12, -3] as [number, number], gap: 3 };
-/** Career timeline plaza (components/world/Timeline.tsx): centre, half size. Time runs toward -z. */
-export const TIMELINE = { pos: [-6.5, -4] as [number, number], hx: 9.5, hz: 15.5 };
-export const GRANDSTAND = { pos: [6, -78] as [number, number] };
+/** Career timeline plaza (components/world/Timeline.tsx): centre, world-axis half size, yaw. */
+export const TIMELINE = { pos: [-6, 3] as [number, number], hx: 15.5, hz: 9.5, rot: Math.PI / 2 }; // time runs west
+/** Infield grandstand looking north over the tunnel straight and the bridge. */
+export const GRANDSTAND = { pos: [26, -37] as [number, number], rot: Math.PI };
 export const GANTRY_T = START_T;

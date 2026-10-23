@@ -26,7 +26,7 @@ import { getState, setState, subscribe } from "./store";
 import { BoostTrail } from "./BoostTrail";
 import { dayNight } from "./daynight";
 import { heightAt } from "./terrain";
-import { SPAWN, zoneById } from "./layout";
+import { SPAWN, headingFromTangent, nearestT3, trackPoint, trackTangent, zoneById } from "./layout";
 import { engineIdle, engineUpdate, honk } from "./sound";
 
 // Driving model ported from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon),
@@ -135,6 +135,16 @@ export default function Vehicle() {
     });
   }, []);
 
+  // Dev and headless checks: window.__placeT(t) drops the car on the track at t.
+  useEffect(() => {
+    (window as unknown as { __placeT: (t: number) => void }).__placeT = (t: number) => {
+      if (!body.current) return;
+      const p = trackPoint(t);
+      place(body.current, p.x, p.z, headingFromTangent(trackTangent(t)), p.y + 0.9);
+      prevPos.copy(body.current.translation() as THREE.Vector3);
+    };
+  }, []);
+
   // Pre-physics: Bruno's PhysicsVehicle.updatePrePhysics.
   useBeforePhysicsStep(() => {
     const v = controller.current;
@@ -234,9 +244,15 @@ export default function Vehicle() {
     if (input.reset || flipped.current > 1.6 || t.y < heightAt(t.x, t.z) - 4) {
       input.reset = false;
       flipped.current = 0;
-      const heading = Math.atan2(-carState.forward.z, carState.forward.x);
       if (t.y < heightAt(t.x, t.z) - 4) place(b, SPAWN[0], SPAWN[1], SPAWN[2]);
-      else place(b, t.x, t.z, heading);
+      else {
+        // Back onto the nearest bit of road, facing the way you were going (Bruno's R).
+        const rt = nearestT3(t.x, t.y, t.z);
+        const p = trackPoint(rt);
+        const tan = trackTangent(rt);
+        if (tan.x * carState.forward.x + tan.z * carState.forward.z < 0) tan.negate();
+        place(b, p.x, p.z, headingFromTangent(tan), p.y + 0.9);
+      }
       prevPos.copy(b.translation() as THREE.Vector3);
     }
     if (input.honk) {
@@ -320,9 +336,9 @@ export default function Vehicle() {
   );
 }
 
-function place(b: RapierRigidBody, x: number, z: number, heading: number) {
+function place(b: RapierRigidBody, x: number, z: number, heading: number, y = heightAt(x, z) + 0.9) {
   const q = new THREE.Quaternion().setFromAxisAngle(up, heading);
-  b.setTranslation({ x, y: heightAt(x, z) + 0.9, z }, true);
+  b.setTranslation({ x, y, z }, true);
   b.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
   b.setLinvel({ x: 0, y: 0, z: 0 }, true);
   b.setAngvel({ x: 0, y: 0, z: 0 }, true);

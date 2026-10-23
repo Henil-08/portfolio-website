@@ -252,10 +252,8 @@ const flagMat = (() => {
 const FLAG_SPOTS = (() => {
   const out: { x: number; z: number; c: THREE.Color }[] = [];
   const cols = [RED, WHITE, CHAR, WHITE, RED, WHITE];
-  // a line of flags behind the pit-straight stands
-  for (let i = 0; i < 6; i++) out.push({ x: -13.5 + i * 5.4, z: 11.6, c: cols[i % cols.length] });
-  // and along the far side of the back straight / west
-  for (const u of [0.605, 0.637, 0.668, 0.81, 0.836, 0.405, 0.335]) {
+  // along the far side of the tunnel straight, the loop and the west
+  for (const u of [0.45, 0.47, 0.56, 0.6, 0.81, 0.836, 0.335]) {
     const s = farSpot(u, 6.6);
     if (inSectorScene(s.x, s.z, 1) || nearPlace(s.x, s.z, 0) || nearTree(s.x, s.z, 1)) continue;
     if (STAND_SPOTS.some((st) => Math.hypot(st.x - s.x, st.z - s.z) < 5.5)) continue;

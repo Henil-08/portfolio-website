@@ -42,6 +42,7 @@ import { Label } from "./models/props/Label";
 import PitRoads from "./PitRoads";
 import Timeline from "./Timeline";
 import Groves from "./Groves";
+import Bridge from "./Bridge";
 import { Avatar } from "./models/Avatar";
 import { ProjectObject } from "./models/projects";
 import { AhmedabadSector, BostonSector, HyperlabSector, WatersSector } from "./models/sectors";
@@ -128,10 +129,9 @@ function ConeBody({ p }: { p: V3 }) {
 }
 
 function Cones() {
-  // Slalom on the plaza plus a few at the track corners.
+  // A few at the track corners.
   const spots = useMemo<V3[]>(() => {
     const s: V3[] = [];
-    for (let i = 0; i < 6; i++) s.push([-6 + i * 2.6, 0, 11 + (i % 2) * 0.6]);
     for (const t of [0.18, 0.44, 0.68, 0.9]) {
       const p = trackPoint(t);
       const tan = trackCurve.getTangentAt(t);
@@ -361,7 +361,7 @@ function Buildings() {
         <Flag position={[-3, 0, -1]} color={C.red} />
       </group>
 
-      <group position={[GRANDSTAND.pos[0], heightAt(GRANDSTAND.pos[0], GRANDSTAND.pos[1]), GRANDSTAND.pos[1]]}>
+      <group position={[GRANDSTAND.pos[0], heightAt(GRANDSTAND.pos[0], GRANDSTAND.pos[1]), GRANDSTAND.pos[1]]} rotation={[0, GRANDSTAND.rot, 0]}>
         <Grandstand cheer />
       </group>
 
@@ -629,7 +629,7 @@ export default function Places() {
       <Buildings />
       <PitLane />
       <PitRoads />
-      <Timeline position={[TIMELINE.pos[0], heightAt(TIMELINE.pos[0], TIMELINE.pos[1]), TIMELINE.pos[1]]} rotation={0} />
+      <Timeline position={[TIMELINE.pos[0], heightAt(TIMELINE.pos[0], TIMELINE.pos[1]), TIMELINE.pos[1]]} rotation={TIMELINE.rot} />
       <Sectors />
       <Signposts />
       <Letters />
@@ -639,6 +639,7 @@ export default function Places() {
       <Cricket />
       <Nature />
       <Groves />
+      <Bridge />
     </>
   );
 }

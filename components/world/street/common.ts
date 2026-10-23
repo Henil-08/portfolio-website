@@ -5,6 +5,8 @@ import * as THREE from "three";
 import {
   GANTRY_T,
   GRANDSTAND,
+  BRIDGE_HALF,
+  nearCrossing,
   ISLAND_RADIUS,
   LETTERS,
   TIMELINE,
@@ -176,6 +178,8 @@ export function nearPlace(x: number, z: number, pad = 0) {
     if (Math.hypot(x - zn.pos[0], z - zn.pos[1]) < r) return true;
   }
   if (Math.hypot(x - GRANDSTAND.pos[0], z - GRANDSTAND.pos[1]) < 9 + pad) return true;
+  // Nothing stands under or through the bridge.
+  if (nearCrossing(x, z, BRIDGE_HALF + 1 + pad)) return true;
   return false;
 }
 
