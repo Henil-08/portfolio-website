@@ -18,7 +18,8 @@ function ribbon(width: number, y: number, offset = 0) {
   const pts = trackCurve.getSpacedPoints(SEGMENTS);
   for (let i = 0; i <= SEGMENTS; i++) {
     const p = pts[i % SEGMENTS];
-    const t = trackCurve.getTangentAt(i / SEGMENTS);
+    // wrap the tangent with the point, or the closing quad leaves a hairline wedge at t=0
+    const t = trackCurve.getTangentAt((i % SEGMENTS) / SEGMENTS);
     const n = new THREE.Vector3(-t.z, 0, t.x).normalize();
     const a = p.clone().addScaledVector(n, offset - width / 2);
     const b = p.clone().addScaledVector(n, offset + width / 2);
@@ -37,6 +38,15 @@ function ribbon(width: number, y: number, offset = 0) {
     for (let i = 0; i < idx.length; i += 3) [idx[i + 1], idx[i + 2]] = [idx[i + 2], idx[i + 1]];
     g.setIndex(idx);
     g.computeVertexNormals();
+  }
+  // The first and last pairs are the same points: give them the same normal so no seam shades in.
+  const nrm = g.getAttribute("normal");
+  for (const k of [0, 1]) {
+    const e = SEGMENTS * 2 + k;
+    const x = nrm.getX(k) + nrm.getX(e), ny = nrm.getY(k) + nrm.getY(e), z = nrm.getZ(k) + nrm.getZ(e);
+    const l = Math.hypot(x, ny, z) || 1;
+    nrm.setXYZ(k, x / l, ny / l, z / l);
+    nrm.setXYZ(e, x / l, ny / l, z / l);
   }
   return g;
 }
