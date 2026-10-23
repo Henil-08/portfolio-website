@@ -41,6 +41,7 @@ import {
 import { Label } from "./models/props/Label";
 import PitRoads from "./PitRoads";
 import Timeline from "./Timeline";
+import Groves from "./Groves";
 import { Avatar } from "./models/Avatar";
 import { ProjectObject } from "./models/projects";
 import { AhmedabadSector, BostonSector, HyperlabSector, WatersSector } from "./models/sectors";
@@ -637,6 +638,7 @@ export default function Places() {
       <FootballPitch />
       <Cricket />
       <Nature />
+      <Groves />
     </>
   );
 }
