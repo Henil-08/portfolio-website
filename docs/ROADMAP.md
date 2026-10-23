@@ -99,9 +99,9 @@ the mark; the E prompt should be animated like Bruno's.
 - [x] (387ab64) Corner kerbs (Island.tsx `Kerbs`) are separate flat red/white tiles with gaps. Make them a
       continuous, slightly raised rumble kerb hugging the corner (alternating red/white segments
       that touch, bevelled outer edge), only where the lap bends; straights get the plain white line.
-- [ ] Red/white barrier walls (street/Barriers.tsx): the owner's note was cut off ("the walls red
-      and white can be ..."). Ask what they want before changing; likely lower/softer and only on the
-      outside of corners, or replaced by tyre walls and Bruno-style rounded blocks.
+- [x] (dc869c9) Red/white barrier walls (street/Barriers.tsx). Owner's answer (2026-10-23): "like Bruno,
+      mostly gone". Walls removed; a short tyre wall with rounded end blocks on the outside of each
+      run-off corner (`TYRE_WALLS` in street/layoutStreet.ts); sponsor boards on their own legs.
 
 ### 3. World layout ("the map is still bad")
 The owner wants a map with character like Bruno's, not a loop on a blob. Study Bruno's map image
