@@ -2,7 +2,9 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Physics } from "@react-three/rapier";
+import { Physics, useRapier } from "@react-three/rapier";
+import { useFrame } from "@react-three/fiber";
+import { ticker } from "./carState";
 import { EffectComposer, N8AO, SMAA, Vignette } from "@react-three/postprocessing";
 import { Environment, Lightformer, PerformanceMonitor, SoftShadows } from "@react-three/drei";
 import * as THREE from "three";
@@ -44,7 +46,8 @@ export default function World() {
       <Sky />
       <Sun />
       <Suspense fallback={null}>
-        <Physics gravity={[0, -22, 0]} timeStep={1 / 60} interpolate updatePriority={-50}>
+        <Physics gravity={[0, -9.81, 0]} timeStep="vary" paused interpolate={false}>
+          <Stepper />
           <Island />
           <Places />
           <Vehicle />
@@ -66,4 +69,16 @@ export default function World() {
       )}
     </Canvas>
   );
+}
+
+// One variable physics step per frame, before anything else reads the world,
+// exactly like Bruno's ticker: delta capped at 1/30 s and time scaled by 2.
+function Stepper() {
+  const { step } = useRapier();
+  useFrame((_, dt) => {
+    ticker.delta = Math.min(dt, 1 / 30);
+    ticker.deltaScaled = ticker.delta * ticker.scale;
+    step(ticker.deltaScaled);
+  }, -50);
+  return null;
 }

@@ -695,7 +695,19 @@ function makeBodyGeometry() {
 /* Body                                                                */
 /* ------------------------------------------------------------------ */
 
-export type CarBodyProps = GroupProps & { brakeLight?: boolean };
+export type CarBodyProps = GroupProps & {
+  brakeLight?: boolean;
+  /** Group around the DRS flap, pivoting at its leading edge. Rotate +Z to open. */
+  drsRef?: React.Ref<THREE.Group>;
+};
+
+/** Leading edge of the DRS flap, the hinge it opens around (chassis space). */
+export const DRS_PIVOT: [number, number, number] = [-1.27, GROUND_Y + 0.67, 0];
+/** Rear wing endplate tips, where boost trails come from (chassis space). */
+export const WING_TIPS: [number, number, number][] = [
+  [-1.42, GROUND_Y + 0.72, 0.44],
+  [-1.42, GROUND_Y + 0.72, -0.44],
+];
 
 /** Decal-like text lying on a surface. `normal` rotation is applied first, then the in-plane `spin`. */
 function Decal({
@@ -727,7 +739,7 @@ function Decal({
   );
 }
 
-export function CarBody({ brakeLight = false, children, ...props }: CarBodyProps) {
+export function CarBody({ brakeLight = false, drsRef, children, ...props }: CarBodyProps) {
   const m = useMaterials();
   const g = useMemo(() => (BODY_GEO ??= makeBodyGeometry()), []);
 
@@ -760,7 +772,14 @@ export function CarBody({ brakeLight = false, children, ...props }: CarBodyProps
 
       {/* rear wing */}
       <mesh geometry={g.rwMain} material={m.wingWhite} castShadow receiveShadow />
-      <mesh geometry={g.rwFlap} material={m.wingRed} castShadow />
+      <group ref={drsRef} position={DRS_PIVOT}>
+        <mesh
+          geometry={g.rwFlap}
+          material={m.wingRed}
+          position={[-DRS_PIVOT[0], -DRS_PIVOT[1], -DRS_PIVOT[2]]}
+          castShadow
+        />
+      </group>
       <mesh geometry={g.beam1} material={m.carbon} castShadow />
       <mesh geometry={g.beam2} material={m.carbon} castShadow />
       {g.rwEnd.map((e, i) => (
