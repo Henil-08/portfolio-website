@@ -24,7 +24,7 @@ const PI = Math.PI;
 /* ------------------------------------------------------------------ */
 
 /**
- * The car is modelled at F1-toy size, then scaled up so it reads like Bruno's jeep next
+ * The car is modelled at F1-toy size, then scaled up so it reads like the original jeep next
  * to the world (owner, 4b-b): the model, wheels and colliders all scale by this.
  */
 export const CAR_SCALE = 1.38;

@@ -35,7 +35,7 @@ let settle = 0;
 let lastFrame = -1;
 let sun: THREE.DirectionalLight | null = null;
 
-/** Bruno's clumps read a touch small on our scaled-down trunks; fill them out. */
+/** The original clumps read a touch small on our scaled-down trunks; fill them out. */
 const CROWN_FILL = 1.12;
 
 const ATTRS = { aCrown: 4, aTree: 4, aColA: 3, aColB: 3 } as const;
@@ -59,7 +59,7 @@ function ensureFoliage(count: number) {
   if (!foliage) {
     foliageCap = Math.max(1024, count);
     foliage = new THREE.Mesh(makeFoliageGeometry(foliageCap), foliageMaterial());
-    foliage.name = "bruno-foliage";
+    foliage.name = "foliage";
     foliage.customDepthMaterial = foliageDepthMaterial();
     foliage.castShadow = true;
     foliage.receiveShadow = true;
@@ -83,7 +83,7 @@ function ensureTrunk(id: TrunkId, count: number) {
   const cap = Math.max(256, m ? m.instanceMatrix.count * 2 : 0, count);
   if (!trunkMat) trunkMat = patchSeeThrough(new THREE.MeshStandardMaterial({ color: C.woodDark, roughness: 0.75, metalness: 0, side: THREE.DoubleSide }));
   const next = new THREE.InstancedMesh(trunkGeometry(id), trunkMat, cap);
-  next.name = `bruno-trunk-${id}`;
+  next.name = `trunk-${id}`;
   next.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   next.castShadow = true;
   next.receiveShadow = true;

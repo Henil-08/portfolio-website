@@ -2,7 +2,7 @@
 // (palm: r=0.22, leaning toward +X by ~0.6 m at the top).
 // round/oak: ~3.5 x 5 x 3.5   cherry: ~4 x 4.5 x 3.5 (leans to -X)   pine (birch): ~2.6 x 5 x 2.6
 // palm: ~4 x 4.8 x 4   Bush: ~1.9 x 1.4 x 1.9   Rock: ~1.2 x 0.7 x 1.0
-// Style: Bruno Simon's folio-2025 trees (MIT, see public/bruno/LICENSE.md): his
+// Style: folio-2025 trees (MIT, see public/vendor/LICENSE.md): the original's
 // low-poly trunk + branch models, crowns of SDF leaf-card clumps with spherical
 // normals and wind sway, in our sage two-tone. Oak, cherry, pine and bush are not
 // meshes here: they register with components/world/foliage/registry.ts, which
@@ -120,7 +120,7 @@ function speciesFor(variant: TreeVariant, seed: number): SpeciesId {
   return Math.abs(Math.round(seed)) % 8 === 3 ? "cherry" : "oak";
 }
 
-/** Bruno-style tree: oak / cherry (round), conifer stack (pine), or the beach palm. */
+/** tree: oak / cherry (round), conifer stack (pine), or the beach palm. */
 export function Tree({ variant = "round", seed = 1, ...props }: TreeProps) {
   if (variant === "palm")
     return (
@@ -131,7 +131,7 @@ export function Tree({ variant = "round", seed = 1, ...props }: TreeProps) {
   return <FoliageTree species={speciesFor(variant, seed)} seed={seed} {...props} />;
 }
 
-/** Bruno's bush: one round leaf clump. */
+/** The original bush: one round leaf clump. */
 export function Bush({ seed = 1, ...props }: GroupProps & { seed?: number }) {
   return <FoliageTree species="bush" seed={seed} {...props} />;
 }

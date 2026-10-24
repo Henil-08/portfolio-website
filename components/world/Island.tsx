@@ -55,7 +55,7 @@ function ribbon(width: number, y: number, offset = 0) {
   return g;
 }
 
-// Rumble kerbs, Bruno style: one continuous strip hugging each bend on both edges,
+// Rumble kerbs, the original's style: one continuous strip hugging each bend on both edges,
 // red and white stripes that touch, a low ramp up from the road, a flat top and a
 // bevelled outer edge. Each run fades up out of the road at its ends.
 const KERB_W = 0.7;
@@ -157,7 +157,7 @@ function kerbGeometry() {
 }
 
 // The land. Where wheel tracks have parted the grass (alive/Tracks.tsx), grassy
-// ground turns to bare earth, like Bruno's terrain losing its grass channel.
+// ground turns to bare earth, like the original terrain losing its grass channel.
 const LAND = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92 });
 LAND.onBeforeCompile = (shader) => {
   Object.assign(shader.uniforms, tracks.uniforms);
@@ -226,7 +226,7 @@ function terrainGeometry() {
   const grass = new THREE.Color(C.grass);
   const sand = new THREE.Color(C.sand);
   const wet = new THREE.Color(C.sand).multiplyScalar(0.78);
-  const parkSand = new THREE.Color("#e8cfa6"); // Bruno's park sand, toned to our palette
+  const parkSand = new THREE.Color("#e8cfa6"); // The original park sand, toned to our palette
   const tmp = new THREE.Color();
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {

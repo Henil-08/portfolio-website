@@ -1,4 +1,4 @@
-// Adapted from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon),
+// Adapted from folio-2025 (MIT, see public/vendor/LICENSE.md),
 // sources/Game/World/WindLines.js, sources/Game/Geometries/WindLineGeometry.js,
 // sources/Game/Geometries/LineGeometry.js
 //
@@ -25,7 +25,7 @@ const POOL = 4;
 const INTERVAL = { min: 300, max: 2000 };
 const TRANSLATION = 1;
 const THICKNESS = 0.1;
-const AREA_RADIUS = 26; // Bruno: the view's optimal area radius
+const AREA_RADIUS = 26; // Original: the view's optimal area radius
 const OPACITY = 0.55;
 
 function windLinePoints(length = 10, handlesCount = 4, amplitude = 1, divisions = 30) {

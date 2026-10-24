@@ -1,12 +1,12 @@
-// Adapted from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon), sources/Game/World/Leaves.js
+// Adapted from folio-2025 (MIT, see public/vendor/LICENSE.md), sources/Game/World/Leaves.js
 //
 // Fallen leaves and petals lying around the car. The wind drags them along in
 // gusts, the car flings them up and aside as it drives through, explosions
 // (confetti bursts) scatter them, and gravity and damping settle them again.
-// Same maths and parameters as Bruno's compute shader, run on the CPU (WebGL has
+// Same maths and parameters as the original compute shader, run on the CPU (WebGL has
 // no compute): a few hundred leaves cost well under a millisecond, and positions
 // are uploaded as one instanced attribute. One draw call.
-// Changes: heights are measured from the terrain (Bruno's island is flat), so
+// Changes: heights are measured from the terrain (the original island is flat), so
 // leaf tumbling and the upward lift use height above the ground; per-tick pushes
 // are normalised to 60 fps; colours are muted to our palette (dry leaf + petal).
 "use client";
@@ -22,7 +22,7 @@ import { aliveEvents } from "./events";
 
 const COARSE = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
 const COUNT = COARSE ? 160 : 420;
-const SIZE = 56; // Bruno: the view's optimal area; we follow the car like the grass
+const SIZE = 56; // Original: the view's optimal area; we follow the car like the grass
 
 const P = {
   scale: 0.25,
@@ -38,7 +38,7 @@ const P = {
 };
 
 function makeGeometry() {
-  // Bruno's leaf: a unit plane pinched at one end, lying flat.
+  // The original leaf: a unit plane pinched at one end, lying flat.
   const plane = new THREE.PlaneGeometry(1, 1);
   const a = plane.attributes.position.array as Float32Array;
   a[0] += 0.15;
@@ -78,8 +78,8 @@ function makeMaterial() {
     uScale: { value: P.scale },
     uRotationFrequency: { value: P.rotationFrequency },
     uRotationElevationMultiplier: { value: P.rotationElevationMultiplier },
-    uColorA: { value: new THREE.Color("#9a6b47") }, // dry leaf (Bruno: #95513a)
-    uColorB: { value: new THREE.Color("#d9a69c") }, // petal (Bruno: #f56a3a)
+    uColorA: { value: new THREE.Color("#9a6b47") }, // dry leaf (original: #95513a)
+    uColorB: { value: new THREE.Color("#d9a69c") }, // petal (original: #f56a3a)
   };
   const m = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.8, metalness: 0 });
   m.onBeforeCompile = (shader) => {
@@ -172,9 +172,9 @@ export function Leaves() {
     const fz = carState.pos.z;
     if (!s.initialised) init(s, fx, fz);
     const d = Math.min(dt, 1 / 30) * 2; // deltaScaled
-    const tick = Math.min(dt, 1 / 30) * 60; // Bruno's per-tick pushes, at 60 fps
+    const tick = Math.min(dt, 1 / 30) * 60; // The original per-tick pushes, at 60 fps
 
-    // Vehicle velocity per tick (Bruno: position delta per tick)
+    // Vehicle velocity per tick (original: position delta per tick)
     let vvx = 0;
     let vvy = 0;
     let vvz = 0;

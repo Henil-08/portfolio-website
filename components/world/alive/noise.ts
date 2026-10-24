@@ -1,6 +1,6 @@
-// Adapted from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon), sources/Game/Noises.js
+// Adapted from folio-2025 (MIT, see public/vendor/LICENSE.md), sources/Game/Noises.js
 //
-// Bruno renders a 128x128 tileable perlin texture on the GPU once at boot
+// The original renders a 128x128 tileable perlin texture on the GPU once at boot
 // (perlinNode(uv, 6, 6) remapped 0.1..0.9 -> 0..1, plus a per-texel hash in G).
 // We compute the very same function on the CPU instead, so the GPU texture and
 // the CPU sampler (used by flags, leaves, dust, birds) agree exactly.
@@ -13,7 +13,7 @@ const fract = (x: number) => x - Math.floor(x);
 const gmod = (a: number, b: number) => a - b * Math.floor(a / b);
 const modulo = (a: number, b: number) => gmod(gmod(a, b) + b, b);
 
-/** Bruno's `random(vec2)`: two pseudo random numbers in -1..1. */
+/** The original `random(vec2)`: two pseudo random numbers in -1..1. */
 function random(x: number, y: number, out: [number, number]) {
   const a = x * 127.1 + y * 311.7;
   const b = x * 269.5 + y * 183.3;
@@ -22,7 +22,7 @@ function random(x: number, y: number, out: [number, number]) {
   return out;
 }
 
-/** Bruno's `hash(vec2).x`. */
+/** The original `hash(vec2).x`. */
 export function hash(x: number, y: number) {
   return fract(Math.sin(x * 127.1 + y * 311.7) * 43758.5453123);
 }
@@ -33,7 +33,7 @@ const lr: [number, number] = [0, 0];
 const ul: [number, number] = [0, 0];
 const ur: [number, number] = [0, 0];
 
-/** Bruno's `perlinNode(uv, cellAmount, period)`. */
+/** The original `perlinNode(uv, cellAmount, period)`. */
 function perlin(u: number, v: number, cells: number, period: number) {
   const x = u * cells;
   const y = v * cells;
@@ -60,7 +60,7 @@ function perlin(u: number, v: number, cells: number, period: number) {
 
 let data: Float32Array | null = null;
 
-/** Perlin values (R channel of Bruno's texture), row-major, NOISE_RES^2. */
+/** Perlin values (R channel of the original texture), row-major, NOISE_RES^2. */
 export function perlinData() {
   if (!data) {
     data = new Float32Array(NOISE_RES * NOISE_RES);

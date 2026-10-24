@@ -1,4 +1,4 @@
-// Adapted from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon), sources/Game/Wind.js
+// Adapted from folio-2025 (MIT, see public/vendor/LICENSE.md), sources/Game/Wind.js
 // (strength driven like sources/Game/Weather.js `wind` property)
 //
 // One wind field for the whole world. Grass, foliage, flags, leaves, dust, wind
@@ -18,11 +18,11 @@ export const wind = {
   positionFrequency: 0.5,
   /** 0.1..1, follows the slow `weather` value. */
   strength: 0.5,
-  /** Bruno's Weather.wind, 0..1. */
+  /** The original Weather.wind, 0..1. */
   weather: 0.5,
   localTime: 0,
   timeFrequency: 0.1,
-  /** Seconds since the wind started (scaled 2x like Bruno's ticker). */
+  /** Seconds since the wind started (scaled 2x like the original ticker). */
   elapsed: 0,
   /** Extra strength while a gust override is on (rain/snow storms). */
   boost: 0,
@@ -45,9 +45,9 @@ export function getWindUniforms() {
   return windUniforms;
 }
 
-// Bruno's weather noise: sin(x) * sin(1.678x) * sin(2.345x)
+// The original weather noise: sin(x) * sin(1.678x) * sin(2.345x)
 const weatherNoise = (x: number) => Math.sin(x) * Math.sin(x * 1.678) * Math.sin(x * 2.345);
-// Bruno's day lasts 4 minutes; his wind follows noise(dayProgress * 1).
+// The original day lasts 4 minutes; its wind follows noise(dayProgress * 1).
 const DAY = 4 * 60;
 const START = 7.3; // start somewhere breezy
 
@@ -77,7 +77,7 @@ export function updateWind(frame: number, delta: number) {
   windUniforms.uWindElapsed.value = wind.elapsed % (Math.PI * 200); // wraps cleanly for integer frequencies
 }
 
-/** Force Bruno's weather wind (0..1) for the lab or debugging. Pass null to follow the weather again. */
+/** Force the original weather wind (0..1) for the lab or debugging. Pass null to follow the weather again. */
 export function overrideWindWeather(value: number | null) {
   overrideValue = value;
 }
@@ -93,7 +93,7 @@ export function windAt(x: number, z: number, out: THREE.Vector2) {
   return out.set(d.x * k, d.y * k);
 }
 
-/** GLSL: `vec2 windOffset(vec2 worldXZ)`, Bruno's Wind.offsetNode. */
+/** GLSL: `vec2 windOffset(vec2 worldXZ)`, the original Wind.offsetNode. */
 export const WIND_GLSL = /* glsl */ `
 uniform vec2 uWindDir;
 uniform float uWindStrength;

@@ -1,5 +1,5 @@
 // Dust kicked up by the wheels on grass and gravel, plus `kickDust` puffs.
-// Bruno's car marks the ground through Tracks.js but has no dust, so this one is
+// The original car marks the ground through Tracks.js but has no dust, so this one is
 // ours, written in the same spirit: a fixed pool, CPU motion, one instanced draw.
 // The puffs ride the shared wind (alive/wind.ts) and dim at night.
 "use client";

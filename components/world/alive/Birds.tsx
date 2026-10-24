@@ -1,7 +1,7 @@
 // Small flocks resting on roofs and under trees. When the car comes within
 // ~15 m they burst up and away, wheel around overhead for a while, then glide
-// down to a quiet perch far from the car. Bruno's world has bird song but no
-// birds, so this one is ours, built the same way as his other small life: CPU
+// down to a quiet perch far from the car. The original world has bird song but no
+// birds, so this one is ours, built the same way as the original's other small life: CPU
 // motion, one instanced mesh, wings flapped in the vertex shader.
 "use client";
 

@@ -1,11 +1,11 @@
 // Career timeline: a small stone terrace you drive across.
-// Adapted from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon),
+// Adapted from folio-2025 (MIT, see public/vendor/LICENSE.md),
 // sources/Game/World/Areas/CareerArea.js: one line per role laid in the ground
 // along a time axis. When the car enters a role's dates its stone rises out of
-// the ground (his activeElevation), floats with a slow bob, travels along the
-// line with the car and its label wipes in (his labelReveal 0 -> 1, power2.inOut,
+// the ground (the original's activeElevation), floats with a slow bob, travels along the
+// line with the car and its label wipes in (the original's labelReveal 0 -> 1, power2.inOut,
 // 1 s after 0.3 s); past the end it settles back into the ground (a role that is
-// still going keeps its stone up). Years are small markers on one side. Bruno's
+// still going keeps its stone up). Years are small markers on one side. The original's
 // lines and stones come out of Blender; here everything is built from
 // content/experience.ts.
 //
@@ -24,7 +24,7 @@ import { LANES, PER_YEAR, PLAZA, T0, T1, YEAR_X, laneX, tOf, zOf, type Lane } fr
 
 const FONT = "/fonts/racero.otf";
 const TOP = 0.04; // pavement top
-const PAD_IN = 0.25; // Bruno's line padding: how early a stone wakes up (years)
+const PAD_IN = 0.25; // The original line padding: how early a stone wakes up (years)
 const ELEVATION = 1.6; // stone height when up
 const SLOT = 0.8; // vertical spacing when several stones are up at once
 const LABEL_W = 7; // widest label, metres: the wipe runs over this
@@ -111,7 +111,7 @@ const strip = (() => {
 
 type Probe = { x: number; z: number; inside: boolean; slots: number[] };
 
-/** Bruno's in / up logic: in while the car is inside the date range (plus a little padding). */
+/** The original in / up logic: in while the car is inside the date range (plus a little padding). */
 function laneState(lane: Lane, p: Probe) {
   const tc = tOf(p.z);
   const pad = PAD_IN / PER_YEAR;
@@ -146,7 +146,7 @@ function LaneView({ lane, probe }: { lane: Lane; probe: RefObject<Probe> }) {
     const k = dayNight.night;
     const { isIn, past, up } = laneState(lane, p);
 
-    // Bruno: stone.y += (target - y) * dt * 3; it follows the car along the line once it's out of the ground.
+    // Original: stone.y += (target - y) * dt * 3; it follows the car along the line once it's out of the ground.
     const target = up ? ELEVATION + SLOT * (p.slots[lane.index] ?? 0) : 0;
     s.y += (target - s.y) * Math.min(1, d * 3);
     const zTarget = isIn ? (s.y > 0.6 ? THREE.MathUtils.clamp(p.z, z1, z0) : s.z) : past ? z1 : z0;

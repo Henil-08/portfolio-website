@@ -5,7 +5,7 @@ import { LEN, FRAMES, N_FRAMES, barrierOffset, farSign, farSpot, inPitSide, inSe
 import { STAND_SPOTS } from "./standSpots";
 import { PIT, TRACK_WIDTH, inLand, nearCrossing, nearestT, onBridge } from "../layout";
 
-// Bruno's circuit has no walls: open run-off past the kerbs, and a short tyre wall
+// The original circuit has no walls: open run-off past the kerbs, and a short tyre wall
 // on the outside of the tight corners only, with a rounded block at each end.
 
 // Extra access gaps on the inside (u, half length in m) so the infield is reachable.

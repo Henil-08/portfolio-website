@@ -1,6 +1,6 @@
 "use client";
 
-// Contact, the way Bruno does his social area: one medallion per link in a half
+// Contact, the way the original does the original's social area: one medallion per link in a half
 // ring round a waving Henil. Drive up to a medallion and the prompt names it;
 // Enter (or a click on the prompt) opens the link. Links come from
 // content/profile.ts only.

@@ -1,6 +1,6 @@
 "use client";
 
-// The park's footbridge: a low wooden arch over the river (Bruno's park has a
+// The park's footbridge: a low wooden arch over the river (the original park has a
 // couple of small wooden bridges between its islands). Planks, posts and a rail,
 // and colliders along the deck so the car can drive over it.
 import { CuboidCollider, RigidBody } from "@react-three/rapier";

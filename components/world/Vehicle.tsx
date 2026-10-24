@@ -32,7 +32,7 @@ import { heightAt } from "./terrain";
 import { SEA_Y, SPAWN, headingFromTangent, nearestT3, trackPoint, trackTangent, zoneById } from "./layout";
 import { engineIdle, engineUpdate, honk } from "./sound";
 
-// Driving model ported from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon),
+// Driving model ported from folio-2025 (MIT, see public/vendor/LICENSE.md),
 // sources/Game/Physics/PhysicsVehicle.js and Player.js: same engine, brake and
 // steering formulas, same suspension and friction settings, same 2x time scale.
 // Only the wheel layout comes from our F1 car model.
@@ -46,8 +46,8 @@ const ENGINE_FORCE = 300;
 const BOOST_MULTIPLIER = 2;
 const TOP_SPEED = 5;
 const TOP_SPEED_BOOST = 40;
-const BRAKE_AMPLITUDE = 35; // Bruno's value, used for the idle and reverse brake
-// Space brake: Bruno's full 35 on every wheel stops the car dead. Ours ramps in
+const BRAKE_AMPLITUDE = 35; // The original value, used for the idle and reverse brake
+// Space brake: the original full 35 on every wheel stops the car dead. Ours ramps in
 // and is gentler, and the rear lets go a little, so it slides down to a stop.
 const HANDBRAKE_AMPLITUDE = 4;
 const HANDBRAKE_RAMP = 0.4; // seconds to full brake
@@ -112,10 +112,10 @@ export default function Vehicle() {
   const buried = useRef(0);
   const lastHud = useRef(0);
   const goingForward = useRef(true);
-  const speed = useRef(0); // simulation units per second, like Bruno's
+  const speed = useRef(0); // simulation units per second, like the original's
   const boosting = useRef(false);
   const brakeHeld = useRef(0); // seconds the brake has been held
-  // Bruno's stuck test: on the throttle, but under 0.5 m covered in the last 3 s.
+  // The original stuck test: on the throttle, but under 0.5 m covered in the last 3 s.
   const stuck = useRef({ items: [] as [number, number][], told: false });
   const { world } = useRapier();
 
@@ -182,7 +182,7 @@ export default function Vehicle() {
     };
   }, []);
 
-  // Pre-physics: Bruno's PhysicsVehicle.updatePrePhysics.
+  // Pre-physics: the original PhysicsVehicle.updatePrePhysics.
   useBeforePhysicsStep(() => {
     const v = controller.current;
     if (!v) return;
@@ -216,7 +216,7 @@ export default function Vehicle() {
         engine = 0;
       }
       // Off the boost and over normal top speed: ease back to it in about a second
-      // (Bruno lets the car coast down from boost speed, which feels like boost lingers).
+      // (the original lets the car coast down from boost speed, which feels like boost lingers).
       if (!boost && speed.current > TOP_SPEED * 1.15) b = Math.max(b, Math.min(0.35, ((speed.current - TOP_SPEED) / TOP_SPEED) * 0.12));
       brake = b * BRAKE_AMPLITUDE * dts;
     }
@@ -241,7 +241,7 @@ export default function Vehicle() {
     const b = body.current;
     if (!v || !b) return;
 
-    // Post-physics measures, Bruno style: speed from how far the body moved this step.
+    // Post-physics measures, the original's style: speed from how far the body moved this step.
     const t = b.translation();
     tmpP.set(t.x, t.y, t.z);
     const moved = tmpV.copy(tmpP).sub(prevPos);
@@ -305,7 +305,7 @@ export default function Vehicle() {
     // Recover from flips and falls.
     tmpV.set(0, 1, 0).applyQuaternion(tmpQ);
     flipped.current = tmpV.y < 0.25 ? flipped.current + dt : 0;
-    // In deep water (past the shallows) for a second: back onto the road, like Bruno's respawn.
+    // In deep water (past the shallows) for a second: back onto the road, like the original respawn.
     wet.current = SEA_Y - heightAt(t.x, t.z) > 0.7 && t.y < SEA_Y + 0.4 ? wet.current + dt : 0;
     buried.current = t.y < heightAt(t.x, t.z) - BURIED ? buried.current + dt : 0;
     if (input.reset || flipped.current > 1.6 || wet.current > 1 || buried.current > 0.1 || t.y < heightAt(t.x, t.z) - 4) {
@@ -315,7 +315,7 @@ export default function Vehicle() {
       buried.current = 0;
       if (t.y < heightAt(t.x, t.z) - 4) place(b, SPAWN[0], SPAWN[1], SPAWN[2]);
       else {
-        // Back onto the nearest bit of road, facing the way you were going (Bruno's R).
+        // Back onto the nearest bit of road, facing the way you were going (the original R).
         const rt = nearestT3(t.x, t.y, t.z);
         const p = trackPoint(rt);
         const tan = trackTangent(rt);
@@ -354,7 +354,7 @@ export default function Vehicle() {
         canSleep={false}
         ccd
       >
-        {/* Bruno's chassis: mass 2.5 with the centre of mass well below the body.
+        {/* The original chassis: mass 2.5 with the centre of mass well below the body.
             The colliders ride higher than the low F1 body (0.3 m off the ground, not
             0.18) and the chassis box is shorter, so the car never beaches on a crest or
             a bank; the body may dip into the grass a little, which reads as cartoony. */}
@@ -369,7 +369,7 @@ export default function Vehicle() {
             angularInertiaLocalFrame: { x: 0, y: 0, z: 0, w: 1 },
           }}
         />
-        {/* Bruno's bumper: a massless, frictionless box around the wheels and wings,
+        {/* The original bumper: a massless, frictionless box around the wheels and wings,
             so walls push the car along instead of catching a tyre, and no wheel
             ever pokes into a wall or a building. */}
         <CuboidCollider

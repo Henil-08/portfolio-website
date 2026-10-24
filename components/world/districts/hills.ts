@@ -1,5 +1,5 @@
-// The north meadows (where the hills were): wildflower clusters (Bruno Simon's Flowers.js, MIT, (c) 2025
-// Bruno Simon: eight tiny petal cards on a dome, scattered in clusters of 3 to 10)
+// The north meadows (where the hills were): wildflower clusters (Flowers.js in folio-2025, MIT, see public/vendor/LICENSE.md:
+// eight tiny petal cards on a dome, scattered in clusters of 3 to 10)
 // and grey rock outcrops half sunk in the ground. Pure data, read by ./index.tsx.
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
@@ -17,7 +17,7 @@ function onHill(x: number, z: number, pad: number) {
   return !BUILDINGS.some((b) => Math.hypot(b.x - x, b.z - z) < Math.hypot(b.w, b.d) / 2 + 1 + pad);
 }
 
-/** Bruno's flower: eight small cards on a 1 m dome, the dome's top 25 cm above its origin. Normals point up, so every card is lit alike. */
+/** The original flower: eight small cards on a 1 m dome, the dome's top 25 cm above its origin. Normals point up, so every card is lit alike. */
 export function flowerGeometry() {
   const r = rng(808);
   const planes: THREE.BufferGeometry[] = [];

@@ -1,14 +1,14 @@
 // The old town round the crossover: each building gets a forecourt of stone slabs
-// (Bruno's two-tone slabs, toned to our palette), his lanterns at the forecourt's
-// outer corners, and now and then one of his benches against the facade.
+// (the original two-tone slabs, toned to our palette), its lanterns at the forecourt's
+// outer corners, and now and then one of the original's benches against the facade.
 // Pure data, read by ./index.tsx.
 import * as THREE from "three";
 import { TRACK_WIDTH } from "../layout";
 import { heightAt } from "../terrain";
 import { BUILDINGS, type Bld } from "../street/town";
 import { compose, distToTrack, rng } from "../street/common";
-import { BENCH, LANTERN } from "../models/props/brunoProps";
-import { PROP_SCALE, propFoot } from "../models/props/bruno";
+import { BENCH, LANTERN } from "../models/props/propModels";
+import { PROP_SCALE, propFoot } from "../models/props/kit";
 
 const SLAB = 0.9; // slab pitch
 const GAP = 0.07; // joint between slabs

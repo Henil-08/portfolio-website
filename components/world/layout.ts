@@ -506,7 +506,7 @@ export const zoneById = Object.fromEntries(zones.map((z) => [z.id, z])) as Recor
 
 
 /**
- * The name in the middle of the infield, where the drive starts (like Bruno's
+ * The name in the middle of the infield, where the drive starts (like the original's
  * landing). Knockable letters; Places lays them out from the glyph widths.
  * `hx` is the half width of the whole word pair, for pads and clearances.
  */

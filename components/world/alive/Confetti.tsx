@@ -1,4 +1,4 @@
-// Adapted from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon), sources/Game/World/Confetti.js
+// Adapted from folio-2025 (MIT, see public/vendor/LICENSE.md), sources/Game/World/Confetti.js
 // (triggered like sources/Game/Achievements.js and World/Areas/CircuitArea.js)
 //
 // A pool of four bursts of 500 paper bits. Each bit has a random start in the
@@ -7,7 +7,7 @@
 // All the motion is in the vertex shader from one progress value per burst.
 // Changes: the four pooled meshes are one instanced mesh (one draw call) with
 // per-burst uniforms; gsap's 5 s tween (default power1.out ease) is a per-frame
-// timer; MeshStandardMaterial patched instead of Bruno's node material.
+// timer; MeshStandardMaterial patched instead of the original node material.
 // Also listens to the store: "GOAL!" / "HOWZAT!" toasts and new achievements.
 "use client";
 
@@ -147,7 +147,7 @@ export function Confetti() {
     let lastAch = getState().achievements.length;
     let lastAt = -Infinity;
     const pop3 = () => {
-      // Bruno: player position plus two offset bursts
+      // Original: player position plus two offset bursts
       const { x, y, z } = carState.pos;
       burstConfetti(x, y - 0.3, z);
       burstConfetti(x + 1, y - 1.3, z + 1.5);

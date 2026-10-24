@@ -1,12 +1,12 @@
-// Geometry for Bruno Simon's baked props (./brunoProps.ts, MIT, (c) 2025 Bruno Simon).
-// His palette is brighter than ours: each of his colours maps to one of ours here.
+// Geometry for the original baked props (./propModels.ts, MIT, see public/vendor/LICENSE.md).
+// The original's palette is brighter than ours: each of the original's colours maps to one of ours here.
 import * as THREE from "three";
-import type { PropModel } from "./brunoProps";
+import type { PropModel } from "./propModels";
 
 const REMAP: Record<string, string> = {
-  "#f8a658": "#b98a62", // his orange wood -> weathered oak
+  "#f8a658": "#b98a62", // the original's orange wood -> weathered oak
   "#f29246": "#b98a62",
-  "#7c7691": "#4d5058", // his lilac metal -> slate iron
+  "#7c7691": "#4d5058", // the original's lilac metal -> slate iron
 };
 
 const cache = new Map<PropModel, THREE.BufferGeometry>();
@@ -34,7 +34,7 @@ export function propGeometry(model: PropModel) {
 
 /**
  * Props (benches, lanterns, fences, garden lamps) are scaled up by this so they read
- * chunky next to the car, like in Bruno's world (owner, 4b-b; the car is CAR_SCALE).
+ * chunky next to the car, like in the original world (owner, 4b-b; the car is CAR_SCALE).
  */
 export const PROP_SCALE = 1.3;
 

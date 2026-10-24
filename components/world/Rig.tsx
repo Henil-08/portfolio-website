@@ -17,7 +17,7 @@ const look = new THREE.Vector3();
 const tmp = new THREE.Vector3();
 const orbit = new THREE.Vector3();
 
-// Camera: slow orbit during the intro, then Bruno Simon's follow pattern (MIT,
+// Camera: slow orbit during the intro, then the original follow pattern (MIT,
 // folio-2025): smooth the target's X/Z once, fixed offset, look at the target.
 // No velocity lead and no second lag, which is what made the car look jittery.
 export function CameraRig() {
@@ -61,7 +61,7 @@ export function CameraRig() {
     }
 
     if (phase !== "world") {
-      // Start screen, like Bruno's: the chase camera's angle, pulled in close on
+      // Start screen, like the original's: the chase camera's angle, pulled in close on
       // the car inside the reveal circle (Reveal.tsx eases the zoom back on start).
       target.current.set(carState.pos.x, carState.pos.y - 0.3, carState.pos.z);
       camera.position.copy(followPos);

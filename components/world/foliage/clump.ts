@@ -1,4 +1,4 @@
-// Adapted from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon),
+// Adapted from folio-2025 (MIT, see public/vendor/LICENSE.md),
 // sources/Game/World/Foliage.js `setGeometry`.
 //
 // One foliage clump: 80 leaf cards of 0.8 x 0.8 scattered inside a unit sphere
@@ -11,7 +11,7 @@ import * as THREE from "three";
 const CARDS = 80;
 const SIZE = 0.8;
 
-/** Bruno seeds his with alea('foliage'); any stable PRNG does the job. */
+/** The original seeds its with alea('foliage'); any stable PRNG does the job. */
 function mulberry32(seed: number) {
   let a = seed >>> 0;
   return () => {
@@ -56,7 +56,7 @@ export function clumpGeometry() {
       pos[o] = v.x;
       pos[o + 1] = v.y;
       pos[o + 2] = v.z;
-      // Bruno: position.lerp(normal, 0.85), left unnormalised (the shader normalises)
+      // Original: position.lerp(normal, 0.85), left unnormalised (the shader normalises)
       v.lerp(n, 0.85);
       nor[o] = v.x;
       nor[o + 1] = v.y;

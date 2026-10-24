@@ -11,7 +11,7 @@ import { heightAt } from "./terrain";
 import { BALL_R, Cone, Football, TYRE_H, TYRE_R, Tyre } from "./models/props";
 
 // Lighting keyframes. The day/night cycle blends between them by sun elevation.
-// Night follows Bruno Simon's folio-2025 (MIT): a strong blue moonlight, a violet
+// Night follows folio-2025 (MIT): a strong blue moonlight, a violet
 // bounce from below instead of black shadows, a navy-to-plum sky and fog, and
 // emissives pushed past 1.0 so only they bloom.
 export const SCENES = {

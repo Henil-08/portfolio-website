@@ -1,9 +1,9 @@
-// Adapted from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon), sources/Game/World/PoleLights.js (setFireflies)
+// Adapted from folio-2025 (MIT, see public/vendor/LICENSE.md), sources/Game/World/PoleLights.js (setFireflies)
 //
 // Five fireflies per anchor, a metre up, drifting on three slow sines with a
-// hashed time offset each; they fade in over the evening (Bruno tweens their
+// hashed time offset each; they fade in over the evening (the original tweens their
 // scale over 5 s when night starts). Anchors ring the cricket and football fields
-// instead of Bruno's pole lights. Glow sprites are additive, one draw call.
+// instead of the original pole lights. Glow sprites are additive, one draw call.
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -77,7 +77,7 @@ export function Fireflies() {
     const m = mesh.current;
     if (!s || !m) return;
     const d = Math.min(dt, 1 / 30);
-    s.time += d * 2; // Bruno's elapsedScaled
+    s.time += d * 2; // The original elapsedScaled
     const want = dayNight.night > 0.6 ? 1 : 0;
     s.scale += Math.sign(want - s.scale) * Math.min(Math.abs(want - s.scale), d / 5);
     m.visible = s.scale > 0.001;

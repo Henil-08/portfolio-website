@@ -36,7 +36,7 @@ export const aliveEvents = {
 };
 
 /**
- * Pop a confetti burst at a world position (Bruno's Confetti.pop): `radius` is
+ * Pop a confetti burst at a world position (the original Confetti.pop): `radius` is
  * how far it spreads, `elevation` how high it flies. Also scatters nearby leaves.
  */
 export function burstConfetti(x: number, y: number, z: number, radius = 4, elevation = 6) {
@@ -52,7 +52,7 @@ export function kickDust(x: number, y: number, z: number, amount = 4, vx = 0, vz
   aliveEvents.emit("dust", { x, y, z, amount, vx, vz });
 }
 
-/** Blow fallen leaves away from a point (Bruno's Leaves.explode). */
+/** Blow fallen leaves away from a point (the original Leaves.explode). */
 export function scatterLeaves(x: number, z: number, radius = 7) {
   aliveEvents.emit("explode", { x, z, radius });
 }

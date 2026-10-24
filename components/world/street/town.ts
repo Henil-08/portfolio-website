@@ -23,7 +23,7 @@ export const ROOF_SAGE = "#7d9879";
 export const AWNINGS = [TERRACOTTA, SAGE, DUSTY_BLUE, BUTTER, "#c4694f", "#6f8f5a"];
 
 // Storeys: a taller ground floor (shops), then even floors, then a parapet.
-// Kept low so buildings read only a little taller than the car, like Bruno's (4b-b).
+// Kept low so buildings read only a little taller than the car, like the original (4b-b).
 export const G0 = 3.0;
 export const FH = 2.6;
 const bodyH = (floors: number) => G0 + (floors - 1) * FH + 0.7;

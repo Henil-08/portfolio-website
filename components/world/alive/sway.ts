@@ -1,7 +1,7 @@
-// Adapted from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon),
+// Adapted from folio-2025 (MIT, see public/vendor/LICENSE.md),
 // sources/Game/World/Flowers.js and sources/Game/World/Foliage.js
 //
-// Bruno moves foliage with `positionLocal + vec3(wind.x, 0, wind.y) * height`
+// The original moves foliage with `positionLocal + vec3(wind.x, 0, wind.y) * height`
 // (flowers) and spins each leaf card's alpha by the wind's length (trees and
 // bushes). Our trees are solid ellipsoids, so we keep the first idea for every
 // foliage material: displace vertices by the shared wind field, weighted by

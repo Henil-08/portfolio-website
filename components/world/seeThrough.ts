@@ -1,6 +1,5 @@
-// See-through round the car, after Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno
-// Simon), sources/Game/World/Foliage.js: a soft circle on screen round the car
-// where whatever stands between it and the camera fades away. His foliage alpha is
+// See-through round the car, after folio-2025 (MIT, see public/vendor/LICENSE.md), sources/Game/World/Foliage.js: a soft circle on screen round the car
+// where whatever stands between it and the camera fades away. The original's foliage alpha is
 // sdf * mix(threshold, 1, distanceFade) against the threshold, with the circle's
 // edges at 3 / radius and 15 / radius of the camera distance. Solid things here
 // (buildings, bridges) have no alpha, so they dither-discard instead: fully cut at
@@ -91,7 +90,7 @@ export function seeThrough<T extends THREE.Material>(source: T): T {
 const v = new THREE.Vector3();
 const res = new THREE.Vector2();
 
-/** Each frame: where the car is on screen and how far, and the circle's size (Bruno's 3/r, 15/r, scaled to buildings). */
+/** Each frame: where the car is on screen and how far, and the circle's size (the original 3/r, 15/r, scaled to buildings). */
 export function updateSeeThrough(camera: THREE.Camera, gl: THREE.WebGLRenderer) {
   gl.getDrawingBufferSize(res);
   seeUniforms.uSeeRes.value.copy(res);

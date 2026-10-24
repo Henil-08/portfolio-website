@@ -1,4 +1,4 @@
-// Adapted from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon), sources/Game/World/Grass.js
+// Adapted from folio-2025 (MIT, see public/vendor/LICENSE.md), sources/Game/World/Grass.js
 // (wind from sources/Game/Wind.js, wheel tracks from sources/Game/Tracks.js + Terrain.js)
 "use client";
 
@@ -18,7 +18,7 @@ import { paintPark } from "./park/layout";
 import { paintParkSlabs } from "./districts/park";
 import { paintStartPath } from "./start";
 
-// Bruno's grass: one triangle per blade (tip + two base corners), laid out on a
+// The original grass: one triangle per blade (tip + two base corners), laid out on a
 // jittered grid that loops around the car so the field never runs out. Every
 // blade turns to face the camera, its height follows a perlin patchwork, the
 // shared wind bends its tip, wheel tracks flatten it, and the car pushes it
@@ -28,16 +28,16 @@ import { paintStartPath } from "./start";
 // asphalt and out of buildings.
 //
 // Changes for WebGL + this island: a regular (non-node) MeshStandardMaterial
-// patched in onBeforeCompile, a 56 m field around the car (Bruno sizes it to the
-// view), and our palette instead of his yellow-green.
+// patched in onBeforeCompile, a 56 m field around the car (the original sizes it to the
+// view), and our palette instead of the original's yellow-green.
 
 const COARSE = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
-const SUBDIVISIONS = COARSE ? 148 : 280; // 22k blades on phones, 78k on desktop (his count)
+const SUBDIVISIONS = COARSE ? 148 : 280; // 22k blades on phones, 78k on desktop (the original's count)
 const SIZE = 56; // field width in metres
 const MASK_RES = 1024;
 const WORLD = (MAX_R + 6) * 2;
 
-// Bruno scales blades up when the field covers more than his ideal surface.
+// The original scales blades up when the field covers more than its ideal surface.
 const SURFACE_IDEAL = 2000;
 const OVERFLOW = Math.max(0, SIZE * SIZE - SURFACE_IDEAL) / SURFACE_IDEAL;
 const BLADE_WIDTH = 0.1 * (1 + OVERFLOW * 0.5);
@@ -136,7 +136,7 @@ function fullMask() {
 }
 
 function makeBlades() {
-  // Bruno's layout: one blade per cell of a grid, jittered inside its cell; the
+  // The original layout: one blade per cell of a grid, jittered inside its cell; the
   // three vertices of a blade share its centre and the shader builds the shape.
   const r = seeded(280);
   const count = SUBDIVISIONS * SUBDIVISIONS;

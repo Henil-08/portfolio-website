@@ -1,5 +1,5 @@
-// Bushes through the infield, the park and along the garden paths, like Bruno
-// Simon's folio-2025 (MIT, (c) 2025 Bruno Simon; sources/Game/World/Bushes.js
+// Bushes through the infield, the park and along the garden paths, like
+// folio-2025 (MIT, see public/vendor/LICENSE.md; sources/Game/World/Bushes.js
 // places ~130 single foliage clumps from a Blender reference file). Ours are
 // scattered from the layout: a loose line beside each garden path, a ring round
 // each park island's edge, and small clusters in the open infield. Pure data,

@@ -1,12 +1,12 @@
-// The harbour quays: Bruno's benches facing the water, his lanterns along the
+// The harbour quays: the original benches facing the water, its lanterns along the
 // land side, and stacks of crates and barrels between them. Pure data, read by
 // ./index.tsx.
 import * as THREE from "three";
 import { CANALS, QUAY_Y } from "../layout";
 import { quayRuns } from "../Harbour";
 import { compose, rng } from "../street/common";
-import { BENCH, LANTERN } from "../models/props/brunoProps";
-import { PROP_SCALE, propFoot } from "../models/props/bruno";
+import { BENCH, LANTERN } from "../models/props/propModels";
+import { PROP_SCALE, propFoot } from "../models/props/kit";
 
 const TOP = QUAY_Y + 0.13; // the coping's top
 const WOOD = ["#b98a62", "#a8784f", "#c79a70"].map((c) => new THREE.Color(c));

@@ -1,7 +1,7 @@
 "use client";
 
 // District identity (layout v4 step g): paving, planting and props that tell you
-// which part of the island you are in. Bruno Simon's props (MIT) where he has one.
+// which part of the island you are in. The original props (MIT) where it has one.
 import { useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
@@ -9,9 +9,9 @@ import { dayNight } from "../daynight";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { lowSphere, mat, unitCyl } from "../models/props/shared";
 import { C } from "../palette";
-import { propGeometry } from "../models/props/bruno";
+import { propGeometry } from "../models/props/kit";
 import { withWind } from "../alive/sway";
-import { BENCH, FENCE, LANTERN, LANTERN_LIGHT } from "../models/props/brunoProps";
+import { BENCH, FENCE, LANTERN, LANTERN_LIGHT } from "../models/props/propModels";
 import { Instances } from "../street/Instances";
 import { Movables, kindFromMatrices, type MovableKind } from "../Movables";
 import { heightAt } from "../terrain";

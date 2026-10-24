@@ -95,7 +95,7 @@ export default function World() {
 }
 
 // One variable physics step per frame, before anything else reads the world,
-// exactly like Bruno's ticker: delta capped at 1/30 s and time scaled by 2.
+// exactly like the original ticker: delta capped at 1/30 s and time scaled by 2.
 function Stepper() {
   const { step } = useRapier();
   useFrame((_, dt) => {

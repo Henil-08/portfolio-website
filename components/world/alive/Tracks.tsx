@@ -1,12 +1,12 @@
-// Adapted from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon), sources/Game/Tracks.js
+// Adapted from folio-2025 (MIT, see public/vendor/LICENSE.md), sources/Game/Tracks.js
 // (used by sources/Game/World/VisualVehicle.js and sources/Game/Terrain.js)
 //
 // Each wheel drags a 128-sample ribbon behind it. Every frame the ribbons are drawn
 // additively into a small top-down render target (40 m, 512 px) centred on the
 // car; the grass reads it and lies down where the wheels have been.
-// Differences from Bruno: WebGL instead of WebGPU, so the four wheel ribbons share
+// Differences from the original: WebGL instead of WebGPU, so the four wheel ribbons share
 // one mesh (one draw call), the ribbon vertices are built on the CPU from the
-// trail samples (same maths as his vertex node), and we project to the target in the vertex shader
+// trail samples (same maths as the original's vertex node), and we project to the target in the vertex shader
 // instead of with an orthographic camera (WebGL's render target origin is bottom
 // left). Ribbon half width is 0.38 m instead of 0.5 because our tyres are narrower.
 // Added: the trail also fades with time (REGROW), so parted grass grows back even
@@ -82,7 +82,7 @@ function makeGeometry() {
 }
 
 function makeSystem() {
-  // Bruno's per-track data texture (x, y, z, touching) x 128, kept on the CPU.
+  // The original per-track data texture (x, y, z, touching) x 128, kept on the CPU.
   const data = new Float32Array(SUBDIVISIONS * ROWS * 4);
   const material = new THREE.ShaderMaterial({
     depthTest: false,
@@ -131,7 +131,7 @@ function makeSystem() {
 }
 
 /**
- * Bruno's ribbon vertex maths on the CPU: column i reads sample i-1 (his
+ * The original ribbon vertex maths on the CPU: column i reads sample i-1 (its
  * half-texel offset on a nearest-filtered texture), the side offset is
  * perpendicular to the step from sample i-2.
  */
@@ -209,7 +209,7 @@ export function Tracks() {
     }
     buildRibbons(sys);
 
-    // Focus on the car (Bruno focuses on the view's focus point, which follows it).
+    // Focus on the car (the original focuses on the view's focus point, which follows it).
     tracks.focus.set(carState.pos.x, carState.pos.z);
     tracks.uniforms.uTracksFocus.value.copy(tracks.focus);
     sys.material.uniforms.uFocus.value.copy(tracks.focus);

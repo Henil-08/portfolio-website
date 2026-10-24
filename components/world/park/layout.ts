@@ -1,6 +1,6 @@
-// The park north of the garden, after Bruno Simon's folio-2025 (MIT): each place
+// The park north of the garden, after folio-2025 (MIT): each place
 // stands on its own grass island in a field of warm sand, and the sand between
-// the islands is the path network (his terrain paint, static/terrain/terrain.png).
+// the islands is the path network (the original's terrain paint, static/terrain/terrain.png).
 // Pure data, shared by the ground colours (Island.tsx), the grass mask (Grass.tsx)
 // and the footbridge (./index.tsx).
 import * as THREE from "three";

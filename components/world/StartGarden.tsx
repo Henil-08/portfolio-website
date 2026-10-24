@@ -5,8 +5,8 @@
 import { useMemo } from "react";
 import * as THREE from "three";
 import { Bush, Tree } from "./models/props";
-import { BENCH } from "./models/props/brunoProps";
-import { PROP_SCALE, propFoot, propGeometry } from "./models/props/bruno";
+import { BENCH } from "./models/props/propModels";
+import { PROP_SCALE, propFoot, propGeometry } from "./models/props/kit";
 import { mat } from "./models/props/shared";
 import { withWind } from "./alive/sway";
 import { flowerGeometry } from "./districts/hills";

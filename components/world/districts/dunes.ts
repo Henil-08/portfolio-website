@@ -1,5 +1,5 @@
-// The east beach and dunes: short runs of Bruno Simon's timber fence (MIT,
-// (c) 2025 Bruno Simon) leaning along the dunes like sand fences, and tufts of
+// The east beach and dunes: short runs of the original timber fence (MIT,
+// see public/vendor/LICENSE.md) leaning along the dunes like sand fences, and tufts of
 // marram grass. Pure data, read by ./index.tsx.
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
@@ -7,8 +7,8 @@ import { MAX_R, TRACK_WIDTH, duneMask, inLand, nearestT } from "../layout";
 import { heightAt } from "../terrain";
 import { compose, nearPlace, rng } from "../street/common";
 import { BUILDINGS } from "../street/town";
-import { FENCE } from "../models/props/brunoProps";
-import { PROP_SCALE, propFoot } from "../models/props/bruno";
+import { FENCE } from "../models/props/propModels";
+import { PROP_SCALE, propFoot } from "../models/props/kit";
 
 const PANEL = 2.1; // fence panel length
 

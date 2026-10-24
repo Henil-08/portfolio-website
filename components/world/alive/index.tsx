@@ -1,7 +1,7 @@
 // The living world: one wind field (alive/wind.ts) moving grass, foliage, flags,
 // wind lines and birds (no wheel dust or loose leaves: they read as smoke and litter), plus wheel tracks, skid marks, confetti and
-// fireflies. Most of it is adapted from Bruno Simon's folio-2025 (MIT,
-// (c) 2025 Bruno Simon); each file names its source.
+// fireflies. Most of it is adapted from folio-2025 (MIT,
+// see public/vendor/LICENSE.md); each file names its source.
 //
 // Mount <Alive /> once inside the <Canvas>, outside <Physics> (it needs no
 // physics; it reads carState). <Grass /> is mounted separately (World.tsx).

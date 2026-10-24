@@ -1,4 +1,4 @@
-// Faint skid marks when the car slides. Bruno's wheels print into the ground
+// Faint skid marks when the car slides. The original wheels print into the ground
 // through sources/Game/Tracks.js (a 25 m ribbon per wheel that the terrain
 // reads); that lives on in alive/Tracks.tsx for the grass. Rubber on asphalt
 // needs to stay put longer than a moving 40 m window, so skids are a ring buffer

@@ -1,9 +1,9 @@
-// Generated from Bruno Simon's folio-2025 (MIT, (c) 2025 Bruno Simon):
+// Generated from folio-2025 (MIT, see public/vendor/LICENSE.md):
 // static/{oak,cherry,birch}Trees/*TreesVisual.glb, Draco-decoded once and baked
 // here so the trees need no loader or Suspense. "body" is the trunk + branches
 // mesh (positions / normals / indices, metres, origin at the base); "crowns" are
 // the treeLeaves node transforms: [x, y, z, scale] of each foliage clump.
-// The source .glb files are kept in public/bruno/ next to his LICENSE.md.
+// The source .glb files are kept in public/vendor/ next to the original's LICENSE.md.
 
 export type TreeModel = { position: number[]; normal: number[]; index: number[]; crowns: [number, number, number, number][] };
 

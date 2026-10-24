@@ -16,7 +16,7 @@ import { dayNight } from "../daynight";
 import { C } from "../palette";
 import { geo, lowSphere, mat, unitBox, unitCyl } from "../models/props/shared";
 import { compose } from "../street/common";
-import { PROP_SCALE } from "../models/props/bruno";
+import { PROP_SCALE } from "../models/props/kit";
 import { batch, Instances } from "../street/Instances";
 
 // ------------------------------------------------------------ promenade

@@ -1,10 +1,10 @@
 "use client";
 
 // The sea and the lakes: one surface at SEA_Y, coloured by how deep the water is
-// over the terrain (read from the height texture), like Bruno Simon's ground
+// over the terrain (read from the height texture), like the original ground
 // gradient in folio-2025 (MIT): pale teal shallows, then deep blue-green, with a
 // slow foam line where the water meets the beach. Lit like everything else, so
-// it follows day and night. On top: Bruno's teal glow along every shore (a faint
+// it follows day and night. On top: the original teal glow along every shore (a faint
 // emission at night too), two scrolling ripple layers in the normals so the sun
 // glints, and a little fresnel toward grazing angles. At night every lamp by the
 // water (promenade, pier, harbour lanterns, street lamps on the shore) lays a warm
@@ -47,7 +47,7 @@ const uniforms = {
   uMid: { value: new THREE.Color(C.water) },
   uDeep: { value: new THREE.Color(C.waterDeep) },
   uFoam: { value: new THREE.Color("#f4efe4") },
-  uGlow: { value: new THREE.Color("#6fc7ba") }, // Bruno's #5bc2b9, toned to our palette
+  uGlow: { value: new THREE.Color("#6fc7ba") }, // The original #5bc2b9, toned to our palette
   uSky: { value: new THREE.Color("#cfe3e2") },
   uNight: { value: 0 },
   uLights: { value: Array.from({ length: MAX_LIGHTS }, (_, i) => new THREE.Vector3(...(LIGHTS[i] ?? [0, 0, 0]))) },
@@ -100,7 +100,7 @@ function waterMaterial() {
             float wob = sin(uTime * 1.3 + (vWaterW.x + vWaterW.z) * 0.6) * 0.035 + sin(uTime * 0.7 - vWaterW.x * 0.9) * 0.02;
             float foam = 1.0 - smoothstep(0.03, 0.12, depth + wob);
             float foam2 = (1.0 - smoothstep(0.0, 0.03, abs(depth - 0.32 - wob * 2.0))) * 0.35;
-            // Bruno's shoreline glow: teal over the first metre or so of water
+            // The original shoreline glow: teal over the first metre or so of water
             wGlow = (1.0 - smoothstep(0.08, 0.75, depth)) * (1.0 - foam);
             c = mix(c, uGlow, wGlow * 0.55);
             c = mix(c, uFoam, clamp(foam + foam2, 0.0, 1.0));

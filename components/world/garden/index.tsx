@@ -15,7 +15,7 @@ import { dayNight } from "../daynight";
 import { C } from "../palette";
 import { geo, lowSphere, mat, unitCyl } from "../models/props/shared";
 import { compose } from "../street/common";
-import { PROP_SCALE } from "../models/props/bruno";
+import { PROP_SCALE } from "../models/props/kit";
 import { batch, Instances } from "../street/Instances";
 import { seeded } from "../alive/noise";
 import { BEDS, BENCHES, HEDGE, HEDGES, LAMPS_GARDEN, PATHS, POND, bedLocal, clearOfRoad, pathDist, pathSamples } from "./layout";

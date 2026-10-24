@@ -5,7 +5,7 @@ import { education, experience, type Role } from "@/content/experience";
 
 export const T0 = 2019; // start of the time axis (Jan 2019, the year college began)
 export const T1 = 2027; // end (end of 2026)
-export const PER_YEAR = 1.3; // metres per year: compact, like Bruno's career strip
+export const PER_YEAR = 1.3; // metres per year: compact, like the original career strip
 export const LANE_GAP = 0.9; // metres between lanes
 export const LENGTH = (T1 - T0) * PER_YEAR; // 10.4 m of time axis
 

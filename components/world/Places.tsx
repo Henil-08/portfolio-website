@@ -103,7 +103,7 @@ const TRACK_SAMPLES = trackCurve.getSpacedPoints(160);
 
 // ------------------------------------------------------------ dynamic props
 
-// HENIL GAJJAR, set tight like Bruno's name at his landing: glyph widths plus
+// HENIL GAJJAR, set tight like the name at the original's landing: glyph widths plus
 // a small gap, a wider one between the words. First letter of each word in red.
 const NAME = (() => {
   const s = LETTERS.scale;

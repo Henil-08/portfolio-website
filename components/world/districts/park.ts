@@ -1,16 +1,16 @@
-// The park's common ground between the place islands, dressed the way Bruno
-// Simon's folio-2025 (MIT, (c) 2025 Bruno Simon) dresses his park: stepping-slab
-// paths between the islands (his terrain's two-tone slabs, toned to our palette), his
-// lanterns where a path reaches an island, his benches beside the paths, small
-// wildflower clusters on the verges (Flowers.js, see ./hills.ts) and a run of his
+// The park's common ground between the place islands, dressed the way
+// folio-2025 (MIT, see public/vendor/LICENSE.md) dresses its park: stepping-slab
+// paths between the islands (the original's terrain's two-tone slabs, toned to our palette), the original's
+// lanterns where a path reaches an island, the original's benches beside the paths, small
+// wildflower clusters on the verges (Flowers.js, see ./hills.ts) and a run of the original's
 // fence round the north side of the football island. Pure data, read by ./index.tsx.
 import * as THREE from "three";
 import { TRACK_WIDTH, inLand, nearestT, zoneById, zones, type ZoneId } from "../layout";
 import { nearGarden } from "../garden/layout";
 import { heightAt } from "../terrain";
 import { compose, rng } from "../street/common";
-import { BENCH, FENCE, LANTERN } from "../models/props/brunoProps";
-import { PROP_SCALE, propFoot } from "../models/props/bruno";
+import { BENCH, FENCE, LANTERN } from "../models/props/propModels";
+import { PROP_SCALE, propFoot } from "../models/props/kit";
 import { ISLANDS, islandDist } from "../park/layout";
 import { C } from "../palette";
 
