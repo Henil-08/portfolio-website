@@ -336,7 +336,10 @@ Owns components/ui/** (MapMenu in Hud.tsx) and a new components/world/MapCapture
       Was: Top-down image of the real world: an orthographic camera renders the scene once into a
       render target when the map opens (and again when day/night flips), shown in a modal on
       Bruno's dark aubergine panel with the inset hairline. It must show the new coast and water.
-- [ ] Pins for places (zones + SECTORS scenes + contact logos) as white diamonds with dark border;
+- [x] (0dfe84c) ui/MapMenu.tsx `PINS`: zone pins (sector pins sit on the sector hotspots, which are beside
+      the scenes), small pins for the contact medallions; cream diamonds with ink border, red once found.
+      Touch: first tap shows the label, second goes.
+      Was: Pins for places (zones + SECTORS scenes + contact logos) as white diamonds with dark border;
       labels pop on hover with Bruno's springy bezier (docs/research/bruno-folio-2025.md §1);
       player arrow rotating with `carState.forward`.
 - [ ] Click a pin: teleport (`setState({ teleport: { id, zone } })`) behind Bruno's diagonal wipe
