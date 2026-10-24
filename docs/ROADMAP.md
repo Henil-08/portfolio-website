@@ -278,7 +278,10 @@ straight with pit wall, fences and stands). Do these in order, one commit per it
       Was: Pit lane is a real dedicated lane (Melbourne reference): separate it from the main straight with
       a pit wall and fence (PitRoads.tsx, layout.ts `PIT`), painted pit entry/exit lines, the lane
       clearly its own strip in front of the garages.
-- [ ] j. Grandstands: lots of them along the main straight and round T1 (models/props/Grandstand.tsx,
+- [x] j. (d2f15e9) street/standSpots.ts `STAND_SPOTS` (`open` = back to the camera), Trackside.tsx: 9 more stands on
+      the camera side of the straight and outside T1 (11 with the main one), set back so the roof clears the chase
+      camera's line; open backs, catch fence in front of every stand. The gantry and promenade leave a gap x -39..26.
+      Was: Grandstands: lots of them along the main straight and round T1 (models/props/Grandstand.tsx,
       `GRANDSTAND` in layout.ts, street/Trackside.tsx), covered, with crowds, fences in front.
 - [ ] k. Random rain with a tyre change: weather (Effects.tsx, store `scene.weather`) turns to rain at
       random times for a while, like Bruno's. When rain starts the car's slicks animate off and wet
