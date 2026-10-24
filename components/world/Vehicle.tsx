@@ -95,6 +95,10 @@ const tmpV = new THREE.Vector3();
 const tmpP = new THREE.Vector3();
 const prevPos = new THREE.Vector3();
 let snapWheels = true; // set by place(): put the wheel visuals straight at rest
+// Parked: after a spawn or teleport the car is held exactly at its rest pose
+// until the first drive input, so it never bobs on its springs while the page
+// loads (the intro camera copies the car, so any bob shook the whole picture).
+const parked = { on: true, p: new THREE.Vector3(), q: new THREE.Quaternion() };
 
 export default function Vehicle() {
   const livery = useWorld((s) => s.livery);
@@ -188,6 +192,16 @@ export default function Vehicle() {
     if (!v) return;
     const driving = getState().phase === "world";
     const dts = ticker.deltaScaled;
+    const b = body.current;
+    if (parked.on && b) {
+      if (driving && (input.forward || input.back || input.steer || input.handbrake)) parked.on = false;
+      else {
+        b.setTranslation(parked.p, false);
+        b.setRotation(parked.q, false);
+        b.setLinvel({ x: 0, y: 0, z: 0 }, false);
+        b.setAngvel({ x: 0, y: 0, z: 0 }, false);
+      }
+    }
 
     let accelerating = driving ? input.forward - input.back : 0;
     const braking = driving && input.handbrake ? 1 : 0;
@@ -365,7 +379,8 @@ export default function Vehicle() {
           massProperties={{
             mass: 2.5,
             centerOfMass: { x: 0, y: -0.5, z: 0 },
-            principalAngularInertia: { x: 1, y: 1, z: 1 },
+            // grown with the car (S^2): the wheels sit further out, so with 1 the springs rock the body
+            principalAngularInertia: { x: S * S, y: S * S, z: S * S },
             angularInertiaLocalFrame: { x: 0, y: 0, z: 0, w: 1 },
           }}
         />
@@ -429,4 +444,7 @@ function place(b: RapierRigidBody, x: number, z: number, heading: number, y = he
   b.setLinvel({ x: 0, y: 0, z: 0 }, true);
   b.setAngvel({ x: 0, y: 0, z: 0 }, true);
   snapWheels = true;
+  parked.on = true;
+  parked.p.set(x, y, z);
+  parked.q.copy(q);
 }
