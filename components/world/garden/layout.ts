@@ -6,6 +6,7 @@
 // onto the embankment of the descending leg, so the garden stays north of it.
 // The timeline terrace (TIMELINE) is the garden's east-west spine; the paths
 // run around it and out to each place.
+import { nearAccess } from "../access";
 import * as THREE from "three";
 import { nearCrossing, nearestT, TIMELINE, TRACK_WIDTH } from "../layout";
 
@@ -116,7 +117,7 @@ export const LAMPS_GARDEN: [number, number][] = (() => {
       out.push([x, z]);
     }
   });
-  return out.filter(([x, z]) => clearOfRoad(x, z, 3));
+  return out.filter(([x, z]) => clearOfRoad(x, z, 3) && !nearAccess(x, z, 1));
 })();
 
 /** True if a point is a safe distance off the circuit and away from the bridge. */
