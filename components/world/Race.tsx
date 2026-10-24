@@ -19,10 +19,13 @@ export function InteractionPoint() {
     <Html position={[px, heightAt(px, pz) + (li >= 0 ? 2.6 : 2.2), pz]} center zIndexRange={[20, 0]}>
       <button
         onClick={() => (li >= 0 ? openLink(link!) : openZone(near!))}
-        className="group flex items-center gap-2 whitespace-nowrap rounded-full bg-white/95 py-1.5 pl-1.5 pr-3.5 text-[13px] font-semibold text-ink shadow-lg ring-1 ring-black/5 backdrop-blur transition hover:scale-105"
+        className="group flex items-center whitespace-nowrap"
       >
-        <kbd className="grid h-6 w-6 place-items-center rounded-full bg-ink font-mono text-[11px] text-white">E</kbd>
-        {label}
+        {/* until step 6's in-world prompt: the design's diamond with the key, and a mono label */}
+        <span className="relative z-10 grid h-9 w-9 rotate-45 place-items-center border-[3px] border-cream bg-[#1f2133] shadow-[0_0_4px_#0007] transition-transform group-hover:scale-110">
+          <kbd className="-rotate-45 font-mono text-[13px] font-semibold text-cream">E</kbd>
+        </span>
+        <span className="hud-chip -ml-1.5 py-1 pl-3.5 pr-2.5 text-[11.5px]">{label}</span>
       </button>
     </Html>
   );
