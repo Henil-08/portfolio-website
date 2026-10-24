@@ -9,7 +9,7 @@ import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
-import { CANALS, SEA_FLOOR, SEA_Y, coastR } from "../layout";
+import { SEA_FLOOR, SEA_Y, coastR } from "../layout";
 import { PIER, PIER_I, PIER_LAMP, PROMENADE, PROM_LAMPS, PROM_W, frame } from "./layout";
 import { heightAt } from "../terrain";
 import { dayNight } from "../daynight";
@@ -199,23 +199,6 @@ type Boat = { x: number; z: number; yaw: number; hull: string; cabin: string; sa
 
 const BOATS: Boat[] = (() => {
   const out: Boat[] = [];
-  // moored along the harbour quay, bows west toward the sea
-  const arm = CANALS[0];
-  for (const [i, f, hull, cabin, sc, ph] of [
-    [0, 0.45, C.cream, "#d9826b", 0.8, 0],
-    [1, 0.35, "#8fa9c4", C.cream, 0.75, 1.7],
-    [2, 0.5, C.white, "#9fb79a", 0.9, 3.1],
-  ] as const) {
-    const [ax, az] = arm.pts[i];
-    const [bx, bz] = arm.pts[i + 1];
-    const x = ax + (bx - ax) * f;
-    const z = az + (bz - az) * f;
-    const l = Math.hypot(bx - ax, bz - az);
-    // toward the quay: canalSide is the sign of d x r, so r = (-dz, dx) * quay / |d|
-    const q = arm.quay ?? 1;
-    const off = (arm.w[i] + (arm.w[i + 1] - arm.w[i]) * f) / 2 - 1.4;
-    out.push({ x: x + ((bz - az) / l) * -q * off, z: z + (-(bx - ax) / l) * -q * off, yaw: Math.atan2(-(bz - az), bx - ax), hull, cabin, sail: false, s: sc, phase: ph });
-  }
   const sx = -PIER.dz;
   const sz = PIER.dx;
   out.push({ x: PIER.x + PIER.dx * 9 + sx * 3.4, z: PIER.z + PIER.dz * 9 + sz * 3.4, yaw: Math.atan2(-PIER.dz, PIER.dx), hull: C.cream, cabin: "#9fb79a", sail: false, s: 1, phase: 0.6 });

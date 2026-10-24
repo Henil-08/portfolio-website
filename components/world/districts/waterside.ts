@@ -9,7 +9,7 @@ import { compose, nearPlace, rng } from "../street/common";
 import { BUILDINGS } from "../street/town";
 import { FOOTBRIDGES } from "../park/layout";
 
-const RIVER = CANALS[1];
+const RIVER = CANALS[0];
 
 function clear(x: number, z: number) {
   if (nearestT(x, z).dist < TRACK_WIDTH / 2 + 3.5 || nearCrossing(x, z, 18) || nearPlace(x, z, 0)) return false;

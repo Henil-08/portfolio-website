@@ -159,12 +159,9 @@ export const LAKES: Lake[] = [
  * instead of a beach; for the harbour arm, whose points run west, +1 is the north (town) side.
  */
 export type Canal = { pts: [number, number][]; w: number[]; quay?: 1 | -1; /** bed level mid-channel */ bed?: number };
+// v5: the harbour arm on the west is gone (owner: "the left side canal looks
+// ugly"); the chicane there wraps a green block, as in the sketch.
 export const CANALS: Canal[] = [
-  {
-    pts: [[-49, 5], [-58, 4], [-70, 3], [-82, 1.5], [-92, 0.5], [-104, 0], [-126, -1]],
-    w: [9, 9, 10, 11, 12, 14, 16],
-    quay: 1,
-  },
   // The river: from the spring lake in the north-east loop, south past the start,
   // under the east esses and out to the east sea. Shallow: you can splash through it.
   {
@@ -173,6 +170,7 @@ export const CANALS: Canal[] = [
     bed: SEA_Y - 0.6,
   },
 ];
+export const RIVER = CANALS[0];
 
 /** Signed distance into a canal (positive inside, metres). */
 export function canalDist(c: Canal, x: number, z: number) {
@@ -387,7 +385,7 @@ const AWAY = new THREE.Vector3(-1, 0, -1).normalize();
 // a spot along the sector's stretch where that whole footprint stays clear of
 // every part of the track, inside the island, away from the infield zones.
 export const SCENE_FOOT = { hx: 14.5, back: 10.5, front: 1 };
-const INFIELD: [number, number][] = [[34, -23], [5, -10], [-25, -10], [15, -21], [24, -39], [0, 3], [44, -44]];
+const INFIELD: [number, number][] = [[36, -19], [5, -10], [-25, -10], [15, -21], [34, -33], [0, 3], [44, -44]];
 
 /** Scenes already placed (centres), so the next one keeps clear of them. */
 const PLACED: [number, number][] = [];
@@ -530,11 +528,11 @@ export const zones: Zone[] = [
     spawn: [g.x, PIT.z, Math.PI / 2],
   })),
   // The park: each on its own grass island north of the garden (park/layout.ts).
-  { id: "playbook", label: "Tyre wall", hint: "How I work with AI", pos: [34, -23], size: [11, 8], spawn: [26, -19, 0] },
+  { id: "playbook", label: "Tyre wall", hint: "How I work with AI", pos: [36, -19], size: [11, 8], spawn: [28, -15, 0] },
   { id: "podium", label: "Podium", hint: "Papers and patents", pos: [5, -10], size: [10, 8], spawn: [13, -6, Math.PI] },
   { id: "cricket", label: "Cricket", hint: "Off the clock", pos: [-25, -10], size: [22, 8], spawn: [-10, -10, Math.PI] },
   { id: "football", label: "Football", hint: "Off the clock", pos: [15, -21], size: [18, 14], spawn: [3, -13, 0] },
-  { id: "contact", label: "Mailbox", hint: "Say hi", pos: [24, -36], size: [9, 8], spawn: [14, -31, 0.67] },
+  { id: "contact", label: "Mailbox", hint: "Say hi", pos: [34, -30], size: [9, 8], spawn: [26, -24, 0.67] },
 ];
 
 export const zoneById = Object.fromEntries(zones.map((z) => [z.id, z])) as Record<ZoneId, Zone>;

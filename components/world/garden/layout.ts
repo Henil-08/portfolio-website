@@ -72,7 +72,7 @@ export function bedLocal(b: Bed, x: number, z: number) {
 }
 
 /** A small round pond with a stone rim, west of the podium. */
-export const POND = { x: -46, z: 21, r: 3.4 };
+export const POND = { x: -64, z: 6, r: 3.4 }; // v5: inside the bottom-left chicane
 
 /** Hedge runs: [x1, z1, x2, z2]. Filled with rounded blocks about 1.8 m long. */
 export const HEDGES: [number, number, number, number][] = [

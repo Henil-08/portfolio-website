@@ -91,7 +91,7 @@ export function paintPark(g: CanvasRenderingContext2D, tx: (v: number) => number
 
 /** A wooden footbridge over the river, east of the tyre wall's island. */
 export const FOOTBRIDGES = (() => {
-  const river = CANALS[1];
+  const river = CANALS[0];
   const [ax, az] = river.pts[1];
   const [bx, bz] = river.pts[2];
   const f = 0.45;

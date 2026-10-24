@@ -1,14 +1,12 @@
 "use client";
 
 // The overpass where the circuit crosses itself: a deck slab under the upper
-// road, parapet walls with colliders, and piers standing either side of the
-// lower road. The road surface and its collider come from Island's ribbon.
+// road and parapet walls with colliders; no piers (owner): the deck spans clear. The road surface and its collider come from Island's ribbon.
 import { useMemo } from "react";
 import * as THREE from "three";
-import { CuboidCollider, CylinderCollider, RigidBody } from "@react-three/rapier";
+import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { C } from "./palette";
 import { BRIDGE_HALF, CROSSINGS, TRACK_WIDTH, trackCurve, trackPoint, trackTangent, type Crossing } from "./layout";
-import { heightAt } from "./terrain";
 import { mat } from "./models/props/shared";
 
 const DECK = 0.75; // slab depth under the road
@@ -76,23 +74,7 @@ function Span({ c }: { c: Crossing }) {
         cols.push({ p: a.clone().add(b).multiplyScalar(0.5), yaw: Math.atan2(-(b.z - a.z), b.x - a.x), len: a.distanceTo(b) });
       }
     }
-    // Piers: either side of the lower road, under each deck edge.
-    const lowTan = trackTangent(c.lowerT);
-    const lowN = new THREE.Vector3(-lowTan.z, 0, lowTan.x).normalize();
-    const piers: { x: number; z: number; top: number; bottom: number }[] = [];
-    const upN = (() => {
-      const t = trackTangent(c.upperT);
-      return new THREE.Vector3(-t.z, 0, t.x).normalize();
-    })();
-    for (const side of [-1, 1]) {
-      for (const edge of [-1, 1]) {
-        // walk along the lower road's normal until clear of it, under the deck edge line
-        const x = c.x + lowN.x * side * (TRACK_WIDTH / 2 + 2.4) + upN.x * edge * (HALF_W - 1.2);
-        const z = c.z + lowN.z * side * (TRACK_WIDTH / 2 + 2.4) + upN.z * edge * (HALF_W - 1.2);
-        piers.push({ x, z, top: c.yUpper - DECK, bottom: heightAt(x, z) - 0.3 });
-      }
-    }
-    return { deck, walls, caps, cols, piers };
+    return { deck, walls, caps, cols };
   }, [c]);
 
   return (
@@ -104,17 +86,9 @@ function Span({ c }: { c: Crossing }) {
       {parts.caps.map((g, i) => (
         <mesh key={i} geometry={g} castShadow material={mat(C.red, { r: 0.45, side: THREE.DoubleSide })} />
       ))}
-      {parts.piers.map((p, i) => (
-        <mesh key={i} position={[p.x, (p.top + p.bottom) / 2, p.z]} castShadow receiveShadow material={mat(C.greyLight, { r: 0.75 })}>
-          <cylinderGeometry args={[0.55, 0.7, p.top - p.bottom, 20]} />
-        </mesh>
-      ))}
       <RigidBody type="fixed" colliders={false}>
         {parts.cols.map((k, i) => (
           <CuboidCollider key={i} args={[k.len / 2 + 0.05, PARAPET_H / 2 + 0.2, PARAPET_T / 2]} position={[k.p.x, k.p.y + PARAPET_H / 2, k.p.z]} rotation={[0, k.yaw, 0]} />
-        ))}
-        {parts.piers.map((p, i) => (
-          <CylinderCollider key={i} args={[(p.top - p.bottom) / 2, 0.7]} position={[p.x, (p.top + p.bottom) / 2, p.z]} />
         ))}
       </RigidBody>
     </group>
