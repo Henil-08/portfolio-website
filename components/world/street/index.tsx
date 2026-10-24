@@ -1,10 +1,10 @@
 "use client";
 
-// Street circuit dressing: barriers, lamps, skyline, stands, boards, fences,
+// Street circuit dressing: barriers, floodlights, skyline, stands, boards, fences,
 // marshal posts, flags and run-off. Mount inside <Physics>.
 import Districts from "../districts";
 import { Barriers } from "./Barriers";
-import { Lamps } from "./Lamps";
+import { Floodlights } from "./Floodlights";
 import { Runoff } from "./Runoff";
 import { Skyline } from "./Skyline";
 import { Trackside } from "./Trackside";
@@ -14,7 +14,7 @@ export default function Street() {
     <group name="street">
       <Runoff />
       <Barriers />
-      <Lamps />
+      <Floodlights />
       <Trackside />
       <Skyline />
       <Districts />

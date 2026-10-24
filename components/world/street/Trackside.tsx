@@ -12,7 +12,7 @@ import { BARRIER_H, compose, farSpot, inSectorScene, nearPlace, nearTree, rng, y
 import { Instances } from "./Instances";
 import { BOARDS, FENCES, FENCE_H, MARSHALS } from "./layoutStreet";
 import { STAND_SPOTS } from "./standSpots";
-import { lensMat } from "./Lamps";
+import { lensMat } from "./Floodlights";
 
 // ------------------------------------------------------------ painted parts (one draw call)
 

@@ -3,7 +3,7 @@
 import { CROSSINGS, MAX_R, PIT, inLand, trackTangent } from "../layout";
 import { heightAt } from "../terrain";
 import { AWAY, FRAMES, RUNOFF, barrierOffset, distToTrack, farSign, inSectorScene, nearPlace, nearTree, nearestFrame, outSign, rng } from "./common";
-import { LAMPS } from "./layoutStreet";
+import { FLOODS } from "./layoutStreet";
 import { nearPromenade } from "../waterfront/layout";
 import { STAND_SPOTS } from "./standSpots";
 
@@ -163,7 +163,7 @@ function clear(b: Bld, out: Bld[], tight = false) {
   if (inSectorScene(b.x, b.z, hd + 5, 14)) return false;
   if (nearPlace(b.x, b.z, hd, !tight)) return false;
   if (nearTree(b.x, b.z, Math.min(b.w, b.d) * 0.45)) return false;
-  if (LAMPS.some((l) => Math.hypot(l.x - b.x, l.z - b.z) < hd + 1)) return false;
+  if (FLOODS.some((l) => Math.hypot(l.x - b.x, l.z - b.z) < hd + 1)) return false;
   if (STAND_SPOTS.some((s) => Math.hypot(s.x - b.x, s.z - b.z) < hd + 8)) return false;
   if (tight ? !cornersClear(b, 6.5) : distToTrack(b.x, b.z) - Math.min(b.w, b.d) / 2 < 7.5) return false;
   if (out.some((o) => overlaps(o, b, 1.1))) return false;
@@ -292,7 +292,7 @@ export const BUILDINGS: Bld[] = (() => {
     if (inSectorScene(x, z, hd + 5, 14)) continue;
     if (nearPlace(x, z, hd)) continue;
     if (nearTree(x, z, Math.min(w, d) * 0.45)) continue;
-    if (LAMPS.some((l) => Math.hypot(l.x - x, l.z - z) < hd + 1)) continue;
+    if (FLOODS.some((l) => Math.hypot(l.x - x, l.z - z) < hd + 1)) continue;
     if (STAND_SPOTS.some((s) => Math.hypot(s.x - x, s.z - z) < hd + 8)) continue;
     if (z > PIT.garageZ - 8 && z < 44 && Math.abs(x) < 46) continue;
     // orientation: square to the road close by, square to the shore further out

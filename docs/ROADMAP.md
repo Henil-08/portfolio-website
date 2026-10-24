@@ -19,7 +19,7 @@ small, verified with headless screenshots, and committed on its own
 | Road ribbon, kerbs, colliders | components/world/Island.tsx |
 | Bridge | components/world/Bridge.tsx |
 | Places (garages, sectors, pitches, letters, nature) | components/world/Places.tsx, models/sectors/*, models/props/* |
-| Street dressing (barriers, lamps, skyline, run-off) | components/world/street/* |
+| Street dressing (barriers, floodlights, skyline, run-off) | components/world/street/* (Floodlights.tsx, layoutStreet.ts `FLOODS`) |
 | Living world (wind, grass, leaves, confetti, birds) | components/world/alive/*, components/world/Grass.tsx |
 | Car | components/world/models/Car.tsx (`LIVERIES`, `DEFAULT_LIVERY`), Vehicle.tsx (physics) |
 | Lighting, day/night, weather | components/world/Effects.tsx (`SCENES`), Rig.tsx (camera, sun, sky), World.tsx (canvas, post) |

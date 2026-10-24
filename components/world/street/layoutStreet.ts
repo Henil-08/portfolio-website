@@ -3,7 +3,7 @@
 import * as THREE from "three";
 import { LEN, FRAMES, N_FRAMES, barrierOffset, farSign, farSpot, inPitSide, inSectorScene, nearCones, nearPlace, nearTree, outSign, RUNOFF, type Spot } from "./common";
 import { STAND_SPOTS } from "./standSpots";
-import { PIT, TRACK_WIDTH, inLand, nearCrossing, nearestT, onBridge } from "../layout";
+import { GARAGES, PIT, PIT_LANE_WIDTH, TRACK_WIDTH, inLand, nearCrossing, nearestT, onBridge } from "../layout";
 
 // The original circuit has no walls: open run-off past the kerbs, and a short tyre wall
 // on the outside of the tight corners only, with a rounded block at each end.
@@ -98,39 +98,58 @@ export const TYRE_WALLS: WallPiece[] = (() => {
   return out;
 })();
 
-// ------------------------------------------------------------ lamps
+// ------------------------------------------------------------ floodlights
 
-export type Lamp = { x: number; z: number; yaw: number; hx: number; hz: number; px: number; pz: number };
-export const LAMP_SPACING = 22;
-export const LAMP_ARM = 2.6;
+/** A floodlight tower: foot (x, z), facing the road (yaw turns local +Z onto it), and the light pool on the road. */
+export type Flood = { x: number; z: number; yaw: number; px: number; pz: number; py: number; pyaw: number; pitch: number };
+export const FLOOD_SPACING = 17;
+const FLOOD_BACK = 2.6; // m past the barrier line, clear of tyre walls and the catch fence
 
-/** Lamps on the far side, every ~22 m, set back behind the barrier. Arm reaches over the road. */
-export const LAMPS: Lamp[] = (() => {
-  const out: Lamp[] = [];
-  const step = Math.round(N_FRAMES / (LEN / LAMP_SPACING));
-  for (let i = 3; i < N_FRAMES; i += step) {
+/**
+ * Night-race floodlight towers on the far side, set back outside the run-off, every ~17 m.
+ * On the main straight they stand on the pit-wall line, or behind the pit lane where that is too narrow.
+ */
+export const FLOODS: Flood[] = (() => {
+  const out: Flood[] = [];
+  const step = Math.round(N_FRAMES / (LEN / FLOOD_SPACING));
+  for (let i = 5; i < N_FRAMES; i += step) {
     const f = FRAMES[i];
-    if (onBridge(f.u, 6)) continue;
+    if (onBridge(f.u, 8)) continue;
     const s = farSign(f);
-    let off = Math.abs(barrierOffset(i, s as 1 | -1)) + 1.6;
+    const off = Math.abs(barrierOffset(i, s as 1 | -1)) + FLOOD_BACK;
     let q = f.p.clone().addScaledVector(f.n, s * off);
     if (inPitSide(q.x, q.z)) {
-      // main straight: stand on the pit-wall line, between the track and the pit lane
-      off = f.p.z - (PIT.z + 4.3);
-      q = f.p.clone().addScaledVector(f.n, s * off);
-      if (Math.abs(Math.abs(q.x) - 18) < 3.6) continue;
+      // main straight: on the pit-wall line where it is wide enough, else behind the pit lane
+      // in a gap between the garages (the straight closes in on the lane toward the east)
+      const laneEdge = PIT.z + PIT_LANE_WIDTH / 2;
+      const roadEdge = f.p.z - TRACK_WIDTH / 2;
+      if (roadEdge - laneEdge >= 1.6) q.set(f.p.x, 0, (laneEdge + roadEdge) / 2);
+      else q.set(f.p.x, 0, PIT.z - PIT_LANE_WIDTH / 2 - 1.6);
+      if (q.x < PIT.from + 4 || q.x > PIT.to + 14) continue; // the pit entry and exit lanes cross here
+      if (GARAGES.some((g) => Math.abs(g.x - q.x) < 5.4) && q.z < PIT.z) continue;
     }
-    // never on the road: the pit-wall rule above misfires where the lap bends away (T1, the last corner)
-    if (nearestT(q.x, q.z).dist < TRACK_WIDTH / 2 + 0.6) continue;
-    if (nearCrossing(q.x, q.z)) continue;
-    if (!inLand(q.x, q.z, 1.5)) continue; // not in the harbour or the sea
-    if (inSectorScene(q.x, q.z, 2.5) || nearPlace(q.x, q.z, 2) || nearTree(q.x, q.z, 0.8) || nearCones(q.x, q.z, 3)) continue;
-    if (STAND_SPOTS.some((st) => Math.hypot(st.x - q.x, st.z - q.z) < 8)) continue;
-    // head and pool on the road side
-    const h = f.p.clone().addScaledVector(f.n, s * (off - LAMP_ARM));
-    if (nearCrossing(h.x, h.z)) continue;
-    const pool = f.p.clone().addScaledVector(f.n, s * Math.min(off - LAMP_ARM - 1, 2.6));
-    out.push({ x: q.x, z: q.z, yaw: Math.atan2(-(-s * f.n.z), -s * f.n.x), hx: h.x, hz: h.z, px: pool.x, pz: pool.z });
+    // something in the way: step further back before giving the spot up
+    const clear = (x: number, z: number) =>
+      nearestT(x, z).dist >= TRACK_WIDTH / 2 + 0.6 &&
+      !nearCrossing(x, z, 14) &&
+      inLand(x, z, 1.5) &&
+      !inSectorScene(x, z, 2.5) &&
+      !nearPlace(x, z, 2) &&
+      !nearTree(x, z, 0.8) &&
+      !nearCones(x, z, 3) &&
+      !STAND_SPOTS.some((st) => Math.hypot(st.x - x, st.z - z) < 8) &&
+      !TYRE_WALLS.some((w) => Math.hypot(w.x - x, w.z - z) < 1.6);
+    const pit = inPitSide(q.x, q.z);
+    let ok = clear(q.x, q.z);
+    for (let back = 2; !ok && !pit && back <= 8; back += 2) {
+      q = f.p.clone().addScaledVector(f.n, s * (off + back));
+      ok = clear(q.x, q.z);
+    }
+    if (!ok) continue;
+    const pool = f.p.clone().addScaledVector(f.n, s * 1.2);
+    const pitch = Math.atan2(f.tan.y, Math.hypot(f.tan.x, f.tan.z));
+    if (nearCrossing(pool.x, pool.z, 14)) continue;
+    out.push({ x: q.x, z: q.z, yaw: Math.atan2(-s * f.n.x, -s * f.n.z), px: pool.x, pz: pool.z, py: f.p.y, pyaw: Math.atan2(-f.tan.z, f.tan.x), pitch });
   }
   return out;
 })();

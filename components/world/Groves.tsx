@@ -9,7 +9,7 @@ import { MAX_R, PIT, inLand, SECTORS, TRACK_WIDTH, nearestT, trackPoint } from "
 import { heightAt } from "./terrain";
 import { BUILDINGS } from "./street/Skyline";
 import { STAND_SPOTS } from "./street/standSpots";
-import { LAMPS } from "./street/layoutStreet";
+import { FLOODS } from "./street/layoutStreet";
 import { inSectorScene } from "./street/common";
 import { nearPromenade } from "./waterfront/layout";
 
@@ -32,7 +32,7 @@ function free(x: number, z: number, pad: number, out: Item[]) {
   if (z > PIT.garageZ - 10 && z < 46 && x > PIT.from - 30 && x < PIT.to + 28) return false;
   if (BUILDINGS.some((b) => Math.hypot(b.x - x, b.z - z) < Math.hypot(b.w, b.d) / 2 + pad)) return false;
   if (STAND_SPOTS.some((s) => Math.hypot(s.x - x, s.z - z) < 9)) return false;
-  if (LAMPS.some((l) => Math.hypot(l.x - x, l.z - z) < 2)) return false;
+  if (FLOODS.some((l) => Math.hypot(l.x - x, l.z - z) < 2)) return false;
   if (SECTORS.some((s) => Math.hypot(s.scene[0] - x, s.scene[1] - z) < 16)) return false;
   return !out.some((o) => Math.hypot(o.x - x, o.z - z) < 2.4);
 }

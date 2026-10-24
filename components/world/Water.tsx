@@ -16,7 +16,7 @@ import { C } from "./palette";
 import { CANALS, LAKES, SEA_Y, canalDist, lakeDepthDist, shoreDist } from "./layout";
 import { PIER_LAMP, PROM_LAMPS } from "./waterfront/layout";
 import { HARBOUR } from "./districts/harbour";
-import { LAMPS } from "./street/layoutStreet";
+import { FLOODS } from "./street/layoutStreet";
 import { dayNight } from "./daynight";
 import { heightTexture } from "./terrain";
 
@@ -33,7 +33,7 @@ const LIGHTS: [number, number, number][] = [
   ...PROM_LAMPS.map(([x, z]) => [x, z, 1] as [number, number, number]),
   [PIER_LAMP[0], PIER_LAMP[1], 1] as [number, number, number],
   ...HARBOUR.lanterns.map((m) => [m.elements[12], m.elements[14], 0.7] as [number, number, number]),
-  ...LAMPS.filter((l) => toWater(l.px, l.pz) < 8).map((l) => [l.px, l.pz, 1.2] as [number, number, number]),
+  ...FLOODS.filter((l) => toWater(l.px, l.pz) < 8).map((l) => [l.px, l.pz, 1.2] as [number, number, number]),
 ].slice(0, MAX_LIGHTS);
 
 const uniforms = {
