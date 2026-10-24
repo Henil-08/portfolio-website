@@ -41,13 +41,13 @@ export default function MapMenu() {
           transition={{ duration: 0.3 }}
           onClick={close}
         >
-          <div className="map-frame relative aspect-square w-[min(94vw,calc(100svh-5.5rem),900px)] select-none" onClick={(e) => e.stopPropagation()}>
+          <div className="hud-panel aspect-square w-[min(94vw,calc(100svh-5.5rem),900px)] select-none" onClick={(e) => e.stopPropagation()}>
             <div className="absolute bottom-full left-2.5 flex gap-1">
               {(["map", "achievements"] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  className={`map-tab relative h-9 px-3 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors sm:h-10 sm:px-4 ${
+                  className={`hud-tab relative h-9 px-3 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors sm:h-10 sm:px-4 ${
                     tab === t ? "bg-[#1f2133] text-cream" : "bg-[#171928]/80 text-cream/55 hover:text-cream"
                   }`}
                 >
@@ -55,7 +55,7 @@ export default function MapMenu() {
                 </button>
               ))}
             </div>
-            <button onClick={close} aria-label="Close map" className="map-tab group absolute bottom-full right-2.5 h-11 w-[50px] overflow-hidden">
+            <button onClick={close} aria-label="Close map" className="hud-tab group absolute bottom-full right-2.5 h-11 w-[50px] overflow-hidden">
               <span className="absolute inset-x-0 top-0 h-[calc(100%+4px)] bg-[radial-gradient(ellipse_at_top_right,#ff4b3e,#a3241c)] transition-transform duration-150 group-hover:-translate-y-1" />
               <svg viewBox="0 0 24 24" className="relative mx-auto h-[18px] w-[18px]" fill="none" stroke="#fff8ec" strokeWidth="2.4" strokeLinecap="round">
                 <path d="M6 6l12 12M18 6 6 18" />

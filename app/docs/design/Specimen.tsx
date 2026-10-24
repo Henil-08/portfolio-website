@@ -19,13 +19,13 @@ export default function Specimen() {
       {/* header */}
       <header className="mx-auto max-w-[1400px] px-4 pb-6 pt-10 sm:px-8 sm:pt-14">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="bg-red px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.16em] text-white">Proposal</span>
-          <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-cream/50">docs/DESIGN.md · waiting for your call</span>
+          <span className="bg-red px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.16em] text-white">Approved · option A</span>
+          <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-cream/50">docs/DESIGN.md · 2026-10-24</span>
         </div>
         <h1 className="mt-4 font-racing text-[40px] uppercase leading-none tracking-wide sm:text-[64px]">Design language</h1>
         <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-cream/70">
           The world stays folio-2025&apos;s look. This is only for what sits on top of it: HUD, panels, map, toasts and the E prompt. Same
-          screen, two languages. Pick one and I&apos;ll move every component over, one commit each.
+          screen, two languages: A was picked, with the fonts as they are.
         </p>
         <div className="mt-6 flex flex-wrap gap-2">
           <Seg value={focus} set={setFocus} options={[["both", "Side by side"], ["A", "A only"], ["B", "B only"]]} />
@@ -42,7 +42,7 @@ export default function Specimen() {
                 <span className={v === "A" ? "text-red" : "text-cream"}>Option {v}</span>
                 <span className="text-cream/50"> · {v === "A" ? "pit wall broadcast" : "cream toy cards"}</span>
               </span>
-              {v === "A" && <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-cream/50">recommended</span>}
+              {v === "A" && <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-cream/50">approved</span>}
             </figcaption>
             <Screen v={v} time={time} />
           </figure>
@@ -92,13 +92,13 @@ export default function Specimen() {
         <H2 n="03">Pieces · option A</H2>
         <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           <Piece name="Panel" note="ink gradient, square, 3 px cream hairline inset">
-            <div className="map-frame relative h-28 w-full" />
+            <div className="hud-panel h-28 w-full" />
           </Piece>
           <Piece name="Edge tabs" note="red = close / main action, ink = navigation; slide 4 px on hover">
             <div className="flex items-end gap-1 border-b border-cream/20 pt-6">
               <TabA active>Map</TabA>
               <TabA>Achievements 3/12</TabA>
-              <span className="map-tab group relative ml-auto grid h-11 w-[50px] place-items-center overflow-hidden">
+              <span className="hud-tab group relative ml-auto grid h-11 w-[50px] place-items-center overflow-hidden">
                 <span className="absolute inset-x-0 top-0 h-[calc(100%+4px)] bg-[radial-gradient(ellipse_at_top_right,#ff4b3e,#a3241c)] transition-transform duration-150 group-hover:-translate-y-1" />
                 <span className="relative text-[18px] leading-none">✕</span>
               </span>
@@ -173,7 +173,7 @@ export default function Specimen() {
         </div>
 
         <div className="my-16 flex flex-wrap items-center justify-between gap-4 border-t border-cream/15 pt-6">
-          <p className="max-w-xl text-[14px] text-cream/60">Reply with A or B (or what to change) and I&apos;ll move the HUD over and mark docs/DESIGN.md approved.</p>
+          <p className="max-w-xl text-[14px] text-cream/60">Option A is approved; the HUD moves over one component at a time (docs/ROADMAP.md 4f).</p>
           <Link href="/" className="bg-cream px-4 py-2.5 text-[13px] font-semibold text-ink">
             Back to the world
           </Link>
@@ -213,7 +213,7 @@ function HudA() {
       {/* top-right edge tabs */}
       <div className="absolute right-0 top-4 flex flex-col gap-1.5">
         {["⌨", "▦", "♪"].map((g) => (
-          <span key={g} className="map-tab relative grid h-10 w-11 place-items-center bg-[radial-gradient(ellipse_at_top_left,#1f2133,#171928)] text-[15px]">
+          <span key={g} className="hud-tab relative grid h-10 w-11 place-items-center bg-[radial-gradient(ellipse_at_top_left,#1f2133,#171928)] text-[15px]">
             {g}
           </span>
         ))}
@@ -226,7 +226,7 @@ function HudA() {
         <p className="mt-0.5 text-[14px] font-semibold">Back of the net</p>
       </div>
       {/* place panel */}
-      <div className="map-frame absolute bottom-4 left-4 w-[330px] p-5">
+      <div className="hud-panel absolute bottom-4 left-4 w-[330px] p-5">
         <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-cream/55">Pit garage · {domain.label}</p>
         <p className="mt-1.5 font-racing text-[24px] uppercase leading-none tracking-wide">{project.name}</p>
         <p className="mt-2 text-[13.5px] leading-snug text-cream/80">{project.tagline}.</p>
@@ -256,7 +256,7 @@ function HudA() {
             <Key key={k}>{k}</Key>
           ))}
         </div>
-        <div className="map-frame relative px-3 py-2 text-right">
+        <div className="hud-panel px-3 py-2 text-right">
           <span className="font-racing text-[26px] leading-none">212</span>
           <span className="ml-1 font-mono text-[10px] uppercase tracking-[0.12em] text-cream/55">km/h</span>
         </div>
@@ -345,7 +345,7 @@ function H2({ n, children }: { n: string; children: React.ReactNode }) {
 
 function TypeCard({ role, note, children }: { role: string; note: string; children: React.ReactNode }) {
   return (
-    <div className="map-frame relative p-5">
+    <div className="hud-panel p-5">
       <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-cream/50">{role}</p>
       <div className="mt-4 min-h-[56px]">{children}</div>
       <p className="mt-4 text-[12.5px] text-cream/50">{note}</p>
@@ -366,7 +366,7 @@ function Piece({ name, note, children }: { name: string; note: string; children:
 function TabA({ active, children }: { active?: boolean; children: React.ReactNode }) {
   return (
     <span
-      className={`map-tab relative px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.14em] ${active ? "bg-[#1f2133] text-cream" : "bg-[#171928]/80 text-cream/55"}`}
+      className={`hud-tab relative px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.14em] ${active ? "bg-[#1f2133] text-cream" : "bg-[#171928]/80 text-cream/55"}`}
     >
       {children}
     </span>

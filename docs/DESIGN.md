@@ -1,10 +1,9 @@
 # Design language
 
-**Status: proposed, waiting for the owner's approval (2026-10-24).** Live specimen with both options
-side by side, day and night: `/docs/design` (app/docs/design, not indexed). Nothing below has been applied
-to the UI yet, except the map (components/ui/MapMenu.tsx), which already follows option A. When it is
-approved, the components listed under "What changes" move to it, one commit each, and this line
-becomes "approved".
+**Status: approved, option A with Racero / Geist / Geist Mono (owner, 2026-10-24).** Live specimen:
+`/docs/design` (app/docs/design). Shared classes in app/globals.css: `hud-panel`, `hud-tab`, `hud-edge`,
+`hud-red`, `hud-key`, `hud-chip`. Font rules: Racero only for titles and big numbers (tabular digits
+in a fixed box), Geist sentence case for body and buttons, Geist Mono caps for labels.
 
 Two layers, two languages:
 
