@@ -13,6 +13,8 @@ import { PLAZA } from "./timeline/data";
 
 export const ISLAND_RADIUS = 98;
 export const TRACK_WIDTH = 8;
+/** The main straight's centre line (z); the pit lane runs parallel inside it. */
+export const STRAIGHT_Z = 43;
 
 // A street circuit with a crossover, [x, z, height]: layout v5, traced from the
 // owner's sketch (docs/research/layout-v5-sketch.png, README "Next: track layout v5").
@@ -23,13 +25,19 @@ export const TRACK_WIDTH = 8;
 // the west side -> the chicane round the harbour pocket, bottom left -> the straight.
 // Flat elsewhere; the ramps are cosine eased, under ~8%.
 export const TRACK_POINTS: [number, number, number][] = [
-  [-75.2, 42.8, 0],
-  [-47, 43.7, 0],
-  [-14.1, 43.5, 0],
-  [14.1, 42, 0],
-  [37.6, 39.8, 0],
-  [55.2, 35.8, 0],
-  [63.9, 28.1, 0.4],
+  // the main straight: dead straight along z = STRAIGHT_Z, the pit lane parallel inside it
+  [-71, 42.9, 0],
+  [-63, 43, 0],
+  [-50, 43, 0],
+  [-36, 43, 0],
+  [-16, 43, 0],
+  [4, 43, 0],
+  [24, 43, 0],
+  [36, 43, 0],
+  [44, 42.8, 0],
+  // T1
+  [55.5, 39.2, 0.1],
+  [63.4, 28.6, 0.4],
   [65.8, 17.1, 1.1],
   [59.9, 8.3, 1],
   [55.7, -0.5, 0.3],
@@ -81,7 +89,7 @@ export const TRACK_POINTS: [number, number, number][] = [
   [-58.8, 19.5, 0],
   [-75.2, 21.3, 0],
   [-83.2, 26.6, 0],
-  [-83.7, 35.8, 0],
+  [-82.6, 37, 0],
 ];
 
 export const trackCurve = new THREE.CatmullRomCurve3(
@@ -354,21 +362,35 @@ const SECTOR_DEFS = [
   { n: 4, id: "waters", name: "Waters", place: "Waters", year: "2026 →", from: 0.7, to: 0.97 },
 ] as const;
 
-export const PIT = { z: 32, from: -58, to: 40, garageZ: 24 }; // a lane the length of the straight (v5)
-
-// Pit entry and exit lanes: from the straight's inner lane into each end of the pit lane.
+// Pit lane: parallel to the main straight, inside it, with a 2 m strip for the pit wall
+// between the two. It peels off the inside of the last corner and rejoins on the inside
+// of T1 (owner's sketch, 2026-10-24).
 export const PIT_LANE_WIDTH = 5.6;
 const LANE = PIT_LANE_WIDTH;
+const PIT_GAP = 2;
+export const PIT = { z: STRAIGHT_Z - TRACK_WIDTH / 2 - PIT_GAP - LANE / 2, from: -58, to: 40, garageZ: 24 };
+
 /** From a point on the track's inner lane to one end of the pit lane. */
-function laneCurve(tTrack: number, pitX: number, dir: 1 | -1) {
+function laneCurve(tTrack: number, pitX: number, dir: 1 | -1, reachTrack: number, reachLane: number) {
   const p = trackPoint(tTrack);
   const tan = trackTangent(tTrack);
   const inner = new THREE.Vector3(-tan.z, 0, tan.x);
-  if (inner.z > 0) inner.negate(); // the pit lane is on the -z side of the straight
+  if (inner.x * (pitX - p.x) + inner.z * (PIT.z - p.z) < 0) inner.negate(); // the side the pit lane is on
   const a = p.clone().addScaledVector(inner, TRACK_WIDTH / 2 - LANE / 2 + 0.4);
+  a.y = 0;
   const end = new THREE.Vector3(pitX, 0, PIT.z);
-  const pts = [a, a.clone().addScaledVector(tan, 10 * dir), end.clone().add(new THREE.Vector3(-10 * dir, 0, 0)), end];
+  const pts = [a, a.clone().addScaledVector(tan, reachTrack * dir).setY(0), end.clone().add(new THREE.Vector3(-reachLane * dir, 0, 0)), end];
   return new THREE.CubicBezierCurve3(pts[0], pts[1], pts[2], pts[3]);
+}
+
+let curves: THREE.CubicBezierCurve3[] | null = null;
+/** The entry and exit lane centrelines: in at the last corner, out at T1. */
+export function pitRoadCurves() {
+  curves ??= [
+    laneCurve(nearestT(-84, 30.5).t, PIT.from - 4, 1, 5, 9),
+    laneCurve(nearestT(61.4, 32.4).t, PIT.to + 4, -1, 5, 7),
+  ];
+  return curves;
 }
 
 /**
@@ -408,13 +430,6 @@ export function pitWallZ(x: number) {
   const [x0, z0] = PIT_WALL[i];
   const z1 = PIT_WALL[i + 1][1];
   return z0 + (z1 - z0) * (x - x0);
-}
-
-let curves: THREE.CubicBezierCurve3[] | null = null;
-/** The entry and exit lane centrelines (the grass mask clears them too). */
-export function pitRoadCurves() {
-  curves ??= [laneCurve(nearestT(PIT.from - 22, 41).t, PIT.from - 4, 1), laneCurve(nearestT(PIT.to + 20, 40).t, PIT.to + 4, -1)];
-  return curves;
 }
 
 

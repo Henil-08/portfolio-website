@@ -5,7 +5,7 @@ import { CuboidCollider, HeightfieldCollider, RigidBody, TrimeshCollider } from 
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { C } from "./palette";
-import { CANALS, LAKES, SEA_Y, canalDist, duneMask, START_T, TRACK_WIDTH, lakeDepthDist, shoreDist, trackCurve } from "./layout";
+import { CANALS, LAKES, SEA_Y, canalDist, duneMask, START_T, TRACK_WIDTH, PIT_LANE_WIDTH, pitRoadCurves, lakeDepthDist, shoreDist, trackCurve } from "./layout";
 import Water from "./Water";
 import Embankments from "./Embankments";
 import Harbour from "./Harbour";
@@ -106,11 +106,34 @@ function kerbGeometry() {
   const red = new THREE.Color(C.red);
   const white = new THREE.Color(C.white);
   const parts: THREE.BufferGeometry[] = [];
+  // no kerb where a pit lane peels off or rejoins the lap
+  const lanePts = pitRoadCurves().flatMap((c) => c.getSpacedPoints(80));
+  const onLane = (x: number, z: number) => lanePts.some((q) => (q.x - x) ** 2 + (q.z - z) ** 2 < (PIT_LANE_WIDTH / 2 + 0.6) ** 2);
   for (const side of [-1, 1]) {
     const pos: number[] = [];
     const col: number[] = [];
     const idx: number[] = [];
-    for (const [s0, s1] of kerbRuns(n)) {
+    const cut = (i: number) => {
+      const u = (i % n) / n;
+      const p = trackCurve.getPointAt(u);
+      const t = trackCurve.getTangentAt(u);
+      const d = TRACK_WIDTH / 2 + KERB_W / 2;
+      return onLane(p.x - t.z * side * d, p.z + t.x * side * d);
+    };
+    const runs = kerbRuns(n).flatMap(([s0, s1]) => {
+      const out: [number, number][] = [];
+      let start = -1;
+      for (let i = s0; i <= s1; i++) {
+        const ok = i < s1 && !cut(i);
+        if (ok && start < 0) start = i;
+        if (!ok && start >= 0) {
+          if (i - start >= Math.round(4 / KERB_STEP)) out.push([start, i]);
+          start = -1;
+        }
+      }
+      return out;
+    });
+    for (const [s0, s1] of runs) {
       const stripes = Math.max(2, Math.round(((s1 - s0) * KERB_STEP) / KERB_STRIPE));
       for (let k = 0; k < stripes; k++) {
         const a = s0 + Math.round(((s1 - s0) * k) / stripes);

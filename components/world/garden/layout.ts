@@ -25,7 +25,7 @@ export const PATHS: Path[] = [
   // The way to the circuit (owner: a sandy road, no paving): from the promenade's
   // east end, past the end of the garages, to the pit lane. The car starts on the
   // terrace path in front of the name, which leads here.
-  { pts: [[27, 14.2], [30, 20], [32.5, 26], [35, 29.2]], w: 2.6 },
+  { pts: [[27, 14.2], [30, 20], [32.5, 26], [35, 31.4]], w: 2.6 },
   // From the east path, between HENIL and GAJJAR (the word gap is at x ~18), down to the park.
   { pts: [[18, 3.2], [18, -3.2], [17.2, -10.5]], w: 1.2 },
 ];

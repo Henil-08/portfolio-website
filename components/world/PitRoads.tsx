@@ -1,8 +1,8 @@
 "use client";
 
-// Pit entry and exit: two short lanes that peel off the main straight's inner
-// edge into the pit lane and back out, with painted edges, the blend line on
-// the track and PIT IN / PIT OUT boards. Visual only; the car drives on the
+// Pit entry and exit: two short lanes that peel off the inside of the last corner
+// into the pit lane and rejoin on the inside of T1, each with a solid white line
+// on its track side, and PIT IN / PIT OUT boards. Visual only; the car drives on the
 // terrain under them, which is level here.
 import { useMemo } from "react";
 import * as THREE from "three";
@@ -44,7 +44,9 @@ function strip(curve: THREE.Curve<THREE.Vector3>, from: number, to: number, lift
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
   g.setIndex(idx);
-  g.computeVertexNormals();
+  // flat ground: normals straight up whichever way the lane winds (computed ones
+  // pointed down on the exit lane and shaded it dark)
+  g.setAttribute("normal", new THREE.Float32BufferAttribute(pos.map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
   // both windings render: the lanes go opposite ways
   return g;
 }
@@ -72,12 +74,10 @@ export default function PitRoads() {
   const parts = useMemo(() => {
     const [entry, exit] = pitRoadCurves();
     const out: { road: THREE.BufferGeometry; lines: THREE.BufferGeometry[] }[] = [];
-    for (const c of [entry, exit]) {
-      out.push({
-        road: strip(c, -LANE / 2, LANE / 2),
-        lines: [strip(c, -LANE / 2, -LANE / 2 + 0.18, 0.004), strip(c, LANE / 2 - 0.18, LANE / 2, 0.004)],
-      });
-    }
+    // One solid white line on the track side of each lane: it leaves the racing line where
+    // the lane peels off and runs on as the lane's edge (entry +n is the track side, exit -n).
+    out.push({ road: strip(entry, -LANE / 2, LANE / 2), lines: [strip(entry, LANE / 2 - 0.2, LANE / 2, 0.004)] });
+    out.push({ road: strip(exit, -LANE / 2, LANE / 2), lines: [strip(exit, -LANE / 2, -LANE / 2 + 0.2, 0.004)] });
     return { out, entry: entry.getPoint(0), exit: exit.getPoint(0) };
   }, []);
 
