@@ -16,8 +16,8 @@ const MODELS = [
 async function elevenlabs(text: string, signal: AbortSignal) {
   const key = process.env.ELEVENLABS_API_KEY;
   if (!key) return null;
-  // Default: Daniel, a calm British premade voice (same as the pre-voiced lines).
-  const voice = process.env.ELEVENLABS_VOICE_ID || "onwK4e9ZLuTAKqWW03F9";
+  // Default: George, a warm British premade voice (same as the pre-voiced lines).
+  const voice = process.env.ELEVENLABS_VOICE_ID || "JBFqnCBsd6RMkjVDRZzb";
   const models = process.env.ELEVENLABS_MODEL ? MODELS.filter((m) => m.model_id === process.env.ELEVENLABS_MODEL) : MODELS;
   for (const m of models.length ? models : MODELS) {
     const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=mp3_44100_64`, {

@@ -18,7 +18,7 @@ const env = Object.fromEntries(
 );
 const KEY = process.env.ELEVENLABS_API_KEY || env.ELEVENLABS_API_KEY;
 if (!KEY) throw new Error("ELEVENLABS_API_KEY missing");
-const VOICE = env.ELEVENLABS_VOICE_ID || "onwK4e9ZLuTAKqWW03F9"; // Daniel, calm British
+const VOICE = env.ELEVENLABS_VOICE_ID || "JBFqnCBsd6RMkjVDRZzb"; // George, warm British (owner, roadmap step 9)
 const STABILITY = Number(env.ELEVENLABS_STABILITY ?? 0.5); // 0 creative, 0.5 natural, 1 robust
 const OUT = join(root, "public/sfx");
 mkdirSync(OUT, { recursive: true });
