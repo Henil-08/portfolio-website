@@ -1,9 +1,9 @@
 "use client";
 
 // The opening, after folio-2025 (MIT, see public/vendor/LICENSE.md):
-// sources/Game/Reveal.js, World/Intro.js and World/Grid.js.
+// sources/Game/Reveal.js and World/Intro.js, in the site's own colours, 1.5x faster.
 //
-//  1. Loading: a dark floor with a purple cross grid, and a thin glowing ring on
+//  1. Loading: an ink floor with a soft dot grid (the site's colours), and a thin red ring on
 //     the ground round the start that fills clockwise as the world gets ready.
 //  2. The ring shrinks away (power4.in) and the world opens inside a circle round
 //     the car (back.out). Every surface the circle cuts glows along the cut, so
@@ -33,9 +33,17 @@ export const reveal = {
   done: false,
 };
 
+/** The intro floor; Experience.tsx paints the page this colour before the canvas exists, so nothing jumps. */
+export const FLOOR = "#171928";
+
 const OPEN = 5; // the original's 3.5, scaled with our bigger car
 const FAR = 36;
 const ZOOM_INTRO = 0.88;
+// Timings (s): the original's, 1.5x faster (owner)
+const FILL = 0.55;
+const SHRINK = 0.6;
+const OPENING = 1.0;
+const SWEEP = 1.35;
 
 // gsap's eases, as plain functions
 const backOut = (t: number, s = 1.7) => 1 + (s + 1) * (t - 1) ** 3 + s * (t - 1) ** 2;
@@ -56,19 +64,24 @@ uniform float uActive;
 uniform float uLoader;   // loader ring radius (0 = gone)
 uniform float uProgress; // 0..1 of the loader ring drawn
 uniform float uGround;   // ground height at the start
+uniform vec3 uFloor;
+uniform vec3 uDot;
+uniform vec3 uLine;
+uniform float uGrid;     // 0..1 grid fade-in
 
-// The original's grid (Grid.js): line sets mixed over a dark floor.
-float gridLine(vec2 p, float cell, float thickness, float cross) {
-  vec2 r = p / cell;
-  vec2 crossGrid = step(abs(fract(r) - 0.5), vec2((1.0 - cross) * 0.5));
-  float crossMask = 1.0 - mix(crossGrid.x, 1.0, crossGrid.y);
-  vec2 deriv = fwidth(r);
-  vec2 drawWidth = clamp(vec2(thickness), deriv, vec2(1.0));
-  vec2 aa = deriv * 1.5;
-  vec2 g = 1.0 - abs(fract(r) * 2.0 - 1.0);
-  vec2 line = smoothstep(drawWidth + aa, drawWidth - aa, g) * clamp(vec2(thickness) / drawWidth, 0.0, 1.0);
-  line = mix(line, vec2(thickness), clamp(deriv * 2.0 - 1.0, 0.0, 1.0)) * crossMask;
-  return mix(line.x, 1.0, line.y);
+// Our floor: deep ink with a timing-screen grid, soft cream dots every metre and
+// faint hairlines every 10 m (the site's ink / cream / red, not the original's purple).
+float dots(vec2 p, float cell, float radius) {
+  vec2 q = fract(p / cell) - 0.5;
+  float d = length(q) * cell;
+  float aa = fwidth(d) * 1.2;
+  return 1.0 - smoothstep(radius - aa, radius + aa, d);
+}
+float hairline(vec2 p, float cell, float width) {
+  vec2 q = abs(fract(p / cell + 0.5) - 0.5) * cell;
+  vec2 aa = fwidth(p) * 1.0;
+  vec2 l = 1.0 - smoothstep(vec2(width) - aa, vec2(width) + aa, q);
+  return max(l.x, l.y);
 }
 
 void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth, out vec4 outputColor) {
@@ -89,10 +102,10 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
   vec2 rel = ground - uCenter;
   float dp = length(rel);
 
-  // outside: the dark floor and its grid (1 m cells marked with crosses, lines every 10 m)
-  vec3 floorCol = vec3(0.0103, 0.0098, 0.0137); // #1b191f, linear
-  floorCol = mix(floorCol, vec3(0.2647, 0.0908, 1.0), gridLine(ground, 1.0, 0.02, 0.2) * 0.85); // #8d55ff
-  floorCol = mix(floorCol, vec3(0.1329, 0.0865, 0.1413), gridLine(ground, 10.0, 0.002, 1.0)); // #675369
+  // outside: the ink floor and its grid, fading in on the first frames
+  vec3 floorCol = uFloor;
+  floorCol = mix(floorCol, uLine, hairline(ground, 10.0, 0.03) * 0.55 * uGrid);
+  floorCol = mix(floorCol, uDot, dots(ground, 1.0, 0.04) * 0.32 * uGrid);
   float inside = 1.0 - step(uRadius, d);
   vec3 c = mix(floorCol, inputColor.rgb, inside);
 
@@ -119,8 +132,12 @@ class RevealEffect extends Effect {
         ["uCenter", new THREE.Uniform(new THREE.Vector2(REVEAL_AT[0], REVEAL_AT[1]))],
         ["uRadius", new THREE.Uniform(0)],
         ["uThick", new THREE.Uniform(0.08)],
-        // the original's reveal colour and intensity, past 1 so it blooms
-        ["uRing", new THREE.Uniform(new THREE.Color("#e88eff").multiplyScalar(5.5))],
+        // the site's racing red, past 1 so it blooms
+        ["uRing", new THREE.Uniform(new THREE.Color("#ff4b3e").multiplyScalar(4.5))],
+        ["uFloor", new THREE.Uniform(new THREE.Color(FLOOR))],
+        ["uDot", new THREE.Uniform(new THREE.Color("#fff8ec"))],
+        ["uLine", new THREE.Uniform(new THREE.Color("#4a4d63"))],
+        ["uGrid", new THREE.Uniform(0)],
         ["uInvProj", new THREE.Uniform(new THREE.Matrix4())],
         ["uInvView", new THREE.Uniform(new THREE.Matrix4())],
         ["uActive", new THREE.Uniform(1)],
@@ -133,7 +150,7 @@ class RevealEffect extends Effect {
 }
 
 /** Loader and label state, shared between the driver, the pass and the label. */
-const load = { shown: 0, ring: OPEN, label: 0 };
+const load = { shown: 0, ring: OPEN, label: 0, grid: 0 };
 
 /**
  * Mount inside <EffectComposer> after AO and before bloom. It is handed over as a
@@ -157,6 +174,7 @@ export function RevealPass() {
     u.get("uActive")!.value = reveal.done ? 0 : 1;
     u.get("uLoader")!.value = load.ring;
     u.get("uProgress")!.value = load.shown;
+    u.get("uGrid")!.value = load.grid;
     (u.get("uInvProj")!.value as THREE.Matrix4).copy(camera.projectionMatrixInverse);
     (u.get("uInvView")!.value as THREE.Matrix4).copy(camera.matrixWorld);
   });
@@ -198,9 +216,11 @@ export function RevealDriver() {
           () => (s.compiled = true),
         );
       }
-      const target = !g.ready ? Math.min(0.6, s.age / 3) : s.compiled ? 1 : 0.8;
-      // the original smooths its progress at delta * 10
-      load.shown += (target - load.shown) * Math.min(1, step * 10);
+      const target = !g.ready ? Math.min(0.6, s.age / 2) : s.compiled ? 1 : 0.8;
+      // smoothed like the original (delta * 10), but never faster than a full ring
+      // in FILL seconds, so it is always seen drawing, even after a long first frame
+      load.grid = Math.min(1, load.grid + step / 0.35);
+      load.shown = Math.min(load.shown + step / FILL, load.shown + (target - load.shown) * Math.min(1, step * 10));
       if (s.compiled && load.shown > 0.99) {
         load.shown = 1;
         s.stage = 0;
@@ -212,7 +232,7 @@ export function RevealDriver() {
     s.t += step;
     if (s.stage === 0) {
       // the loader ring shrinks into the start, then the circle opens
-      const k = Math.min(1, s.t / 0.9);
+      const k = Math.min(1, s.t / SHRINK);
       load.ring = OPEN * (1 - power4In(k));
       if (k >= 1) {
         load.ring = 0;
@@ -220,21 +240,21 @@ export function RevealDriver() {
         s.t = 0;
       }
     } else if (s.stage === 1) {
-      reveal.radius = OPEN * backOut(Math.min(1, s.t / 1.5));
+      reveal.radius = OPEN * backOut(Math.min(1, s.t / OPENING));
       reveal.zoom = ZOOM_INTRO;
-      // the label pops in a moment later (elastic.out, 2 s, after 0.6 s)
-      load.label = elasticOut(Math.max(0, Math.min(1, (s.t - 0.6) / 2)));
-      if (s.t > 0.6 && !g.opened) setState({ opened: true });
+      // the label pops in a moment later (elastic.out)
+      load.label = elasticOut(Math.max(0, Math.min(1, (s.t - 0.4) / 1.35)));
+      if (s.t > 0.4 && !g.opened) setState({ opened: true });
       if (g.phase === "world") {
         s.stage = 2;
         s.t = 0;
         revealSound();
       }
     } else if (s.stage === 2) {
-      const k = Math.min(1, s.t / 2);
+      const k = Math.min(1, s.t / SWEEP);
       reveal.radius = OPEN + (FAR - OPEN) * backIn(k);
-      reveal.zoom = ZOOM_INTRO + (1 - ZOOM_INTRO) * Math.max(0, backIn(Math.min(1, s.t / 1.75), 1.5));
-      load.label = 1 - power2In(Math.min(1, s.t / 0.3));
+      reveal.zoom = ZOOM_INTRO + (1 - ZOOM_INTRO) * Math.max(0, backIn(Math.min(1, s.t / (SWEEP * 0.875)), 1.5));
+      load.label = 1 - power2In(Math.min(1, s.t / 0.2));
       if (k >= 1) {
         reveal.done = true;
         reveal.zoom = 1;
@@ -249,8 +269,8 @@ export function RevealDriver() {
 const COARSE = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
 
 /**
- * The original's "click to start" label and sound toggle (static/intro/*.png),
- * beside the circle in the world, facing the camera. Drawn as DOM over the canvas
+ * The start label and sound toggle, in the site's own type (Geist Mono, cream),
+ * beside the circle in the world. Drawn as DOM over the canvas
  * (drei Html) so the reveal pass doesn't paint the grid over it.
  */
 export function IntroLabel() {
@@ -273,20 +293,29 @@ export function IntroLabel() {
   return (
     <group ref={group}>
       <Html center zIndexRange={[60, 60]}>
-        <div ref={box} style={{ transform: "scale(0)", transformOrigin: "20% 50%" }} className="pointer-events-none flex select-none flex-col items-center">
-          {/* the original's labels, made white-on-transparent (they were masks) */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={COARSE ? "/vendor/intro/touchLabel.png" : "/vendor/intro/mouseKeyboardLabel.png"} alt={COARSE ? "Tap to start" : "Click to start"} width={300} height={150} draggable={false} />
-          <button
-            type="button"
-            aria-label={muted ? "Sound off" : "Sound on"}
-            onClick={(e) => {
-              e.stopPropagation();
-              setState({ muted: !muted });
-            }}
-            className="pointer-events-auto mt-1 ml-[88px] h-[46px] w-[58px] bg-no-repeat opacity-90 transition hover:opacity-100"
-            style={{ backgroundImage: "url(/vendor/intro/sound.png)", backgroundSize: "116px 46px", backgroundPosition: muted ? "-58px 0" : "0 0" }}
-          />
+        <div ref={box} style={{ transform: "scale(0)", transformOrigin: "0% 50%" }} className="pointer-events-none flex select-none items-center gap-3 text-[#fff8ec]">
+          <svg width="54" height="22" viewBox="0 0 54 22" fill="none" aria-hidden className="opacity-80">
+            <path d="M53 4C38 2 20 4 6 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M5 8l1 7.5 7.5-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <div className="flex flex-col items-start gap-2">
+            <p className="whitespace-nowrap font-mono text-[13px] uppercase leading-none tracking-[0.3em]">{COARSE ? "Tap to start" : "Click to start"}</p>
+            <button
+              type="button"
+              aria-label={muted ? "Sound off" : "Sound on"}
+              onClick={(e) => {
+                e.stopPropagation();
+                setState({ muted: !muted });
+              }}
+              className="pointer-events-auto flex items-center gap-2 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.25em] text-[#fff8ec]/60 transition hover:text-[#fff8ec]"
+            >
+              <svg width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden>
+                <path d="M1.5 5h2.5L8 1.8v10.4L4 9H1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+                {muted ? <path d="M11 4.5l4 5m0-5l-4 5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /> : <path d="M11 4.2c1.2 1.6 1.2 4 0 5.6M13.2 2.6c2.1 2.6 2.1 6.2 0 8.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />}
+              </svg>
+              {muted ? "Sound off" : "Sound on"}
+            </button>
+          </div>
         </div>
       </Html>
     </group>
