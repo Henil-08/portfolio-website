@@ -37,7 +37,6 @@ import {
   TYRE_R,
   type Compound,
 } from "./models/props";
-import { Label } from "./models/props/Label";
 import { LETTER_WIDTH, type LetterChar } from "./models/props/Letter";
 import PitRoads from "./PitRoads";
 import Timeline from "./Timeline";
@@ -66,7 +65,6 @@ import {
   PIT,
   SECTORS,
   TRACK_WIDTH,
-  sectorT,
   garageLabel,
   trackCurve,
   trackPoint,
@@ -453,22 +451,6 @@ function PitLane() {
 const SCENES = { ahmedabad: AhmedabadSector, hyperlab: HyperlabSector, boston: BostonSector, waters: WatersSector };
 
 // Painted road text that reacts to light (so it darkens at night).
-const GROUND_TEXT = new THREE.MeshStandardMaterial({ color: "#f3f1ec", roughness: 0.8, transparent: true, opacity: 0.55 });
-
-// Text lying flat on the road, running along the track and upright as seen
-// from the camera (which looks from +X/+Z).
-const TOWARD_CAMERA = new THREE.Vector3(1, 0, 1).normalize();
-function groundTextRotation(tan: THREE.Vector3) {
-  const x = tan.clone().setY(0).normalize();
-  const z = new THREE.Vector3(0, 1, 0);
-  let y = new THREE.Vector3().crossVectors(z, x);
-  // Text "up" should point away from the camera so it reads the right way round.
-  if (y.dot(TOWARD_CAMERA) > 0) {
-    x.negate();
-    y = new THREE.Vector3().crossVectors(z, x);
-  }
-  return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z));
-}
 
 // Collision boxes for each scenery set, in the set's local space: [centre, full size].
 type Box = [[number, number, number], [number, number, number]];
@@ -512,11 +494,8 @@ const SCENE_BOXES: Record<keyof typeof SCENES, Box[]> = {
 function Sectors() {
   return (
     <>
-      {SECTORS.map((s, i) => {
+      {SECTORS.map((s) => {
         const Scene = SCENES[s.id];
-        const t = sectorT(i) - 0.045;
-        const p = trackPoint(t);
-        const q = groundTextRotation(trackCurve.getTangentAt(t));
         return (
           <group key={s.id}>
             <RigidBody type="fixed" colliders={false} position={[s.scene[0], heightAt(s.scene[0], s.scene[1]) - 0.15, s.scene[1]]} rotation={[0, s.sceneRot, 0]}>
@@ -525,16 +504,6 @@ function Sectors() {
                 <CuboidCollider key={i} args={[size[0] / 2, size[1] / 2, size[2] / 2]} position={c} />
               ))}
             </RigidBody>
-            {/* The place name is painted on the asphalt, like names on a grid slot. */}
-            <Label
-              position={[p.x, p.y + 0.06, p.z]}
-              quaternion={q}
-              fontSize={1.6}
-              letterSpacing={0.08}
-              material={GROUND_TEXT}
-            >
-              {s.place.toUpperCase()}
-            </Label>
           </group>
         );
       })}

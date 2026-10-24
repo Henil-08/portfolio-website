@@ -8,7 +8,7 @@ import { heightAt } from "../terrain";
 import { C } from "../palette";
 import { geo, mat, unitBox, unitCyl } from "../models/props/shared";
 import { Label } from "../models/props/Label";
-import { BARRIER_H, compose, farSpot, frameAt, inSectorScene, nearPlace, nearTree, rng, yawOf } from "./common";
+import { BARRIER_H, compose, farSpot, inSectorScene, nearPlace, nearTree, rng, yawOf } from "./common";
 import { Instances } from "./Instances";
 import { BOARDS, FENCES, FENCE_H, MARSHALS } from "./layoutStreet";
 import { STAND_SPOTS } from "./standSpots";
@@ -278,29 +278,6 @@ const FLAGS = (() => {
   return { poles, feet, cloth };
 })();
 
-// ------------------------------------------------------------ road paint: DRS zone on the main straight
-
-const TOWARD_CAMERA = new THREE.Vector3(1, 0, 1).normalize();
-function groundQuat(tan: THREE.Vector3) {
-  const x = tan.clone().setY(0).normalize();
-  const z = new THREE.Vector3(0, 1, 0);
-  let y = new THREE.Vector3().crossVectors(z, x);
-  if (y.dot(TOWARD_CAMERA) > 0) {
-    x.negate();
-    y = new THREE.Vector3().crossVectors(z, x);
-  }
-  return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z));
-}
-const DRS = (() => {
-  const f = frameAt(0.115);
-  const line = frameAt(0.095);
-  return {
-    p: f.p,
-    q: groundQuat(f.tan),
-    line: compose(line.p.x, line.p.y + 0.052, line.p.z, Math.atan2(-line.tan.z, line.tan.x), 0.35, 0.01, 7.6),
-  };
-})();
-
 // ------------------------------------------------------------ component
 
 export function Trackside() {
@@ -346,10 +323,6 @@ export function Trackside() {
           </Label>
         </group>
       ))}
-      <Label position={[DRS.p.x, DRS.p.y + 0.06, DRS.p.z]} quaternion={DRS.q} fontSize={1.5} color="#f3f1ec" fillOpacity={0.55} letterSpacing={0.1}>
-        DRS ZONE
-      </Label>
-      <Instances geometry={unitBox()} material={mat(C.asphaltLine, { r: 0.8 })} batch={{ m: [DRS.line] }} shadow={false} />
 
       <RigidBody type="fixed" colliders={false}>
         {STAND_SPOTS.map((s, i) => {

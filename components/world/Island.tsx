@@ -172,16 +172,36 @@ LAND.onBeforeCompile = (shader) => {
       vec2 tuv = (vLandXZ - uTracksFocus) / uTracksSize + 0.5;
       if (tuv.x > 0.0 && tuv.x < 1.0 && tuv.y > 0.0 && tuv.y < 1.0) {
         float tr = texture2D(uTracks, tuv).r;
-        float green = clamp((diffuseColor.g - max(diffuseColor.r, diffuseColor.b)) * 12.0, 0.0, 1.0);
+        float green = clamp((diffuseColor.g - diffuseColor.b) * 6.0, 0.0, 1.0) * (1.0 - clamp((diffuseColor.r - diffuseColor.g) * 12.0, 0.0, 1.0));
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.42, 0.33, 0.22), clamp(tr, 0.0, 1.0) * green * 0.75);
       }`,
     );
 };
 
+/** The original's asphalt: plain dark tarmac with fine light speckles, no painted lines. */
+function speckled(m: THREE.MeshStandardMaterial) {
+  m.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec2 vSpeckXZ;")
+      .replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvSpeckXZ = (modelMatrix * vec4(transformed, 1.0)).xz;");
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nvarying vec2 vSpeckXZ;\nfloat speckHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }")
+      .replace(
+        "#include <color_fragment>",
+        `#include <color_fragment>
+        vec2 cell = floor(vSpeckXZ * 9.0);
+        float h = speckHash(cell);
+        vec2 f = fract(vSpeckXZ * 9.0) - (0.25 + 0.5 * vec2(speckHash(cell + 7.1), speckHash(cell + 3.3)));
+        float dot1 = step(0.93, h) * (1.0 - smoothstep(0.06, 0.12, length(f)));
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.55, 0.53, 0.58), dot1 * 0.8);
+        diffuseColor.rgb *= 0.94 + 0.06 * speckHash(floor(vSpeckXZ * 2.0));`,
+      );
+  };
+  return m;
+}
+
 const ROAD = {
-  asphalt: new THREE.MeshStandardMaterial({ color: C.asphalt, roughness: 0.9 }),
-  line: new THREE.MeshStandardMaterial({ color: C.asphaltLine, roughness: 0.8 }),
-  centre: new THREE.MeshStandardMaterial({ color: C.yellow, roughness: 0.8, transparent: true, opacity: 0.55 }),
+  asphalt: speckled(new THREE.MeshStandardMaterial({ color: C.asphalt, roughness: 0.9 })),
   kerb: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }),
 };
 
@@ -226,7 +246,7 @@ function terrainGeometry() {
   const grass = new THREE.Color(C.grass);
   const sand = new THREE.Color(C.sand);
   const wet = new THREE.Color(C.sand).multiplyScalar(0.78);
-  const parkSand = new THREE.Color("#e8cfa6"); // The original park sand, toned to our palette
+  const parkSand = new THREE.Color("#f1b070"); // the original park sand
   const tmp = new THREE.Color();
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {
@@ -269,9 +289,6 @@ function heightfieldArgs(): [number, number, number[], { x: number; y: number; z
 
 export default function Island() {
   const asphalt = useMemo(() => ribbon(TRACK_WIDTH, 0.03), []);
-  const edgeL = useMemo(() => ribbon(0.25, 0.05, -TRACK_WIDTH / 2 + 0.35), []);
-  const edgeR = useMemo(() => ribbon(0.25, 0.05, TRACK_WIDTH / 2 - 0.35), []);
-  const centre = useMemo(() => ribbon(0.18, 0.05, 0), []);
   const ground = useMemo(() => terrainGeometry(), []);
   const field = useMemo(() => heightfieldArgs(), []);
   // The road surface itself is the driving surface: a slightly wide trimesh of the ribbon.
@@ -297,9 +314,6 @@ export default function Island() {
       <Embankments />
 
       <mesh geometry={asphalt} receiveShadow material={ROAD.asphalt} />
-      <mesh geometry={edgeL} material={ROAD.line} />
-      <mesh geometry={edgeR} material={ROAD.line} />
-      <mesh geometry={centre} material={ROAD.centre} />
       <Kerbs />
       <StartLine />
 

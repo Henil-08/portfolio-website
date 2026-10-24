@@ -20,11 +20,11 @@ import { batch, Instances } from "../street/Instances";
 import { seeded } from "../alive/noise";
 import { BEDS, BENCHES, HEDGE, HEDGES, LAMPS_GARDEN, PATHS, POND, bedLocal, clearOfRoad, pathDist, pathSamples } from "./layout";
 
-const SAND = "#e9dcc4";
-const SAND_DARK = "#d8c7a6";
-const EDGE = "#c9b48e";
-const HEDGE_A = "#6f8f5a";
-const HEDGE_B = "#5c7a4b";
+const SAND = "#f4c58f"; // warm paths, with the orange sand
+const SAND_DARK = "#e6ad72";
+const EDGE = "#d29a62";
+const HEDGE_A = "#8d8c31"; // olive, with the grass
+const HEDGE_B = "#737229";
 const SOIL = "#8c7461";
 const FLOWERS = ["#d9826b", "#f3e9d8", "#d7a6a0", "#f0d48a", "#a99cc0"];
 

@@ -7,9 +7,9 @@
 
 export const C = {
   // ground
-  grass: "#9cae88", // soft muted sage
-  grassDark: "#849672",
-  sand: "#e3d8c6", // warm stone
+  grass: "#a5a33e", // the original's olive-yellow grass, a touch quieter
+  grassDark: "#868434",
+  sand: "#eeaa68", // the original's warm orange sand, a touch quieter
   water: "#4d8590", // deep muted teal-blue
   waterDeep: "#36636f",
   rock: "#bfb8ad",
@@ -45,8 +45,8 @@ export const C = {
   bronze: "#b07650",
 
   // foliage
-  leaf: "#7f9670",
-  leafDark: "#5f7757",
+  leaf: "#9a9a35", // olive, with the grass
+  leafDark: "#73742a",
   leafPalm: "#6f8c63",
 
   // wood / buildings

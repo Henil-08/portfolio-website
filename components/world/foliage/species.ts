@@ -24,17 +24,17 @@ export type Species = {
 export const TRUNKS: Record<TrunkId, TreeModel> = { oak: OAK, cherry: CHERRY, birch: BIRCH };
 
 export const SPECIES: Record<SpeciesId, Species> = {
-  oak: { trunk: "oak", scale: 0.62, crowns: OAK.crowns, colA: "#5a7650", colB: "#a6b87c", sway: 0.05 },
+  oak: { trunk: "oak", scale: 0.62, crowns: OAK.crowns, colA: "#7d7d2b", colB: "#cdc23c", sway: 0.05 },
   cherry: { trunk: "cherry", scale: 0.72, crowns: CHERRY.crowns, colA: "#c08a8c", colB: "#ebc3b9", sway: 0.05 },
   // "pine" is the original birch: tall, narrow, darker green
-  pine: { trunk: "birch", scale: 0.55, crowns: BIRCH.crowns, colA: "#4a6548", colB: "#88a070", sway: 0.04 },
+  pine: { trunk: "birch", scale: 0.55, crowns: BIRCH.crowns, colA: "#5f6a2a", colB: "#a5a83c", sway: 0.04 },
   bush: {
     trunk: null,
     scale: 1,
     // The original bush: one round clump about as tall as its jeep (Bushes.js references)
     crowns: [[0, 0.55, 0, 0.75]],
-    colA: "#5f7a52",
-    colB: "#a2b27c",
+    colA: "#86852c",
+    colB: "#d2c73e",
     sway: 0.12,
   },
 };

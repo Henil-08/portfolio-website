@@ -1,7 +1,7 @@
 "use client";
 
-// Draws the lane from the start to the pit exit (./access.ts): asphalt, white
-// edges and soft chevrons every few metres pointing toward the circuit.
+// Draws the lane from the start to the pit exit (./access.ts): plain asphalt
+// and soft chevrons every few metres pointing toward the circuit.
 // Visual only; the car drives on the level terrain under it.
 import { useMemo } from "react";
 import * as THREE from "three";
@@ -69,18 +69,13 @@ export default function AccessRoad() {
     }
     const W = ACCESS_WIDTH / 2;
     const chevMat = new THREE.MeshStandardMaterial({ color: C.asphaltLine, transparent: true, opacity: 0.55, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6 });
-    return { road: strip(-W, W, 0), edges: [strip(-W, -W + 0.16, 0.004), strip(W - 0.16, W, 0.004)], marks, chev: chevron(), chevMat };
+    return { road: strip(-W, W, 0), marks, chev: chevron(), chevMat };
   }, []);
   return (
     <group name="access-road">
       <mesh geometry={parts.road} receiveShadow>
         <meshStandardMaterial color={C.asphalt} roughness={0.9} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-2} />
       </mesh>
-      {parts.edges.map((g, i) => (
-        <mesh key={i} geometry={g}>
-          <meshStandardMaterial color={C.asphaltLine} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-4} />
-        </mesh>
-      ))}
       <Instances
         geometry={parts.chev}
         material={parts.chevMat}
