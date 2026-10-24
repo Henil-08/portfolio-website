@@ -579,7 +579,7 @@ export const zones: Zone[] = [
     hint: "Garage",
     pos: [g.x, PIT.garageZ],
     size: [9, 8],
-    spawn: [g.x, PIT.z, Math.PI / 2],
+    spawn: [g.x, PIT.garageZ + 3, Math.PI / 2], // on the apron, inside the garage zone
   })),
   // The park: each on its own grass island north of the garden (park/layout.ts).
   { id: "playbook", label: "Tyre wall", hint: "How I work with AI", pos: [36, -19], size: [11, 8], spawn: [28, -15, 0] },
