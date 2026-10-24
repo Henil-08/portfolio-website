@@ -33,11 +33,11 @@ export default function AutopilotHud() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 16 }}
-          className="fixed bottom-24 right-3 z-20 w-[230px] rounded-2xl bg-[#121216]/92 p-4 text-white shadow-2xl backdrop-blur sm:right-5"
+          className="hud-panel fixed bottom-24 right-3 z-20 w-[230px] p-4 sm:right-5"
         >
           <div className="flex items-center justify-between">
-            <span className="font-racing text-[11px] tracking-[0.18em] text-[#c9a7ff]">NEUROEVOLUTION</span>
-            <button onClick={() => toggleAutopilot(false)} className="text-white/40 hover:text-white" aria-label="Stop">
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-purple">Neuroevolution</span>
+            <button onClick={() => toggleAutopilot(false)} className="hud-red grid h-6 w-6 place-items-center text-[11px]" aria-label="Stop">
               ✕
             </button>
           </div>
@@ -47,9 +47,9 @@ export default function AutopilotHud() {
             <Stat k="Best" v={`${Math.round(Math.min(a.best, 1) * 100)}%`} />
           </div>
           <svg viewBox="0 0 100 32" className="mt-3 h-10 w-full" preserveAspectRatio="none">
-            <polyline points={pts} fill="none" stroke="#b14cff" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+            <polyline points={pts} fill="none" stroke="#9b6bff" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
           </svg>
-          <p className="mt-2 text-[10.5px] leading-snug text-white/45">
+          <p className="mt-2 text-[11px] leading-snug text-cream/55">
             {a.best >= 1
               ? "A ghost can lap the circuit. It learned that from scratch, in your browser."
               : "40 tiny neural nets, evolving to lap the circuit."}
@@ -63,7 +63,7 @@ export default function AutopilotHud() {
 function Stat({ k, v }: { k: string; v: string | number }) {
   return (
     <div>
-      <p className="text-[9px] uppercase tracking-widest text-white/40">{k}</p>
+      <p className="text-[9.5px] uppercase tracking-[0.14em] text-cream/45">{k}</p>
       <p className="text-[15px] tabular-nums">{v}</p>
     </div>
   );
