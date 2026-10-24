@@ -27,14 +27,16 @@ small, verified with headless screenshots, and committed on its own
 | Store | components/world/store.ts (`near`, `zone`, `menuOpen`, `teleport`, `achievements`) |
 | Audio | components/world/sound.ts, scripts/gen-audio.mjs, app/api/voice, content/radio.ts |
 | Timeline (career plaza) | components/world/Timeline.tsx, components/world/timeline/* |
-| Coast, sea, lakes, inlet | components/world/layout.ts (`COAST_KEYS`, `coastR`, `shoreDist`, `LAKES`, `CANALS`, `inLand`, `SEA_Y`), terrain.ts (beaches/basins), Water.tsx, Harbour.tsx |
+| Coast, sea, lakes, river | components/world/layout.ts (`COAST_KEYS`, `coastR`, `shoreDist`, `LAKES` (spring lake, hairpin pond), `CANALS`/`RIVER` (river only since v5), `inLand`, `SEA_Y`), terrain.ts (beaches/basins), Water.tsx, Harbour.tsx (river bridge parapets) |
 | Garden infield | components/world/garden/* (`PATHS`, `BEDS`, `POND`, `nearGarden`) |
 | Town | components/world/street/town.ts (placement, `BUILDINGS`), street/Skyline.tsx (renderer) |
 | Waterfront | components/world/waterfront/* (`PROMENADE`, `PIER`, `nearPromenade`) |
 | Contact logos | components/world/social/* (`LINKS`, store `nearLink`) |
-| Trees (Bruno's) | components/world/foliage/*, models/props/Tree.tsx, public/vendor/ (MIT, LICENSE.md there) |
-| Opening reveal | components/world/Reveal.tsx, components/ui/Intro.tsx |
-| Start spot and its garden | components/world/startSpot.ts, start.ts, StartGarden.tsx |
+| Trees, bushes (from folio-2025) | components/world/foliage/* (`species.ts` colours), models/props/Tree.tsx, park/bushes.ts, public/vendor/ (MIT: LICENSE.md, NOTICE.md) |
+| Opening (loader ring, circle, label, sweep) | components/world/Reveal.tsx (`RevealPass` is a Pass, before Bloom; `FLOOR`, timings at the top), components/ui/Intro.tsx (click/keys), Experience.tsx (boot colour) |
+| Start spot and the way to the track | components/world/startSpot.ts (`START_SPOT`, `REVEAL_AT`), start.ts, StartGarden.tsx; the sandy path to the pit lane is a garden path (garden/layout.ts `PATHS`) |
+| Park common ground (slab paths, lanterns, benches, fence) | components/world/districts/park.ts |
+| Car parking at rest (no jitter) | components/world/Vehicle.tsx (`parked`, `REPARK_*`, `SUSPENSION`) |
 | Knock-about props (tyres, rocks, benches...) | components/world/Movables.tsx (`Movables`, `kindFromMatrices`, `HomeBody`) |
 
 ## Working rules
@@ -51,6 +53,11 @@ small, verified with headless screenshots, and committed on its own
    - `?skip` skips the opening entirely. Without it the loader waits for shader compiles (~30 s
      headless) and the animation runs ~10x slow: wait ~130 s before the circle is open.
    - `eval:window.__movables()` counts knock-about props out of place.
+   - Car feel bugs (vibration, creep, bounce): measure, don't guess. Sample `window.__car.pos/speed`
+     every frame with a `requestAnimationFrame` loop in an `eval:` step and read the numbers back.
+     The owner checks; "fixed" means a flat trace.
+   - Layout scripts: run TS from a scratchpad script with jiti (`createJiti(cwd, { alias: { "@/": cwd + "/" } })`)
+     to print ASCII maps of track/zones/water, heights, or scene facing before rendering.
 3. Before commit: `npx tsc --noEmit -p .` and `npx eslint components app` clean.
    React Compiler rules are strict: mutate three objects through refs in `useFrame`
    (never memoized values), no `Math.random` in render (seeded rng), `useMemo(() => fn())`,
@@ -70,33 +77,32 @@ small, verified with headless screenshots, and committed on its own
 
 ## Art direction (applies to every step)
 
-Polished toy diorama, not childish: soft rounded forms, bevels everywhere,
-a restrained palette (warm cream, sage greens, terracotta, slate, one red
-accent), real light and shadow doing the work, very little text in the world.
-UI is quiet broadcast graphics: small, precise, no cartoon colours.
+Polished toy diorama in folio-2025's world colours (owner, 2026-10-23): olive-yellow grass
+(`C.grass` #a5a33e), warm orange sand (#eeaa68), olive foliage, plain speckled asphalt with NO
+painted lines or words (start line only), chunky red/white kerbs, soft rounded forms, very little
+text in the world. The UI and the opening use the site's own language, not folio-2025's: ink
+#1f2133 / #171928, cream #fff8ec, racing red #ff4b3e, Geist Mono labels, quiet broadcast graphics.
 Fonts are fixed: Racero (display, `font-racing`), Geist (sans), Geist Mono (labels).
 
-## Where it stands (2026-10-23, evening)
+## Where it stands (2026-10-23, night)
 
-Done and working, don't redo: garden infield and timeline terrace; soft town (4 draw calls);
-Bruno's trees; HENIL GAJJAR letters at the start; contact ring of logos; Bruno's bumper collider,
-softer brake, boost release, stuck hint; Bruno's opening reveal; promenade, pier, boats;
-no wheel smoke or loose leaves; livery picker (six palettes). Since this morning: the car no longer
-breaks apart (CCD, buried respawn); continuous rumble kerbs; walls replaced by tyre walls at tight
-corners; layout v4 (docs/research/layout-v4.md): island ~15% bigger, harbour arm with quays under a
-stone bridge, a river from a spring lake under the east esses, hills on the north coast, east dunes,
-park islands north of the garden with a footbridge; no building blocks the chase camera.
-Commit history has the details.
+The world is layout v5 (README "Track layout v5", docs/research/layout-v5-sketch.png): the main
+straight with a pit lane its whole length, the east side's S over the river on a low deck, the bridge
+loop that crosses its own entry 4.2 m up (no piers), the Monaco hairpin round a pond, the bottom-left
+chicane round a green block with the garden pond. The world is flat (land away from the road at 0).
+The car starts in front of HENIL GAJJAR under a shade tree, on the garden path that leads past the
+garages to the pit lane. The opening is folio-2025's sequence in the site's colours. Tyre walls, rocks,
+benches, lanterns, crates, cones and letters can be knocked about and tidy up when the car is 45 m
+away. The car parks dead still at rest (re-parks when left alone; damped stop). Commit history has
+the details; everything in 4b a-g, 4c, 4d and 4e below is done.
 
-Owner feedback still open (latest first): the map menu is bad; the water and its surroundings are
-not up to the mark (now more water to dress: harbour, river, spring lake); the E prompt should be
-animated like Bruno's. New (2026-10-23): buildings on slopes with vertical walls (3f), a Bruno-style
-see-through when the car is hidden (3h), and a compact Bruno-style career timeline with floating rocks
-plus the owner's school journey (3b). 3f, 3g, 3h, 3b and step 4 are done (2026-10-23, late); the
-car no longer beaches on slopes (colliders 0.3 m up, parapets on embankments). Step 4 is done too. Owner review the same night added step 4b (foliage-only see-through, Bruno's
-scale, flat world, grass, bushes, fuller infield, Team Stallions facing the camera, F1 floodlights,
-a real pit lane, grandstands, random rain with a tyre swap). 4b a-f and owner review 2 (4c) are done; 4b g waits for the owner; 4d (layout v5) is built; next are 4b h-k (floodlights, pit wall, grandstands, rain), then
-step 5 (map menu).
+Next, in order (the first unticked box in the steps below is the one to do):
+1. **4e owner check** items left open below (only if the owner reports them again).
+2. **4b h** floodlights instead of street lamps; **4b i** pit wall + fence between the pit lane and
+   the straight (the lane itself exists since v5: `PIT` z 34, x -58..40); **4b j** grandstands;
+   **4b k** random rain with a tyre swap.
+3. **Step 5** map menu (top-down render of the real v5 world), then steps 6-9.
+4. Owner said "later": credit folio-2025 / Bruno Simon in the main README (only there).
 
 ## Steps (do them in order; first unticked one is next)
 
@@ -296,7 +302,18 @@ place spots "your choice"; Team Stallions "give a nice spot".
       car re-parks when left alone.
 - [x] (d0437f1) Opening ported from folio-2025: grid floor, glowing cut, click-to-start label, dip then sweep.
 - [x] (ca81eea) No lines or words on the track, speckled asphalt, olive grass, orange sand.
-- [ ] Owner to review v5 in a real browser: chicane kerbs, spacing between the loop and the strand leaving it.
+- [x] Superseded by 4e (owner reviewed v5 and asked for the fixes there).
+
+### 4e. Owner review 3 (2026-10-23, late night)
+- [x] (ace948d) No piers under the bridge; contact ring off the road (zone at 34, -30; tyre wall 36, -19);
+      the west harbour arm removed (CANALS is the river only, `RIVER`), garden pond moved into the chicane.
+- [x] (b714bc8) Car judder when slowing: traced a dive-and-bounce at every stop; suspension damping up
+      (compression 14, relaxation 6), eased stop when hands off, re-park only below 0.12 m/s.
+- [x] (507279a) Way to the circuit is a sandy garden path (no asphalt lane, no overlaps).
+- [x] (dbcad24) Opening: the site's ink floor with a soft cream dot grid and hairlines, red ring and cut,
+      Geist Mono label, no boot jump (page painted `FLOOR` first, grid fades in, ring min 0.55 s), 1.5x faster.
+- [ ] Owner to try in a real browser: intro timing, stop feel, chicane kerbs, the 4 m verge between the
+      bridge loop and the strand leaving it. Fix only what the owner reports.
 
 ### 5. Map menu like Bruno's (M)
 Owns components/ui/** (MapMenu in Hud.tsx) and a new components/world/MapCapture.tsx.
