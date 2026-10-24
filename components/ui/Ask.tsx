@@ -65,20 +65,20 @@ export default function Ask() {
   return (
     <>
       {ptt.state !== "idle" && !open && (
-        <div className="pointer-events-none fixed bottom-20 left-5 z-30 flex items-center gap-2 rounded-full bg-[#121216]/90 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-white">
-          <span className={`h-2 w-2 rounded-full ${ptt.state === "listening" ? "animate-pulse bg-[#e10600]" : "bg-white/50"}`} />
+        <div className="hud-chip pointer-events-none fixed bottom-20 left-5 z-30 flex items-center gap-2 px-3 py-1.5">
+          <span className={`h-2 w-2 rounded-full ${ptt.state === "listening" ? "animate-pulse bg-red" : "bg-cream/50"}`} />
           {ptt.state === "listening" ? "Transmitting" : ptt.state === "thinking" ? "Copy, one sec" : "Mic blocked"}
         </div>
       )}
       <button
         onClick={() => setState((s) => ({ askOpen: !s.askOpen }))}
-        className="toy-btn fixed right-3 top-[76px] z-30 flex items-center gap-2 rounded-2xl bg-ink px-3.5 py-2.5 text-sm font-semibold text-white sm:bottom-5 sm:left-5 sm:right-auto sm:top-auto sm:px-4 sm:py-3"
+        className="hud-panel fixed left-3 top-3 z-30 flex h-11 items-center gap-2.5 px-4 sm:bottom-5 sm:left-5 sm:top-auto"
       >
         <span className="relative flex h-2.5 w-2.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#e10600] opacity-60" />
-          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#e10600]" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red opacity-60" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red" />
         </span>
-        <span className="font-racing text-[12px] tracking-[0.14em]">{open ? "CLOSE" : "RADIO"}</span>
+        <span className="font-mono text-[11px] uppercase tracking-[0.16em]">{open ? "Close radio" : "Team radio"}</span>
       </button>
 
       <AnimatePresence>
@@ -88,15 +88,15 @@ export default function Ask() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.96 }}
             transition={{ type: "spring", stiffness: 300, damping: 26 }}
-            className="fixed inset-x-3 top-[128px] z-30 flex max-h-[62svh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#121216]/95 text-white shadow-2xl backdrop-blur sm:inset-x-auto sm:bottom-[84px] sm:left-5 sm:right-auto sm:top-auto sm:w-[400px]"
+            className="hud-panel fixed inset-x-3 top-[64px] z-30 flex max-h-[62svh] flex-col overflow-hidden sm:inset-x-auto sm:bottom-[76px] sm:left-5 sm:right-auto sm:top-auto sm:w-[400px]"
           >
-            <div className="flex items-center gap-2.5 border-b border-white/[0.07] px-4 py-3">
-              <span className="rounded bg-[#e10600] px-2 py-0.5 font-racing text-[10px] tracking-[0.18em]">TEAM RADIO</span>
-              <span className="font-mono text-[11px] text-white/45">race engineer</span>
+            <div className="flex items-center gap-2.5 border-b border-cream/15 px-4 py-3">
+              <span className="bg-red px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.16em] text-white">Team radio</span>
+              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-cream/45">Race engineer</span>
               <button
                 onClick={() => setState((s) => ({ voice: !s.voice }))}
-                className={`ml-auto rounded-full px-3 py-1 font-mono text-[10.5px] uppercase tracking-wider transition ${
-                  radio ? "bg-white text-black" : "bg-white/10 text-white/60 hover:text-white"
+                className={`ml-auto px-3 py-1 font-mono text-[10.5px] uppercase tracking-[0.12em] transition ${
+                  radio ? "bg-cream text-ink" : "border border-cream/30 text-cream/60 hover:text-cream"
                 }`}
                 aria-pressed={radio}
               >
@@ -107,13 +107,13 @@ export default function Ask() {
             <div ref={box} className="no-scrollbar flex-1 space-y-3 overflow-y-auto px-4 py-4 text-[13.5px] leading-relaxed">
               {log.length === 0 && (
                 <div className="space-y-3">
-                  <p className="text-white/70">Radio check. Ask me anything about Henil, or ask me to show you something.</p>
+                  <p className="text-cream/75">Radio check. Ask me anything about Henil, or ask me to show you something.</p>
                   <div className="flex flex-wrap gap-1.5">
                     {starters.map((s) => (
                       <button
                         key={s}
                         onClick={() => send(s)}
-                        className="rounded-full border border-white/15 px-3 py-1 text-[12px] text-white/80 transition hover:border-white/40"
+                        className="border border-cream/25 px-3 py-1 text-[12px] text-cream/80 transition hover:border-cream/70"
                       >
                         {s}
                       </button>
@@ -124,24 +124,24 @@ export default function Ask() {
               {log.map((m, i) =>
                 m.role === "user" ? (
                   <p key={i} className="text-right">
-                    <span className="inline-block rounded-2xl bg-white/10 px-3 py-1.5">{m.content}</span>
+                    <span className="inline-block bg-cream/10 px-3 py-1.5">{m.content}</span>
                   </p>
                 ) : m.role === "tool" ? (
-                  <p key={i} className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-[#7ee0b0]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#19d27a]" />
+                  <p key={i} className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-green">
+                    <span className="h-1.5 w-1.5 bg-green" />
                     Race control · {m.content}
                   </p>
                 ) : (
-                  <p key={i} className="whitespace-pre-wrap border-l-2 border-[#e10600] pl-3 text-white/90">
+                  <p key={i} className="whitespace-pre-wrap border-l-2 border-red pl-3 text-cream/90">
                     {m.content}
                   </p>
                 )
               )}
-              {busy && <p className="caret border-l-2 border-[#e10600] pl-3 text-white/50">&nbsp;</p>}
+              {busy && <p className="caret border-l-2 border-red pl-3 text-cream/50">&nbsp;</p>}
             </div>
 
             <form
-              className="flex items-center gap-2 border-t border-white/[0.07] px-4 py-3"
+              className="flex items-center gap-2 border-t border-cream/15 px-4 py-3"
               onSubmit={(e) => {
                 e.preventDefault();
                 send(text);
@@ -154,7 +154,7 @@ export default function Ask() {
                 maxLength={400}
                 placeholder={ptt.state === "listening" ? "Listening…" : "Talk to your engineer, or hold V…"}
                 aria-label="Talk to the race engineer"
-                className="flex-1 bg-transparent text-[13.5px] text-white outline-none placeholder:text-white/30"
+                className="flex-1 bg-transparent text-[13.5px] text-cream outline-none placeholder:text-cream/35"
               />
               <button
                 type="button"
@@ -162,8 +162,8 @@ export default function Ask() {
                 onPointerUp={ptt.stop}
                 onPointerLeave={ptt.stop}
                 aria-label="Hold to talk"
-                className={`grid h-8 w-8 place-items-center rounded-full transition ${
-                  ptt.state === "listening" ? "bg-[#e10600]" : "bg-white/10 hover:bg-white/20"
+                className={`grid h-8 w-8 place-items-center transition ${
+                  ptt.state === "listening" ? "bg-red" : "bg-cream/10 hover:bg-cream/20"
                 }`}
               >
                 <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -171,7 +171,7 @@ export default function Ask() {
                   <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
                 </svg>
               </button>
-              <button disabled={busy || !text.trim()} className="rounded-lg bg-[#e10600] px-3 py-1.5 text-[12px] font-semibold disabled:opacity-40">
+              <button disabled={busy || !text.trim()} className="bg-red px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-40">
                 Send
               </button>
             </form>
