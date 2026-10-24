@@ -95,8 +95,8 @@ const tmpV = new THREE.Vector3();
 const tmpP = new THREE.Vector3();
 const prevPos = new THREE.Vector3();
 let snapWheels = true; // set by place(): put the wheel visuals straight at rest
-// Parked: after a spawn or teleport the car is held exactly at its rest pose
-// until the first drive input, so it never bobs on its springs while the page
+// Parked: after a spawn or teleport the car is held in place (only its height
+// settles, damped) until the first drive input, so it never bobs on its springs while the page
 // loads (the intro camera copies the car, so any bob shook the whole picture).
 const parked = { on: true, p: new THREE.Vector3(), q: new THREE.Quaternion() };
 
@@ -196,9 +196,12 @@ export default function Vehicle() {
     if (parked.on && b) {
       if (driving && (input.forward || input.back || input.steer || input.handbrake)) parked.on = false;
       else {
-        b.setTranslation(parked.p, false);
+        // x, z and rotation held; the height settles onto the springs, heavily damped, so it never bounces
+        const t = b.translation();
+        const vy = b.linvel().y;
+        b.setTranslation({ x: parked.p.x, y: t.y, z: parked.p.z }, false);
         b.setRotation(parked.q, false);
-        b.setLinvel({ x: 0, y: 0, z: 0 }, false);
+        b.setLinvel({ x: 0, y: vy * 0.5, z: 0 }, false);
         b.setAngvel({ x: 0, y: 0, z: 0 }, false);
       }
     }
