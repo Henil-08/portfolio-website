@@ -14,7 +14,7 @@ import { setState, useWorld } from "@/components/world/store";
 import { wipeTo } from "@/components/world/Overlay";
 import { zones, type ZoneId } from "@/components/world/layout";
 import { LINKS, LINK_SPOTS } from "@/components/world/social";
-import { Achievements } from "./Hud";
+import { ACHIEVEMENTS } from "@/content/achievements";
 
 type Pin = { id: string; label: string; x: number; y: number; zone: ZoneId; small?: boolean };
 
@@ -27,57 +27,94 @@ export default function MapMenu() {
   const open = useWorld((s) => s.menuOpen);
   const shot = useWorld((s) => s.mapShot);
   const found = useWorld((s) => s.found);
+  const got = useWorld((s) => s.achievements);
+  const [tab, setTab] = useState<"map" | "achievements">("map");
   const close = () => setState({ menuOpen: false });
   return (
     <AnimatePresence>
       {open && (
         <motion.div
-          className="no-scrollbar fixed inset-0 z-40 flex flex-col items-center overflow-y-auto px-3 pb-6 pt-16 sm:pt-20"
+          className="fixed inset-0 z-40 grid place-items-center px-3 pb-3 pt-14"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
           onClick={close}
         >
-          <div className="map-frame relative aspect-square w-[min(94vw,calc(100svh-7rem),900px)] shrink-0 select-none" onClick={(e) => e.stopPropagation()}>
+          <div className="map-frame relative aspect-square w-[min(94vw,calc(100svh-5.5rem),900px)] select-none" onClick={(e) => e.stopPropagation()}>
+            <div className="absolute bottom-full left-2.5 flex gap-1">
+              {(["map", "achievements"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`map-tab relative h-9 px-3 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors sm:h-10 sm:px-4 ${
+                    tab === t ? "bg-[#1f2133] text-cream" : "bg-[#171928]/80 text-cream/55 hover:text-cream"
+                  }`}
+                >
+                  {t === "map" ? "Map" : `Achievements ${got.length}/${ACHIEVEMENTS.length}`}
+                </button>
+              ))}
+            </div>
             <button onClick={close} aria-label="Close map" className="map-tab group absolute bottom-full right-2.5 h-11 w-[50px] overflow-hidden">
               <span className="absolute inset-x-0 top-0 h-[calc(100%+4px)] bg-[radial-gradient(ellipse_at_top_right,#ff4b3e,#a3241c)] transition-transform duration-150 group-hover:-translate-y-1" />
               <svg viewBox="0 0 24 24" className="relative mx-auto h-[18px] w-[18px]" fill="none" stroke="#fff8ec" strokeWidth="2.4" strokeLinecap="round">
                 <path d="M6 6l12 12M18 6 6 18" />
               </svg>
             </button>
-            <div className="absolute inset-0 overflow-hidden">
-              {shot && (
-                <motion.img
-                  key={shot.url}
-                  src={shot.url}
-                  alt="Top-down map of the island"
-                  className="pointer-events-none absolute inset-0 h-full w-full"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                  draggable={false}
-                />
-              )}
-              <Pins found={found} />
-              <Player />
-            </div>
-          </div>
-
-          <div className="mt-4 w-[min(94vw,calc(100svh-7rem),900px)] rounded-[22px] bg-[#1f2133] p-4 text-cream" onClick={(e) => e.stopPropagation()}>
-            <Achievements dark />
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <button onClick={() => setState({ menuOpen: false, fitOpen: true })} className="rounded-xl bg-red px-3 py-2.5 text-[13px] font-semibold text-white">
-                Hiring? Check the fit
-              </button>
-              <Link href="/resume" className="grid place-items-center rounded-xl bg-cream px-3 py-2.5 text-[13px] font-semibold text-ink">
-                One-page resume
-              </Link>
-            </div>
+            {tab === "map" ? (
+              <div className="absolute inset-0 overflow-hidden">
+                {shot && (
+                  <motion.img
+                    key={shot.url}
+                    src={shot.url}
+                    alt="Top-down map of the island"
+                    className="pointer-events-none absolute inset-0 h-full w-full"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    draggable={false}
+                  />
+                )}
+                <Pins found={found} />
+                <Player />
+              </div>
+            ) : (
+              <AchievementList got={got} />
+            )}
           </div>
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+// Earned ones show their name; the rest stay "???" with how to get them as the hint.
+function AchievementList({ got }: { got: string[] }) {
+  return (
+    <div className="no-scrollbar absolute inset-0 flex flex-col overflow-y-auto p-5 text-cream sm:p-8">
+      <div className="grid gap-2 sm:grid-cols-2">
+        {ACHIEVEMENTS.map((a) => {
+          const on = got.includes(a.id);
+          return (
+            <div key={a.id} className={`flex items-start gap-3 border px-3 py-2.5 ${on ? "border-cream/40" : "border-dashed border-cream/15"}`}>
+              <span className={`mt-1 h-2.5 w-2.5 shrink-0 rotate-45 ${on ? "bg-red" : "border border-cream/30"}`} />
+              <span className="min-w-0">
+                <span className={`block text-[14px] font-semibold ${on ? "" : "text-cream/45"}`}>{on ? a.name : "???"}</span>
+                <span className="mt-0.5 block font-mono text-[11px] uppercase tracking-[0.08em] text-cream/50">{a.how}</span>
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-auto grid grid-cols-2 gap-2 pt-5">
+        <button onClick={() => setState({ menuOpen: false, fitOpen: true })} className="bg-red px-3 py-2.5 text-[13px] font-semibold text-white">
+          Hiring? Check the fit
+        </button>
+        <Link href="/resume" className="grid place-items-center bg-cream px-3 py-2.5 text-[13px] font-semibold text-ink">
+          One-page resume
+        </Link>
+      </div>
+    </div>
   );
 }
 

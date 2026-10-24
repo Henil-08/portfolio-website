@@ -131,6 +131,7 @@ body {
 .map-tab::after {
   bottom: 0;
   border-bottom: none;
+  opacity: 0.25;
 }
 .map-tab:hover::after {
   opacity: 0.8;

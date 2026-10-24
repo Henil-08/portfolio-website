@@ -16,7 +16,6 @@ import AutopilotHud from "./AutopilotHud";
 import FitPanel, { LapChip } from "./FitPanel";
 import RadioMessages from "./RadioMessages";
 import EasterEggs from "./EasterEggs";
-import { ACHIEVEMENTS } from "@/content/achievements";
 
 export default function Hud() {
   const phase = useWorld((s) => s.phase);
@@ -208,31 +207,6 @@ function Controls() {
         </motion.div>
       )}
     </AnimatePresence>
-  );
-}
-
-// Earned ones show their name; the rest stay hidden as hints.
-export function Achievements({ dark = false }: { dark?: boolean }) {
-  const got = useWorld((s) => s.achievements);
-  return (
-    <div className="mt-4">
-      <p className={`font-mono text-[11px] uppercase tracking-[0.16em] ${dark ? "text-cream/60" : "text-ink-soft"}`}>
-        Achievements · {got.length}/{ACHIEVEMENTS.length}
-      </p>
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {ACHIEVEMENTS.map((a) =>
-          got.includes(a.id) ? (
-            <span key={a.id} className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold ${dark ? "bg-cream text-ink" : "bg-ink text-white"}`} title={a.how}>
-              {a.name}
-            </span>
-          ) : (
-            <span key={a.id} className={`rounded-full border border-dashed px-2.5 py-1 text-[11.5px] ${dark ? "border-cream/25 text-cream/45" : "border-line text-ink-soft/70"}`} title={a.how}>
-              ???
-            </span>
-          )
-        )}
-      </div>
-    </div>
   );
 }
 
