@@ -76,6 +76,7 @@ import {
 import { cheer, pop } from "./sound";
 import { achieve, toast } from "./store";
 import { heightAt } from "./terrain";
+import { pitAsphalt } from "./Island";
 import Park from "./park";
 
 type V3 = [number, number, number];
@@ -402,7 +403,7 @@ function PitLane() {
     <>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[(PIT.from + PIT.to) / 2, pitY + 0.025, PIT.z]} receiveShadow>
         <planeGeometry args={[PIT.to - PIT.from + 10, 6]} />
-        <meshStandardMaterial color={C.asphalt} roughness={0.9} />
+        <primitive object={pitAsphalt} attach="material" />
       </mesh>
       {[-1, 1].map((side) => (
         <mesh key={side} rotation={[-Math.PI / 2, 0, 0]} position={[(PIT.from + PIT.to) / 2, pitY + 0.03, PIT.z + side * 3]}>

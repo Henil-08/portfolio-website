@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
+import { useFrame } from "@react-three/fiber";
+import { dayNight } from "./daynight";
 import { CuboidCollider, HeightfieldCollider, RigidBody, TrimeshCollider } from "@react-three/rapier";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
@@ -202,8 +204,31 @@ LAND.onBeforeCompile = (shader) => {
 };
 
 /** The original's asphalt: plain dark tarmac with fine light speckles, no painted lines. */
-function speckled(m: THREE.MeshStandardMaterial) {
+/**
+ * Night-race lighting on the tarmac: the floodlit lap reads evenly lit at night, so the
+ * road and kerbs get a warm light added in proportion to their own colour (speckles and
+ * stripes stay), set from `dayNight.night` each frame. The towers are only the look.
+ */
+export const roadLight = { value: 0 };
+const ROAD_LIGHT_GLSL = "uniform float uRoadLight;";
+const roadLightAdd = (k: number) => `#include <emissivemap_fragment>
+  totalEmissiveRadiance += diffuseColor.rgb * vec3(1.0, 0.95, 0.86) * uRoadLight * ${k.toFixed(2)};`;
+
+/** `k` scales the light: bright kerb paint would bloom at the asphalt's level. */
+function lit(m: THREE.MeshStandardMaterial, also?: (shader: THREE.WebGLProgramParametersWithUniforms) => void, k = 1) {
   m.onBeforeCompile = (shader) => {
+    shader.uniforms.uRoadLight = roadLight;
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", `#include <common>\n${ROAD_LIGHT_GLSL}`)
+      .replace("#include <emissivemap_fragment>", roadLightAdd(k));
+    also?.(shader);
+  };
+  m.customProgramCacheKey = () => "road-lit-" + (also ? "speck" : "plain");
+  return m;
+}
+
+function speckled(m: THREE.MeshStandardMaterial) {
+  return lit(m, (shader) => {
     shader.vertexShader = shader.vertexShader
       .replace("#include <common>", "#include <common>\nvarying vec2 vSpeckXZ;")
       .replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvSpeckXZ = (modelMatrix * vec4(transformed, 1.0)).xz;");
@@ -219,14 +244,17 @@ function speckled(m: THREE.MeshStandardMaterial) {
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.55, 0.53, 0.58), dot1 * 0.8);
         diffuseColor.rgb *= 0.94 + 0.06 * speckHash(floor(vSpeckXZ * 2.0));`,
       );
-  };
-  return m;
+  });
 }
 
 const ROAD = {
   asphalt: speckled(new THREE.MeshStandardMaterial({ color: C.asphalt, roughness: 0.9 })),
-  kerb: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }),
+  kerb: lit(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }), undefined, 0.25),
 };
+/** The pit lane and its entry and exit: the same speckled, night-lit tarmac, drawn over the track where they meet. */
+export const pitAsphalt = speckled(
+  new THREE.MeshStandardMaterial({ color: C.asphalt, roughness: 0.9, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 })
+);
 
 function Kerbs() {
   const geo = useMemo(() => kerbGeometry(), []);
@@ -311,6 +339,9 @@ function heightfieldArgs(): [number, number, number[], { x: number; y: number; z
 }
 
 export default function Island() {
+  useFrame(() => {
+    roadLight.value = dayNight.night * 1.3;
+  });
   const asphalt = useMemo(() => ribbon(TRACK_WIDTH, 0.03), []);
   const ground = useMemo(() => terrainGeometry(), []);
   const field = useMemo(() => heightfieldArgs(), []);

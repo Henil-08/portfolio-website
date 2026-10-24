@@ -1,9 +1,9 @@
 // Procedural layout of the street circuit: where every barrier block, lamp,
 // board, fence panel and marshal post goes. Pure data, computed once.
 import * as THREE from "three";
-import { LEN, FRAMES, N_FRAMES, barrierOffset, farSign, farSpot, inPitSide, inSectorScene, nearCones, nearPlace, nearTree, outSign, RUNOFF, type Spot } from "./common";
+import { GANTRY, LEN, FRAMES, N_FRAMES, barrierOffset, farSign, farSpot, inPitSide, inSectorScene, nearCones, nearPlace, nearTree, outSign, RUNOFF, type Spot } from "./common";
 import { STAND_SPOTS } from "./standSpots";
-import { GARAGES, PIT, PIT_LANE_WIDTH, TRACK_WIDTH, inLand, nearCrossing, nearestT, onBridge, pitWallZ } from "../layout";
+import { PIT, PIT_LANE_WIDTH, PIT_WALL, STRAIGHT_Z, TRACK_WIDTH, inLand, nearCrossing, nearestT, onBridge, pitWallZ } from "../layout";
 
 // The original circuit has no walls: open run-off past the kerbs, and a short tyre wall
 // on the outside of the tight corners only, with a rounded block at each end.
@@ -106,11 +106,12 @@ export const TYRE_WALLS: WallPiece[] = (() => {
 /** A floodlight tower: foot (x, z), facing the road (yaw turns local +Z onto it), and the light pool on the road. */
 export type Flood = { x: number; z: number; yaw: number; px: number; pz: number; py: number; pyaw: number; pitch: number };
 export const FLOOD_SPACING = 17;
+const FLOOD_STRAIGHT = 9; // m between towers on the pit wall
 const FLOOD_BACK = 2.6; // m past the barrier line, clear of tyre walls and the catch fence
 
 /**
  * Night-race floodlight towers on the far side, set back outside the run-off, every ~17 m.
- * On the main straight they stand on the pit wall, or behind the pit lane past its end.
+ * The main straight has its own denser row on the pit wall.
  */
 export const FLOODS: Flood[] = (() => {
   const out: Flood[] = [];
@@ -121,14 +122,7 @@ export const FLOODS: Flood[] = (() => {
     const s = farSign(f);
     const off = Math.abs(barrierOffset(i, s as 1 | -1)) + FLOOD_BACK;
     let q = f.p.clone().addScaledVector(f.n, s * off);
-    if (inPitSide(q.x, q.z)) {
-      // main straight: on the pit wall, else behind the pit lane in a gap between the garages
-      const wz = pitWallZ(f.p.x);
-      if (wz !== null) q.set(f.p.x, 0, wz);
-      else q.set(f.p.x, 0, PIT.z - PIT_LANE_WIDTH / 2 - 1.6);
-      if (q.x < PIT.from + 4 || q.x > PIT.to + 14) continue; // the pit entry and exit lanes cross here
-      if (GARAGES.some((g) => Math.abs(g.x - q.x) < 5.4) && q.z < PIT.z) continue;
-    }
+    if (inPitSide(q.x, q.z)) continue; // the main straight gets its own row on the pit wall, below
     // something in the way: step further back before giving the spot up
     const clear = (x: number, z: number) =>
       nearestT(x, z).dist >= TRACK_WIDTH / 2 + 0.6 &&
@@ -151,6 +145,17 @@ export const FLOODS: Flood[] = (() => {
     const pitch = Math.atan2(f.tan.y, Math.hypot(f.tan.x, f.tan.z));
     if (nearCrossing(pool.x, pool.z, 14)) continue;
     out.push({ x: q.x, z: q.z, yaw: Math.atan2(-s * f.n.x, -s * f.n.z), px: pool.x, pz: pool.z, py: f.p.y, pyaw: Math.atan2(-f.tan.z, f.tan.x), pitch });
+  }
+  // The main straight, lit like a night race's pit straight: a tower on the pit wall every
+  // FLOOD_STRAIGHT m, its bank facing the track (+z).
+  const x0 = PIT_WALL[0][0] + 2;
+  const x1 = PIT_WALL[PIT_WALL.length - 1][0] - 2;
+  const n = Math.round((x1 - x0) / FLOOD_STRAIGHT);
+  for (let k = 0; k <= n; k++) {
+    const x = x0 + ((x1 - x0) * k) / n;
+    const z = pitWallZ(x);
+    if (z === null || Math.abs(x - GANTRY.p.x) < 4) continue;
+    out.push({ x, z, yaw: 0, px: x, pz: STRAIGHT_Z, py: 0, pyaw: 0, pitch: 0 });
   }
   return out;
 })();

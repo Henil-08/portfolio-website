@@ -9,6 +9,7 @@ import * as THREE from "three";
 import { C } from "./palette";
 import { PIT, PIT_LANE_WIDTH as LANE, TRACK_WIDTH, nearestT, pitRoadCurves, trackPoint } from "./layout";
 import { heightAt } from "./terrain";
+import { pitAsphalt } from "./Island";
 import { Label } from "./models/props/Label";
 
 
@@ -86,7 +87,7 @@ export default function PitRoads() {
       {parts.out.map((p, i) => (
         <group key={i}>
           <mesh geometry={p.road} receiveShadow>
-            <meshStandardMaterial color={C.asphalt} roughness={0.9} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-2} />
+            <primitive object={pitAsphalt} attach="material" />
           </mesh>
           {p.lines.map((g, j) => (
             <mesh key={j} geometry={g}>
