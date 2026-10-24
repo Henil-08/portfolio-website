@@ -141,7 +141,20 @@ export default function Specimen() {
           <Motion name="Teleport wipe" curve="diagonal pattern wipe, 2 s in, 4 s out (world/Overlay.tsx)" />
         </div>
 
-        <H2 n="05">What changes if you pick A</H2>
+        <H2 n="05">Boot</H2>
+        <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_320px]">
+          <BootDemo />
+          <div className="border border-cream/15 p-4 text-[13.5px] leading-relaxed text-cream/70">
+            <p className="font-semibold text-cream">F1 start lights</p>
+            <p className="mt-1">
+              One pod per fifth of the real loading (the world, then the shader warm-up), never faster than 0.3 s a pod. All five on, a 0.8 s hold,
+              then lights out: the lamps cut at once, the gantry lifts away and the world opens in its circle round the car. Click to start sweeps
+              it out. This demo loops.
+            </p>
+          </div>
+        </div>
+
+        <H2 n="06">What changes</H2>
         <div className="mt-5 overflow-x-auto border border-cream/15">
           <table className="w-full min-w-[640px] text-left text-[13.5px]">
             <thead className="font-mono text-[11px] uppercase tracking-[0.12em] text-cream/50">
@@ -157,7 +170,7 @@ export default function Specimen() {
                 ["Toast", "big tilted Racero pill", "one ink toast at a time, countdown bar"],
                 ["Place panel", "cream rounded card", "ink panel, Racero title, mono labels"],
                 ["Picks, fit check, lap chip", "cream cards and pills", "ink panels, square buttons"],
-                ["Settings", "inside Controls", "small ink panel behind a gear tab"],
+                ["Settings", "inside Controls", "inside the Controls panel (a gear tab comes with step 6)"],
                 ["Key hints, joystick, gas/brake", "cream pills", "key caps and square ink buttons"],
                 ["Map", "already A", "—"],
                 ["/resume", "cream paper", "stays (it prints)"],
@@ -313,6 +326,42 @@ function HudB() {
         </div>
       </div>
     </>
+  );
+}
+
+// A looping copy of the boot (components/ui/StartLights.tsx) on the ink floor.
+function BootDemo() {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    let k = 0;
+    const id = window.setInterval(() => {
+      k = (k + 1) % 12; // 0..5 lights on, hold, out, pause
+      setN(k);
+    }, 450);
+    return () => window.clearInterval(id);
+  }, []);
+  const lit = n <= 5 ? n : n <= 7 ? 5 : 0;
+  const out = n > 7;
+  return (
+    <div className="relative grid h-[300px] place-items-center overflow-hidden bg-[#171928] [background-image:radial-gradient(#fff8ec44_1.2px,transparent_1.3px)] [background-size:22px_22px]">
+      <div className={`start-lights flex flex-col items-center ${out ? "is-out" : ""}`}>
+        <div className="hud-panel px-4 pb-4 pt-2.5">
+          <div className="mb-2.5 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.18em] text-cream/55">
+            <span>HG Racing</span>
+            <span className="text-red">Start</span>
+          </div>
+          <div className="flex gap-2.5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className={`start-pod flex flex-col gap-2 bg-[#11121c] p-2.5 ${i < lit ? "is-on" : ""}`}>
+                <span className="start-lamp" />
+                <span className="start-lamp" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.18em] text-cream/70">{out ? "Lights out" : lit < 3 ? "Building the island" : "Warming up"}</p>
+      </div>
+    </div>
   );
 }
 
