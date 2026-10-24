@@ -14,7 +14,7 @@ import Vehicle from "./Vehicle";
 import Places from "./Places";
 import { CameraRig, Sky, Sun, ZoneWatcher } from "./Rig";
 import { InteractionPoint } from "./Race";
-import { DayNight, Exposure, Spawns, Weather } from "./Effects";
+import { DayNight, Exposure, RainCycle, Spawns, Weather } from "./Effects";
 import Autopilot from "./autopilot/Autopilot";
 import Grass from "./Grass";
 import StartGarden from "./StartGarden";
@@ -70,6 +70,7 @@ export default function World() {
       <InteractionPoint />
       <Weather />
       <DayNight />
+      <RainCycle />
       <Grass />
       <Alive />
       <Autopilot />

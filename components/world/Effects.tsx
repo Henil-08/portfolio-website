@@ -5,7 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import { BallCollider, CuboidCollider, CylinderCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { carState } from "./carState";
-import { getState, subscribe, useWorld } from "./store";
+import { getState, setState, subscribe, useWorld } from "./store";
 import { dayNight } from "./daynight";
 import { heightAt } from "./terrain";
 import { BALL_R, Cone, Football, TYRE_H, TYRE_R, Tyre } from "./models/props";
@@ -130,6 +130,42 @@ export function DayNight() {
     dayNight.sunElevation = Math.sin(dayNight.t * Math.PI * 2);
     dayNight.night = THREE.MathUtils.smoothstep(-dayNight.sunElevation, -0.08, 0.2);
   });
+  return null;
+}
+
+// Showers at random times, like folio-2025 (MIT, public/vendor/LICENSE.md, Weather.js):
+// rain = humidity above 0.65 x clouds, both slow sine-product noise on a wall-clock
+// cycle, so every visitor gets the same sky. The original's humidity follows the
+// seasons; ours is fixed at 0.72, which rains ~10% of the time in ~5 min showers,
+// roughly once an hour. Only the edges switch the weather, so a manual set_scene sticks
+// until the next shower starts or stops.
+const RAIN_CYCLE = 240; // s, the original's day cycle
+const HUMIDITY = 0.72;
+const weatherNoise = (x: number) => Math.sin(x) * Math.sin(x * 1.678) * Math.sin(x * 2.345);
+export function rainAmount(now = Date.now()) {
+  const p = now / 1000 / RAIN_CYCLE;
+  const humidity = HUMIDITY + weatherNoise(p * 0.36) * 0.2;
+  const clouds = weatherNoise(p * 0.44);
+  return THREE.MathUtils.clamp((humidity - 0.65) / 0.35, 0, 1) * THREE.MathUtils.clamp(clouds, 0, 1);
+}
+
+export function RainCycle() {
+  useEffect(() => {
+    let raining: boolean | null = null;
+    const tick = () => {
+      const r = rainAmount();
+      const next = raining ? r > 0.06 : r > 0.12;
+      if (next === raining) return;
+      const first = raining === null;
+      raining = next;
+      const cur = getState().scene;
+      if (cur.weather === "snow" || (first && !next)) return;
+      setState({ scene: { ...cur, weather: next ? "rain" : "clear" } });
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, []);
   return null;
 }
 

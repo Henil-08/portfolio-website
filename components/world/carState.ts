@@ -7,6 +7,8 @@ export const carState = {
   forward: new THREE.Vector3(1, 0, 0),
   speed: 0, // m/s, signed along forward
   grounded: true,
+  /** Fitted tyres (wets in the rain) and the swap's progress, 0..1 (1 = not swapping). */
+  tyres: { wet: false, swap: 1 },
 };
 
 // The original ticker: real delta capped at 1/30 s, simulation runs at 2x.

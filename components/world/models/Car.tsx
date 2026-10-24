@@ -58,6 +58,7 @@ export const LIVERY = {
   red: "#d3121c",
   carbon: "#1a1b1f",
   yellow: "#ffc20e",
+  wet: "#1f7fe0", // full wets: blue sidewall band
   rubber: "#1c1c1f",
   gun: "#25272c",
 };
@@ -478,8 +479,9 @@ vec4 livery(vec3 p, vec3 n) {
 }
 `;
 
-// Tyre: soft rubber with a fat yellow sidewall band broken into logo blocks.
-const TYRE_GLSL = /* glsl */ `
+// Tyre: soft rubber with a fat sidewall band broken into logo blocks. Slicks have a
+// yellow band; wets a blue one and grooves cut across the tread.
+const tyreGlsl = (band: string, wet: boolean) => /* glsl */ `
 vec4 livery(vec3 p, vec3 n) {
   float r = length(p.xy);
   float side = lvAA(abs(p.z) - 0.1);
@@ -490,10 +492,15 @@ vec4 livery(vec3 p, vec3 n) {
   // small tick marks inside each block, like lettering
   float ticks = lvBand(fract(seg * 18.0), 0.0, 0.32) * lvBand(seg, 0.14, 0.62) * lvBand(r, 0.203, 0.217);
   float y = band * (1.0 - gaps) * (1.0 - ticks);
-  vec3 col = mix(${glslColor(LIVERY.rubber)}, ${Y}, y);
+  vec3 col = mix(${glslColor(LIVERY.rubber)}, ${band}, y);
+  ${wet ? `float tread = 1.0 - side;
+  float groove = lvBand(fract(a / 6.2832 * 28.0 + abs(p.z) * 3.2), 0.0, 0.22) * lvAA(abs(p.z) - 0.025) * tread;
+  col *= 1.0 - groove * 0.7;` : ""}
   return vec4(col, mix(0.82, 0.5, y));
 }
 `;
+const TYRE_GLSL = tyreGlsl(Y, false);
+const WET_GLSL = tyreGlsl(glslColor(LIVERY.wet), true);
 
 const MATS = new Map<LiveryName, ReturnType<typeof makeMaterials>>();
 function makeMaterials(name: LiveryName) {
@@ -513,6 +520,7 @@ function makeMaterials(name: LiveryName) {
     hole: physical("#050506", 0.9),
     mirror: physical("#c9ced6", 0.08, { metalness: 1 }),
     tyre: liveryMaterial("tyre-cute", TYRE_GLSL, { clearcoat: 0, roughness: 0.85 }),
+    tyreWet: liveryMaterial("tyre-wet", WET_GLSL, { clearcoat: 0, roughness: 0.85 }),
     rim: physical(LIVERY.gun, 0.45, { metalness: 0.4 }),
     hub: physical(L.body, 0.4, { metalness: 0.2, ...satin }),
     textWhite: physical(L.number, 0.4, satin),
@@ -612,13 +620,21 @@ function makeWheelGeometry() {
   return { tyre, rim, hub };
 }
 
+/** Slick and wet tyre materials, for swapping a wheel's tyre (`tyreRef`) without a re-render. */
+export function tyreMaterials(livery?: LiveryName) {
+  const name = livery ?? DEFAULT_LIVERY;
+  let m = MATS.get(name);
+  if (!m) MATS.set(name, (m = makeMaterials(name)));
+  return { slick: m.tyre, wet: m.tyreWet };
+}
+
 /** One wheel. Origin at wheel centre, rolling axis = local Z. Rear wheels: scale by REAR_WHEEL_SCALE. */
-export function CarWheel({ livery, ...props }: GroupProps & { livery?: LiveryName }) {
+export function CarWheel({ livery, wet = false, tyreRef, ...props }: GroupProps & { livery?: LiveryName; wet?: boolean; tyreRef?: React.Ref<THREE.Mesh> }) {
   const m = useMaterials(livery);
   const g = useMemo(() => (WHEEL_GEO ??= makeWheelGeometry()), []);
   return (
     <group {...props}>
-      <mesh geometry={g.tyre} material={m.tyre} castShadow receiveShadow />
+      <mesh ref={tyreRef} geometry={g.tyre} material={wet ? m.tyreWet : m.tyre} castShadow receiveShadow />
       <mesh geometry={g.rim} material={m.rim} castShadow />
       <mesh geometry={g.hub} material={m.hub} />
     </group>

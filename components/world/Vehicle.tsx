@@ -14,6 +14,7 @@ import * as THREE from "three";
 import {
   CarBody,
   CarWheel,
+  tyreMaterials,
   CHASSIS_HALF,
   REAR_WHEEL_SCALE,
   WHEEL_POSITIONS,
@@ -105,12 +106,22 @@ const parked = { on: true, p: new THREE.Vector3(), q: new THREE.Quaternion(), st
 const REPARK_AFTER = 0.4;
 const REPARK_SPEED = 0.12; // m/s, horizontal: only once it has all but stopped, so parking is never a visible jolt
 
+// Tyre swap when the weather turns (s): the whole stop, each wheel's share, the delay between wheels.
+const SWAP_TIME = 1.3;
+const SWAP_EACH = 0.95;
+const SWAP_STAGGER = 0.1;
+const SWAP_OUT = 0.5; // m the old tyre slides out along the axle
+
 export default function Vehicle() {
   const livery = useWorld((s) => s.livery);
   const body = useRef<RapierRigidBody>(null);
   const controller = useRef<VehicleController | null>(null);
   const wheelRefs = useRef<(THREE.Group | null)[]>([]);
   const spinRefs = useRef<(THREE.Group | null)[]>([]);
+  const swapRefs = useRef<(THREE.Group | null)[]>([]);
+  const tyreRefs = useRef<(THREE.Mesh | null)[]>([]);
+  // Tyres: slicks in the dry, wets in the rain. `t` runs 0..1 through a swap.
+  const tyres = useRef({ wet: null as boolean | null, to: false, t: 1 });
   const drs = useRef<THREE.Group>(null);
   const tipRefs = useRef<(THREE.Group | null)[]>([]);
   const tipA = useRef<THREE.Group | null>(null);
@@ -335,6 +346,48 @@ export default function Vehicle() {
     }
     snapWheels = false;
 
+    // Rain starts or stops: a quick pit-stop swap, each tyre pops off sideways and the
+    // new one springs on, a few hundredths apart. On load the right set is simply fitted.
+    const ty = tyres.current;
+    const wantWet = getState().scene.weather === "rain";
+    const mats = tyreMaterials(livery);
+    if (ty.wet === null) ty.wet = ty.to = wantWet;
+    else if (ty.t >= 1 && wantWet !== ty.wet) {
+      ty.to = wantWet;
+      ty.t = 0;
+    }
+    if (ty.t < 1) {
+      ty.t = Math.min(1, ty.t + Math.min(dt, 1 / 30) / SWAP_TIME);
+      for (let i = 0; i < WHEELS.length; i++) {
+        const g = swapRefs.current[i];
+        const m = tyreRefs.current[i];
+        if (!g || !m) continue;
+        const k = THREE.MathUtils.clamp((ty.t * SWAP_TIME - i * SWAP_STAGGER) / SWAP_EACH, 0, 1);
+        const side = Math.sign(WHEELS[i].pos.z) || 1;
+        if (k < 0.45) {
+          const out = (k / 0.45) ** 2;
+          g.position.z = side * SWAP_OUT * out;
+          g.scale.setScalar(1 - out);
+        } else {
+          m.material = ty.to ? mats.wet : mats.slick;
+          const u = (k - 0.45) / 0.55;
+          const c = 2.2; // back-out overshoot
+          const s = 1 + (c + 1) * (u - 1) ** 3 + c * (u - 1) ** 2;
+          g.position.z = side * SWAP_OUT * (1 - u) ** 2;
+          g.scale.setScalar(Math.max(0, s));
+        }
+      }
+      if (ty.t >= 1) {
+        ty.wet = ty.to;
+        for (const g of swapRefs.current) {
+          g?.position.setZ(0);
+          g?.scale.setScalar(1);
+        }
+      }
+    } else for (const m of tyreRefs.current) if (m) m.material = ty.wet ? mats.wet : mats.slick; // also after a livery change
+    carState.tyres.wet = ty.t < 1 ? ty.to : ty.wet;
+    carState.tyres.swap = ty.t;
+
     // The rain light glows a little at night; no headlights, it's a race car.
     if (rain.current) rain.current.material.emissiveIntensity = 0.4 + dayNight.night * 1.2;
 
@@ -454,10 +507,22 @@ export default function Vehicle() {
           >
             <group
               ref={(el) => {
-                spinRefs.current[i] = el;
+                swapRefs.current[i] = el;
               }}
             >
-              <CarWheel scale={(w.front ? 1 : REAR_WHEEL_SCALE) * S} livery={livery} />
+              <group
+                ref={(el) => {
+                  spinRefs.current[i] = el;
+                }}
+              >
+                <CarWheel
+                  scale={(w.front ? 1 : REAR_WHEEL_SCALE) * S}
+                  livery={livery}
+                  tyreRef={(el) => {
+                    tyreRefs.current[i] = el;
+                  }}
+                />
+              </group>
             </group>
           </group>
         ))}
