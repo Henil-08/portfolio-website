@@ -14,47 +14,74 @@ import { PLAZA } from "./timeline/data";
 export const ISLAND_RADIUS = 98;
 export const TRACK_WIDTH = 8;
 
-// A street circuit with a crossover, [x, z, height].
-// Main straight (DRS) -> T1 sweeper east -> the east esses over the river ->
-// NE hairpin -> the north tunnel straight, which runs UNDER the bridge -> the
-// climbing loop behind the town -> over the bridge, 4.5 m up -> a long descent
-// to the harbour bridge -> the west sweepers -> back onto the straight.
-// Flat world (owner, 4b-c): the land is level and the road is at 0 except the
-// crossover's ramps (cosine eased, under ~9%) and the low decks over the river
-// and the harbour arm, which keep a gap over the water.
+// A street circuit with a crossover, [x, z, height]: layout v5, traced from the
+// owner's sketch (docs/research/layout-v5-sketch.png, README "Next: track layout v5").
+// Main straight east along the bottom (pit lane inside it) -> up the east side with
+// an S, over the river on a low deck -> the top-right corner -> west along the top
+// -> the bridge loop, which climbs round and crosses its own entry 4.2 m up ->
+// west, down off the deck -> the Monaco hairpin round the pond, top left -> down
+// the west side -> the chicane round the harbour pocket, bottom left -> the straight.
+// Flat elsewhere; the ramps are cosine eased, under ~8%.
 export const TRACK_POINTS: [number, number, number][] = [
-  [-56, 41, 0],
-  [-10, 42, 0],
-  [34, 41, 0],
-  [54, 36, 0],
-  [64, 24, 1.0],
-  [62, 6, 1.2],
-  [52, -6, 0.3],
-  [62, -20, 0],
-  [76, -32, 0],
-  [86, -50, 0],
-  [80, -68, 0],
-  [62, -74, 0],
-  [44, -62, 0],
-  [28, -54, 0],
-  [12, -50, 0],
-  [-12, -50, 0],
-  [-26, -58, 0.4],
-  [-28, -70, 1.15],
-  [-14, -77, 2.46],
-  [2, -72, 3.76],
-  [4, -62, 4.27],
-  [1, -50, 4.5],
-  [-1, -38, 4.41],
-  [-10, -28, 4.14],
-  [-26, -25, 3.62],
-  [-42, -30, 2.94],
-  [-60, -36, 2.2],
-  [-78, -32, 1.68],
-  [-90, -18, 1.6],
-  [-92, 0, 1.8],
-  [-84, 18, 0.9],
-  [-72, 34, 0],
+  [-75.2, 42.8, 0],
+  [-47, 43.7, 0],
+  [-14.1, 43.5, 0],
+  [14.1, 42, 0],
+  [37.6, 39.8, 0],
+  [55.2, 35.8, 0],
+  [63.9, 28.1, 0.4],
+  [65.8, 17.1, 1.1],
+  [59.9, 8.3, 1],
+  [55.7, -0.5, 0.3],
+  [57.6, -10.4, 0],
+  [65.8, -19.2, 0],
+  [76.4, -28, 0],
+  [84.1, -39, 0],
+  [86.5, -48.9, 0],
+  [82.3, -57.7, 0],
+  [72.8, -63.2, 0],
+  [59.9, -63.2, 0],
+  [47, -57.7, 0],
+  [32.9, -50, 0],
+  [18.8, -44.5, 0],
+  [9.4, -42.3, 0],
+  [3.5, -36.8, 0],
+  [-7, -34.2, 0.14],
+  [-18.8, -39.4, 0.64],
+  [-24.4, -51.1, 1.43],
+  [-20.7, -62.5, 2.29],
+  [-9.9, -67.6, 3.07],
+  [1.2, -65, 3.7],
+  [7, -56.6, 4.06],
+  [7.8, -45.6, 4.2],
+  [5.9, -34.6, 4.2],
+  [-0.5, -26.2, 3.98],
+  [-14.1, -20.5, 3.22],
+  [-25.8, -18.8, 2.26],
+  [-42.3, -20.1, 1.03],
+  [-56.4, -24, 0.19],
+  [-65.8, -30.2, 0],
+  [-68.6, -39, 0],
+  [-63.4, -47.8, 0],
+  [-55.2, -56.6, 0],
+  [-52.2, -66.5, 0],
+  [-55.9, -75.3, 0],
+  [-64.6, -78.2, 0],
+  [-74, -76.4, 0],
+  [-81.8, -67.6, 0],
+  [-85.1, -54.4, 0],
+  [-85.5, -36.8, 0],
+  [-83.7, -21.4, 0],
+  [-75.2, -10.4, 0],
+  [-63.4, -6.4, 0],
+  [-50.5, -3.8, 0],
+  [-41.8, 2.8, 0],
+  [-39.5, 11.6, 0],
+  [-44.6, 17.8, 0],
+  [-58.8, 19.5, 0],
+  [-75.2, 21.3, 0],
+  [-83.2, 26.6, 0],
+  [-83.7, 35.8, 0],
 ];
 
 export const trackCurve = new THREE.CatmullRomCurve3(
@@ -121,6 +148,8 @@ export type Lake = { x: number; z: number; rx: number; rz: number; yaw: number }
 export const LAKES: Lake[] = [
   // The river's spring, in the hollow inside the north-east loop.
   { x: 60, z: -47, rx: 7.5, rz: 5.5, yaw: 0.4 },
+  // The pond inside the Monaco hairpin (v5 sketch).
+  { x: -69, z: -63, rx: 6.5, rz: 5, yaw: 0.5 },
 ];
 
 /**
@@ -327,7 +356,7 @@ const SECTOR_DEFS = [
   { n: 4, id: "waters", name: "Waters", place: "Waters", year: "2026 →", from: 0.7, to: 0.97 },
 ] as const;
 
-export const PIT = { z: 32, from: -34, to: 26, garageZ: 22 };
+export const PIT = { z: 34, from: -58, to: 40, garageZ: 24 }; // a lane the length of the straight (v5)
 
 // Pit entry and exit lanes: from the straight's inner lane into each end of the pit lane.
 export const PIT_LANE_WIDTH = 5.6;
@@ -358,9 +387,13 @@ const AWAY = new THREE.Vector3(-1, 0, -1).normalize();
 // a spot along the sector's stretch where that whole footprint stays clear of
 // every part of the track, inside the island, away from the infield zones.
 export const SCENE_FOOT = { hx: 14.5, back: 10.5, front: 1 };
-const INFIELD: [number, number][] = [[34, -23], [-2, -18], [-30, -20], [15, -21], [24, -39], [0, 3], [6, -78], [44, -44]];
+const INFIELD: [number, number][] = [[34, -23], [5, -10], [-25, -10], [15, -21], [24, -39], [0, 3], [44, -44]];
+
+/** Scenes already placed (centres), so the next one keeps clear of them. */
+const PLACED: [number, number][] = [];
 
 function footprintClear(cx: number, cz: number, rot: number) {
+  if (PLACED.some(([px, pz]) => Math.hypot(px - cx, pz - cz) < 32)) return false;
   const c = Math.cos(rot);
   const sn = Math.sin(rot);
   for (let i = 0; i <= 8; i++) {
@@ -382,8 +415,8 @@ function footprintClear(cx: number, cz: number, rot: number) {
 function placeScene(from: number, to: number) {
   const mid = (from + to) / 2;
   let best: { c: THREE.Vector3; rot: number; t: number; score: number } | null = null;
-  for (let k = 0; k <= 24; k++) {
-    const t = from + 0.02 + ((to - from - 0.04) * k) / 24;
+  for (let k = 0; k <= 40; k++) {
+    const t = from + 0.005 + ((to - from - 0.01) * k) / 40;
     const p = trackPoint(t);
     const tan = trackTangent(t);
     for (const side of [1, -1]) {
@@ -392,7 +425,8 @@ function placeScene(from: number, to: number) {
         const c = p.clone().addScaledVector(n, TRACK_WIDTH / 2 + off);
         const rot = Math.atan2(-n.x, -n.z); // local +Z faces the track
         if (!footprintClear(c.x, c.z, rot)) continue;
-        const score = Math.abs(t - mid) * 40 + off + (n.dot(AWAY) < 0 ? 6 : 0);
+        // prefer spots where the front (toward the road) faces the chase camera: n . AWAY near 1
+        const score = Math.abs(t - mid) * 40 + off + (1 - n.dot(AWAY)) * 14;
         if (!best || score < best.score) best = { c, rot, t, score };
       }
     }
@@ -408,6 +442,7 @@ function placeScene(from: number, to: number) {
 export const SECTORS = SECTOR_DEFS.map((d) => {
   const t = (d.from + d.to) / 2;
   const at = placeScene(d.from, d.to);
+  PLACED.push([at.c.x, at.c.z]);
   return {
     ...d,
     t,
@@ -496,8 +531,8 @@ export const zones: Zone[] = [
   })),
   // The park: each on its own grass island north of the garden (park/layout.ts).
   { id: "playbook", label: "Tyre wall", hint: "How I work with AI", pos: [34, -23], size: [11, 8], spawn: [26, -19, 0] },
-  { id: "podium", label: "Podium", hint: "Papers and patents", pos: [-2, -18], size: [10, 8], spawn: [6, -14, Math.PI] },
-  { id: "cricket", label: "Cricket", hint: "Off the clock", pos: [-46, -8], size: [22, 8], spawn: [-32, -8, Math.PI] },
+  { id: "podium", label: "Podium", hint: "Papers and patents", pos: [5, -10], size: [10, 8], spawn: [13, -6, Math.PI] },
+  { id: "cricket", label: "Cricket", hint: "Off the clock", pos: [-25, -10], size: [22, 8], spawn: [-10, -10, Math.PI] },
   { id: "football", label: "Football", hint: "Off the clock", pos: [15, -21], size: [18, 14], spawn: [3, -13, 0] },
   { id: "contact", label: "Mailbox", hint: "Say hi", pos: [24, -36], size: [9, 8], spawn: [14, -31, 0.67] },
 ];
