@@ -264,26 +264,31 @@ function InteractKey() {
   return null;
 }
 
+// One toast at a time, top centre, folio-2025's drop-in and suck-away curves, with a 2 px
+// bar counting down its time (store.ts toast: 2.6 s) in the toast's tone.
 function Toast() {
   const t = useWorld((s) => s.toast);
-  const bg = { red: "#ff4b3e", yellow: "#ffd23f", teal: "#2ec4b6" };
+  const bar = { red: "#ff4b3e", yellow: "#ffd23f", teal: "#2ec4b6" };
   return (
     <AnimatePresence>
       {t && (
         <motion.div
           key={t.id}
-          initial={{ y: -20, scale: 0.6, opacity: 0, rotate: -6 }}
-          animate={{ y: 0, scale: 1, opacity: 1, rotate: -3 }}
-          exit={{ y: -10, scale: 0.9, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 400, damping: 15 }}
-          className="pointer-events-none fixed left-1/2 top-24 z-40 -translate-x-1/2"
+          initial={{ y: "calc(-100% - 20px)" }}
+          animate={{ y: 0, scale: 1, transition: { duration: 0.6, ease: [0.4, 1.6, 0.65, 1] } }}
+          exit={{ y: "calc(-100% + 20px)", scale: 0, transition: { duration: 0.45, ease: [0.42, 0, 0.47, -0.55] } }}
+          className="pointer-events-none fixed left-1/2 top-4 z-40 w-[min(350px,calc(100%-40px))] -translate-x-1/2"
         >
-          <span
-            className="block rounded-xl px-6 py-3 font-racing text-3xl tracking-wider text-ink shadow-xl"
-            style={{ background: bg[t.tone], color: t.tone === "yellow" ? "#1f2133" : "#fff" }}
-          >
-            {t.text}
-          </span>
+          <div className="hud-panel px-5 pb-3.5 pt-4 text-center shadow-[0_0_4px_#0007]">
+            <motion.span
+              className="absolute inset-x-0 top-0 h-[2px] origin-right"
+              style={{ background: bar[t.tone] }}
+              initial={{ scaleX: 1 }}
+              animate={{ scaleX: 0 }}
+              transition={{ duration: 2.6, ease: "linear" }}
+            />
+            <span className="font-racing text-[22px] uppercase leading-none tracking-wide">{t.text}</span>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
