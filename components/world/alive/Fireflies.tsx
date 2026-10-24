@@ -2,15 +2,16 @@
 //
 // Five fireflies per anchor, a metre up, drifting on three slow sines with a
 // hashed time offset each; they fade in over the evening (the original tweens their
-// scale over 5 s when night starts). Anchors ring the cricket and football fields
-// instead of the original pole lights. Glow sprites are additive, one draw call.
+// scale over 5 s when night starts). Anchors ring the cricket and football fields,
+// the garden pond and beds, and the two lakes, instead of the original pole lights. Glow sprites are additive, one draw call.
 "use client";
 
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { dayNight } from "../daynight";
-import { zoneById } from "../layout";
+import { LAKES, zoneById } from "../layout";
+import { BEDS, POND } from "../garden/layout";
 import { heightAt } from "./ground";
 import { hash, seeded } from "./noise";
 import { makePuffGeometry, makePuffMaterial } from "./puffMaterial";
@@ -33,6 +34,22 @@ function anchors() {
       out.push(new THREE.Vector3(x, heightAt(x, zz), zz));
     }
   }
+  // the garden: round the pond and over the flower beds
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 + r();
+    const x = POND.x + Math.cos(a) * (POND.r + 1.5);
+    const zz = POND.z + Math.sin(a) * (POND.r + 1.5);
+    out.push(new THREE.Vector3(x, heightAt(x, zz), zz));
+  }
+  for (const b of BEDS) out.push(new THREE.Vector3(b.x, heightAt(b.x, b.z), b.z));
+  // the lakes' shores
+  for (const l of LAKES)
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 7) * Math.PI * 2 + r();
+      const x = l.x + Math.cos(a) * (l.rx + 1.5);
+      const zz = l.z + Math.sin(a) * (l.rz + 1.5);
+      out.push(new THREE.Vector3(x, Math.max(heightAt(x, zz), 0), zz));
+    }
   return out;
 }
 
@@ -53,7 +70,7 @@ function makeSystem() {
   return { count, base, geometry: makePuffGeometry(count), material: makePuffMaterial(true), scale: 0, time: 0 };
 }
 
-/** Night-time fireflies around the cricket and football fields. Mount once. */
+/** Night-time fireflies round the fields, the garden and the lakes. Mount once. */
 export function Fireflies() {
   const mesh = useRef<THREE.Mesh>(null);
   const sys = useRef<ReturnType<typeof makeSystem> | null>(null);
