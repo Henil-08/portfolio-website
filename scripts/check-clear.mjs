@@ -11,6 +11,7 @@ const S = await jiti.import(cwd + "/components/world/street/layoutStreet.ts");
 const ST = await jiti.import(cwd + "/components/world/street/standSpots.ts");
 const T = await jiti.import(cwd + "/components/world/street/town.ts");
 const B = await jiti.import(cwd + "/components/world/park/bushes.ts");
+const TS = await jiti.import(cwd + "/components/world/districts/townStreets.ts");
 
 const HALF = L.TRACK_WIDTH / 2;
 const lanes = L.pitRoadCurves().map((c) => c.getSpacedPoints(60));
@@ -41,5 +42,10 @@ for (const s of ST.STAND_SPOTS) {
 }
 for (const b of T.BUILDINGS) check("building", b.x, b.z, Math.min(b.w, b.d) / 2);
 for (const b of B.BUSHES ?? []) check("bush", b.x, b.z, 0.5 * b.s);
+const at = (m) => [m.elements[12], m.elements[14]];
+for (const m of TS.STREETS.bollards) check("bollard", ...at(m), 0.2);
+for (const m of [...TS.STREETS.tables, ...TS.STREETS.chairs]) check("cafe", ...at(m), 0.4);
+for (const t of TS.STREETS.trees) check("street tree", t.x, t.z, 0.6);
+for (const s of [TS.STREETS.busStop, TS.STREETS.kiosk].filter(Boolean)) check("stop/kiosk", s.x, s.z, 1.8);
 console.log(bad.length ? bad.join("\n") : "clear: nothing on the road or the pit lane");
 process.exit(bad.length ? 1 : 0);

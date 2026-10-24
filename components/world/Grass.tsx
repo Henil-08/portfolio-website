@@ -2,6 +2,7 @@
 // (wind from sources/Game/Wind.js, wheel tracks from sources/Game/Tracks.js + Terrain.js)
 "use client";
 
+import { paintStreets } from "./districts/townStreets";
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
@@ -107,6 +108,7 @@ function makeMask() {
   paintGarden(g, tx, s);
   paintParkSlabs(g, tx, s);
   paintWaterfront(g, tx, s);
+  paintStreets(g, tx, s);
   // Tyre walls at the corners.
   for (const w of TYRE_WALLS) {
     g.beginPath();

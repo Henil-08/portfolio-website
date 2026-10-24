@@ -22,6 +22,7 @@ import { HILLS, flowerGeometry } from "./hills";
 import { OLD_TOWN } from "./oldTown";
 import { PARK } from "./park";
 import { WATERSIDE, padGeometry, reedGeometry } from "./waterside";
+import Streets from "./Streets";
 
 /** Lantern glass: a soft glow by day, blooming at night. Owned here so it's safe to animate. */
 const glass = new THREE.MeshStandardMaterial({ color: "#ffd9a8", emissive: new THREE.Color("#ff9440"), emissiveIntensity: 0.1, roughness: 0.4, toneMapped: false });
@@ -62,6 +63,7 @@ export default function Districts() {
   });
   return (
     <group name="districts">
+      <Streets />
       {loose.map((k, i) => (
         <Movables key={i} kind={k} />
       ))}
