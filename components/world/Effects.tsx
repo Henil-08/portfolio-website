@@ -66,7 +66,7 @@ export function Weather() {
 
   if (weather === "clear") return null;
   return (
-    <points ref={ref} geometry={geo} frustumCulled={false}>
+    <points ref={ref} geometry={geo} frustumCulled={false} userData={{ noMap: true }}>
       <pointsMaterial
         color={weather === "rain" ? "#b8c8d8" : "#ffffff"}
         size={weather === "rain" ? 0.08 : 0.18}

@@ -306,5 +306,5 @@ export default function Grass({ mask = true }: { mask?: boolean }) {
     u.uCar.value.set(carState.pos.x, carState.pos.y, carState.pos.z, carState.grounded ? 1 : 0);
   });
 
-  return <mesh ref={mesh} visible={false} frustumCulled={false} receiveShadow />;
+  return <mesh ref={mesh} visible={false} frustumCulled={false} receiveShadow userData={{ noMap: true }} />;
 }

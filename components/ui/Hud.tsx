@@ -5,14 +5,13 @@ import { LIVERIES, LIVERY_NAMES } from "@/components/world/liveries";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { closeZone, getState, openZone, setState, teleport, useWorld } from "@/components/world/store";
-import { zones } from "@/components/world/layout";
+import { closeZone, getState, openZone, setState, useWorld } from "@/components/world/store";
 import { input } from "@/components/world/input";
 import { pop } from "@/components/world/sound";
 import { PanelBody, ProjectItem, zoneMeta } from "./Panels";
 import { projects } from "@/content/projects";
 import Ask from "./Ask";
-import { Minimap } from "./RaceHud";
+import MapMenu from "./MapMenu";
 import AutopilotHud from "./AutopilotHud";
 import FitPanel, { LapChip } from "./FitPanel";
 import RadioMessages from "./RadioMessages";
@@ -45,11 +44,15 @@ export default function Hud() {
 
 function TopBar() {
   const muted = useWorld((s) => s.muted);
+  const map = useWorld((s) => s.menuOpen);
+  const [entered, setEntered] = useState(false);
+  // slides away while the map is open, like the original's edge buttons
   return (
     <motion.div
       initial={{ y: -30, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ delay: 1.2, type: "spring", stiffness: 200, damping: 20 }}
+      animate={map ? { y: -80, opacity: 0 } : { y: 0, opacity: 1 }}
+      transition={map ? { duration: 0.15 } : { delay: entered ? 0.15 : 1.2, type: "spring", stiffness: 200, damping: 20 }}
+      onAnimationComplete={() => setEntered(true)}
       className="pointer-events-none fixed inset-x-0 top-0 z-30 flex items-start justify-between gap-3 p-3 sm:p-5"
     >
       <span />
@@ -209,21 +212,21 @@ function Controls() {
 }
 
 // Earned ones show their name; the rest stay hidden as hints.
-function Achievements() {
+export function Achievements({ dark = false }: { dark?: boolean }) {
   const got = useWorld((s) => s.achievements);
   return (
     <div className="mt-4">
-      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-soft">
+      <p className={`font-mono text-[11px] uppercase tracking-[0.16em] ${dark ? "text-cream/60" : "text-ink-soft"}`}>
         Achievements · {got.length}/{ACHIEVEMENTS.length}
       </p>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {ACHIEVEMENTS.map((a) =>
           got.includes(a.id) ? (
-            <span key={a.id} className="rounded-full bg-ink px-2.5 py-1 text-[11.5px] font-semibold text-white" title={a.how}>
+            <span key={a.id} className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold ${dark ? "bg-cream text-ink" : "bg-ink text-white"}`} title={a.how}>
               {a.name}
             </span>
           ) : (
-            <span key={a.id} className="rounded-full border border-dashed border-line px-2.5 py-1 text-[11.5px] text-ink-soft/70" title={a.how}>
+            <span key={a.id} className={`rounded-full border border-dashed px-2.5 py-1 text-[11.5px] ${dark ? "border-cream/25 text-cream/45" : "border-line text-ink-soft/70"}`} title={a.how}>
               ???
             </span>
           )
@@ -426,70 +429,5 @@ function Joystick() {
         </button>
       </div>
     </div>
-  );
-}
-
-function MapMenu() {
-  const open = useWorld((s) => s.menuOpen);
-  const found = useWorld((s) => s.found);
-  return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          className="fixed inset-0 z-40 grid place-items-center bg-ink/30 p-4 backdrop-blur-sm"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={() => setState({ menuOpen: false })}
-        >
-          <motion.div
-            initial={{ scale: 0.92, y: 20 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.95, y: 10 }}
-            transition={{ type: "spring", stiffness: 300, damping: 24 }}
-            className="toy-card no-scrollbar max-h-[90svh] w-full max-w-md overflow-y-auto rounded-[28px] p-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-end justify-between">
-              <p className="font-racing text-2xl tracking-wide text-ink">MAP</p>
-              <p className="font-mono text-[11px] text-ink-soft">
-                {found.length}/{zones.length} found
-              </p>
-            </div>
-            <div className="mx-auto mt-3 aspect-square w-full max-w-[220px] rounded-2xl bg-cream p-1">
-              <Minimap />
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              {zones.map((z) => (
-                <button
-                  key={z.id}
-                  onClick={() => teleport(z.id)}
-                  className="toy-btn flex items-center gap-2.5 rounded-2xl bg-cream px-3 py-2.5 text-left transition hover:bg-line"
-                >
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: zoneMeta[z.id].color }} />
-                  <span className="min-w-0">
-                    <span className="block truncate text-[14px] font-semibold text-ink">{z.label}</span>
-                    <span className="block truncate text-[11.5px] text-ink-soft">{z.hint}</span>
-                  </span>
-                  {found.includes(z.id) && <span className="ml-auto text-green">✓</span>}
-                </button>
-              ))}
-            </div>
-            <Achievements />
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setState({ menuOpen: false, fitOpen: true })}
-                className="toy-btn rounded-2xl bg-ink px-3 py-2.5 text-[13px] font-semibold text-white"
-              >
-                Hiring? Check the fit
-              </button>
-              <Link href="/resume" className="toy-btn grid place-items-center rounded-2xl bg-cream px-3 py-2.5 text-[13px] font-semibold text-ink">
-                One-page resume
-              </Link>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
   );
 }

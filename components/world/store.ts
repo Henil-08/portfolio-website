@@ -24,6 +24,8 @@ type State = {
   boosting: boolean;
   askOpen: boolean;
   menuOpen: boolean;
+  /** Top-down picture of the world for the map (MapCapture.tsx), and whether it was night. */
+  mapShot: { url: string; night: boolean } | null;
   teleport: { id: number; zone: ZoneId } | null;
   scene: { time: "day" | "golden" | "night"; weather: "clear" | "rain" | "snow" };
   shot: { id: number; style: "orbit" | "aerial" | "low" | "chase" } | null;
@@ -57,6 +59,7 @@ let state: State = {
   boosting: false,
   askOpen: false,
   menuOpen: false,
+  mapShot: null,
   teleport: null,
   scene: { time: "day", weather: "clear" },
   shot: null,

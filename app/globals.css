@@ -113,3 +113,25 @@ body {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Map (components/ui/MapMenu.tsx): folio-2025's framed map in the site's ink and cream. */
+.map-frame {
+  background: radial-gradient(ellipse at top left, #1f2133, #171928);
+}
+.map-frame::after,
+.map-tab::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px solid #fff8ec;
+  opacity: 0.35;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.map-tab::after {
+  bottom: 0;
+  border-bottom: none;
+}
+.map-tab:hover::after {
+  opacity: 0.8;
+}
