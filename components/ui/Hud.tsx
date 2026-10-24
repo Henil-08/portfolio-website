@@ -145,8 +145,8 @@ const CONTROLS: [string, string][] = [
 function LiveryPicker() {
   const current = useWorld((s) => s.livery);
   return (
-    <div className="mt-5 border-t border-line pt-4">
-      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-soft">Livery</p>
+    <div className="mt-5 border-t border-cream/15 pt-4">
+      <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-cream/55">Livery</p>
       <div className="mt-2.5 flex flex-wrap gap-2">
         {LIVERY_NAMES.map((n) => {
           const l = LIVERIES[n];
@@ -158,13 +158,13 @@ function LiveryPicker() {
               aria-label={l.label}
               aria-pressed={on}
               onClick={() => setState({ livery: n })}
-              className={`h-9 w-9 overflow-hidden rounded-full transition ${on ? "ring-2 ring-ink ring-offset-2" : "opacity-80 hover:opacity-100"}`}
+              className={`h-9 w-9 overflow-hidden transition ${on ? "outline outline-2 outline-offset-2 outline-cream" : "opacity-75 hover:opacity-100"}`}
               style={{ background: `linear-gradient(135deg, ${l.body} 0 55%, ${l.low} 55% 85%, ${l.accent} 85%)` }}
             />
           );
         })}
       </div>
-      <p className="mt-2 text-[12px] text-ink-soft">{LIVERIES[current].label}</p>
+      <p className="mt-2 text-[12.5px] text-cream/70">{LIVERIES[current].label}</p>
     </div>
   );
 }
@@ -175,29 +175,38 @@ function Controls() {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-40 grid place-items-center bg-ink/30 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-40 grid place-items-center p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
           onClick={() => setState({ controlsOpen: false })}
         >
           <motion.div
-            initial={{ scale: 0.94, y: 16 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.96 }}
-            className="toy-card w-full max-w-sm rounded-[28px] p-5"
+            initial={{ y: 12 }}
+            animate={{ y: 0 }}
+            exit={{ y: 8 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="hud-panel w-full max-w-sm p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="font-racing text-2xl tracking-wide text-ink">CONTROLS</p>
-            <div className="mt-4 divide-y divide-line">
+            <button
+              onClick={() => setState({ controlsOpen: false })}
+              aria-label="Close"
+              className="hud-tab hud-red absolute bottom-full right-2.5 grid h-10 w-12 place-items-center text-[15px]"
+            >
+              ✕
+            </button>
+            <p className="font-racing text-[24px] uppercase tracking-wide">Controls</p>
+            <div className="mt-4 divide-y divide-cream/10">
               {CONTROLS.map(([k, d]) => (
                 <div key={k} className="flex items-center justify-between gap-4 py-2.5">
                   <Key k={k} />
-                  <span className="text-right text-[13px] text-ink-soft">{d}</span>
+                  <span className="text-right text-[13px] text-cream/70">{d}</span>
                 </div>
               ))}
             </div>
-            <p className="mt-4 text-[12px] text-ink-soft/70">On a phone: thumb stick to steer, gas and brake on the right. A few keys are secret.</p>
+            <p className="mt-4 text-[12px] text-cream/50">On a phone: thumb stick to steer, gas and brake on the right. A few keys are secret.</p>
             <LiveryPicker />
           </motion.div>
         </motion.div>
@@ -311,26 +320,33 @@ function Hints() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ delay: 1.6 }}
-            className="toy-card pointer-events-none fixed bottom-5 left-1/2 z-20 hidden -translate-x-1/2 items-center gap-5 rounded-2xl px-5 py-3 text-[13px] text-ink-soft [@media(pointer:fine)]:flex"
+            className="hud-panel pointer-events-none fixed bottom-5 left-1/2 z-20 hidden -translate-x-1/2 items-center gap-2.5 px-5 py-3 font-mono text-[11px] uppercase tracking-[0.12em] text-cream/70 [@media(pointer:fine)]:flex"
           >
-            <Key k="W A S D" /> drive
-            <Key k="Shift" /> boost · DRS
-            <Key k="Space" /> brake
-            <Key k="R" /> reset
+            <Key k="W A S D" /> <span className="mr-3">drive</span>
+            <Key k="Shift" /> <span className="mr-3">boost · DRS</span>
+            <Key k="Space" /> <span className="mr-3">brake</span>
+            <Key k="R" /> <span className="mr-3">reset</span>
             <Key k="H" /> honk
           </motion.div>
         )}
       </AnimatePresence>
-      <div className="toy-card pointer-events-none fixed bottom-5 right-5 z-20 hidden rounded-2xl px-4 py-2 sm:block">
-        <span className="font-racing text-2xl tabular-nums text-ink">{speed}</span>
-        <span className="ml-1 text-[11px] text-ink-soft">km/h</span>
+      <div className="hud-panel pointer-events-none fixed bottom-5 right-5 z-20 hidden items-baseline px-4 py-2.5 sm:flex">
+        {/* Racero's digits change width: each sits in a fixed cell so the number never jitters */}
+        <span className="flex font-racing text-[26px] leading-none">
+          {String(speed).padStart(3, " ").split("").map((d, i) => (
+            <span key={i} className="inline-block w-[0.72em] text-center">
+              {d.trim()}
+            </span>
+          ))}
+        </span>
+        <span className="ml-1.5 font-mono text-[10.5px] uppercase tracking-[0.12em] text-cream/55">km/h</span>
       </div>
     </>
   );
 }
 
 function Key({ k }: { k: string }) {
-  return <kbd className="rounded-lg border border-line bg-white px-2 py-0.5 font-mono text-[11px] font-semibold text-ink shadow-[0_2px_0_#ece3d3]">{k}</kbd>;
+  return <kbd className="hud-key">{k}</kbd>;
 }
 
 // Touch: a thumb stick on the left, gas and brake on the right.
@@ -361,7 +377,7 @@ function Joystick() {
   return (
     <div className={`[@media(pointer:fine)]:hidden ${zone ? "hidden" : ""}`}>
       <div
-        className="fixed bottom-6 left-6 z-20 h-32 w-32 touch-none rounded-full border-2 border-white/70 bg-white/25 backdrop-blur"
+        className="fixed bottom-6 left-6 z-20 h-32 w-32 touch-none rounded-full border border-cream/50 bg-[#171928]/45"
         onPointerDown={(e) => {
           const r = e.currentTarget.getBoundingClientRect();
           origin.current = { x: r.left + r.width / 2, y: r.top + r.height / 2, id: e.pointerId };
@@ -381,26 +397,26 @@ function Joystick() {
         }}
       >
         <span
-          className="absolute left-1/2 top-1/2 h-14 w-14 rounded-full bg-white shadow-lg"
+          className="absolute left-1/2 top-1/2 h-14 w-14 rounded-full border-2 border-[#171928] bg-cream shadow-[0_2px_0_#0006]"
           style={{ transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))` }}
         />
       </div>
       <div className="fixed bottom-6 right-6 z-20 flex touch-none items-end gap-3">
         <button
-          className="toy-btn grid h-16 w-16 place-items-center rounded-2xl bg-white/85 font-display text-sm font-bold text-ink"
+          className="hud-panel grid h-16 w-16 place-items-center font-mono text-[11px] font-semibold uppercase tracking-[0.12em] active:translate-y-0.5"
           onPointerDown={pedal("back", 1)}
           onPointerUp={pedal("back", 0)}
           onPointerLeave={pedal("back", 0)}
         >
-          BRAKE
+          Brake
         </button>
         <button
-          className="toy-btn grid h-20 w-20 place-items-center rounded-2xl bg-red font-display text-sm font-bold text-white"
+          className="hud-red grid h-20 w-20 place-items-center font-mono text-[12px] font-semibold uppercase tracking-[0.12em] shadow-[0_3px_0_#0006] active:translate-y-0.5"
           onPointerDown={pedal("forward", 1)}
           onPointerUp={pedal("forward", 0)}
           onPointerLeave={pedal("forward", 0)}
         >
-          GAS
+          Gas
         </button>
       </div>
     </div>
