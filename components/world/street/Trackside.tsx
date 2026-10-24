@@ -72,8 +72,17 @@ const PAINT = (() => {
       put(0, R + h / 2, Z0 - row * STEP_D - STEP_D / 2, W, h, STEP_D + 0.02, WHITE);
       put(0, R + h + 0.04, Z0 - row * STEP_D - STEP_D * 0.62, W - 0.3, 0.1, 0.36, row === ROWS - 1 ? RED : GREY);
     }
-    put(0, roofY / 2, backZ - 0.12, W + 0.4, roofY, 0.25, INK);
-    put(0, roofY - 0.6, backZ - 0.12, W + 0.42, 0.18, 0.26, RED);
+    if (s.open) {
+      // back to the camera: the back wall stops at the top tier, steel posts carry the roof
+      const top = R + ROWS * STEP_H + 0.3;
+      put(0, top / 2, backZ - 0.12, W + 0.4, top, 0.25, WHITE);
+      put(0, top - 0.09, backZ - 0.12, W + 0.42, 0.18, 0.26, RED);
+      const postH = roofY - 0.25 - top; // stops under the tilted roof
+      for (const sx of [-W / 6, W / 6]) pst(sx, top + postH / 2, backZ + 0.1, 0.1, postH, 0.1, LIGHT);
+    } else {
+      put(0, roofY / 2, backZ - 0.12, W + 0.4, roofY, 0.25, INK);
+      put(0, roofY - 0.6, backZ - 0.12, W + 0.42, 0.18, 0.26, RED);
+    }
     for (const sx of [-1, 1]) put(sx * (W / 2 + 0.06), R + (ROWS * STEP_H + 0.4) / 2, Z0 - (ROWS * STEP_D) / 2 + 0.1, 0.12, ROWS * STEP_H + 0.4, ROWS * STEP_D + 0.4, WHITE);
     put(0, R + 0.25, Z0 + 0.1, W, 0.5, 0.08, WHITE);
     put(-W / 2 + 0.6, R + 0.25, Z0 + 0.105, 1.2, 0.5, 0.08, RED);
@@ -168,6 +177,18 @@ function meshTexture() {
   return t;
 }
 
+/** A catch fence in front of each stand, between the crowd and the road. */
+const STAND_FENCES = STAND_SPOTS.map((s) => {
+  const c = Math.cos(s.yaw);
+  const sn = Math.sin(s.yaw);
+  const pts: THREE.Vector3[] = [];
+  for (let lx = -W / 2 - 1; lx <= W / 2 + 1.01; lx += (W + 2) / 8) {
+    const lz = Z0 + 1.3;
+    pts.push(new THREE.Vector3(s.x + lx * c + lz * sn, 0, s.z - lx * sn + lz * c));
+  }
+  return { pts };
+});
+
 const FENCE = (() => {
   const pos: number[] = [];
   const uv: number[] = [];
@@ -175,7 +196,7 @@ const FENCE = (() => {
   const posts = { m: [] as THREE.Matrix4[] };
   const rails = { m: [] as THREE.Matrix4[] };
   const y0 = 0.15;
-  for (const run of FENCES) {
+  for (const run of [...FENCES, ...STAND_FENCES]) {
     let acc = 0;
     const base = pos.length / 3;
     run.pts.forEach((p, i) => {
@@ -316,7 +337,7 @@ export function Trackside() {
           </Label>
         </group>
       ))}
-      {STAND_SPOTS.map((s, i) => (
+      {STAND_SPOTS.filter((s) => s.label).map((s, i) => (
         <group key={i} position={[s.x, heightAt(s.x, s.z), s.z]} rotation={[0, s.yaw, 0]}>
           <Label position={[-W / 2 + 1.5, s.raise + 0.27, Z0 + 0.16]} anchorX="left" fontSize={0.24} color={C.ink} letterSpacing={0.1}>
             {`HG RACING   ${s.label}`}
