@@ -84,7 +84,7 @@ text in the world. The UI and the opening use the site's own language, not folio
 #1f2133 / #171928, cream #fff8ec, racing red #ff4b3e, Geist Mono labels, quiet broadcast graphics.
 Fonts are fixed: Racero (display, `font-racing`), Geist (sans), Geist Mono (labels).
 
-## Where it stands (2026-10-23, night)
+## Where it stands (2026-10-23, late night)
 
 The world is layout v5 (README "Track layout v5", docs/research/layout-v5-sketch.png): the main
 straight with a pit lane its whole length, the east side's S over the river on a low deck, the bridge
@@ -93,13 +93,16 @@ chicane round a green block with the garden pond. The world is flat (land away f
 The car starts in front of HENIL GAJJAR under a shade tree, on the garden path that leads past the
 garages to the pit lane. The opening is folio-2025's sequence in the site's colours. Tyre walls, rocks,
 benches, lanterns, crates, cones and letters can be knocked about and tidy up when the car is 45 m
-away. The car parks dead still at rest (re-parks when left alone; damped stop). Commit history has
-the details; everything in 4b a-g, 4c, 4d and 4e below is done.
+away. The car parks dead still at rest (re-parks when left alone; damped stop). Floodlight towers
+light the lap at night, a pit wall with a fence separates the pit lane, grandstands line the main
+straight and T1, showers come and go (wets go on in a quick swap), and M opens a map rendered from
+the real world with pins that teleport behind a wipe. Commit history has the details; everything in
+4b, 4c, 4d, 4e and 5 below is done.
 
 Next, in order (the first unticked box in the steps below is the one to do):
 1. **4e owner check** items left open below (only if the owner reports them again).
 2. 4b h-k are done (floodlights, pit wall, grandstands, rain + tyre swap).
-3. **Step 5** map menu (top-down render of the real v5 world), then steps 6-9.
+3. Step 5 (map) is done; next is **step 6** (interaction prompt), then 7-9.
 4. Owner said "later": credit folio-2025 / Bruno Simon in the main README (only there).
 
 ## Steps (do them in order; first unticked one is next)
@@ -345,8 +348,9 @@ Owns components/ui/** (MapMenu in Hud.tsx) and a new components/world/MapCapture
 - [x] (0e9cef0) world/Overlay.tsx `wipeTo(zone)`: the original's wipe (2 s in, 4 s out, swooshes) in ink.
       Was: Click a pin: teleport (`setState({ teleport: { id, zone } })`) behind Bruno's diagonal wipe
       (his Overlay.js); M or Esc closes.
-- [ ] Achievements as a quiet second tab; keep the job-fit check reachable (`fitOpen`).
-- Accept when: the map is something you'd want to open; works on a 390x844 viewport.
+- [x] (8a99388) Achievements as a quiet second tab, with the fit check (`fitOpen`) and the resume under it.
+- Accept when: the map is something you'd want to open; works on a 390x844 viewport (checked headless;
+  owner to judge in a real browser).
 
 ### 6. Interaction prompt like Bruno's (E)
 Owns new components/world/ui3d/** and Race.tsx (`InteractionPoint`, the current HTML pill).
