@@ -1,6 +1,7 @@
 "use client";
 
-import { openLink } from "@/components/world/social";
+import { LINKS, openLink } from "@/components/world/social";
+import { zoneById } from "@/components/world/layout";
 import { LIVERIES, LIVERY_NAMES } from "@/components/world/liveries";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
@@ -34,6 +35,7 @@ export default function Hud() {
       <Toast />
       <Hints />
       <Joystick />
+      <TouchInteract />
       <Ask />
       <MapMenu />
       <Controls />
@@ -347,6 +349,31 @@ function Hints() {
 
 function Key({ k }: { k: string }) {
   return <kbd className="hud-key">{k}</kbd>;
+}
+
+// Touch has no E key: like the original's bottom interact button, a tap target for the
+// open prompt (the in-world diamond can be tapped too).
+function TouchInteract() {
+  const near = useWorld((s) => s.near);
+  const link = useWorld((s) => s.nearLink);
+  const zone = useWorld((s) => s.zone);
+  const label = link ? LINKS.find((l) => l.key === link)?.name : near ? zoneById[near].label : null;
+  return (
+    <AnimatePresence>
+      {label && !zone && (
+        <motion.button
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1, transition: { duration: 0.6, ease: [0.4, 1.6, 0.65, 1] } }}
+          exit={{ y: 20, opacity: 0, transition: { duration: 0.3 } }}
+          onClick={() => (link ? openLink(link) : near && openZone(near))}
+          className="hud-panel fixed bottom-36 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 py-2.5 pl-3 pr-4 [@media(pointer:fine)]:hidden"
+        >
+          <span className="h-3.5 w-3.5 rotate-45 border-2 border-cream bg-red" />
+          <span className="font-mono text-[11.5px] uppercase tracking-[0.14em]">Open {label}</span>
+        </motion.button>
+      )}
+    </AnimatePresence>
+  );
 }
 
 // Touch: a thumb stick on the left, gas and brake on the right.

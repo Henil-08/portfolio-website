@@ -13,7 +13,7 @@ import Island from "./Island";
 import Vehicle from "./Vehicle";
 import Places from "./Places";
 import { CameraRig, Sky, Sun, ZoneWatcher } from "./Rig";
-import { InteractionPoint } from "./Race";
+import InteractivePoints from "./ui3d/InteractivePoints";
 import { DayNight, Exposure, RainCycle, Spawns, Weather } from "./Effects";
 import Autopilot from "./autopilot/Autopilot";
 import Grass from "./Grass";
@@ -69,7 +69,7 @@ export default function World() {
       <RevealDriver />
       <IntroLabel />
       <ZoneWatcher />
-      <InteractionPoint />
+      <InteractivePoints />
       <Weather />
       <DayNight />
       <RainCycle />

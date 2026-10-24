@@ -348,6 +348,11 @@ export function swoosh(dir: "in" | "out") {
   void play(`swoosh-${dir}`, { vol: 0.25 });
 }
 
+/** The interaction prompt opening and closing (public/sfx/paper-*.mp3, see public/vendor/NOTICE.md). */
+export function paper(open: boolean) {
+  void play(open ? "paper-open" : "paper-close", { vol: 0.25 });
+}
+
 export function cheer() {
   void play("crowd", { vol: 0.5 });
 }
