@@ -1,13 +1,26 @@
 "use client";
 
 // The map (M): a top-down picture of the real world (components/world/MapCapture.tsx) in a
-// framed panel, after folio-2025's map modal, in the site's ink and cream.
+// framed panel, after folio-2025's map modal (sources/Game/Map.js, style/map.styl), in the
+// site's ink and cream. Diamond pins for every place and contact medallion; labels pop
+// on hover with the original's springy curves (on touch, the first tap shows the label
+// and the second goes); the player arrow turns with the car.
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { carState } from "@/components/world/carState";
+import { worldToMap } from "@/components/world/MapCapture";
 import { setState, teleport, useWorld } from "@/components/world/store";
-import { zones } from "@/components/world/layout";
-import { zoneMeta } from "./Panels";
+import { zones, type ZoneId } from "@/components/world/layout";
+import { LINKS, LINK_SPOTS } from "@/components/world/social";
 import { Achievements } from "./Hud";
+
+type Pin = { id: string; label: string; x: number; y: number; zone: ZoneId; small?: boolean };
+
+const PINS: Pin[] = [
+  ...zones.map((z) => ({ id: z.id, label: z.label, zone: z.id, ...worldToMap(z.pos[0], z.pos[1]) })),
+  ...LINKS.map((l, i) => ({ id: `link-${l.key}`, label: l.name, zone: "contact" as ZoneId, small: true, ...worldToMap(LINK_SPOTS[i][0], LINK_SPOTS[i][1]) })),
+];
 
 export default function MapMenu() {
   const open = useWorld((s) => s.menuOpen);
@@ -25,24 +38,10 @@ export default function MapMenu() {
           transition={{ duration: 0.3 }}
           onClick={close}
         >
-          <div
-            className="map-frame relative aspect-square w-[min(94vw,calc(100svh-7rem),900px)] shrink-0 select-none"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={close}
-              aria-label="Close map"
-              className="map-tab group absolute bottom-full right-2.5 h-11 w-[50px] overflow-hidden"
-            >
+          <div className="map-frame relative aspect-square w-[min(94vw,calc(100svh-7rem),900px)] shrink-0 select-none" onClick={(e) => e.stopPropagation()}>
+            <button onClick={close} aria-label="Close map" className="map-tab group absolute bottom-full right-2.5 h-11 w-[50px] overflow-hidden">
               <span className="absolute inset-x-0 top-0 h-[calc(100%+4px)] bg-[radial-gradient(ellipse_at_top_right,#ff4b3e,#a3241c)] transition-transform duration-150 group-hover:-translate-y-1" />
-              <svg
-                viewBox="0 0 24 24"
-                className="relative mx-auto h-[18px] w-[18px]"
-                fill="none"
-                stroke="#fff8ec"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-              >
+              <svg viewBox="0 0 24 24" className="relative mx-auto h-[18px] w-[18px]" fill="none" stroke="#fff8ec" strokeWidth="2.4" strokeLinecap="round">
                 <path d="M6 6l12 12M18 6 6 18" />
               </svg>
             </button>
@@ -52,52 +51,25 @@ export default function MapMenu() {
                   key={shot.url}
                   src={shot.url}
                   alt="Top-down map of the island"
-                  className="absolute inset-0 h-full w-full"
+                  className="pointer-events-none absolute inset-0 h-full w-full"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.3 }}
                   draggable={false}
                 />
               )}
+              <Pins found={found} />
+              <Player />
             </div>
           </div>
 
-          <div
-            className="mt-4 w-[min(94vw,calc(100svh-7rem),900px)] rounded-[22px] bg-[#1f2133] p-4 text-cream"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {zones.map((z) => (
-                <button
-                  key={z.id}
-                  onClick={() => teleport(z.id)}
-                  className="flex items-center gap-2.5 rounded-xl bg-white/5 px-3 py-2 text-left transition hover:bg-white/10"
-                >
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rotate-45"
-                    style={{ background: zoneMeta[z.id].color }}
-                  />
-                  <span className="min-w-0 truncate text-[13px] font-semibold">
-                    {z.label}
-                  </span>
-                  {found.includes(z.id) && (
-                    <span className="ml-auto text-green">✓</span>
-                  )}
-                </button>
-              ))}
-            </div>
+          <div className="mt-4 w-[min(94vw,calc(100svh-7rem),900px)] rounded-[22px] bg-[#1f2133] p-4 text-cream" onClick={(e) => e.stopPropagation()}>
             <Achievements dark />
             <div className="mt-4 grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setState({ menuOpen: false, fitOpen: true })}
-                className="rounded-xl bg-red px-3 py-2.5 text-[13px] font-semibold text-white"
-              >
+              <button onClick={() => setState({ menuOpen: false, fitOpen: true })} className="rounded-xl bg-red px-3 py-2.5 text-[13px] font-semibold text-white">
                 Hiring? Check the fit
               </button>
-              <Link
-                href="/resume"
-                className="grid place-items-center rounded-xl bg-cream px-3 py-2.5 text-[13px] font-semibold text-ink"
-              >
+              <Link href="/resume" className="grid place-items-center rounded-xl bg-cream px-3 py-2.5 text-[13px] font-semibold text-ink">
                 One-page resume
               </Link>
             </div>
@@ -105,5 +77,75 @@ export default function MapMenu() {
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+function Pins({ found }: { found: ZoneId[] }) {
+  const [touch] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches);
+  const [active, setActive] = useState<string | null>(null);
+  const go = (p: Pin) => {
+    if (touch && active !== p.id) return setActive(p.id);
+    teleport(p.zone);
+  };
+  return (
+    <>
+      {PINS.map((p) => (
+        <button
+          key={p.id}
+          onClick={() => go(p)}
+          aria-label={p.label}
+          className={`map-pin group absolute -ml-5 -mt-5 h-10 w-10 ${active === p.id ? "is-active" : ""}`}
+          style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%`, zIndex: Math.round(p.y * 1000) }}
+        >
+          <span
+            className={`absolute left-1/2 top-1/2 rotate-45 border-ink shadow-[0_0_4px_#1f213377] ${found.includes(p.zone) && !p.small ? "bg-red" : "bg-cream"} ${
+              p.small ? "-ml-[5px] -mt-[5px] h-[10px] w-[10px] border-[2.5px]" : "-ml-2 -mt-2 h-4 w-4 border-[3.5px] sm:-ml-2.5 sm:-mt-2.5 sm:h-5 sm:w-5 sm:border-4"
+            }`}
+          />
+          <span className="pointer-events-none absolute bottom-[calc(100%-6px)] left-1/2 flex w-0 justify-center">
+            <span className="map-pin-name whitespace-nowrap bg-[#171928] px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.08em] text-cream shadow-[0_0_4px_#0007] sm:text-[12.5px]">
+              {p.label}
+            </span>
+          </span>
+        </button>
+      ))}
+    </>
+  );
+}
+
+// The car on the map: a red arrow that points where the car points.
+function Player() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let raf = 0;
+    let lx = NaN;
+    let lz = NaN;
+    let la = NaN;
+    const tick = () => {
+      raf = requestAnimationFrame(tick);
+      const el = ref.current;
+      if (!el) return;
+      const x = Math.round(carState.pos.x * 2) / 2;
+      const z = Math.round(carState.pos.z * 2) / 2;
+      // +x right and +z down on the map, so the bearing on screen is atan2(fz, fx)
+      const a = Math.round(Math.atan2(carState.forward.z, carState.forward.x) * 50) / 50;
+      if (x === lx && z === lz && a === la) return;
+      lx = x;
+      lz = z;
+      la = a;
+      const m = worldToMap(x, z);
+      el.style.left = `${m.x * 100}%`;
+      el.style.top = `${m.y * 100}%`;
+      el.style.transform = `rotate(${a}rad)`;
+    };
+    tick();
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return (
+    <div ref={ref} className="pointer-events-none absolute z-[2000] h-0 w-0">
+      <svg viewBox="-20 -20 40 40" className="absolute -left-4 -top-4 h-8 w-8 drop-shadow-[0_0_3px_#1f2133aa] sm:-left-5 sm:-top-5 sm:h-10 sm:w-10">
+        <path d="M14 0 -10 -11 -5 0 -10 11Z" fill="#ff4b3e" stroke="#fff8ec" strokeWidth="3" strokeLinejoin="round" />
+      </svg>
+    </div>
   );
 }
