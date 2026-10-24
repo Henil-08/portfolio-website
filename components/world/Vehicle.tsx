@@ -388,8 +388,11 @@ export default function Vehicle() {
     carState.tyres.wet = ty.t < 1 ? ty.to : ty.wet;
     carState.tyres.swap = ty.t;
 
-    // The rain light glows a little at night; no headlights, it's a race car.
-    if (rain.current) rain.current.material.emissiveIntensity = 0.4 + dayNight.night * 1.2;
+    // The rain light glows a little, more at night, and flares as a brake light (handbrake,
+    // or S while still rolling forward); no headlights, it's a race car. Not tone mapped,
+    // so the flare blooms.
+    const brakeLight = input.handbrake || (input.back > 0 && carState.speed > 1);
+    if (rain.current) rain.current.material.emissiveIntensity = brakeLight ? 4.5 : 0.35 + dayNight.night * 0.9;
 
     // DRS: the flap opens while boosting.
     if (drs.current) {
@@ -479,7 +482,7 @@ export default function Vehicle() {
         />
         <mesh ref={rain} position={[-1.5 * S, -0.05 * S, 0]} scale={S}>
         <boxGeometry args={[0.04, 0.07, 0.16]} />
-        <meshStandardMaterial color="#ff2a1f" emissive="#ff2a1f" emissiveIntensity={0.4} />
+        <meshStandardMaterial color="#ff2a1f" emissive="#ff2a1f" emissiveIntensity={0.4} toneMapped={false} />
       </mesh>
         <group scale={S}>
           <CarBody brakeLight={false} drsRef={drs} livery={livery}>
