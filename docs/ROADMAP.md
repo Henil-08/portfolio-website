@@ -102,7 +102,7 @@ the real world with pins that teleport behind a wipe. Commit history has the det
 Next, in order (the first unticked box in the steps below is the one to do):
 1. **4e owner check** items left open below (only if the owner reports them again).
 2. 4b h-k are done (floodlights, pit wall, grandstands, rain + tyre swap).
-3. Step 5 (map), the 4f HUD move and the new opening are done; next is **step 6** (in-world E prompt).
+3. Steps 5 and 6, the 4f HUD move and the new opening are done; next is **step 7** (night).
 4. Owner said "later": credit folio-2025 / Bruno Simon in the main README (only there).
 
 ## Steps (do them in order; first unticked one is next)
@@ -370,15 +370,16 @@ Owns components/ui/** (MapMenu in Hud.tsx) and a new components/world/MapCapture
 
 ### 6. Interaction prompt like Bruno's (E)
 Owns new components/world/ui3d/** and Race.tsx (`InteractionPoint`, the current HTML pill).
-- [ ] Port Bruno's InteractivePoints.js (research brief §3): in-world diamond with an SDF outline,
+- [x] (a26859c) world/ui3d/InteractivePoints.tsx; touch gets a bottom Open button (Hud.tsx `TouchInteract`).
+      Was: Port Bruno's InteractivePoints.js (research brief §3): in-world diamond with an SDF outline,
       key icon, label sliding out from the diamond, states HIDDEN / CONCEALED / OPEN with his gsap
       eases (elastic open 1.5 s), fixed tilt for our chase camera, drawn on top while open.
       Concealed diamonds sit at every place; open on the nearest within reach. Works for zones
       (`near`) and contact logos (`nearLink`). Remove the HTML pill.
-- [ ] Opened panel (Panels.tsx): dark translucent gradient, Racero title only, Geist body,
+- [x] (4c77845, 4f) Opened panel (Panels.tsx): dark translucent gradient, Racero title only, Geist body,
       Geist Mono labels, 0.3 s fade/slide, no pills.
-- [ ] Toasts (Hud.tsx Toast): Bruno's single queued toast, top-centre, 2 px countdown bar.
-- [ ] Top-bar buttons and bottom key hints in the same language; settings in its own small panel
+- [x] (5c6d9f4, 4f) Toasts (Hud.tsx Toast): Bruno's single queued toast, top-centre, 2 px countdown bar.
+- [x] (b680f08, badbcf7, b742fc6) Top-bar buttons and bottom key hints in the same language; settings in its own small panel
       (gear: Livery, Sound, Voice) instead of under Controls.
 
 ### 7. Night
