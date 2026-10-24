@@ -98,9 +98,7 @@ the details; everything in 4b a-g, 4c, 4d and 4e below is done.
 
 Next, in order (the first unticked box in the steps below is the one to do):
 1. **4e owner check** items left open below (only if the owner reports them again).
-2. **4b h** floodlights instead of street lamps; **4b i** pit wall + fence between the pit lane and
-   the straight (the lane itself exists since v5: `PIT` z 32, x -58..40); **4b j** grandstands;
-   **4b k** random rain with a tyre swap.
+2. 4b h-k are done (floodlights, pit wall, grandstands, rain + tyre swap).
 3. **Step 5** map menu (top-down render of the real v5 world), then steps 6-9.
 4. Owner said "later": credit folio-2025 / Bruno Simon in the main README (only there).
 
@@ -283,7 +281,11 @@ straight with pit wall, fences and stands). Do these in order, one commit per it
       camera's line; open backs, catch fence in front of every stand. The gantry and promenade leave a gap x -39..26.
       Was: Grandstands: lots of them along the main straight and round T1 (models/props/Grandstand.tsx,
       `GRANDSTAND` in layout.ts, street/Trackside.tsx), covered, with crowds, fences in front.
-- [ ] k. Random rain with a tyre change: weather (Effects.tsx, store `scene.weather`) turns to rain at
+- [x] k. (9379320) Effects.tsx `RainCycle`/`rainAmount` (the original's humidity x clouds noise, humidity 0.72: ~10% of
+      the time, ~5 min showers about hourly, same sky for every visitor); Vehicle.tsx swap (`SWAP_*`), wets in
+      Car.tsx (`LIVERY.wet` blue band + tread grooves), `carState.tyres`. Rain itself is still the old point drops
+      (folio-2025's RainLines.js is the next step up if the owner wants it).
+      Was: Random rain with a tyre change: weather (Effects.tsx, store `scene.weather`) turns to rain at
       random times for a while, like Bruno's. When rain starts the car's slicks animate off and wet
       tyres (blue band) come on, a quick pit-stop style swap; back to slicks when it stops
       (models/Car.tsx `CarWheel`, `LIVERIES`). Frequency random, not too often.
