@@ -36,7 +36,7 @@ What the sketch asks for:
    - down the west side, a chicane round a grass block at the bottom left, onto the straight.
 4. **Redistribute.** Places, sector scenes, the garden, the timeline, the name and the park islands move where they fit best inside the new shape. The start stays in front of the name, with a lane that leads onto the circuit (`components/world/access.ts`), rerouted to the new pit exit.
 
-How it landed: the river crosses the east side's S on a low deck, the harbour arm ends in the bottom-left chicane's pocket, the hairpin has its own pond, and the four story scenes sit where their fronts face the camera (Team Stallions on the top straight). Still to do: pit wall and fences between the pit lane and the straight (docs/ROADMAP.md 4b i).
+How it landed: the river crosses the east side's S on a low deck, the harbour arm ends in the bottom-left chicane's pocket, the hairpin has its own pond, and the four story scenes sit where their fronts face the camera (Team Stallions on the top straight). The pit wall and its fence now separate the lane from the straight.
 
 ## Stack
 

@@ -14,7 +14,7 @@ small, verified with headless screenshots, and committed on its own
 
 | Area | Files |
 |---|---|
-| Track, places, zones, crossings | components/world/layout.ts (`TRACK_POINTS`, `SECTORS`, `zones`, `PIT`, `TIMELINE`, `CROSSINGS`, `onBridge`, `nearCrossing`, `nearestT3`) |
+| Track, places, zones, crossings | components/world/layout.ts (`TRACK_POINTS`, `SECTORS`, `zones`, `PIT`, `PIT_WALL`, `TIMELINE`, `CROSSINGS`, `onBridge`, `nearCrossing`, `nearestT3`) |
 | Terrain heights, pads, slope limit | components/world/terrain.ts (`heightAt`, `heightTexture`) |
 | Road ribbon, kerbs, colliders | components/world/Island.tsx |
 | Bridge | components/world/Bridge.tsx |
@@ -99,7 +99,7 @@ the details; everything in 4b a-g, 4c, 4d and 4e below is done.
 Next, in order (the first unticked box in the steps below is the one to do):
 1. **4e owner check** items left open below (only if the owner reports them again).
 2. **4b h** floodlights instead of street lamps; **4b i** pit wall + fence between the pit lane and
-   the straight (the lane itself exists since v5: `PIT` z 34, x -58..40); **4b j** grandstands;
+   the straight (the lane itself exists since v5: `PIT` z 32, x -58..40); **4b j** grandstands;
    **4b k** random rain with a tyre swap.
 3. **Step 5** map menu (top-down render of the real v5 world), then steps 6-9.
 4. Owner said "later": credit folio-2025 / Bruno Simon in the main README (only there).
@@ -271,7 +271,11 @@ straight with pit wall, fences and stands). Do these in order, one commit per it
       (street/Lamps.tsx, layoutStreet.ts `LAMPS`). Instead tall floodlight towers with lamp banks set
       back outside the run-off, many of them, lighting the track at night (cheap light pools on the
       asphalt, emissive banks that bloom). Bruno-style small lamps stay only in the park and garden.
-- [ ] i. Pit lane is a real dedicated lane (Melbourne reference): separate it from the main straight with
+- [x] i. (99455a3) PitWallRun.tsx, layout.ts `PIT_WALL` / `pitWallZ`: white wall + red cap + catch fence +
+      crash cushions halfway between lane and straight, x -62..36 (where the gap closes at the exit). Lane moved
+      2 m north (`PIT.z` 32) because the straight overlapped it at the east end. Strategy stands on the lane side.
+      Not done: painted pit entry/exit lines on the track (art direction says no paint on the asphalt; ask the owner).
+      Was: Pit lane is a real dedicated lane (Melbourne reference): separate it from the main straight with
       a pit wall and fence (PitRoads.tsx, layout.ts `PIT`), painted pit entry/exit lines, the lane
       clearly its own strip in front of the garages.
 - [ ] j. Grandstands: lots of them along the main straight and round T1 (models/props/Grandstand.tsx,
