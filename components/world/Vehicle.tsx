@@ -58,8 +58,9 @@ const REVERSE_BRAKE = 0.4;
 const SUSPENSION = {
   restLength: 0.7,
   stiffness: 20,
-  compression: 10,
-  relaxation: 2.7,
+  // more damping than the original's jeep: the low F1 body dived and bounced at every stop
+  compression: 14,
+  relaxation: 6,
   maxTravel: 2,
   maxForce: 150,
 };
@@ -102,7 +103,7 @@ const parked = { on: true, p: new THREE.Vector3(), q: new THREE.Quaternion(), st
 // Hands off and nearly stopped for this long (s): park again where it stands.
 // Without it the raycast suspension never quite settles: the car bobs and creeps.
 const REPARK_AFTER = 0.4;
-const REPARK_SPEED = 0.35; // m/s, horizontal
+const REPARK_SPEED = 0.12; // m/s, horizontal: only once it has all but stopped, so parking is never a visible jolt
 
 export default function Vehicle() {
   const livery = useWorld((s) => s.livery);
@@ -200,6 +201,11 @@ export default function Vehicle() {
     const touching = input.forward || input.back || input.steer || input.handbrake;
     if (!parked.on && b) {
       const lv = b.linvel();
+      // hands off and slow: ease to a stop (no bob, no creep) instead of coasting on the springs
+      const hs = Math.hypot(lv.x, lv.z);
+      const ease = !touching && hs < 2.5 ? 1 - hs / 2.5 : 0;
+      b.setLinearDamping(0.1 + ease * 2.5);
+      b.setAngularDamping(0.1 + ease * 4);
       const slow = Math.hypot(lv.x, lv.z) < REPARK_SPEED && Math.abs(b.angvel().y) < 0.6 && carState.grounded;
       parked.still = !touching && slow ? parked.still + ticker.delta : 0;
       if (parked.still > REPARK_AFTER) {
