@@ -102,7 +102,7 @@ the real world with pins that teleport behind a wipe. Commit history has the det
 Next, in order (the first unticked box in the steps below is the one to do):
 1. **4e owner check** items left open below (only if the owner reports them again).
 2. 4b h-k are done (floodlights, pit wall, grandstands, rain + tyre swap).
-3. Steps 5-8 are done; next is **step 9** (smaller things).
+3. Steps 5-9 are done except brake/boost feel (needs the owner on a real GPU) and the "later" items.
 4. Owner said "later": credit folio-2025 / Bruno Simon in the main README (only there).
 
 ## Steps (do them in order; first unticked one is next)
@@ -398,11 +398,11 @@ Owns new components/world/ui3d/** and Race.tsx (`InteractionPoint`, the current 
       in planters, bollards, a bus stop or kiosk, cafe tables (street/**; use common.ts helpers).
 
 ### 9. Smaller things
-- [ ] Radio voice George (ElevenLabs `JBFqnCBsd6RMkjVDRZzb`, eleven_v4, stability 0.5,
+- [x] (a4d2e93) Radio voice George (ElevenLabs `JBFqnCBsd6RMkjVDRZzb`, eleven_v4, stability 0.5,
       similarity_boost 0.8): set as default in scripts/gen-audio.mjs and app/api/voice/route.ts,
       re-record with `node scripts/gen-audio.mjs --only radio-sector-1,radio-sector-2,radio-sector-3,radio-sector-4,radio-garage-agents,radio-garage-genai,radio-garage-hardware,radio-garage-ml,radio-garage-vision,radio-playbook,radio-podium,radio-contact,radio-hello,radio-idle,radio-claude,radio-temp-on,radio-temp-off --force`,
       commit public/sfx. Voice Library voices return 402 on the free plan.
-- [ ] Palms still use the old per-tree meshes; port them to the foliage registry.
-- [ ] Tree colours are a first pass (foliage/species.ts); shade side reads dark.
+- [x] (a342ec7) Palms still use the old per-tree meshes; port them to the foliage registry (foliage/palm.ts).
+- [x] (e1895eb) Tree colours are a first pass (foliage/species.ts); shade side reads dark. Now the original's oak/bush colours.
 - [ ] Brake and boost feel: tune `HANDBRAKE_*` and the overspeed brake in Vehicle.tsx on a real GPU.
 - [ ] Later: engine sound; garage experience (dolly in, project spec sheets); scroll-driven site.
