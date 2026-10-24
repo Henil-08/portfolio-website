@@ -388,7 +388,7 @@ Owns new components/world/ui3d/** and Race.tsx (`InteractionPoint`, the current 
       night-only windows (Team Stallions). Was: Every night emissive > 1 with `toneMapped: false` so it blooms: garage headers
       (models/props/Garage.tsx), sector-scene windows/signs (models/sectors/*), car brake light.
 - [x] (ef35560) Fireflies in the garden and by the lake at night (alive/Fireflies.tsx, add anchors).
-- [ ] Optional: tinted shadows like Bruno (albedo x shadow colour), only via one cheap shared patch.
+- [x] (138c2c4) Optional: tinted shadows like Bruno (albedo x shadow colour), only via one cheap shared patch (tintedShadows.ts).
 
 ### 8. Town streets
 - [ ] Pavements with kerb edging where buildings front the circuit, zebra crossings, street trees
