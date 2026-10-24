@@ -1,5 +1,7 @@
 "use client";
 
+import "./tintedShadows"; // patches three's shader chunks before anything compiles
+
 import { IntroLabel, RevealDriver, RevealPass } from "./Reveal";
 import { Suspense, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
