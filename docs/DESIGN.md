@@ -1,6 +1,7 @@
 # Design language
 
-**Status: proposed, waiting for the owner's approval (2026-10-24).** Nothing below has been applied
+**Status: proposed, waiting for the owner's approval (2026-10-24).** Live specimen with both options
+side by side, day and night: `/docs/design` (app/docs/design, not indexed). Nothing below has been applied
 to the UI yet, except the map (components/ui/MapMenu.tsx), which already follows option A. When it is
 approved, the components listed under "What changes" move to it, one commit each, and this line
 becomes "approved".
