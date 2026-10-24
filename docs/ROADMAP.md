@@ -330,7 +330,10 @@ place spots "your choice"; Team Stallions "give a nice spot".
 
 ### 5. Map menu like Bruno's (M)
 Owns components/ui/** (MapMenu in Hud.tsx) and a new components/world/MapCapture.tsx.
-- [ ] Top-down image of the real world: an orthographic camera renders the scene once into a
+- [x] (0087e0f) MapCapture.tsx (`MAP`, `worldToMap`), ui/MapMenu.tsx. Renders into a square of the canvas
+      before the composer draws (no render target, so tone mapping matches), copied to a 1024 jpeg.
+      Panel in the site's ink with a cream hairline (owner: UI in the site's look, not the aubergine).
+      Was: Top-down image of the real world: an orthographic camera renders the scene once into a
       render target when the map opens (and again when day/night flips), shown in a modal on
       Bruno's dark aubergine panel with the inset hairline. It must show the new coast and water.
 - [ ] Pins for places (zones + SECTORS scenes + contact logos) as white diamonds with dark border;
