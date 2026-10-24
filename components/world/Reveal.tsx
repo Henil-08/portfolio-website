@@ -138,6 +138,14 @@ export function RevealDriver() {
     const s = st.current;
     if (reveal.done) return;
     const g = getState();
+    // ?skip (dev and headless checks): no opening at all
+    if (s.fast && g.ready) {
+      load.ring = 0;
+      reveal.radius = FAR;
+      reveal.done = true;
+      setState({ opened: true, revealed: true });
+      return;
+    }
     const speed = s.fast ? 4 : 1;
     s.age += dt;
 

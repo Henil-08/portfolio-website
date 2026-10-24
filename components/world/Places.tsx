@@ -46,6 +46,7 @@ import Garden from "./garden";
 import Social from "./social";
 import Waterfront from "./waterfront";
 import { nearPromenade } from "./waterfront/layout";
+import { HomeBody } from "./Movables";
 import { nearGarden } from "./garden/layout";
 import { inTownBelt } from "./street/common";
 import Bridge from "./Bridge";
@@ -134,12 +135,12 @@ function Letters() {
   return (
     <>
       {NAME.map((l, i) => (
-        <RigidBody key={l.ch + i} colliders={false} position={[l.x, heightAt(l.x, z) + h / 2 + 0.02, z]} mass={3 * s} linearDamping={0.3} angularDamping={0.4}>
+        <HomeBody key={l.ch + i} colliders={false} position={[l.x, heightAt(l.x, z) + h / 2 + 0.02, z]} mass={3 * s} linearDamping={0.3} angularDamping={0.4}>
           <CuboidCollider args={[l.w / 2, h / 2, 0.25 * s]} friction={0.7} restitution={0.15} />
           <group position={[0, -h / 2, 0]} scale={s}>
             <Letter char={l.ch} color={l.red ? C.red : C.white} />
           </group>
-        </RigidBody>
+        </HomeBody>
       ))}
     </>
   );
@@ -147,12 +148,12 @@ function Letters() {
 
 function ConeBody({ p }: { p: V3 }) {
   return (
-    <RigidBody colliders={false} position={[p[0], heightAt(p[0], p[2]) + 0.27, p[2]]} mass={0.25} linearDamping={0.4} angularDamping={0.4}>
+    <HomeBody colliders={false} position={[p[0], heightAt(p[0], p[2]) + 0.27, p[2]]} mass={0.25} linearDamping={0.4} angularDamping={0.4}>
       <CylinderCollider args={[0.27, 0.2]} friction={0.6} restitution={0.3} />
       <group position={[0, -0.27, 0]}>
         <Cone />
       </group>
-    </RigidBody>
+    </HomeBody>
   );
 }
 
@@ -188,7 +189,7 @@ function TyreWall() {
     <>
       {compounds.map((c, i) =>
         [0, 1, 2, 3].map((k) => (
-          <RigidBody
+          <HomeBody
             key={c + k}
             colliders={false}
             position={[x - 3.3 + i * 2.2, gy + TYRE_H / 2 + k * (TYRE_H + 0.005), z - 1]}
@@ -200,7 +201,7 @@ function TyreWall() {
             <group position={[0, -TYRE_H / 2, 0]}>
               <Tyre compound={c} />
             </group>
-          </RigidBody>
+          </HomeBody>
         ))
       )}
     </>

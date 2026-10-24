@@ -59,6 +59,7 @@ export default function World() {
           <Places />
           <Street />
           <Vehicle />
+          <StartGarden />
           <Spawns />
         </Physics>
       </Suspense>
@@ -69,7 +70,6 @@ export default function World() {
       <Weather />
       <DayNight />
       <Grass />
-      <StartGarden />
       <Alive />
       <Autopilot />
       <Exposure />

@@ -8,7 +8,7 @@
 // (and anything knocked into the sea comes back too).
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { useRapier } from "@react-three/rapier";
+import { RigidBody, useRapier, type RapierRigidBody, type RigidBodyProps } from "@react-three/rapier";
 import * as THREE from "three";
 import { carState } from "./carState";
 import { SEA_Y } from "./layout";
@@ -23,8 +23,16 @@ export type MovablePart = {
   shadow?: boolean;
 };
 
-/** One piece: where its body's centre rests, its yaw (and optional tilt) and size. */
-export type MovableItem = { x: number; y: number; z: number; yaw: number; s?: number; tilt?: [number, number] };
+/** One piece: where its body's centre rests, its yaw (and optional tilt, or a full quaternion) and size. */
+export type MovableItem = {
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+  s?: number | [number, number, number];
+  tilt?: [number, number];
+  q?: [number, number, number, number];
+};
 
 export type MovableShape =
   | { type: "cylinder"; halfHeight: number; radius: number }
@@ -34,13 +42,18 @@ export type MovableShape =
 export type MovableKind = {
   items: MovableItem[];
   parts: MovablePart[];
-  /** collider at scale 1 (scaled by each item's `s`) */
+  /** collider at scale 1 (scaled per axis by each item's `s`) */
   shape: MovableShape;
   /** mass at scale 1 (scales with volume); the car is 2.5 */
   mass: number;
   friction?: number;
   restitution?: number;
+  /** false: pieces of this kind pass through each other (rocks placed in overlapping clusters) */
+  selfCollide?: boolean;
 };
+
+/** Collision group for kinds that don't collide with themselves: member of bit 2, filter all but bit 2. */
+const SOLO_GROUP = (0x0004 << 16) | (0xffff & ~0x0004);
 
 /** Metres the car must be from a moved piece (and its home) before it goes back. */
 const RESET_DIST = 45;
@@ -49,7 +62,6 @@ const CHECK_EVERY = 0.5; // seconds
 const _m = new THREE.Matrix4();
 const _p = new THREE.Vector3();
 const _q = new THREE.Quaternion();
-const _s = new THREE.Vector3();
 const _e = new THREE.Euler();
 
 const registry = new Set<{ moved: boolean[] }>();
@@ -60,6 +72,7 @@ function markDirty(list: (THREE.InstancedMesh | null)[]) {
 }
 
 function homeQuat(it: MovableItem) {
+  if (it.q) return new THREE.Quaternion(...it.q);
   _e.set(it.tilt?.[0] ?? 0, it.yaw, it.tilt?.[1] ?? 0, "YXZ");
   return new THREE.Quaternion().setFromEuler(_e);
 }
@@ -67,7 +80,7 @@ function homeQuat(it: MovableItem) {
 export function Movables({ kind }: { kind: MovableKind }) {
   const { world, rapier } = useRapier();
   const meshes = useRef<(THREE.InstancedMesh | null)[]>([]);
-  const homes = useMemo(() => kind.items.map((it) => ({ p: new THREE.Vector3(it.x, it.y, it.z), q: homeQuat(it), s: it.s ?? 1 })), [kind]);
+  const homes = useMemo(() => kind.items.map((it) => ({ p: new THREE.Vector3(it.x, it.y, it.z), q: homeQuat(it), s: typeof it.s === "object" ? new THREE.Vector3(...it.s) : new THREE.Vector3().setScalar(it.s ?? 1) })), [kind]);
   const sim = useRef<{ bodies: ReturnType<typeof world.createRigidBody>[]; moved: boolean[]; dirty: boolean[]; clock: number } | null>(null);
 
   useEffect(() => {
@@ -82,15 +95,18 @@ export function Movables({ kind }: { kind: MovableKind }) {
       );
       const sh = kind.shape;
       const k = h.s;
+      const kr = Math.max(k.x, k.z);
+      const kmin = Math.min(k.x, k.y, k.z);
       const desc =
         sh.type === "cylinder"
-          ? rapier.ColliderDesc.cylinder(sh.halfHeight * k, sh.radius * k)
+          ? rapier.ColliderDesc.cylinder(sh.halfHeight * k.y, sh.radius * kr)
           : sh.type === "ball"
-            ? rapier.ColliderDesc.ball(sh.radius * k)
+            ? rapier.ColliderDesc.ball(sh.radius * Math.max(kr, k.y))
             : sh.round
-              ? rapier.ColliderDesc.roundCuboid((sh.hx - sh.round) * k, (sh.hy - sh.round) * k, (sh.hz - sh.round) * k, sh.round * k)
-              : rapier.ColliderDesc.cuboid(sh.hx * k, sh.hy * k, sh.hz * k);
-      desc.setMass(kind.mass * k * k * k).setFriction(kind.friction ?? 0.7).setRestitution(kind.restitution ?? 0.15);
+              ? rapier.ColliderDesc.roundCuboid(sh.hx * k.x - sh.round * kmin, sh.hy * k.y - sh.round * kmin, sh.hz * k.z - sh.round * kmin, sh.round * kmin)
+              : rapier.ColliderDesc.cuboid(sh.hx * k.x, sh.hy * k.y, sh.hz * k.z);
+      desc.setMass(kind.mass * k.x * k.y * k.z).setFriction(kind.friction ?? 0.7).setRestitution(kind.restitution ?? 0.15);
+      if (kind.selfCollide === false) desc.setCollisionGroups(SOLO_GROUP);
       world.createCollider(desc, b);
       b.sleep();
       return b;
@@ -111,7 +127,7 @@ export function Movables({ kind }: { kind: MovableKind }) {
   // Rest matrices before the first frame.
   useLayoutEffect(() => {
     homes.forEach((h, i) => {
-      _m.compose(h.p, h.q, _s.setScalar(h.s));
+      _m.compose(h.p, h.q, h.s);
       kind.parts.forEach((part, j) => {
         const mesh = meshes.current[j];
         if (!mesh) return;
@@ -145,7 +161,7 @@ export function Movables({ kind }: { kind: MovableKind }) {
         _p.set(t.x, t.y, t.z);
         _q.set(r.x, r.y, r.z, r.w);
         if (!st.moved[i] && (_p.distanceToSquared(h.p) > 0.0025 || Math.abs(_q.dot(h.q)) < 0.9995)) st.moved[i] = true;
-        _m.compose(_p, _q, _s.setScalar(h.s));
+        _m.compose(_p, _q, h.s);
         kind.parts.forEach((part, j) => meshes.current[j]?.setMatrixAt(i, part.local ? _m.clone().multiply(part.local) : _m));
         changed = true;
       }
@@ -184,4 +200,76 @@ export function Movables({ kind }: { kind: MovableKind }) {
       ))}
     </>
   );
+}
+
+/**
+ * A kind from props placed as instance matrices (origin, rotation, scale each):
+ * the body sits at the middle of the geometry's bounding box and its collider is
+ * that box, shrunk a little (or a ball), so the visual is exactly where it was.
+ */
+export function kindFromMatrices(
+  matrices: THREE.Matrix4[],
+  parts: Omit<MovablePart, "local">[],
+  opts: { mass: number; shape?: "box" | "ball"; shrink?: number; colors?: THREE.Color[]; friction?: number; restitution?: number; selfCollide?: boolean },
+): MovableKind {
+  const g = parts[0].geometry;
+  if (!g.boundingBox) g.computeBoundingBox();
+  const bb = g.boundingBox!;
+  const c = bb.getCenter(new THREE.Vector3());
+  const half = bb.getSize(new THREE.Vector3()).multiplyScalar(0.5 * (opts.shrink ?? 0.9));
+  const local = new THREE.Matrix4().makeTranslation(-c.x, -c.y, -c.z);
+  const p = new THREE.Vector3();
+  const q = new THREE.Quaternion();
+  const sc = new THREE.Vector3();
+  const items: MovableItem[] = matrices.map((m) => {
+    m.decompose(p, q, sc);
+    const at = c.clone().multiply(sc).applyQuaternion(q).add(p);
+    return { x: at.x, y: at.y, z: at.z, yaw: 0, q: [q.x, q.y, q.z, q.w], s: [sc.x, sc.y, sc.z] };
+  });
+  return {
+    items,
+    parts: parts.map((part, i) => ({ ...part, local, colors: part.colors ?? (i === 0 ? opts.colors : undefined) })),
+    shape: opts.shape === "ball" ? { type: "ball", radius: Math.min(half.x, half.y, half.z) } : { type: "box", hx: half.x, hy: half.y, hz: half.z },
+    mass: opts.mass,
+    friction: opts.friction,
+    restitution: opts.restitution,
+    selfCollide: opts.selfCollide,
+  };
+}
+
+/**
+ * A <RigidBody> that goes home like the movables: once it has been knocked out
+ * of place and the car is far from both its home and where it lies.
+ */
+export function HomeBody(props: RigidBodyProps) {
+  const ref = useRef<RapierRigidBody>(null);
+  const home = useRef<{ p: THREE.Vector3; q: THREE.Quaternion } | null>(null);
+  const clock = useRef(0);
+  useFrame((_, dt) => {
+    const b = ref.current;
+    if (!b) return;
+    if (!home.current) {
+      const t = b.translation();
+      const r = b.rotation();
+      home.current = { p: new THREE.Vector3(t.x, t.y, t.z), q: new THREE.Quaternion(r.x, r.y, r.z, r.w) };
+      return;
+    }
+    clock.current += dt;
+    if (clock.current < CHECK_EVERY) return;
+    clock.current = 0;
+    const h = home.current;
+    const t = b.translation();
+    const r = b.rotation();
+    _p.set(t.x, t.y, t.z);
+    _q.set(r.x, r.y, r.z, r.w);
+    if (_p.distanceToSquared(h.p) < 0.01 && Math.abs(_q.dot(h.q)) > 0.999) return;
+    const car = carState.pos;
+    if (Math.hypot(car.x - h.p.x, car.z - h.p.z) < RESET_DIST || Math.hypot(car.x - t.x, car.z - t.z) < RESET_DIST) return;
+    b.setTranslation({ x: h.p.x, y: h.p.y, z: h.p.z }, false);
+    b.setRotation({ x: h.q.x, y: h.q.y, z: h.q.z, w: h.q.w }, false);
+    b.setLinvel({ x: 0, y: 0, z: 0 }, false);
+    b.setAngvel({ x: 0, y: 0, z: 0 }, false);
+    b.sleep();
+  });
+  return <RigidBody ref={ref} {...props} />;
 }

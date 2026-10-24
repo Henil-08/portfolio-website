@@ -12,6 +12,7 @@ import { withWind } from "./alive/sway";
 import { flowerGeometry } from "./districts/hills";
 import { compose, rng } from "./street/common";
 import { Instances } from "./street/Instances";
+import { Movables, kindFromMatrices } from "./Movables";
 import { heightAt } from "./terrain";
 import { C } from "./palette";
 import { START_BENCH, START_BUSHES, START_FLOWERS, START_PATH, START_TREE } from "./start";
@@ -38,7 +39,8 @@ export default function StartGarden() {
     const bench = { m: [compose(b.x, heightAt(b.x, b.z) + propFoot(BENCH) * k, b.z, b.yaw, k, k, k)] };
     const tones = ["#c9ab8a", "#d8c3a2", "#bf9c7f", "#e0cfb2"].map((c) => new THREE.Color(c));
     const path = { m: START_PATH, c: START_PATH.map(() => tones[Math.floor(r() * tones.length)]) };
-    return { flowers, bench, path, benchGeo: propGeometry(BENCH), flowerGeo: flowerGeometry(), slabGeo: new RoundedBoxGeometry(1, 1, 1, 2, 0.3) };
+    const benchKind = kindFromMatrices(bench.m, [{ geometry: propGeometry(BENCH), material: mat("#ffffff", { r: 0.8, vc: true }) }], { mass: 0.6 });
+    return { flowers, path, benchKind, flowerGeo: flowerGeometry(), slabGeo: new RoundedBoxGeometry(1, 1, 1, 2, 0.3) };
   }, []);
   const t = START_TREE;
   return (
@@ -48,7 +50,7 @@ export default function StartGarden() {
         <Bush key={i} seed={30 + i} position={[x, heightAt(x, z), z]} scale={s} rotation={[0, i * 1.7, 0]} />
       ))}
       <Instances geometry={parts.slabGeo} material={mat("#ffffff", { r: 0.9 })} batch={parts.path} shadow={false} />
-      <Instances geometry={parts.benchGeo} material={mat("#ffffff", { r: 0.8, vc: true })} batch={parts.bench} />
+      <Movables kind={parts.benchKind} />
       <Instances geometry={parts.flowerGeo} material={withWind(mat("#ffffff", { r: 0.7, side: THREE.DoubleSide }), { amount: 0.25, maxHeight: 0.4 })} batch={parts.flowers} shadow={false} />
     </group>
   );
