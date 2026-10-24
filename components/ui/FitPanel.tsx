@@ -46,7 +46,7 @@ export default function FitPanel() {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-40 grid place-items-center bg-ink/40 p-3 backdrop-blur-sm"
+          className="fixed inset-0 z-40 grid place-items-center p-3 pt-14"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -57,22 +57,22 @@ export default function FitPanel() {
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.96, y: 10 }}
             transition={{ type: "spring", stiffness: 300, damping: 26 }}
-            className="toy-card no-scrollbar max-h-[88svh] w-full max-w-lg overflow-y-auto rounded-[28px] p-5 sm:p-6"
+            className="hud-panel no-scrollbar max-h-[84svh] w-full max-w-lg overflow-y-auto p-5 sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between">
               <div>
-                <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-soft">Race strategy</p>
-                <h2 className="mt-1 font-racing text-2xl tracking-wide text-ink">{fit ? fit.role.toUpperCase() : "FIT FOR YOUR ROLE"}</h2>
+                <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-cream/55">Race strategy</p>
+                <h2 className="mt-1 font-racing text-2xl tracking-wide">{fit ? fit.role.toUpperCase() : "FIT FOR YOUR ROLE"}</h2>
               </div>
-              <button onClick={() => setState({ fitOpen: false })} className="grid h-9 w-9 place-items-center rounded-full bg-cream text-ink-soft hover:bg-line" aria-label="Close">
+              <button onClick={() => setState({ fitOpen: false })} className="hud-red grid h-9 w-9 shrink-0 place-items-center text-[14px] hover:brightness-110" aria-label="Close">
                 ✕
               </button>
             </div>
 
             {!fit ? (
               <div className="mt-4 space-y-3">
-                <p className="text-[14px] leading-relaxed text-ink-soft">
+                <p className="text-[14px] leading-relaxed text-cream/75">
                   Paste a job description. You&apos;ll get an honest read on the fit, the work that matters for it, and a lap
                   through the island built around it.
                 </p>
@@ -82,13 +82,13 @@ export default function FitPanel() {
                   rows={8}
                   maxLength={8000}
                   placeholder="Paste the job description here…"
-                  className="w-full resize-none rounded-2xl border border-line bg-white px-4 py-3 text-[14px] text-ink outline-none focus:border-ink/30"
+                  className="w-full resize-none border border-cream/25 bg-[#171928] px-4 py-3 text-[14px] text-cream outline-none placeholder:text-cream/35 focus:border-cream/60"
                 />
                 {err && <p className="text-sm text-red">{err}</p>}
                 <button
                   onClick={check}
                   disabled={busy || jd.trim().length < 40}
-                  className="toy-btn w-full rounded-2xl bg-ink py-3 font-racing text-sm tracking-[0.16em] text-white disabled:opacity-40"
+                  className="w-full bg-red py-3 text-[13.5px] font-semibold text-white disabled:opacity-40"
                 >
                   {busy ? "READING THE BRIEF…" : "CHECK THE FIT"}
                 </button>
@@ -97,18 +97,18 @@ export default function FitPanel() {
               <div className="mt-4 space-y-4">
                 <div className="flex items-center gap-4">
                   <Dial v={fit.score} />
-                  <p className="text-[14px] leading-relaxed text-ink-soft">{fit.summary}</p>
+                  <p className="text-[14px] leading-relaxed text-cream/75">{fit.summary}</p>
                 </div>
                 <ul className="space-y-1.5">
                   {fit.strengths.map((s) => (
-                    <li key={s} className="flex gap-2 text-[13.5px] leading-relaxed text-ink">
-                      <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#19a463]" />
+                    <li key={s} className="flex gap-2 text-[13.5px] leading-relaxed text-cream">
+                      <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rotate-45 bg-green" />
                       {s}
                     </li>
                   ))}
                   {fit.gaps.map((g) => (
-                    <li key={g} className="flex gap-2 text-[13.5px] leading-relaxed text-ink-soft">
-                      <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full border border-ink-soft" />
+                    <li key={g} className="flex gap-2 text-[13.5px] leading-relaxed text-cream/65">
+                      <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rotate-45 border border-cream/50" />
                       {g}
                     </li>
                   ))}
@@ -117,25 +117,25 @@ export default function FitPanel() {
                   {projects
                     .filter((p) => fit.slugs.includes(p.slug))
                     .map((p) => (
-                      <span key={p.slug} className="rounded-full bg-cream px-2.5 py-1 text-[12px] font-medium text-ink">
+                      <span key={p.slug} className="hud-chip">
                         {p.name}
                       </span>
                     ))}
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <button onClick={drive} className="toy-btn rounded-2xl bg-[#e10600] py-3 font-racing text-[13px] tracking-[0.14em] text-white">
+                  <button onClick={drive} className="bg-red py-3 text-[13px] font-semibold text-white">
                     DRIVE THIS LAP
                   </button>
                   <a
                     href={`/resume?for=${encodeURIComponent(fit.role)}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="toy-btn grid place-items-center rounded-2xl bg-ink py-3 font-racing text-[13px] tracking-[0.14em] text-white"
+                    className="grid place-items-center bg-cream py-3 text-[13px] font-semibold text-ink"
                   >
                     TAILORED PDF
                   </a>
                 </div>
-                <button onClick={() => setFit(null)} className="w-full text-center text-[12.5px] text-ink-soft hover:text-ink">
+                <button onClick={() => setFit(null)} className="w-full text-center font-mono text-[11px] uppercase tracking-[0.12em] text-cream/55 hover:text-cream">
                   Try another role
                 </button>
               </div>
@@ -150,14 +150,14 @@ export default function FitPanel() {
 function Dial({ v }: { v: number }) {
   const r = 30;
   const c = 2 * Math.PI * r;
-  const color = v >= 80 ? "#b14cff" : v >= 60 ? "#19a463" : "#d4a017";
+  const color = v >= 80 ? "#9b6bff" : v >= 60 ? "#45c46b" : "#ffd23f"; // sector colours: purple, green, yellow
   return (
     <div className="relative grid h-20 w-20 shrink-0 place-items-center">
       <svg viewBox="0 0 72 72" className="absolute inset-0 -rotate-90">
-        <circle cx="36" cy="36" r={r} fill="none" stroke="#ece3d3" strokeWidth="6" />
-        <circle cx="36" cy="36" r={r} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(v / 100) * c} ${c}`} />
+        <circle cx="36" cy="36" r={r} fill="none" stroke="#fff8ec26" strokeWidth="6" />
+        <circle cx="36" cy="36" r={r} fill="none" stroke={color} strokeWidth="6" strokeLinecap="butt" strokeDasharray={`${(v / 100) * c} ${c}`} />
       </svg>
-      <span className="font-racing text-xl text-ink">{v}</span>
+      <span className="font-racing text-xl">{v}</span>
     </div>
   );
 }
@@ -175,15 +175,15 @@ export function LapChip() {
   };
   return (
     <div className="fixed left-1/2 top-[72px] z-20 -translate-x-1/2 sm:top-5">
-      <div className="toy-card flex items-center gap-2 rounded-full py-1.5 pl-3 pr-1.5 text-[12.5px]">
-        <span className="font-semibold text-ink">{lap.role}</span>
-        <span className="text-ink-soft">
+      <div className="hud-panel flex items-center gap-2.5 py-1.5 pl-3.5 pr-1.5 text-[12.5px]">
+        <span className="font-semibold">{lap.role}</span>
+        <span className="font-mono text-[11px] text-cream/55">
           {lap.i + 1}/{lap.route.length}
         </span>
-        <button onClick={go} className="rounded-full bg-ink px-3 py-1 text-[12px] font-semibold text-white">
+        <button onClick={go} className="bg-red px-3 py-1 text-[12px] font-semibold text-white">
           {next ? `${zoneById[next].label} →` : "Done"}
         </button>
-        <button onClick={() => setState({ lap: null })} className="px-1.5 text-ink-soft hover:text-ink" aria-label="End lap">
+        <button onClick={() => setState({ lap: null })} className="px-1.5 text-cream/55 hover:text-cream" aria-label="End lap">
           ✕
         </button>
       </div>
