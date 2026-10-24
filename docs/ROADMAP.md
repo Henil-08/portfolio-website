@@ -32,8 +32,10 @@ small, verified with headless screenshots, and committed on its own
 | Town | components/world/street/town.ts (placement, `BUILDINGS`), street/Skyline.tsx (renderer) |
 | Waterfront | components/world/waterfront/* (`PROMENADE`, `PIER`, `nearPromenade`) |
 | Contact logos | components/world/social/* (`LINKS`, store `nearLink`) |
-| Trees (Bruno's) | components/world/foliage/*, models/props/Tree.tsx, public/bruno/ (MIT) |
+| Trees (Bruno's) | components/world/foliage/*, models/props/Tree.tsx, public/vendor/ (MIT, LICENSE.md there) |
 | Opening reveal | components/world/Reveal.tsx, components/ui/Intro.tsx |
+| Start spot and its garden | components/world/startSpot.ts, start.ts, StartGarden.tsx |
+| Knock-about props (tyres, rocks, benches...) | components/world/Movables.tsx (`Movables`, `kindFromMatrices`, `HomeBody`) |
 
 ## Working rules
 
@@ -46,6 +48,9 @@ small, verified with headless screenshots, and committed on its own
      `eval:window.__placeT(0.3)` drops the car at track t; `eval:window.__placeXZ(x,z,heading)` anywhere; `eval:window.__world.teleport('garage-agents')`;
      `eval:window.__world.setState({scene:{time:'night',weather:'clear'}})`; `eval:window.__world.openZone('podium')`.
    - Physics runs in slow motion headless (low fps). Judge looks, not speed.
+   - `?skip` skips the opening entirely. Without it the loader waits for shader compiles (~30 s
+     headless) and the animation runs ~10x slow: wait ~130 s before the circle is open.
+   - `eval:window.__movables()` counts knock-about props out of place.
 3. Before commit: `npx tsc --noEmit -p .` and `npx eslint components app` clean.
    React Compiler rules are strict: mutate three objects through refs in `useFrame`
    (never memoized values), no `Math.random` in render (seeded rng), `useMemo(() => fn())`,
@@ -57,7 +62,9 @@ small, verified with headless screenshots, and committed on its own
    scatter twice: change both together, same checks, same order.
 7. Bruno's repo (MIT, assets included) is the reference and a source to copy from:
    `git clone --depth 1 https://github.com/brunosimon/folio-2025` into the scratchpad; read, don't run.
-   The owner wants his look and code reused, not reinvented. Keep his license beside copied assets.
+   The owner wants his look and code reused, not reinvented. Keep his license beside copied assets
+   (public/vendor/LICENSE.md). Owner (2026-10-23): don't write his name in the code; comments say
+   "the original" / folio-2025. Credit goes in the main README later.
 5. This is Next 16: read node_modules/next/dist/docs before using Next APIs.
 6. Never commit secrets (.env.local) or the licensed Racero font (public/fonts is gitignored).
 
@@ -88,8 +95,8 @@ see-through when the car is hidden (3h), and a compact Bruno-style career timeli
 plus the owner's school journey (3b). 3f, 3g, 3h, 3b and step 4 are done (2026-10-23, late); the
 car no longer beaches on slopes (colliders 0.3 m up, parapets on embankments). Step 4 is done too. Owner review the same night added step 4b (foliage-only see-through, Bruno's
 scale, flat world, grass, bushes, fuller infield, Team Stallions facing the camera, F1 floodlights,
-a real pit lane, grandstands, random rain with a tyre swap). Next up: 4b a, then the rest of 4b in
-order, then step 5 (map menu).
+a real pit lane, grandstands, random rain with a tyre swap). 4b a-f and owner review 2 (4c) are done; 4b g waits for the owner; next is 4b h (floodlights),
+then i-k, then step 5 (map menu).
 
 ## Steps (do them in order; first unticked one is next)
 
@@ -150,7 +157,7 @@ distinct areas threaded by paths, water woven through, shorelines with teal glow
         use the hill and embankment ground round the crossover. Slopes must stay as they are (don't
         flatten terrain for buildings). Camera blocked under the bridge deck is fine (owner).
   - [x] g. District identity (components/world/districts/*; Bruno's benches, lanterns, fences baked by
-        scripts/bake-bruno.mjs into models/props/brunoProps.ts): old town slab forecourts + lanterns
+        scripts/bake-props.mjs into models/props/propModels.ts): old town slab forecourts + lanterns
         (31bc571), harbour quay benches/lanterns/crates (8ba0ff2), hills wildflowers + rocks (a5860d1),
         dunes sand fences + marram (837d234). Waterfront, garden and park were dressed earlier.
   - [x] h. (c2841dd, filter removed 3f75dd8) components/world/seeThrough.ts: `patchSeeThrough` /
@@ -210,8 +217,8 @@ straight with pit wall, fences and stands). Do these in order, one commit per it
       materials. Buildings must then never hide the car: bring back the town's camera filter
       (revert 3f75dd8, `blocksCamera` in street/town.ts) and see b (lower buildings).
 - [x] b. (car f446b06, grass 8606f5e, town 78e88f7, props af25fd3) Owner chose the bigger car (x1.38,
-      `CAR_SCALE` in models/Car.tsx, physics too) over pulling the camera in. Grass `SHORT` 0.45, storeys
-      3.0/2.6 m with 1-2 near the track, `PROP_SCALE` 1.3 (models/props/bruno.ts), footbridge 3.6 m wide.
+      `CAR_SCALE` in models/Car.tsx, physics too) over pulling the camera in. Grass cut was wrong (owner: "too small, look at his"), reverted in cd7def6 to his blade size on a 280 grid; storeys
+      3.0/2.6 m with 1-2 near the track, `PROP_SCALE` 1.3 (models/props/kit.ts), footbridge 3.6 m wide.
       Was: Scale and proportions, like Bruno. In his world buildings are barely taller than the vehicle, the
       grass is a fraction of the car's height, and props (bench, lamp, footbridge) are chunky and read
       big next to the car. Ours: grass blades are as tall as the F1 car (Grass.tsx `BLADE_HEIGHT` 0.6 m
@@ -241,9 +248,12 @@ straight with pit wall, fences and stands). Do these in order, one commit per it
       arc north of the football island; bushes came in e. Not done: a second small footbridge (it needs new
       water in the middle, a layout change: ask the owner); park benches have no colliders.
       Was: The infield common area in the middle is too empty: fill it Bruno-style (bushes, paths, his
-      benches/lanterns/fences from models/props/brunoProps.ts, a small wooden footbridge, flower beds).
+      benches/lanterns/fences from models/props/propModels.ts, a small wooden footbridge, flower beds).
       No invented text or facts.
-- [ ] g. Team Stallions (Sector 1 Ahmedabad scene, models/sectors/Ahmedabad.tsx, placed by layout.ts
+- [ ] g. OPEN, needs the owner: Ahmedabad is the only scene on the camera side (front faces away). The far
+      side is river for the whole of sector 1, so it can't move across; turned round in place it stands
+      between car and camera and hides the car (tried, reverted). Options: move sector 1's scene to another
+      stretch (layout change), or keep it and lower its tall parts. Was: Team Stallions (Sector 1 Ahmedabad scene, models/sectors/Ahmedabad.tsx, placed by layout.ts
       `SECTORS` scene/sceneRot ~line 400): it faces away from the camera so you only see its back.
       Turn it (and check every sector scene) so its front faces the chase camera (street/common.ts
       `AWAY`), or move it to the far side of the road.
@@ -260,6 +270,20 @@ straight with pit wall, fences and stands). Do these in order, one commit per it
       random times for a while, like Bruno's. When rain starts the car's slicks animate off and wet
       tyres (blue band) come on, a quick pit-stop style swap; back to slicks when it stops
       (models/Car.tsx `CarWheel`, `LIVERIES`). Frequency random, not too often.
+
+### 4c. Owner review 2 (2026-10-23, night)
+- [x] (cd7def6) Grass back to full blade size (the 4b-b cut made a lawn), 280 x 280 grid on desktop.
+- [x] (30f7ce8) Opening like his: no title, name or loading bar; a ring on the ground fills while the world
+      warms up (compileAsync + steady frames), shrinks, then the world opens in a 5 m circle at the normal chase
+      distance; start sweeps it out. Rings trace the ground plane; reveal runs after AO; no renderer swap mid-reveal.
+- [x] (e9321a7) Start off the track: on the verge by the main straight under a shade tree, bushes, bench and
+      flowers, facing a slab path onto the straight behind the start line (owner: guide subtly, don't start on track).
+- [x] (f94d226) Car spawns at its rest height (it bounced on every load).
+- [x] (a609888, 51722ae) Knock-about props that tidy up: tyre walls (every tyre a body), wall ends, rocks,
+      benches, lanterns, crates, barrels, cones, letters; back home once the car is 45 m away.
+- [x] (7ff8268) His name out of the code (files renamed, comments say "the original").
+- [ ] Credit him in the main README (owner: later).
+- [ ] Garden benches/lamps and fences are still fixed; make them movable too if the owner wants.
 
 ### 5. Map menu like Bruno's (M)
 Owns components/ui/** (MapMenu in Hud.tsx) and a new components/world/MapCapture.tsx.
