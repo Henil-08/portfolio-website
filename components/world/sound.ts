@@ -338,6 +338,11 @@ export function pop() {
   o.stop(t + 0.16);
 }
 
+/** The opening's whoosh as the circle sweeps out (public/sfx/reveal.mp3, see public/vendor/NOTICE.md). */
+export function revealSound() {
+  void play("reveal", { vol: 0.5 });
+}
+
 export function cheer() {
   void play("crowd", { vol: 0.5 });
 }

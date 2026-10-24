@@ -28,12 +28,20 @@ export default function Intro() {
       }, 0);
       return () => clearTimeout(t);
     }
-    // Enter, or just start driving.
+    // Enter, or just start driving, or click anywhere but the sound toggle and links.
     const k = (e: KeyboardEvent) => {
       if (opened && ["Enter", "Space", "KeyW", "ArrowUp"].includes(e.code)) start();
     };
+    const c = (e: PointerEvent) => {
+      if (!opened || (e.target as HTMLElement | null)?.closest("button, a")) return;
+      start();
+    };
     window.addEventListener("keydown", k);
-    return () => window.removeEventListener("keydown", k);
+    window.addEventListener("pointerdown", c);
+    return () => {
+      window.removeEventListener("keydown", k);
+      window.removeEventListener("pointerdown", c);
+    };
   }, [opened, start]);
 
   return (
@@ -41,14 +49,13 @@ export default function Intro() {
       {phase !== "world" && !leaving && (
         <motion.div
           key="start"
-          className="fixed inset-0 z-50 cursor-pointer"
-          onClick={() => opened && start()}
+          className={`pointer-events-none fixed inset-0 z-50 ${opened ? "cursor-pointer" : ""}`}
           exit={{ opacity: 0, transition: { duration: 0.3 } }}
         >
           <a
             href="/resume"
             onClick={(e) => e.stopPropagation()}
-            className="absolute left-5 top-5 px-1 py-1.5 font-mono text-[11px] uppercase tracking-widest text-white/60 transition hover:text-white"
+            className="pointer-events-auto absolute left-5 top-5 px-1 py-1.5 font-mono text-[11px] uppercase tracking-widest text-white/60 transition hover:text-white"
           >
             Resume
           </a>
