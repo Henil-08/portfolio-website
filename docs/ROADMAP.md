@@ -95,8 +95,8 @@ see-through when the car is hidden (3h), and a compact Bruno-style career timeli
 plus the owner's school journey (3b). 3f, 3g, 3h, 3b and step 4 are done (2026-10-23, late); the
 car no longer beaches on slopes (colliders 0.3 m up, parapets on embankments). Step 4 is done too. Owner review the same night added step 4b (foliage-only see-through, Bruno's
 scale, flat world, grass, bushes, fuller infield, Team Stallions facing the camera, F1 floodlights,
-a real pit lane, grandstands, random rain with a tyre swap). 4b a-f and owner review 2 (4c) are done; 4b g waits for the owner; next is 4d (layout v5 from the owner's sketch),
-then 4b h-k, then step 5 (map menu).
+a real pit lane, grandstands, random rain with a tyre swap). 4b a-f and owner review 2 (4c) are done; 4b g waits for the owner; 4d (layout v5) is built; next are 4b h-k (floodlights, pit wall, grandstands, rain), then
+step 5 (map menu).
 
 ## Steps (do them in order; first unticked one is next)
 
@@ -250,7 +250,7 @@ straight with pit wall, fences and stands). Do these in order, one commit per it
       Was: The infield common area in the middle is too empty: fill it Bruno-style (bushes, paths, his
       benches/lanterns/fences from models/props/propModels.ts, a small wooden footbridge, flower beds).
       No invented text or facts.
-- [ ] g. OPEN, needs the owner: Ahmedabad is the only scene on the camera side (front faces away). The far
+- [x] g. (a165eb3) Done with layout v5: Ahmedabad now sits on the top straight facing the camera. Was: OPEN, needs the owner: Ahmedabad is the only scene on the camera side (front faces away). The far
       side is river for the whole of sector 1, so it can't move across; turned round in place it stands
       between car and camera and hides the car (tried, reverted). Options: move sector 1's scene to another
       stretch (layout change), or keep it and lower its tall parts. Was: Team Stallions (Sector 1 Ahmedabad scene, models/sectors/Ahmedabad.tsx, placed by layout.ts
@@ -287,10 +287,16 @@ straight with pit wall, fences and stands). Do these in order, one commit per it
 - [ ] Credit him in the main README (owner: later).
 - [ ] Garden benches/lamps and fences are still fixed; make them movable too if the owner wants.
 
-### 4d. Layout v5 (owner sketch, 2026-10-23): NEXT
-Spec and sketch in README.md "Next: track layout v5" (docs/research/layout-v5-sketch.png): Monaco hairpin round a
-pond top left, a pit lane parallel to the whole main straight, the bridge loop top middle, redistribute places.
-- [ ] Settle the open questions in the README with the owner, then build it one commit at a time.
+### 4d. Layout v5 (owner sketch, 2026-10-23)
+Spec and sketch in README.md "Track layout v5" (docs/research/layout-v5-sketch.png). Owner: river/harbour and
+place spots "your choice"; Team Stallions "give a nice spot".
+- [x] (a165eb3) Track traced from the sketch, pit lane the length of the straight (PIT z 34, x -58..40),
+      hairpin pond, podium and cricket moved, scenes placed in turn and scored by facing (Ahmedabad faces the camera).
+- [x] (0cbb499) Idle car vibration: the infield wasn't level (land averaged nearby road heights); level now, and the
+      car re-parks when left alone.
+- [x] (d0437f1) Opening ported from folio-2025: grid floor, glowing cut, click-to-start label, dip then sweep.
+- [x] (ca81eea) No lines or words on the track, speckled asphalt, olive grass, orange sand.
+- [ ] Owner to review v5 in a real browser: chicane kerbs, spacing between the loop and the strand leaving it.
 
 ### 5. Map menu like Bruno's (M)
 Owns components/ui/** (MapMenu in Hud.tsx) and a new components/world/MapCapture.tsx.

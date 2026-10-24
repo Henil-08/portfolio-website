@@ -18,11 +18,11 @@ npm run dev
 
 All content lives in `content/`. Edit those files and the page, the resume, the radio and the MCP server all update together.
 
-## Next: track layout v5 (my sketch, 2026-10-23)
+## Track layout v5 (my sketch, 2026-10-23): built
 
 ![Layout v5 sketch](docs/research/layout-v5-sketch.png)
 
-Red is the circuit, black the pit lane, green grass and infield, blue water. This is the next thing to build in the 3D world (`components/world/layout.ts` `TRACK_POINTS`, `PIT`, `pitRoadCurves`), one change per commit, screenshots each time (docs/ROADMAP.md has the working rules).
+Red is the circuit, black the pit lane, green grass and infield, blue water. Built in the 3D world (`components/world/layout.ts` `TRACK_POINTS`, `PIT`, `pitRoadCurves`), one change per commit, screenshots each time (docs/ROADMAP.md has the working rules).
 
 What the sketch asks for:
 
@@ -36,7 +36,7 @@ What the sketch asks for:
    - down the west side, a chicane round a grass block at the bottom left, onto the straight.
 4. **Redistribute.** Places, sector scenes, the garden, the timeline, the name and the park islands move where they fit best inside the new shape. The start stays in front of the name, with a lane that leads onto the circuit (`components/world/access.ts`), rerouted to the new pit exit.
 
-Open questions to settle before building: where the river and harbour go (they cross today's east esses and west sweepers), and which grass area takes which place.
+How it landed: the river crosses the east side's S on a low deck, the harbour arm ends in the bottom-left chicane's pocket, the hairpin has its own pond, and the four story scenes sit where their fronts face the camera (Team Stallions on the top straight). Still to do: pit wall and fences between the pit lane and the straight (docs/ROADMAP.md 4b i).
 
 ## Stack
 
