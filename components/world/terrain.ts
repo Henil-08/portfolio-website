@@ -32,8 +32,6 @@ function build() {
       const z = (j / GRID - 0.5) * EXTENT;
       let best = Infinity;
       let bestY = 0;
-      let wSum = 0;
-      let ySum = 0;
       for (let k = 0; k < S; k++) {
         const p = pts[k];
         const d2 = (p.x - x) ** 2 + (p.z - z) ** 2;
@@ -41,14 +39,14 @@ function build() {
           best = d2;
           bestY = p.y;
         }
-        const w = 1 / (d2 * d2 + 1);
-        wSum += w;
-        ySum += w * p.y;
       }
       const d = Math.sqrt(best);
       roadY[j * n + i] = bestY;
       roadD[j * n + i] = d;
-      const far = ySum / wSum;
+      // Flat world: away from the road the land is level at 0 (it used to take a
+      // weighted average of nearby road heights, which banked the infield up
+      // toward the ramps and river decks and left the car sliding at the start).
+      const far = 0;
       const k = THREE.MathUtils.smoothstep(d, flat, flat + blend);
       // Under the road the land sits a little lower; the road has its own collider.
       const under = 1 - THREE.MathUtils.smoothstep(d, TRACK_WIDTH / 2 + 0.5, flat);

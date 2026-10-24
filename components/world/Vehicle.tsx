@@ -98,7 +98,11 @@ let snapWheels = true; // set by place(): put the wheel visuals straight at rest
 // Parked: after a spawn or teleport the car is held in place (only its height
 // settles, damped) until the first drive input, so it never bobs on its springs while the page
 // loads (the intro camera copies the car, so any bob shook the whole picture).
-const parked = { on: true, p: new THREE.Vector3(), q: new THREE.Quaternion() };
+const parked = { on: true, p: new THREE.Vector3(), q: new THREE.Quaternion(), still: 0 };
+// Hands off and nearly stopped for this long (s): park again where it stands.
+// Without it the raycast suspension never quite settles: the car bobs and creeps.
+const REPARK_AFTER = 0.4;
+const REPARK_SPEED = 0.35; // m/s, horizontal
 
 export default function Vehicle() {
   const livery = useWorld((s) => s.livery);
@@ -193,8 +197,24 @@ export default function Vehicle() {
     const driving = getState().phase === "world";
     const dts = ticker.deltaScaled;
     const b = body.current;
+    const touching = input.forward || input.back || input.steer || input.handbrake;
+    if (!parked.on && b) {
+      const lv = b.linvel();
+      const slow = Math.hypot(lv.x, lv.z) < REPARK_SPEED && Math.abs(b.angvel().y) < 0.6 && carState.grounded;
+      parked.still = !touching && slow ? parked.still + ticker.delta : 0;
+      if (parked.still > REPARK_AFTER) {
+        const t = b.translation();
+        const r = b.rotation();
+        parked.on = true;
+        parked.p.set(t.x, t.y, t.z);
+        parked.q.set(r.x, r.y, r.z, r.w);
+      }
+    }
     if (parked.on && b) {
-      if (driving && (input.forward || input.back || input.steer || input.handbrake)) parked.on = false;
+      if (driving && touching) {
+        parked.on = false;
+        parked.still = 0;
+      }
       else {
         // x, z and rotation held; the height settles onto the springs, heavily damped, so it never bounces
         const t = b.translation();
