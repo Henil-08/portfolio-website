@@ -1,7 +1,7 @@
 "use client";
 
-// The start by the name: a shade tree, bushes, a bench and flowers, and the
-// lane to the circuit (positions in ./start.ts and ./access.ts).
+// The start by the name: a shade tree, bushes, a bench and flowers
+// (positions in ./start.ts). The way to the circuit is a garden path (garden/layout.ts).
 import { useMemo } from "react";
 import * as THREE from "three";
 import { Bush, Tree } from "./models/props";
@@ -13,7 +13,6 @@ import { flowerGeometry } from "./districts/hills";
 import { compose, rng } from "./street/common";
 import { Instances } from "./street/Instances";
 import { Movables, kindFromMatrices } from "./Movables";
-import AccessRoad from "./AccessRoad";
 import { heightAt } from "./terrain";
 import { C } from "./palette";
 import { START_BENCH, START_BUSHES, START_FLOWERS, START_TREE } from "./start";
@@ -43,7 +42,6 @@ export default function StartGarden() {
   const t = START_TREE;
   return (
     <group name="start-garden">
-      <AccessRoad />
       <Tree variant="round" seed={t.seed} position={[t.x, heightAt(t.x, t.z), t.z]} scale={t.s} />
       {START_BUSHES.map(([x, z, s], i) => (
         <Bush key={i} seed={30 + i} position={[x, heightAt(x, z), z]} scale={s} rotation={[0, i * 1.7, 0]} />

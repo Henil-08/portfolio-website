@@ -544,7 +544,7 @@ export const zoneById = Object.fromEntries(zones.map((z) => [z.id, z])) as Recor
  * `hx` is the half width of the whole word pair, for pads and clearances.
  */
 export const LETTERS = { text: "HENIL GAJJAR", center: [19, -3.2] as [number, number], scale: 1.2, hx: 10 };
-// Spawn in front of the name, at the head of the lane to the circuit (./start.ts, ./access.ts).
+// Spawn in front of the name, on the garden path that leads to the pit lane (./start.ts).
 export const SPAWN: [number, number, number] = START_SPOT;
 /** Career timeline terrace (components/world/Timeline.tsx): centre, world-axis half size, yaw.
  *  Turned a quarter, so its local z (time) runs along world x; sized from its own footprint. */

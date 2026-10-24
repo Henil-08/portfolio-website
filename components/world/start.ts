@@ -1,6 +1,6 @@
-// The start: in front of the name, the car is parked at the head of the lane
-// that leads to the circuit (./access.ts), under a shade tree with bushes, a
-// bench and flowers round it, inside the opening circle (Reveal.tsx). Pure data,
+// The start: in front of the name, the car is parked on the garden path that
+// leads to the pit lane (garden/layout.ts PATHS), under a shade tree with bushes,
+// a bench and flowers round it, inside the opening circle (Reveal.tsx). Pure data,
 // drawn by ./StartGarden.tsx.
 export { REVEAL_AT, START_SPOT } from "./startSpot";
 

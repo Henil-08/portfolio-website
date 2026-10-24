@@ -10,7 +10,6 @@ import { ISLANDS, islandDist, parkSand } from "./layout";
 import { BUILDINGS } from "../street/town";
 import { inSectorScene, nearTree, rng } from "../street/common";
 import { FOOTBRIDGES } from "./layout";
-import { nearAccess } from "../access";
 import { START_SPOT } from "../startSpot";
 
 export type BushSpot = { x: number; z: number; s: number; rot: number; seed: number };
@@ -25,7 +24,7 @@ function onPlace(x: number, z: number, pad: number) {
 
 function free(x: number, z: number, out: BushSpot[]) {
   if (!inLand(x, z, 2) || !clearOfRoad(x, z, 4.5)) return false;
-  if (nearAccess(x, z, 1.4) || Math.hypot(x - START_SPOT[0], z - START_SPOT[1]) < 5) return false;
+  if (Math.hypot(x - START_SPOT[0], z - START_SPOT[1]) < 5) return false;
   if (nearGarden(x, z, 1.3) || nearTree(x, z, 1.6) || onPlace(x, z, 2.5)) return false;
   if (inSectorScene(x, z, 3, 12)) return false;
   if (Math.abs(x - TIMELINE.pos[0]) < TIMELINE.hx + 2 && Math.abs(z - TIMELINE.pos[1]) < TIMELINE.hz + 2) return false;

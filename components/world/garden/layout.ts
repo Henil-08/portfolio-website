@@ -6,7 +6,6 @@
 // onto the embankment of the descending leg, so the garden stays north of it.
 // The timeline terrace (TIMELINE) is the garden's east-west spine; the paths
 // run around it and out to each place.
-import { nearAccess } from "../access";
 import * as THREE from "three";
 import { nearCrossing, nearestT, TIMELINE, TRACK_WIDTH } from "../layout";
 
@@ -23,6 +22,10 @@ export const PATHS: Path[] = [
   { pts: [[TIMELINE.pos[0] + TIMELINE.hx + 0.3, 3], [19, 3.4], [31, 3]], w: 2 },
   // East: from the promenade, down past the letters and out to the park.
   { pts: [[27, 14.2], [31, 6], [31.2, -2], [25.5, -10]], w: 2 },
+  // The way to the circuit (owner: a sandy road, no paving): from the promenade's
+  // east end, past the end of the garages, to the pit lane. The car starts on the
+  // terrace path in front of the name, which leads here.
+  { pts: [[27, 14.2], [30, 20], [32.5, 26], [35, 31.2]], w: 2.6 },
   // From the east path, between HENIL and GAJJAR (the word gap is at x ~18), down to the park.
   { pts: [[18, 3.2], [18, -3.2], [17.2, -10.5]], w: 1.2 },
 ];
@@ -117,7 +120,7 @@ export const LAMPS_GARDEN: [number, number][] = (() => {
       out.push([x, z]);
     }
   });
-  return out.filter(([x, z]) => clearOfRoad(x, z, 3) && !nearAccess(x, z, 1));
+  return out.filter(([x, z]) => clearOfRoad(x, z, 3));
 })();
 
 /** True if a point is a safe distance off the circuit and away from the bridge. */

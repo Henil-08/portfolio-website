@@ -16,7 +16,6 @@ import { paintWaterfront } from "./waterfront/layout";
 import { TYRE_WALLS } from "./street/layoutStreet";
 import { paintPark } from "./park/layout";
 import { paintParkSlabs } from "./districts/park";
-import { paintAccess } from "./access";
 
 // The original grass: one triangle per blade (tip + two base corners), laid out on a
 // jittered grid that loops around the car so the field never runs out. Every
@@ -107,7 +106,6 @@ function makeMask() {
   // Garden paths, beds and the pond.
   paintGarden(g, tx, s);
   paintParkSlabs(g, tx, s);
-  paintAccess(g, tx, s);
   paintWaterfront(g, tx, s);
   // Tyre walls at the corners.
   for (const w of TYRE_WALLS) {
