@@ -17,6 +17,7 @@ import { geo, lowSphere, mat, unitCyl } from "../models/props/shared";
 import { compose } from "../street/common";
 import { PROP_SCALE } from "../models/props/kit";
 import { batch, Instances } from "../street/Instances";
+import { Movables, kindFromMatrices } from "../Movables";
 import { seeded } from "../alive/noise";
 import { BEDS, BENCHES, HEDGE, HEDGES, LAMPS_GARDEN, PATHS, POND, bedLocal, clearOfRoad, pathDist, pathSamples } from "./layout";
 
@@ -131,8 +132,10 @@ function hedgeBlocks() {
   return out;
 }
 
+// Hedge blocks are knock-about props (Movables): the car shoves them aside and they tidy
+// themselves back into line once it is well away.
 function Hedges({ blocks }: { blocks: ReturnType<typeof hedgeBlocks> }) {
-  const b = useMemo(() => {
+  const kind = useMemo(() => {
     const r = seeded(5);
     const out = batch();
     const a = new THREE.Color(HEDGE_A);
@@ -142,9 +145,9 @@ function Hedges({ blocks }: { blocks: ReturnType<typeof hedgeBlocks> }) {
       out.m.push(compose(h.x, heightAt(h.x, h.z) + hh / 2 - 0.04, h.z, h.yaw, h.len, hh, HEDGE.d * (0.92 + r() * 0.12)));
       out.c.push(a.clone().lerp(c, r()));
     }
-    return out;
+    return kindFromMatrices(out.m, [{ geometry: hedgeGeo(), material: mat("#ffffff", { r: 0.85 }) }], { mass: 0.3, colors: out.c, shrink: 0.95 });
   }, [blocks]);
-  return <Instances geometry={hedgeGeo()} material={mat("#ffffff", { r: 0.85 })} batch={b} />;
+  return <Movables kind={kind} />;
 }
 
 // ---------------------------------------------------------------- beds
@@ -341,12 +344,9 @@ function Lamps() {
 
 // ---------------------------------------------------------------- colliders
 
-function Colliders({ blocks }: { blocks: ReturnType<typeof hedgeBlocks> }) {
+function Colliders() {
   return (
     <RigidBody type="fixed" colliders={false}>
-      {blocks.map((h, i) => (
-        <CuboidCollider key={`h${i}`} args={[h.len / 2, HEDGE.h / 2, HEDGE.d / 2]} position={[h.x, heightAt(h.x, h.z) + HEDGE.h / 2, h.z]} rotation={[0, h.yaw, 0]} />
-      ))}
       {BENCHES.map((b, i) => (
         <CuboidCollider key={`b${i}`} args={[0.85 * PROP_SCALE, 0.45 * PROP_SCALE, 0.3 * PROP_SCALE]} position={[b.x, heightAt(b.x, b.z) + 0.45 * PROP_SCALE, b.z]} rotation={[0, b.yaw, 0]} />
       ))}
@@ -367,7 +367,7 @@ export default function Garden() {
       <Pond />
       <Benches />
       <Lamps />
-      <Colliders blocks={blocks} />
+      <Colliders />
     </group>
   );
 }
