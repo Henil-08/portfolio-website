@@ -23,7 +23,7 @@ small, verified with headless screenshots, and committed on its own
 | Living world (wind, grass, leaves, confetti, birds) | components/world/alive/*, components/world/Grass.tsx |
 | Car | components/world/models/Car.tsx (`LIVERIES`, `DEFAULT_LIVERY`), Vehicle.tsx (physics) |
 | Lighting, day/night, weather | components/world/Effects.tsx (`SCENES`), Rig.tsx (camera, sun, sky), World.tsx (canvas, post) |
-| HUD and panels | components/ui/* (Hud.tsx, Panels.tsx, Intro.tsx, RadioMessages.tsx) |
+| HUD and panels | components/ui/* (Hud.tsx, Panels.tsx, Intro.tsx, RadioMessages.tsx, MapMenu.tsx); design language in docs/DESIGN.md |
 | Store | components/world/store.ts (`near`, `zone`, `menuOpen`, `teleport`, `achievements`) |
 | Audio | components/world/sound.ts, scripts/gen-audio.mjs, app/api/voice, content/radio.ts |
 | Timeline (career plaza) | components/world/Timeline.tsx, components/world/timeline/* |
@@ -102,7 +102,7 @@ the real world with pins that teleport behind a wipe. Commit history has the det
 Next, in order (the first unticked box in the steps below is the one to do):
 1. **4e owner check** items left open below (only if the owner reports them again).
 2. 4b h-k are done (floodlights, pit wall, grandstands, rain + tyre swap).
-3. Step 5 (map) is done; next is **step 6** (interaction prompt), then 7-9.
+3. Step 5 (map) is done. **4f design language** needs the owner's yes (docs/DESIGN.md), then step 6.
 4. Owner said "later": credit folio-2025 / Bruno Simon in the main README (only there).
 
 ## Steps (do them in order; first unticked one is next)
@@ -330,6 +330,17 @@ place spots "your choice"; Team Stallions "give a nice spot".
       Geist Mono label, no boot jump (page painted `FLOOR` first, grid fades in, ring min 0.55 s), 1.5x faster.
 - [ ] Owner to try in a real browser: intro timing, stop feel, chicane kerbs, the 4 m verge between the
       bridge loop and the strand leaving it. Fix only what the owner reports.
+
+### 4f. Owner review 4 (2026-10-24)
+- [x] (33e5f35) Tyres on the road after the bridge loop: tyre walls now keep 0.8 m off every stretch of road.
+      scripts/check-clear.mjs lists anything placed on the road or pit lane; run it before layout commits.
+- [x] (b04da58) Main straight dead straight (`STRAIGHT_Z` 43, x -63..42), pit lane parallel inside it with a
+      2 m wall strip (`PIT.z` follows), entry peeling off the inside of the last corner and exit rejoining on
+      the inside of T1 (owner's sketch), one solid white line on each lane's track side, kerbs cut there.
+- [x] (da603ed) Night: tarmac lit evenly (Island.tsx `roadLight`), light pools gone; 13 towers on the pit wall.
+- [x] (0f90330) Garden hedge blocks are knock-about props.
+- [ ] Design language: docs/DESIGN.md, option A (pit wall broadcast) recommended, B (cream toy cards) described.
+      **Waiting for the owner's approval**; then move the components in its table, one commit each, before step 6.
 
 ### 5. Map menu like Bruno's (M)
 Owns components/ui/** (MapMenu in Hud.tsx) and a new components/world/MapCapture.tsx.
