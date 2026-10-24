@@ -102,7 +102,7 @@ the real world with pins that teleport behind a wipe. Commit history has the det
 Next, in order (the first unticked box in the steps below is the one to do):
 1. **4e owner check** items left open below (only if the owner reports them again).
 2. 4b h-k are done (floodlights, pit wall, grandstands, rain + tyre swap).
-3. Steps 5 and 6, the 4f HUD move and the new opening are done; next is **step 7** (night).
+3. Steps 5-7 (map, prompt, night) are done, except step 7's optional tinted shadows; next is **step 8** (town streets).
 4. Owner said "later": credit folio-2025 / Bruno Simon in the main README (only there).
 
 ## Steps (do them in order; first unticked one is next)
@@ -384,9 +384,10 @@ Owns new components/world/ui3d/** and Race.tsx (`InteractionPoint`, the current 
 
 ### 7. Night
 - [x] Light pools at night: done with the floodlights (4b h, `FLOODS` `px/pz`).
-- [ ] Every night emissive > 1 with `toneMapped: false` so it blooms: garage headers
+- [x] (f702a53, brake light a365a63) shared.ts `nightGlow`: every glow x1.8 at night, `nightGlow` option for
+      night-only windows (Team Stallions). Was: Every night emissive > 1 with `toneMapped: false` so it blooms: garage headers
       (models/props/Garage.tsx), sector-scene windows/signs (models/sectors/*), car brake light.
-- [ ] Fireflies in the garden and by the lake at night (alive/Fireflies.tsx, add anchors).
+- [x] (ef35560) Fireflies in the garden and by the lake at night (alive/Fireflies.tsx, add anchors).
 - [ ] Optional: tinted shadows like Bruno (albedo x shadow colour), only via one cheap shared patch.
 
 ### 8. Town streets
