@@ -102,7 +102,7 @@ the real world with pins that teleport behind a wipe. Commit history has the det
 Next, in order (the first unticked box in the steps below is the one to do):
 1. **4e owner check** items left open below (only if the owner reports them again).
 2. 4b h-k are done (floodlights, pit wall, grandstands, rain + tyre swap).
-3. Step 5 (map) is done. **4f design language** needs the owner's yes (docs/DESIGN.md), then step 6.
+3. Step 5 (map) and the 4f HUD move are done; next is the new opening (4f), then step 6.
 4. Owner said "later": credit folio-2025 / Bruno Simon in the main README (only there).
 
 ## Steps (do them in order; first unticked one is next)
@@ -339,8 +339,12 @@ place spots "your choice"; Team Stallions "give a nice spot".
       the inside of T1 (owner's sketch), one solid white line on each lane's track side, kerbs cut there.
 - [x] (da603ed) Night: tarmac lit evenly (Island.tsx `roadLight`), light pools gone; 13 towers on the pit wall.
 - [x] (0f90330) Garden hedge blocks are knock-about props.
-- [ ] Design language: docs/DESIGN.md, option A (pit wall broadcast) recommended, B (cream toy cards) described.
-      **Waiting for the owner's approval**; then move the components in its table, one commit each, before step 6.
+- [x] Design language: docs/DESIGN.md, option A (pit wall broadcast) approved with the fonts unchanged (owner,
+      2026-10-24); specimen at /docs/design (22d1916). Shared classes 2d94c41; moved over one commit each:
+      edge tabs b680f08, team radio 9c45faa, toast 5c6d9f4, place panel + picks 4c77845, controls / hints / speed /
+      pedals badbcf7, radio subtitle 0dc6e44, fit check + lap chip 61bb491, autopilot bd0237f, E prompt (interim).
+      Garage teleports now land inside the garage zone (7370750).
+- [ ] Opening ("boot") in the new language: see the step below.
 
 ### 5. Map menu like Bruno's (M)
 Owns components/ui/** (MapMenu in Hud.tsx) and a new components/world/MapCapture.tsx.
