@@ -33,6 +33,7 @@ type State = {
   picks: { title: string; slugs: string[] } | null;
   fitOpen: boolean;
   controlsOpen: boolean;
+  settingsOpen: boolean;
   voice: boolean; // race engineer speaks out loud
   livery: LiveryName; // car paint, picked in settings and remembered
   hallucinating: boolean;
@@ -67,6 +68,7 @@ let state: State = {
   picks: null,
   fitOpen: false,
   controlsOpen: false,
+  settingsOpen: false,
   voice: true,
   livery: DEFAULT_LIVERY,
   hallucinating: false,

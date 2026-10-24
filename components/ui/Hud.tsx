@@ -39,6 +39,7 @@ export default function Hud() {
       <Ask />
       <MapMenu />
       <Controls />
+      <Settings />
     </>
   );
 }
@@ -47,11 +48,11 @@ export default function Hud() {
 // they slide out 4 px on hover and off the screen while a modal is open.
 function TopBar() {
   const muted = useWorld((s) => s.muted);
-  const modal = useWorld((s) => s.menuOpen || s.controlsOpen);
+  const modal = useWorld((s) => s.menuOpen || s.controlsOpen || s.settingsOpen);
   return (
     <motion.nav
       initial={{ x: 60 }}
-      animate={{ x: modal ? 60 : 0 }}
+      animate={{ x: modal ? 160 : 0 }}
       transition={modal ? { duration: 0.15 } : { delay: 0.15, duration: 0.3, ease: [0.4, 1.6, 0.65, 1] }}
       className="pointer-events-auto fixed right-0 top-3 z-30 flex flex-col gap-1.5 sm:top-5"
       aria-label="World controls"
@@ -59,8 +60,12 @@ function TopBar() {
       <EdgeTab label="Map (M)" onClick={() => setState((s) => ({ menuOpen: !s.menuOpen }))}>
         <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14" />
       </EdgeTab>
-      <EdgeTab label="Controls and settings" onClick={() => setState((s) => ({ controlsOpen: !s.controlsOpen }))}>
+      <EdgeTab label="Controls" onClick={() => setState((s) => ({ controlsOpen: !s.controlsOpen }))}>
         <path d="M3 7h18v10H3zM7 11h.01M11 11h.01M15 11h.01M7 14h10" />
+      </EdgeTab>
+      <EdgeTab label="Settings" onClick={() => setState((s) => ({ settingsOpen: !s.settingsOpen }))}>
+        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
       </EdgeTab>
       <EdgeTab label={muted ? "Unmute" : "Mute"} onClick={() => setState((s) => ({ muted: !s.muted }))}>
         {muted ? <path d="M11 5 6 9H3v6h3l5 4V5Zm6 4 4 4m0-4-4 4" /> : <path d="M11 5 6 9H3v6h3l5 4V5Zm5 3a5 5 0 0 1 0 8m2.5-10.5a8.5 8.5 0 0 1 0 13" />}
@@ -209,11 +214,53 @@ function Controls() {
               ))}
             </div>
             <p className="mt-4 text-[12px] text-cream/50">On a phone: thumb stick to steer, gas and brake on the right. A few keys are secret.</p>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// Settings behind the gear tab: livery, sound, the engineer's voice.
+function Settings() {
+  const open = useWorld((s) => s.settingsOpen);
+  const muted = useWorld((s) => s.muted);
+  const voice = useWorld((s) => s.voice);
+  const close = () => setState({ settingsOpen: false });
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div className="fixed inset-0 z-40 grid place-items-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} onClick={close}>
+          <motion.div
+            initial={{ y: 12 }}
+            animate={{ y: 0 }}
+            exit={{ y: 8 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="hud-panel w-full max-w-sm p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={close} aria-label="Close" className="hud-tab hud-red absolute bottom-full right-2.5 grid h-10 w-12 place-items-center text-[15px]">
+              ✕
+            </button>
+            <p className="font-racing text-[24px] uppercase tracking-wide">Settings</p>
+            <div className="mt-4 divide-y divide-cream/10">
+              <Toggle label="Sound" on={!muted} set={(v) => setState({ muted: !v })} />
+              <Toggle label="Engineer's voice" on={voice} set={(v) => setState({ voice: v })} />
+            </div>
             <LiveryPicker />
           </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+function Toggle({ label, on, set }: { label: string; on: boolean; set: (v: boolean) => void }) {
+  return (
+    <button onClick={() => set(!on)} aria-pressed={on} className="flex w-full items-center justify-between py-3 text-left">
+      <span className="text-[14px]">{label}</span>
+      <span className={`px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-[0.14em] ${on ? "bg-cream text-ink" : "border border-cream/30 text-cream/60"}`}>{on ? "On" : "Off"}</span>
+    </button>
   );
 }
 
@@ -267,7 +314,7 @@ function InteractKey() {
       else if ((e.code === "KeyE" || e.code === "Enter") && s.near && !s.zone) openZone(s.near);
       if (e.code === "Escape" && s.zone) closeZone();
       if (e.code === "KeyM" && s.phase === "world") setState((w) => ({ menuOpen: !w.menuOpen }));
-      if (e.code === "Escape" && s.menuOpen) setState({ menuOpen: false });
+      if (e.code === "Escape" && (s.menuOpen || s.controlsOpen || s.settingsOpen)) setState({ menuOpen: false, controlsOpen: false, settingsOpen: false });
     };
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
