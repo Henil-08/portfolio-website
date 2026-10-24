@@ -14,8 +14,10 @@ type MatOpts = {
   m?: number;
   /** emissive color (defaults to the base color when `glow` is set) */
   e?: string;
-  /** emissive intensity */
+  /** emissive intensity; brightened at night (see nightGlow) */
   glow?: number;
+  /** emissive only at night: 0 by day, this much at full night (lit windows) */
+  nightGlow?: number;
   /** opacity < 1 makes it transparent */
   o?: number;
   flat?: boolean;
@@ -24,6 +26,15 @@ type MatOpts = {
 };
 
 const mats = new Map<string, THREE.MeshStandardMaterial>();
+/** Glowing materials and their daytime intensity, for nightGlow(). */
+const glowing: { m: THREE.MeshStandardMaterial; day: number; night: number }[] = [];
+/** Night lifts every glow (signs, screens, windows) so it blooms: day x1, full night x1.8. */
+const NIGHT_BOOST = 0.8;
+
+/** Called once a frame with dayNight.night (Effects.tsx DayNight). */
+export function nightGlow(n: number) {
+  for (const g of glowing) g.m.emissiveIntensity = g.day * (1 + NIGHT_BOOST * n) + g.night * n;
+}
 
 /** Cached MeshStandardMaterial keyed by color + options. Never dispose these. */
 export function mat(color: string, o: MatOpts = {}): THREE.MeshStandardMaterial {
@@ -38,10 +49,11 @@ export function mat(color: string, o: MatOpts = {}): THREE.MeshStandardMaterial 
       side: o.side ?? THREE.FrontSide,
       vertexColors: o.vc ?? false,
     });
-    if (o.glow) {
+    if (o.glow || o.nightGlow) {
       m.emissive.set(o.e ?? color);
-      m.emissiveIntensity = o.glow;
+      m.emissiveIntensity = o.glow ?? 0;
       m.toneMapped = false;
+      glowing.push({ m, day: o.glow ?? 0, night: o.nightGlow ?? 0 });
     }
     if (o.o !== undefined && o.o < 1) {
       m.transparent = true;

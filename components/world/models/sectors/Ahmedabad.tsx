@@ -249,6 +249,8 @@ function Mercury(props: GroupProps) {
 
 /** Sector 1: sandstone engineering school with arcade, jharokhas and chhatris; neem courtyard; solar car Mercury at a cone slalom. Faces +Z. */
 export function AhmedabadSector(props: GroupProps) {
+  // the upper windows are dark by day and warm at night (shared.ts nightGlow)
+  const litWindows = mat("#2a2622", { e: "#ffc98a", nightGlow: 1.6 });
   const stone = mat(STONE, { r: 0.7 });
   const stoneDeep = mat(STONE_DEEP, { r: 0.72 });
   const shade = mat(STONE_SHADE, { r: 0.8 });
@@ -267,7 +269,7 @@ export function AhmedabadSector(props: GroupProps) {
         <mesh geometry={unitBox()} scale={[BW - 0.1, HT - H1, BD - FD]} position={[0, H1 + (HT - H1) / 2, ZF - FD - (BD - FD) / 2]} material={stone} castShadow receiveShadow />
         <mesh geometry={unitBox()} scale={[BW - 0.1, H1, BD - 2.2]} position={[0, H1 / 2, ZF - 2.2 - (BD - 2.2) / 2]} material={shade} castShadow receiveShadow />
         {/* window backs behind the arched upper openings */}
-        <mesh geometry={unitBox()} scale={[BW - 0.6, 1.8, 0.04]} position={[0, 5.0, ZF - FD + 0.03]} material={dark} />
+        <mesh geometry={unitBox()} scale={[BW - 0.6, 1.8, 0.04]} position={[0, 5.0, ZF - FD + 0.03]} material={litWindows} />
         {/* arcade floor plinth and ceiling shade */}
         <mesh geometry={unitBox()} scale={[BW, 0.16, 2.4]} position={[0, 0.08, ZF - 1.0]} material={stoneDeep} receiveShadow />
         <mesh geometry={unitBox()} scale={[BW + 0.3, 0.12, 0.5]} position={[0, 0.06, ZF + 0.22]} material={trim} receiveShadow castShadow />

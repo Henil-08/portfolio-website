@@ -9,6 +9,7 @@ import { getState, setState, subscribe, useWorld } from "./store";
 import { dayNight } from "./daynight";
 import { heightAt } from "./terrain";
 import { BALL_R, Cone, Football, TYRE_H, TYRE_R, Tyre } from "./models/props";
+import { nightGlow } from "./models/props/shared";
 
 // Lighting keyframes. The day/night cycle blends between them by sun elevation.
 // Night follows folio-2025 (MIT): a strong blue moonlight, a violet
@@ -129,6 +130,7 @@ export function DayNight() {
     dayNight.t = (dayNight.t + dt / CYCLE) % 1;
     dayNight.sunElevation = Math.sin(dayNight.t * Math.PI * 2);
     dayNight.night = THREE.MathUtils.smoothstep(-dayNight.sunElevation, -0.08, 0.2);
+    nightGlow(dayNight.night);
   });
   return null;
 }
