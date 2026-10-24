@@ -342,7 +342,8 @@ Owns components/ui/** (MapMenu in Hud.tsx) and a new components/world/MapCapture
       Was: Pins for places (zones + SECTORS scenes + contact logos) as white diamonds with dark border;
       labels pop on hover with Bruno's springy bezier (docs/research/bruno-folio-2025.md §1);
       player arrow rotating with `carState.forward`.
-- [ ] Click a pin: teleport (`setState({ teleport: { id, zone } })`) behind Bruno's diagonal wipe
+- [x] (0e9cef0) world/Overlay.tsx `wipeTo(zone)`: the original's wipe (2 s in, 4 s out, swooshes) in ink.
+      Was: Click a pin: teleport (`setState({ teleport: { id, zone } })`) behind Bruno's diagonal wipe
       (his Overlay.js); M or Esc closes.
 - [ ] Achievements as a quiet second tab; keep the job-fit check reachable (`fitOpen`).
 - Accept when: the map is something you'd want to open; works on a 390x844 viewport.
