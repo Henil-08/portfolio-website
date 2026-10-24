@@ -21,6 +21,8 @@ function skip(side: 1 | -1, i: number, x: number, z: number) {
   const far = side === farSign(f);
   if (onBridge(f.u, 2)) return true; // the bridge has its own parapets
   if (nearCrossing(x, z, 20)) return true;
+  // never on any stretch of road (where the lap doubles back, another stretch can be near)
+  if (nearestT(x, z).dist < TRACK_WIDTH / 2 + 0.8) return true;
   if (inner && inPitSide(x, z)) return true;
   if (x > PIT.from - 8 && x < PIT.to + 8 && z > PIT.garageZ - 5 && z < PIT.z + PIT_LANE_WIDTH / 2 + 1) return true; // pit lane and garages
   if (far && inSectorScene(x, z, 2)) return true;
