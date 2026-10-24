@@ -99,24 +99,24 @@ function ZoneCard() {
       {zone && (
         <motion.aside
           key={zone}
-          initial={{ opacity: 0, x: 40, scale: 0.96 }}
-          animate={{ opacity: 1, x: 0, scale: 1 }}
-          exit={{ opacity: 0, x: 40, scale: 0.96 }}
-          transition={{ type: "spring", stiffness: 320, damping: 28 }}
-          className="toy-card fixed inset-x-3 bottom-3 z-30 flex max-h-[58svh] flex-col overflow-hidden rounded-[28px] sm:inset-x-auto sm:bottom-auto sm:right-5 sm:top-24 sm:max-h-[calc(100svh-8rem)] sm:w-[420px]"
+          initial={{ opacity: 0, x: 12 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 12 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          className="hud-panel fixed inset-x-3 bottom-3 z-30 flex max-h-[58svh] flex-col overflow-hidden sm:inset-x-auto sm:bottom-auto sm:right-16 sm:top-5 sm:max-h-[calc(100svh-2.5rem)] sm:w-[420px]"
         >
           <div className="flex items-start gap-3 px-5 pb-3 pt-5">
-            <span className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ background: zoneMeta[zone].color }} />
+            <span className="mt-1 h-3 w-3 shrink-0 rotate-45 border-2 border-cream/80" style={{ background: zoneMeta[zone].color }} />
             <div className="min-w-0 flex-1">
-              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-soft">{zoneMeta[zone].kicker}</p>
-              <h2 className="mt-1.5 font-racing text-[22px] uppercase leading-[1.05] tracking-wide text-ink">
+              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-cream/55">{zoneMeta[zone].kicker}</p>
+              <h2 className="mt-1.5 font-racing text-[22px] uppercase leading-[1.05] tracking-wide">
                 {zoneMeta[zone].title}
               </h2>
             </div>
             <button
               onClick={closeZone}
               aria-label="Close"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-cream text-ink-soft transition hover:bg-line hover:text-ink"
+              className="hud-red grid h-9 w-9 shrink-0 place-items-center text-[14px] transition hover:brightness-110"
             >
               ✕
             </button>
@@ -215,21 +215,21 @@ function PicksCard() {
     <AnimatePresence>
       {picks && !zone && list.length > 0 && (
         <motion.aside
-          initial={{ opacity: 0, x: 40, scale: 0.96 }}
-          animate={{ opacity: 1, x: 0, scale: 1 }}
-          exit={{ opacity: 0, x: 40, scale: 0.96 }}
-          transition={{ type: "spring", stiffness: 320, damping: 28 }}
-          className="toy-card fixed inset-x-3 bottom-3 z-30 flex max-h-[58svh] flex-col overflow-hidden rounded-[28px] sm:inset-x-auto sm:bottom-auto sm:right-5 sm:top-24 sm:max-h-[calc(100svh-8rem)] sm:w-[420px]"
+          initial={{ opacity: 0, x: 12 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 12 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          className="hud-panel fixed inset-x-3 bottom-3 z-30 flex max-h-[58svh] flex-col overflow-hidden sm:inset-x-auto sm:bottom-auto sm:right-16 sm:top-5 sm:max-h-[calc(100svh-2.5rem)] sm:w-[420px]"
         >
           <div className="flex items-start gap-3 px-5 pb-3 pt-5">
             <div className="min-w-0 flex-1">
-              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-soft">Pinned by your engineer</p>
-              <h2 className="mt-1.5 font-racing text-[22px] uppercase leading-[1.05] tracking-wide text-ink">{picks.title}</h2>
+              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-cream/55">Pinned by your engineer</p>
+              <h2 className="mt-1.5 font-racing text-[22px] uppercase leading-[1.05] tracking-wide">{picks.title}</h2>
             </div>
             <button
               onClick={() => setState({ picks: null })}
               aria-label="Close"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-cream text-ink-soft transition hover:bg-line hover:text-ink"
+              className="hud-red grid h-9 w-9 shrink-0 place-items-center text-[14px] transition hover:brightness-110"
             >
               ✕
             </button>
