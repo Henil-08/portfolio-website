@@ -102,7 +102,7 @@ the real world with pins that teleport behind a wipe. Commit history has the det
 Next, in order (the first unticked box in the steps below is the one to do):
 1. **4e owner check** items left open below (only if the owner reports them again).
 2. 4b h-k are done (floodlights, pit wall, grandstands, rain + tyre swap).
-3. Steps 5-7 (map, prompt, night) are done, except step 7's optional tinted shadows; next is **step 8** (town streets).
+3. Steps 5-8 are done; next is **step 9** (smaller things).
 4. Owner said "later": credit folio-2025 / Bruno Simon in the main README (only there).
 
 ## Steps (do them in order; first unticked one is next)
@@ -391,7 +391,10 @@ Owns new components/world/ui3d/** and Race.tsx (`InteractionPoint`, the current 
 - [x] (138c2c4) Optional: tinted shadows like Bruno (albedo x shadow colour), only via one cheap shared patch (tintedShadows.ts).
 
 ### 8. Town streets
-- [ ] Pavements with kerb edging where buildings front the circuit, zebra crossings, street trees
+- [x] (f5c5cd7) districts/townStreets.ts + Streets.tsx: pavements with kerbs on 12 frontages, planters with trees,
+      knock-about bollards and cafe sets, one bus stop, one kiosk. Zebra crossings left out: the circuit carries
+      no paint (art direction); ask the owner if he wants them anyway.
+      Was: Pavements with kerb edging where buildings front the circuit, zebra crossings, street trees
       in planters, bollards, a bus stop or kiosk, cafe tables (street/**; use common.ts helpers).
 
 ### 9. Smaller things
