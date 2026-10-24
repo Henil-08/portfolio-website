@@ -9,9 +9,9 @@
 // It is one post effect that rebuilds each pixel's world position from the depth
 // buffer, so it covers every material (custom shaders, text, instanced foliage)
 // without touching them.
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { BlendFunction, Effect, EffectAttribute } from "postprocessing";
+import { BlendFunction, Effect, EffectAttribute, type BloomEffect } from "postprocessing";
 import * as THREE from "three";
 import { getState, setState } from "./store";
 import { REVEAL_AT } from "./start";
@@ -25,6 +25,12 @@ export const reveal = {
 };
 
 const OPEN = 5;
+const BLOOM = 0.55; // World.tsx's bloom strength once the world is open
+
+/** Bloom off during the opening (kept out of the hook for the React Compiler). */
+function setBloom(list: RefObject<BloomEffect | null>[], v: number) {
+  for (const r of list) if (r.current && r.current.intensity !== v) r.current.intensity = v;
+}
 const FAR = 34;
 const STEADY = 24; // frames under FRAME_OK in a row before the ring completes
 const FRAME_OK = 1 / 24;
@@ -39,6 +45,7 @@ uniform vec2 uCenter;
 uniform float uRadius;
 uniform float uThick;
 uniform vec3 uRing;
+uniform vec3 uRingSoft;
 uniform vec3 uBg;
 uniform mat4 uInvProj;
 uniform mat4 uInvView;
@@ -71,6 +78,10 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
   // the circle's glowing edge, only where nothing inside the circle covers it
   float edge = step(uRadius - uThick, dp) * (1.0 - step(uRadius, dp)) * step(uRadius - uThick, d);
   c = mix(c, uRing, edge * step(0.01, uRadius));
+  // soft halo either side of the rings (they come after bloom)
+  float halo = step(0.01, uRadius) * exp(-abs(dp - uRadius + uThick * 0.5) * 9.0);
+  if (uLoader > 0.0) halo = max(halo, exp(-abs(dp - uLoader + uThick * 0.5) * 9.0) * step(fract(atan(rel.x, -rel.y) / 6.2831853 + 0.375), uProgress));
+  c += uRingSoft * halo;
   // loader: an arc that fills clockwise from the top of the screen
   if (uLoader > 0.0) {
     float band = step(uLoader - uThick, dp) * (1.0 - step(uLoader, dp));
@@ -90,8 +101,8 @@ class RevealEffect extends Effect {
         ["uCenter", new THREE.Uniform(new THREE.Vector2(REVEAL_AT[0], REVEAL_AT[1]))],
         ["uRadius", new THREE.Uniform(0)],
         ["uThick", new THREE.Uniform(0.06)],
-        // pushed past 1 so the ring blooms
-        ["uRing", new THREE.Uniform(new THREE.Color("#e88eff").multiplyScalar(5.5))],
+        ["uRing", new THREE.Uniform(new THREE.Color("#f6dcff"))],
+        ["uRingSoft", new THREE.Uniform(new THREE.Color("#e88eff").multiplyScalar(0.35))],
         ["uBg", new THREE.Uniform(new THREE.Color("#1d1721"))],
         ["uInvProj", new THREE.Uniform(new THREE.Matrix4())],
         ["uInvView", new THREE.Uniform(new THREE.Matrix4())],
@@ -107,7 +118,7 @@ class RevealEffect extends Effect {
 /** Loader state, shared between the driver and the pass. */
 const load = { progress: 0, shown: 0, ring: OPEN };
 
-/** Mount inside <EffectComposer> after AO (so AO never shows outside) and before bloom (so the ring blooms). */
+/** Mount inside <EffectComposer> after AO and bloom, so nothing outside the circle shows or glows through. */
 export function RevealPass() {
   const effect = useMemo(() => new RevealEffect(), []);
   const { camera } = useThree();
@@ -128,7 +139,7 @@ export function RevealPass() {
  * Drives the opening: -1 loading (ring fills) -> 0 ring shrinks -> 1 small circle
  * open (start prompt) -> 2 sweep out on start.
  */
-export function RevealDriver() {
+export function RevealDriver({ blooms = [] }: { blooms?: RefObject<BloomEffect | null>[] }) {
   const { gl, scene, camera } = useThree();
   const st = useRef({ stage: -1, t: 0, fast: false, age: 0, compiled: false, compiling: false, steady: 0 });
   useEffect(() => {
@@ -136,6 +147,7 @@ export function RevealDriver() {
   }, []);
   useFrame((_, dt) => {
     const s = st.current;
+    setBloom(blooms, reveal.done ? BLOOM : 0);
     if (reveal.done) return;
     const g = getState();
     // ?skip (dev and headless checks): no opening at all

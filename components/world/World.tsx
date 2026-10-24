@@ -1,7 +1,8 @@
 "use client";
 
 import { RevealDriver, RevealPass } from "./Reveal";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import type { BloomEffect } from "postprocessing";
 import { Canvas } from "@react-three/fiber";
 import { Physics, useRapier } from "@react-three/rapier";
 import { useFrame } from "@react-three/fiber";
@@ -30,6 +31,8 @@ export default function World() {
   useEffect(() => bindKeyboard(), []);
   const hallucinating = useWorld((s) => s.hallucinating);
   const revealed = useWorld((s) => s.revealed);
+  const bloomFancy = useRef<BloomEffect>(null);
+  const bloomLight = useRef<BloomEffect>(null);
 
   return (
     <Canvas
@@ -64,7 +67,8 @@ export default function World() {
         </Physics>
       </Suspense>
       <CameraRig />
-      <RevealDriver />
+      {/* bloom stays off until the opening is done, or lamps glow through the dark outside the circle */}
+      <RevealDriver blooms={[bloomFancy, bloomLight]} />
       <ZoneWatcher />
       <InteractionPoint />
       <Weather />
@@ -76,16 +80,16 @@ export default function World() {
       {/* The light version still gets the opening reveal, then drops the composer. */}
       {!fancy && !revealed && (
         <EffectComposer multisampling={0} enableNormalPass={false}>
+          <Bloom ref={bloomLight} luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0} mipmapBlur />
           <RevealPass />
-          <Bloom luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0.55} mipmapBlur />
         </EffectComposer>
       )}
       {fancy && (
         <EffectComposer multisampling={0} enableNormalPass={false}>
           <N8AO halfRes aoRadius={1.6} intensity={1.6} distanceFalloff={0.7} color="#2a2420" />
-          <RevealPass />
           {/* Only emissives pushed past 1.0 bloom (lamps, windows, garage headers, neon). */}
-          <Bloom luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0.55} mipmapBlur />
+          <Bloom ref={bloomFancy} luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0} mipmapBlur />
+          <RevealPass />
           <SMAA />
           <Vignette offset={0.3} darkness={0.28} />
         </EffectComposer>
