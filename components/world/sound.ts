@@ -343,6 +343,11 @@ export function revealSound() {
   void play("reveal", { vol: 0.5 });
 }
 
+/** The map's wipe in and out (public/sfx/swoosh-*.mp3, see public/vendor/NOTICE.md). */
+export function swoosh(dir: "in" | "out") {
+  void play(`swoosh-${dir}`, { vol: 0.25 });
+}
+
 export function cheer() {
   void play("crowd", { vol: 0.5 });
 }

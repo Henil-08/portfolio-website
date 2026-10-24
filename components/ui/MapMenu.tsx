@@ -10,7 +10,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { carState } from "@/components/world/carState";
 import { worldToMap } from "@/components/world/MapCapture";
-import { setState, teleport, useWorld } from "@/components/world/store";
+import { setState, useWorld } from "@/components/world/store";
+import { wipeTo } from "@/components/world/Overlay";
 import { zones, type ZoneId } from "@/components/world/layout";
 import { LINKS, LINK_SPOTS } from "@/components/world/social";
 import { Achievements } from "./Hud";
@@ -85,7 +86,7 @@ function Pins({ found }: { found: ZoneId[] }) {
   const [active, setActive] = useState<string | null>(null);
   const go = (p: Pin) => {
     if (touch && active !== p.id) return setActive(p.id);
-    teleport(p.zone);
+    wipeTo(p.zone);
   };
   return (
     <>

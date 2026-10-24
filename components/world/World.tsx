@@ -23,6 +23,7 @@ import Street from "./street";
 import { bindKeyboard } from "./input";
 import { useWorld } from "./store";
 import MapCapture from "./MapCapture";
+import Overlay from "./Overlay";
 
 export default function World() {
   // Phones get the light version from the start. This component only renders on the client.
@@ -77,6 +78,7 @@ export default function World() {
       <Autopilot />
       <Exposure />
       <MapCapture />
+      <Overlay />
       {/* The light version still gets the opening reveal, then drops the composer. */}
       {!fancy && !revealed && (
         <EffectComposer multisampling={0} enableNormalPass={false}>
