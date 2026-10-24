@@ -3,10 +3,10 @@
 // The opening, after folio-2025 (MIT, see public/vendor/LICENSE.md):
 // sources/Game/Reveal.js and World/Intro.js, in the site's own colours, 1.5x faster.
 //
-//  1. Loading: an ink floor with a soft dot grid (the site's colours), and a thin red ring on
-//     the ground round the start that fills clockwise as the world gets ready.
-//  2. The ring shrinks away (power4.in) and the world opens inside a circle round
-//     the car (back.out). Every surface the circle cuts glows along the cut, so
+//  1. Loading: an ink floor with a soft dot grid (the site's colours) and F1 start lights
+//     over it (components/ui/StartLights.tsx): five red lights come on one by one as the
+//     world gets ready (`boot.lit`), hold, then go out together (`boot.out`).
+//  2. Lights out: the world opens inside a circle round the car (back.out). Every surface the circle cuts glows along the cut, so
 //     trees and grass end in a bright cylinder wall. A "click to start" label
 //     and the sound toggle pop in beside it (elastic.out).
 //  3. Start: the circle dips a little, then sweeps out over the whole world
@@ -40,15 +40,14 @@ const OPEN = 5; // the original's 3.5, scaled with our bigger car
 const FAR = 36;
 const ZOOM_INTRO = 0.88;
 // Timings (s): the original's, 1.5x faster (owner)
-const FILL = 0.55;
-const SHRINK = 0.6;
+const FILL = 1.5; // never faster than this for all five lights (0.3 s a light)
+const HOLD = 0.8; // all five lights on, then out (the real start waits 0.2-3 s)
 const OPENING = 1.0;
 const SWEEP = 1.35;
 
 // gsap's eases, as plain functions
 const backOut = (t: number, s = 1.7) => 1 + (s + 1) * (t - 1) ** 3 + s * (t - 1) ** 2;
 const backIn = (t: number, s = 1.3) => (s + 1) * t ** 3 - s * t ** 2;
-const power4In = (t: number) => t ** 4;
 const power2In = (t: number) => t * t;
 /** gsap elastic.out(1, p) */
 const elasticOut = (t: number, p = 0.3) => (t <= 0 ? 0 : t >= 1 ? 1 : 2 ** (-10 * t) * Math.sin(((t - p / 4) * (2 * Math.PI)) / p) + 1);
@@ -150,7 +149,13 @@ class RevealEffect extends Effect {
 }
 
 /** Loader and label state, shared between the driver, the pass and the label. */
-const load = { shown: 0, ring: OPEN, label: 0, grid: 0 };
+const load = { shown: 0, ring: 0, label: 0, grid: 0 };
+
+/**
+ * The start lights (components/ui/StartLights.tsx) read this: `lit` 0..1 of the five
+ * lights on (the real loading progress), `stage` what is loading, `out` lights out.
+ */
+export const boot = { lit: 0, stage: "world" as "world" | "shaders" | "ready", out: false };
 
 /**
  * Mount inside <EffectComposer> after AO and before bloom. It is handed over as a
@@ -218,11 +223,13 @@ export function RevealDriver() {
       }
       const target = !g.ready ? Math.min(0.6, s.age / 2) : s.compiled ? 1 : 0.8;
       // smoothed like the original (delta * 10), but never faster than a full ring
-      // in FILL seconds, so it is always seen drawing, even after a long first frame
+      // in FILL seconds, so each light is seen coming on, even after a long first frame
       load.grid = Math.min(1, load.grid + step / 0.35);
       load.shown = Math.min(load.shown + step / FILL, load.shown + (target - load.shown) * Math.min(1, step * 10));
+      boot.lit = load.shown;
+      boot.stage = !g.ready ? "world" : s.compiled ? "ready" : "shaders";
       if (s.compiled && load.shown > 0.99) {
-        load.shown = 1;
+        load.shown = boot.lit = 1;
         s.stage = 0;
         s.t = 0;
       }
@@ -231,11 +238,9 @@ export function RevealDriver() {
 
     s.t += step;
     if (s.stage === 0) {
-      // the loader ring shrinks into the start, then the circle opens
-      const k = Math.min(1, s.t / SHRINK);
-      load.ring = OPEN * (1 - power4In(k));
-      if (k >= 1) {
-        load.ring = 0;
+      // all five lights on, a breath, then lights out and the circle opens
+      if (s.t >= HOLD) {
+        boot.out = true;
         s.stage = 1;
         s.t = 0;
       }

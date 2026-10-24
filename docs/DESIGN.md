@@ -64,6 +64,15 @@ Hairline: 1 px cream at 35% opacity, inset 3 px from the edge (brightens to 80% 
   one at a time with a 2 px countdown bar.
 - Teleport: the diagonal wipe (world/Overlay.tsx).
 
+### The boot (opening)
+
+F1 start lights over the ink floor and its cream dot grid (components/ui/StartLights.tsx, driven by
+world/Reveal.tsx `boot`): a gantry panel ("HG Racing · Start") with five pods of two red lights. One pod
+lights per fifth of the real loading progress (the world, then the shader warm-up), never faster than
+0.3 s a pod; a mono line under it reads what is loading and the percentage. All five on, a 0.8 s hold,
+then lights out: every lamp cuts at once, the gantry lifts away (the pop-out curve), and the world opens
+in its circle round the car (folio-2025's reveal). "Click to start" then sweeps the circle out.
+
 ### What changes when A is approved
 
 | Component | Today | After |

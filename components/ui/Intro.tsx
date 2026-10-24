@@ -4,9 +4,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
 import { setState, useWorld } from "@/components/world/store";
 import { unlockAudio } from "@/components/world/sound";
+import StartLights from "./StartLights";
 
-// The start: the world loads behind a dark screen with only its loader ring
-// (world/Reveal.tsx), then opens in a small circle round the car. One click or key
+// The start: the world loads behind a dark screen under F1 start lights
+// (StartLights.tsx, driven by world/Reveal.tsx); lights out, it opens in a small circle round the car. One click or key
 // starts it (browsers need that before audio can play). ?skip goes straight in.
 export default function Intro() {
   const phase = useWorld((s) => s.phase);
@@ -52,10 +53,11 @@ export default function Intro() {
           className={`pointer-events-none fixed inset-0 z-50 ${opened ? "cursor-pointer" : ""}`}
           exit={{ opacity: 0, transition: { duration: 0.3 } }}
         >
+          <StartLights />
           <a
             href="/resume"
             onClick={(e) => e.stopPropagation()}
-            className="pointer-events-auto absolute left-5 top-5 px-1 py-1.5 font-mono text-[11px] uppercase tracking-widest text-white/60 transition hover:text-white"
+            className="pointer-events-auto absolute left-5 top-5 px-1 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-cream/60 transition hover:text-cream"
           >
             Resume
           </a>

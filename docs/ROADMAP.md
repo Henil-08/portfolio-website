@@ -33,7 +33,7 @@ small, verified with headless screenshots, and committed on its own
 | Waterfront | components/world/waterfront/* (`PROMENADE`, `PIER`, `nearPromenade`) |
 | Contact logos | components/world/social/* (`LINKS`, store `nearLink`) |
 | Trees, bushes (from folio-2025) | components/world/foliage/* (`species.ts` colours), models/props/Tree.tsx, park/bushes.ts, public/vendor/ (MIT: LICENSE.md, NOTICE.md) |
-| Opening (loader ring, circle, label, sweep) | components/world/Reveal.tsx (`RevealPass` is a Pass, before Bloom; `FLOOR`, timings at the top), components/ui/Intro.tsx (click/keys), Experience.tsx (boot colour) |
+| Opening (start lights, circle, label, sweep) | components/ui/StartLights.tsx, components/world/Reveal.tsx (`RevealPass` is a Pass, before Bloom; `FLOOR`, timings at the top), components/ui/Intro.tsx (click/keys), Experience.tsx (boot colour) |
 | Start spot and the way to the track | components/world/startSpot.ts (`START_SPOT`, `REVEAL_AT`), start.ts, StartGarden.tsx; the sandy path to the pit lane is a garden path (garden/layout.ts `PATHS`) |
 | Park common ground (slab paths, lanterns, benches, fence) | components/world/districts/park.ts |
 | Car parking at rest (no jitter) | components/world/Vehicle.tsx (`parked`, `REPARK_*`, `SUSPENSION`) |
@@ -102,7 +102,7 @@ the real world with pins that teleport behind a wipe. Commit history has the det
 Next, in order (the first unticked box in the steps below is the one to do):
 1. **4e owner check** items left open below (only if the owner reports them again).
 2. 4b h-k are done (floodlights, pit wall, grandstands, rain + tyre swap).
-3. Step 5 (map) and the 4f HUD move are done; next is the new opening (4f), then step 6.
+3. Step 5 (map), the 4f HUD move and the new opening are done; next is **step 6** (in-world E prompt).
 4. Owner said "later": credit folio-2025 / Bruno Simon in the main README (only there).
 
 ## Steps (do them in order; first unticked one is next)
@@ -344,7 +344,8 @@ place spots "your choice"; Team Stallions "give a nice spot".
       edge tabs b680f08, team radio 9c45faa, toast 5c6d9f4, place panel + picks 4c77845, controls / hints / speed /
       pedals badbcf7, radio subtitle 0dc6e44, fit check + lap chip 61bb491, autopilot bd0237f, E prompt (interim).
       Garage teleports now land inside the garage zone (7370750).
-- [ ] Opening ("boot") in the new language: see the step below.
+- [x] Opening ("boot") in the new language: F1 start lights replace the loader ring (StartLights.tsx, Reveal.tsx
+      `boot`), lights out opens the circle. docs/DESIGN.md "The boot". Commit: see git log "Boot".
 
 ### 5. Map menu like Bruno's (M)
 Owns components/ui/** (MapMenu in Hud.tsx) and a new components/world/MapCapture.tsx.
