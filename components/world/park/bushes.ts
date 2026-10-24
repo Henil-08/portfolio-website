@@ -4,7 +4,7 @@
 // scattered from the layout: a loose line beside each garden path, a ring round
 // each park island's edge, and small clusters in the open infield. Pure data,
 // drawn by ./index.tsx with the foliage registry's <Bush>.
-import { TIMELINE, LETTERS, inLand, zones } from "../layout";
+import { PIT, PIT_LANE_WIDTH, TIMELINE, LETTERS, inLand, zones } from "../layout";
 import { PATHS, clearOfRoad, nearGarden, pathSamples } from "../garden/layout";
 import { ISLANDS, islandDist, parkSand } from "./layout";
 import { BUILDINGS } from "../street/town";
@@ -27,6 +27,8 @@ function free(x: number, z: number, out: BushSpot[]) {
   if (Math.hypot(x - START_SPOT[0], z - START_SPOT[1]) < 5) return false;
   if (nearGarden(x, z, 1.3) || nearTree(x, z, 1.6) || onPlace(x, z, 2.5)) return false;
   if (inSectorScene(x, z, 3, 12)) return false;
+  // the garages, their aprons and the pit lane stay clear
+  if (x > PIT.from - 8 && x < PIT.to + 8 && z > PIT.garageZ - 5 && z < PIT.z + PIT_LANE_WIDTH / 2 + 1.5) return false;
   if (Math.abs(x - TIMELINE.pos[0]) < TIMELINE.hx + 2 && Math.abs(z - TIMELINE.pos[1]) < TIMELINE.hz + 2) return false;
   if (Math.abs(x - LETTERS.center[0]) < LETTERS.hx + 2 && Math.abs(z - LETTERS.center[1]) < 3) return false;
   if (FOOTBRIDGES.some((b) => Math.hypot(x - b.x, z - b.z) < b.len / 2 + 3)) return false;

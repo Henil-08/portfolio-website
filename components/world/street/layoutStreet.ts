@@ -3,7 +3,7 @@
 import * as THREE from "three";
 import { LEN, FRAMES, N_FRAMES, barrierOffset, farSign, farSpot, inPitSide, inSectorScene, nearCones, nearPlace, nearTree, outSign, RUNOFF, type Spot } from "./common";
 import { STAND_SPOTS } from "./standSpots";
-import { GARAGES, PIT, PIT_LANE_WIDTH, TRACK_WIDTH, inLand, nearCrossing, nearestT, onBridge } from "../layout";
+import { GARAGES, PIT, PIT_LANE_WIDTH, TRACK_WIDTH, inLand, nearCrossing, nearestT, onBridge, pitWallZ } from "../layout";
 
 // The original circuit has no walls: open run-off past the kerbs, and a short tyre wall
 // on the outside of the tight corners only, with a rounded block at each end.
@@ -22,6 +22,7 @@ function skip(side: 1 | -1, i: number, x: number, z: number) {
   if (onBridge(f.u, 2)) return true; // the bridge has its own parapets
   if (nearCrossing(x, z, 20)) return true;
   if (inner && inPitSide(x, z)) return true;
+  if (x > PIT.from - 8 && x < PIT.to + 8 && z > PIT.garageZ - 5 && z < PIT.z + PIT_LANE_WIDTH / 2 + 1) return true; // pit lane and garages
   if (far && inSectorScene(x, z, 2)) return true;
   if (nearPlace(x, z, 1)) return true;
   if (nearCones(x, z, 3.5)) return true;
@@ -107,7 +108,7 @@ const FLOOD_BACK = 2.6; // m past the barrier line, clear of tyre walls and the 
 
 /**
  * Night-race floodlight towers on the far side, set back outside the run-off, every ~17 m.
- * On the main straight they stand on the pit-wall line, or behind the pit lane where that is too narrow.
+ * On the main straight they stand on the pit wall, or behind the pit lane past its end.
  */
 export const FLOODS: Flood[] = (() => {
   const out: Flood[] = [];
@@ -119,11 +120,9 @@ export const FLOODS: Flood[] = (() => {
     const off = Math.abs(barrierOffset(i, s as 1 | -1)) + FLOOD_BACK;
     let q = f.p.clone().addScaledVector(f.n, s * off);
     if (inPitSide(q.x, q.z)) {
-      // main straight: on the pit-wall line where it is wide enough, else behind the pit lane
-      // in a gap between the garages (the straight closes in on the lane toward the east)
-      const laneEdge = PIT.z + PIT_LANE_WIDTH / 2;
-      const roadEdge = f.p.z - TRACK_WIDTH / 2;
-      if (roadEdge - laneEdge >= 1.6) q.set(f.p.x, 0, (laneEdge + roadEdge) / 2);
+      // main straight: on the pit wall, else behind the pit lane in a gap between the garages
+      const wz = pitWallZ(f.p.x);
+      if (wz !== null) q.set(f.p.x, 0, wz);
       else q.set(f.p.x, 0, PIT.z - PIT_LANE_WIDTH / 2 - 1.6);
       if (q.x < PIT.from + 4 || q.x > PIT.to + 14) continue; // the pit entry and exit lanes cross here
       if (GARAGES.some((g) => Math.abs(g.x - q.x) < 5.4) && q.z < PIT.z) continue;

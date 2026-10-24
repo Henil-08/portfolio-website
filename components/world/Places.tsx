@@ -39,6 +39,7 @@ import {
 } from "./models/props";
 import { LETTER_WIDTH, type LetterChar } from "./models/props/Letter";
 import PitRoads from "./PitRoads";
+import PitWallRun from "./PitWallRun";
 import Timeline from "./Timeline";
 import Groves from "./Groves";
 import Garden from "./garden";
@@ -63,6 +64,7 @@ import {
   LETTERS,
   TIMELINE,
   PIT,
+  pitWallZ,
   SECTORS,
   TRACK_WIDTH,
   garageLabel,
@@ -408,8 +410,9 @@ function PitLane() {
           <meshStandardMaterial color={C.asphaltLine} />
         </mesh>
       ))}
-      {[-18, 18].map((x) => (
-        <RigidBody key={x} type="fixed" colliders={false} position={[x, pitY, PIT.z + 4.6]}>
+      {/* strategy stands on the lane side of the wall */}
+      {[-40, -18].map((x) => (
+        <RigidBody key={x} type="fixed" colliders={false} position={[x, pitY, (pitWallZ(x) ?? PIT.z + 4) - 0.8]}>
           <PitWall />
           <CuboidCollider args={[2.6, 0.6, 0.5]} position={[0, 0.6, 0]} />
         </RigidBody>
@@ -599,6 +602,7 @@ export default function Places() {
       <Buildings />
       <PitLane />
       <PitRoads />
+      <PitWallRun />
       <Timeline position={[TIMELINE.pos[0], heightAt(TIMELINE.pos[0], TIMELINE.pos[1]), TIMELINE.pos[1]]} rotation={TIMELINE.rot} />
       <Sectors />
       <Signposts />

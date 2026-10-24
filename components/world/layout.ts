@@ -354,7 +354,7 @@ const SECTOR_DEFS = [
   { n: 4, id: "waters", name: "Waters", place: "Waters", year: "2026 →", from: 0.7, to: 0.97 },
 ] as const;
 
-export const PIT = { z: 34, from: -58, to: 40, garageZ: 24 }; // a lane the length of the straight (v5)
+export const PIT = { z: 32, from: -58, to: 40, garageZ: 24 }; // a lane the length of the straight (v5)
 
 // Pit entry and exit lanes: from the straight's inner lane into each end of the pit lane.
 export const PIT_LANE_WIDTH = 5.6;
@@ -369,6 +369,45 @@ function laneCurve(tTrack: number, pitX: number, dir: 1 | -1) {
   const end = new THREE.Vector3(pitX, 0, PIT.z);
   const pts = [a, a.clone().addScaledVector(tan, 10 * dir), end.clone().add(new THREE.Vector3(-10 * dir, 0, 0)), end];
   return new THREE.CubicBezierCurve3(pts[0], pts[1], pts[2], pts[3]);
+}
+
+/**
+ * The pit wall: a line of points halfway between the pit lane's outer edge and the main
+ * straight's inner edge, from the end of the entry lane until the straight closes in on
+ * the lane (narrower than `PIT_WALL_MIN_GAP`) near the exit.
+ */
+export const PIT_WALL_MIN_GAP = 1.2;
+export const PIT_WALL: [number, number][] = (() => {
+  const laneEdge = PIT.z + LANE / 2;
+  const out: [number, number][] = [];
+  for (let x = PIT.from - 4; x <= PIT.to + 4; x += 1) {
+    // inner road edge: bisect for the point TRACK_WIDTH / 2 off the centre line
+    let lo = laneEdge;
+    let hi = laneEdge + 12;
+    for (let k = 0; k < 24; k++) {
+      const m = (lo + hi) / 2;
+      if (nearestT(x, m).dist > TRACK_WIDTH / 2) lo = m;
+      else hi = m;
+    }
+    if (lo - laneEdge < PIT_WALL_MIN_GAP) break;
+    out.push([x, (laneEdge + lo) / 2]);
+  }
+  // nearestT is sampled, so the raw line wobbles a few cm: smooth it
+  return out.map(([x], i) => {
+    let s = 0;
+    let n = 0;
+    for (let j = Math.max(0, i - 4); j <= Math.min(out.length - 1, i + 4); j++, n++) s += out[j][1];
+    return [x, s / n] as [number, number];
+  });
+})();
+
+/** The pit wall's z at x, or null past either end. */
+export function pitWallZ(x: number) {
+  const i = Math.floor(x - PIT_WALL[0][0]);
+  if (i < 0 || i >= PIT_WALL.length - 1) return null;
+  const [x0, z0] = PIT_WALL[i];
+  const z1 = PIT_WALL[i + 1][1];
+  return z0 + (z1 - z0) * (x - x0);
 }
 
 let curves: THREE.CubicBezierCurve3[] | null = null;

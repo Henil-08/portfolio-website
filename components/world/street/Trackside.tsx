@@ -201,7 +201,7 @@ const FENCE = (() => {
   return { g, posts, rails };
 })();
 
-function makeFenceMat() {
+export function makeFenceMat() {
   return new THREE.MeshStandardMaterial({
     color: C.greyDark,
     alphaMap: meshTexture(),
