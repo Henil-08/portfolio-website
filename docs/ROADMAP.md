@@ -95,8 +95,8 @@ see-through when the car is hidden (3h), and a compact Bruno-style career timeli
 plus the owner's school journey (3b). 3f, 3g, 3h, 3b and step 4 are done (2026-10-23, late); the
 car no longer beaches on slopes (colliders 0.3 m up, parapets on embankments). Step 4 is done too. Owner review the same night added step 4b (foliage-only see-through, Bruno's
 scale, flat world, grass, bushes, fuller infield, Team Stallions facing the camera, F1 floodlights,
-a real pit lane, grandstands, random rain with a tyre swap). 4b a-f and owner review 2 (4c) are done; 4b g waits for the owner; next is 4b h (floodlights),
-then i-k, then step 5 (map menu).
+a real pit lane, grandstands, random rain with a tyre swap). 4b a-f and owner review 2 (4c) are done; 4b g waits for the owner; next is 4d (layout v5 from the owner's sketch),
+then 4b h-k, then step 5 (map menu).
 
 ## Steps (do them in order; first unticked one is next)
 
@@ -276,14 +276,21 @@ straight with pit wall, fences and stands). Do these in order, one commit per it
 - [x] (30f7ce8) Opening like his: no title, name or loading bar; a ring on the ground fills while the world
       warms up (compileAsync + steady frames), shrinks, then the world opens in a 5 m circle at the normal chase
       distance; start sweeps it out. Rings trace the ground plane; reveal runs after AO; no renderer swap mid-reveal.
-- [x] (e9321a7) Start off the track: on the verge by the main straight under a shade tree, bushes, bench and
-      flowers, facing a slab path onto the straight behind the start line (owner: guide subtly, don't start on track).
-- [x] (f94d226) Car spawns at its rest height (it bounced on every load).
+- [x] (044e620) Start back in front of the name (owner: "keep it where it was"), under a shade tree, at the
+      head of an asphalt lane with chevrons (access.ts, AccessRoad.tsx) that runs to the pit exit and onto T1.
+      (e9321a7 put it on the verge by the straight: wrong, replaced.)
+- [x] (f94d226, bd22ff7, 7e40710) Car still at load: parked after spawn/teleport until the first drive input
+      (x, z, rotation held, height settles damped), angular inertia scaled by CAR_SCALE^2.
 - [x] (a609888, 51722ae) Knock-about props that tidy up: tyre walls (every tyre a body), wall ends, rocks,
       benches, lanterns, crates, barrels, cones, letters; back home once the car is 45 m away.
 - [x] (7ff8268) His name out of the code (files renamed, comments say "the original").
 - [ ] Credit him in the main README (owner: later).
 - [ ] Garden benches/lamps and fences are still fixed; make them movable too if the owner wants.
+
+### 4d. Layout v5 (owner sketch, 2026-10-23): NEXT
+Spec and sketch in README.md "Next: track layout v5" (docs/research/layout-v5-sketch.png): Monaco hairpin round a
+pond top left, a pit lane parallel to the whole main straight, the bridge loop top middle, redistribute places.
+- [ ] Settle the open questions in the README with the owner, then build it one commit at a time.
 
 ### 5. Map menu like Bruno's (M)
 Owns components/ui/** (MapMenu in Hud.tsx) and a new components/world/MapCapture.tsx.
