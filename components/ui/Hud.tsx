@@ -41,46 +41,42 @@ export default function Hud() {
   );
 }
 
+// Edge tabs flush to the right edge, folio-2025's menu and map triggers in the site's ink:
+// they slide out 4 px on hover and off the screen while a modal is open.
 function TopBar() {
   const muted = useWorld((s) => s.muted);
-  const map = useWorld((s) => s.menuOpen);
-  const [entered, setEntered] = useState(false);
-  // slides away while the map is open, like the original's edge buttons
+  const modal = useWorld((s) => s.menuOpen || s.controlsOpen);
   return (
-    <motion.div
-      initial={{ y: -30, opacity: 0 }}
-      animate={map ? { y: -80, opacity: 0 } : { y: 0, opacity: 1 }}
-      transition={map ? { duration: 0.15 } : { delay: entered ? 0.15 : 1.2, type: "spring", stiffness: 200, damping: 20 }}
-      onAnimationComplete={() => setEntered(true)}
-      className="pointer-events-none fixed inset-x-0 top-0 z-30 flex items-start justify-between gap-3 p-3 sm:p-5"
+    <motion.nav
+      initial={{ x: 60 }}
+      animate={{ x: modal ? 60 : 0 }}
+      transition={modal ? { duration: 0.15 } : { delay: 0.15, duration: 0.3, ease: [0.4, 1.6, 0.65, 1] }}
+      className="pointer-events-auto fixed right-0 top-3 z-30 flex flex-col gap-1.5 sm:top-5"
+      aria-label="World controls"
     >
-      <span />
-
-      <div className="pointer-events-auto flex items-center gap-2">
-        <IconBtn label="Controls" onClick={() => setState((s) => ({ controlsOpen: !s.controlsOpen }))}>
-          <path d="M3 7h18v10H3zM7 11h.01M11 11h.01M15 11h.01M7 14h10" />
-        </IconBtn>
-        <IconBtn label="Map" onClick={() => setState((s) => ({ menuOpen: !s.menuOpen }))}>
-          <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14" />
-        </IconBtn>
-        <IconBtn label={muted ? "Unmute" : "Mute"} onClick={() => setState((s) => ({ muted: !s.muted }))}>
-          {muted ? <path d="M11 5 6 9H3v6h3l5 4V5Zm6 4 4 4m0-4-4 4" /> : <path d="M11 5 6 9H3v6h3l5 4V5Zm5 3a5 5 0 0 1 0 8m2.5-10.5a8.5 8.5 0 0 1 0 13" />}
-        </IconBtn>
-        <Link
-          href="/resume"
-          className="toy-card toy-btn rounded-2xl px-3.5 py-2.5 text-sm font-semibold text-ink sm:px-4"
-        >
-          Resume
-        </Link>
-      </div>
-    </motion.div>
+      <EdgeTab label="Map (M)" onClick={() => setState((s) => ({ menuOpen: !s.menuOpen }))}>
+        <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14" />
+      </EdgeTab>
+      <EdgeTab label="Controls and settings" onClick={() => setState((s) => ({ controlsOpen: !s.controlsOpen }))}>
+        <path d="M3 7h18v10H3zM7 11h.01M11 11h.01M15 11h.01M7 14h10" />
+      </EdgeTab>
+      <EdgeTab label={muted ? "Unmute" : "Mute"} onClick={() => setState((s) => ({ muted: !s.muted }))}>
+        {muted ? <path d="M11 5 6 9H3v6h3l5 4V5Zm6 4 4 4m0-4-4 4" /> : <path d="M11 5 6 9H3v6h3l5 4V5Zm5 3a5 5 0 0 1 0 8m2.5-10.5a8.5 8.5 0 0 1 0 13" />}
+      </EdgeTab>
+      <Link href="/resume" className="hud-edge hud-red flex h-11 items-center gap-2 pl-3 pr-4 font-mono text-[11px] uppercase tracking-[0.14em]">
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 3h9l3 3v15H6zM9 9h6M9 13h6M9 17h4" />
+        </svg>
+        Resume
+      </Link>
+    </motion.nav>
   );
 }
 
-function IconBtn({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+function EdgeTab({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} aria-label={label} title={label} className="toy-card toy-btn grid h-11 w-11 place-items-center rounded-2xl text-ink">
-      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <button onClick={onClick} aria-label={label} title={label} className="hud-edge ml-auto grid h-11 w-12 place-items-center pr-1">
+      <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         {children}
       </svg>
     </button>
