@@ -44,8 +44,8 @@ export default function RadioMessages() {
           className="pointer-events-none fixed inset-x-0 bottom-[96px] z-20 flex justify-center px-6"
         >
           {/* Broadcast-style subtitle: who's talking, then the line. */}
-          <p className="max-w-[560px] text-center text-[15px] leading-relaxed text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.6),0_0_18px_rgba(0,0,0,0.35)]">
-            <span className="mr-2 font-mono text-[10px] uppercase tracking-[0.22em] text-white/60">Pit wall</span>
+          <p className="hud-panel max-w-[560px] px-4 py-2.5 text-[14.5px] leading-relaxed">
+            <span className="mr-2.5 inline-block bg-red px-1.5 py-px align-[1px] font-mono text-[10px] uppercase tracking-[0.16em] text-white">Pit wall</span>
             {msg.text}
           </p>
         </motion.div>
