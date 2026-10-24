@@ -24,17 +24,19 @@ export type Species = {
 export const TRUNKS: Record<TrunkId, TreeModel> = { oak: OAK, cherry: CHERRY, birch: BIRCH };
 
 export const SPECIES: Record<SpeciesId, Species> = {
-  oak: { trunk: "oak", scale: 0.62, crowns: OAK.crowns, colA: "#7d7d2b", colB: "#cdc23c", sway: 0.05 },
-  cherry: { trunk: "cherry", scale: 0.72, crowns: CHERRY.crowns, colA: "#c08a8c", colB: "#ebc3b9", sway: 0.05 },
-  // "pine" is the original birch: tall, narrow, darker green
-  pine: { trunk: "birch", scale: 0.55, crowns: BIRCH.crowns, colA: "#5f6a2a", colB: "#a5a83c", sway: 0.04 },
+  // the original's oak and bush colours (World.js / Bushes.js): shade #b4b536, sun #d8cf3b
+  oak: { trunk: "oak", scale: 0.62, crowns: OAK.crowns, colA: "#b4b536", colB: "#d8cf3b", sway: 0.05 },
+  // dusty pink instead of the original's coral; the shade side lifted the same way
+  cherry: { trunk: "cherry", scale: 0.72, crowns: CHERRY.crowns, colA: "#d79c98", colB: "#f0c9bd", sway: 0.05 },
+  // "pine" is the original birch: tall, narrow, a deeper green than the oaks
+  pine: { trunk: "birch", scale: 0.55, crowns: BIRCH.crowns, colA: "#8c9433", colB: "#bdbb3e", sway: 0.04 },
   bush: {
     trunk: null,
     scale: 1,
     // The original bush: one round clump about as tall as its jeep (Bushes.js references)
     crowns: [[0, 0.55, 0, 0.75]],
-    colA: "#86852c",
-    colB: "#d2c73e",
+    colA: "#b4b536",
+    colB: "#d8cf3b",
     sway: 0.12,
   },
 };
