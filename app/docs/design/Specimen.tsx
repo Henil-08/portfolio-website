@@ -170,7 +170,7 @@ export default function Specimen() {
                 ["Toast", "big tilted Racero pill", "one ink toast at a time, countdown bar"],
                 ["Place panel", "cream rounded card", "ink panel, Racero title, mono labels"],
                 ["Picks, fit check, lap chip", "cream cards and pills", "ink panels, square buttons"],
-                ["Settings", "inside Controls", "inside the Controls panel (a gear tab comes with step 6)"],
+                ["Settings", "inside Controls", "small ink panel behind a gear tab"],
                 ["Key hints, joystick, gas/brake", "cream pills", "key caps and square ink buttons"],
                 ["Map", "already A", "—"],
                 ["/resume", "cream paper", "stays (it prints)"],
