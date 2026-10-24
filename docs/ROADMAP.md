@@ -263,7 +263,11 @@ straight with pit wall, fences and stands). Do these in order, one commit per it
       `SECTORS` scene/sceneRot ~line 400): it faces away from the camera so you only see its back.
       Turn it (and check every sector scene) so its front faces the chase camera (street/common.ts
       `AWAY`), or move it to the far side of the road.
-- [ ] h. Track lighting like a real F1 night race (Qatar reference): no street lamps on the circuit
+- [x] h. (f52cc2a) street/Floodlights.tsx, layoutStreet.ts `FLOODS`: 8 m masts with a tilted 4x2 lamp bank every
+      ~17 m on the far side, past the run-off (they step back up to 8 m when something is in the way); on the
+      main straight on the pit-wall line, or behind the pit lane between garages where the gap is too narrow.
+      Additive light pool on the road under each, pitched with the road. Street lamps gone.
+      Was: Track lighting like a real F1 night race (Qatar reference): no street lamps on the circuit
       (street/Lamps.tsx, layoutStreet.ts `LAMPS`). Instead tall floodlight towers with lamp banks set
       back outside the run-off, many of them, lighting the track at night (cheap light pools on the
       asphalt, emissive banks that bloom). Bruno-style small lamps stay only in the park and garden.
@@ -342,8 +346,7 @@ Owns new components/world/ui3d/** and Race.tsx (`InteractionPoint`, the current 
       (gear: Livery, Sound, Voice) instead of under Controls.
 
 ### 7. Night
-- [ ] Light pools under street lamps at night (street/layoutStreet.ts LAMPS `px/pz`), fading in
-      with `dayNight.night`.
+- [x] Light pools at night: done with the floodlights (4b h, `FLOODS` `px/pz`).
 - [ ] Every night emissive > 1 with `toneMapped: false` so it blooms: garage headers
       (models/props/Garage.tsx), sector-scene windows/signs (models/sectors/*), car brake light.
 - [ ] Fireflies in the garden and by the lake at night (alive/Fireflies.tsx, add anchors).
