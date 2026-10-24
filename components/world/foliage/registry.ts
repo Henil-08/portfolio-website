@@ -11,10 +11,15 @@ import { foliageDepthMaterial, foliageMaterial, foliageUniforms } from "./materi
 import { patchSeeThrough } from "../seeThrough";
 import { linearColor, SPECIES, trunkGeometry, type SpeciesId, type TrunkId } from "./species";
 import { C } from "../palette";
+import { palmCrownGeometry, palmTrunkGeometry } from "./palm";
+import { withWind } from "../alive/sway";
+
+/** What a registered group draws: one of the clump species, or the beach palm. */
+export type TreeKind = SpeciesId | "palm";
 
 type Entry = {
   obj: THREE.Object3D;
-  species: SpeciesId;
+  species: TreeKind;
   /** extra yaw + size jitter from the seed */
   yaw: number;
   size: number;
@@ -30,6 +35,9 @@ let foliage: THREE.Mesh | null = null;
 let foliageCap = 0;
 const trunks = new Map<TrunkId, THREE.InstancedMesh>();
 let trunkMat: THREE.MeshStandardMaterial | null = null;
+/** Palms: instanced trunks and crowns (./palm.ts). */
+const palms: { trunk: THREE.InstancedMesh | null; crown: THREE.InstancedMesh | null } = { trunk: null, crown: null };
+const PALM_SWAY = { amount: 0.05, flutter: 0.05 };
 let dirty = true;
 let settle = 0;
 let lastFrame = -1;
@@ -99,6 +107,32 @@ function ensureTrunk(id: TrunkId, count: number) {
   return next;
 }
 
+function palmMesh(geometry: THREE.BufferGeometry, material: THREE.Material, cap: number, name: string) {
+  const m = new THREE.InstancedMesh(geometry, material, cap);
+  m.name = name;
+  m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  m.frustumCulled = false;
+  m.matrixAutoUpdate = false;
+  m.count = 0;
+  host?.add(m);
+  return m;
+}
+
+function ensurePalms(count: number) {
+  if (palms.trunk && palms.trunk.instanceMatrix.count >= count) return;
+  const cap = Math.max(64, count, (palms.trunk?.instanceMatrix.count ?? 0) * 2);
+  for (const m of [palms.trunk, palms.crown]) {
+    m?.removeFromParent();
+    m?.dispose();
+  }
+  const bark = withWind(new THREE.MeshStandardMaterial({ color: C.wood, roughness: 0.6 }), { ...PALM_SWAY, flutter: 0 });
+  const leaves = withWind(new THREE.MeshStandardMaterial({ color: "#ffffff", vertexColors: true, roughness: 0.55, side: THREE.DoubleSide }), PALM_SWAY);
+  palms.trunk = palmMesh(palmTrunkGeometry(), bark, cap, "palm-trunks");
+  palms.crown = palmMesh(palmCrownGeometry(), leaves, cap, "palm-crowns");
+}
+
 function shownInScene(o: THREE.Object3D) {
   for (let p: THREE.Object3D | null = o; p; p = p.parent) if (!p.visible) return false;
   return true;
@@ -112,7 +146,22 @@ const _v = new THREE.Vector3();
 const _up = new THREE.Vector3(0, 1, 0);
 
 function rebuild() {
-  const list = [...entries].filter((e) => e.shown);
+  const all = [...entries].filter((e) => e.shown);
+  const list = all.filter((e) => e.species !== "palm") as (Entry & { species: SpeciesId })[];
+  const palmList = all.filter((e) => e.species === "palm");
+  if (palmList.length || palms.trunk) {
+    ensurePalms(palmList.length);
+    palmList.forEach((e, i) => {
+      _local.compose(_v.set(0, 0, 0), _q.setFromAxisAngle(_up, e.yaw), _s.set(1, 1, 1));
+      _m.multiplyMatrices(e.obj.matrixWorld, _local);
+      palms.trunk!.setMatrixAt(i, _m);
+      palms.crown!.setMatrixAt(i, _m);
+    });
+    for (const m of [palms.trunk!, palms.crown!]) {
+      m.count = palmList.length;
+      m.instanceMatrix.needsUpdate = true;
+    }
+  }
   let crowns = 0;
   const trunkCount = new Map<TrunkId, number>();
   for (const e of list) {
@@ -218,17 +267,19 @@ function attach(scene: THREE.Scene) {
   const f = ensureFoliage(0);
   scene.add(f);
   for (const m of trunks.values()) scene.add(m);
+  for (const m of [palms.trunk, palms.crown]) if (m) scene.add(m);
 }
 
 function detachIfEmpty() {
   if (entries.size || !host) return;
   foliage?.removeFromParent();
   for (const m of trunks.values()) m.removeFromParent();
+  for (const m of [palms.trunk, palms.crown]) m?.removeFromParent();
   host = null;
 }
 
 /** Register a tree group. Returns the unregister function (for an effect cleanup). */
-export function registerTree(scene: THREE.Scene, obj: THREE.Object3D, species: SpeciesId, seed: number) {
+export function registerTree(scene: THREE.Scene, obj: THREE.Object3D, species: TreeKind, seed: number) {
   attach(scene);
   // seeded variety: yaw, +-8% size, clump roll, +-4% brightness
   const h = (n: number) => {
