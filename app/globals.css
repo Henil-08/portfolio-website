@@ -245,3 +245,15 @@ body {
 .start-lights.is-out .start-lamp {
   transition: none;
 }
+
+/* Garage spec sheet (components/ui/Panels.tsx GarageSheet): each project slides in */
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

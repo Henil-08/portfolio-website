@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState, useSyncExternalStore } from "react";
 import { SECTORS, garageLabel, type ZoneId } from "@/components/world/layout";
+import { setState, useWorld } from "@/components/world/store";
 import { profile, story, offTrack } from "@/content/profile";
 import { experience, education } from "@/content/experience";
 import { DOMAINS, projects, type Domain } from "@/content/projects";
@@ -71,7 +72,7 @@ export function PanelBody({ zone }: { zone: ZoneId }) {
   }
 
   if (zone.startsWith("garage-")) {
-    return <ProjectList domain={zone.replace("garage-", "") as Domain} />;
+    return <GarageSheet domain={zone.replace("garage-", "") as Domain} />;
   }
 
   switch (zone) {
@@ -189,21 +190,95 @@ function Compound({ c }: { c: string }) {
   );
 }
 
-// Projects as broadcast-style telemetry: one big number, then the detail.
-function ProjectList({ domain }: { domain: Domain }) {
+// Garage experience: the camera dollies in to one project at a time (world/Rig.tsx); this
+// is its spec sheet, like a team's car sheet: one big number, what it is, how it's built.
+// Tabs or the arrow keys move along the plinths.
+function GarageSheet({ domain }: { domain: Domain }) {
   const list = projects.filter((p) => p.domain === domain);
+  const sel = Math.min(useWorld((s) => s.garageSel), list.length - 1);
+  const p = list[sel];
+  const go = (i: number) => setState({ garageSel: (i + list.length) % list.length });
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {domain === "hardware" && (
-        <p className="text-[15px] leading-relaxed text-cream/70">
+        <p className="text-[14px] leading-relaxed text-cream/70">
           I started in electronics, writing Verilog and Embedded C before I ever trained a model. Chip verification eats
           most of a hardware team&apos;s time and looks a lot like the agent problems I solve at work, so I&apos;m building
           agents that write testbenches and small models that write RTL.
         </p>
       )}
-      {list.map((p) => (
-        <ProjectItem key={p.slug} p={p} />
-      ))}
+      {list.length > 1 && (
+        <div className="flex gap-1 overflow-x-auto border-b border-cream/15" role="tablist">
+          {list.map((q, i) => (
+            <button
+              key={q.slug}
+              role="tab"
+              aria-selected={i === sel}
+              onClick={() => go(i)}
+              className={`-mb-px shrink-0 border-b-2 px-2.5 pb-2 pt-1 text-left font-mono text-[10.5px] uppercase tracking-[0.12em] transition ${
+                i === sel ? "border-red text-cream" : "border-transparent text-cream/45 hover:text-cream/80"
+              }`}
+            >
+              <span className="text-red">{String(i + 1).padStart(2, "0")}</span> {q.name}
+            </button>
+          ))}
+        </div>
+      )}
+      <div key={p.slug} className="space-y-4 [animation:sheet-in_0.35s_cubic-bezier(0.16,1,0.3,1)]">
+        <div className="flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[19px] font-semibold leading-tight">{p.name}</p>
+            <p className="mt-1 text-[13.5px] text-cream/70">{p.tagline}</p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="font-racing text-[34px] leading-none text-red">{p.headline.value}</p>
+            <p className="mt-1 max-w-[9rem] font-mono text-[9.5px] uppercase leading-tight tracking-[0.1em] text-cream/55">{p.headline.label}</p>
+          </div>
+        </div>
+        <div>
+          <p className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-cream/45">Spec</p>
+          <ol className="space-y-2">
+            {p.points.map((x, i) => (
+              <li key={x} className="flex gap-3 text-[13.5px] leading-relaxed text-cream/85">
+                <span className="mt-[3px] font-mono text-[10.5px] text-red">{String(i + 1).padStart(2, "0")}</span>
+                <span>{x}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+        <div>
+          <p className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-cream/45">Built with</p>
+          <div className="flex flex-wrap gap-1.5">
+            {p.stack.map((x) => (
+              <span key={x} className="hud-chip">
+                {x}
+              </span>
+            ))}
+          </div>
+        </div>
+        {p.links.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {p.links.map((l) => (
+              <a key={l.href} href={l.href} target="_blank" rel="noreferrer" className="bg-cream px-3 py-2 text-[12.5px] font-semibold text-ink transition hover:bg-white">
+                {l.label} ↗
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+      {list.length > 1 && (
+        <div className="flex items-center justify-between border-t border-cream/15 pt-3 font-mono text-[10.5px] uppercase tracking-[0.12em] text-cream/55">
+          <button onClick={() => go(sel - 1)} className="flex items-center gap-2 transition hover:text-cream">
+            <kbd className="hud-key">←</kbd> Previous
+          </button>
+          <span>
+            {sel + 1} / {list.length}
+          </span>
+          <button onClick={() => go(sel + 1)} className="flex items-center gap-2 transition hover:text-cream">
+            Next <kbd className="hud-key">→</kbd>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

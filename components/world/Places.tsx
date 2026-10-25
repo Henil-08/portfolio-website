@@ -52,7 +52,6 @@ import { inTownBelt } from "./street/common";
 import Bridge from "./Bridge";
 import { ProjectObject } from "./models/projects";
 import { AhmedabadSector, BostonSector, HyperlabSector, WatersSector } from "./models/sectors";
-import { projects } from "@/content/projects";
 import { C } from "./palette";
 import {
   GANTRY_T,
@@ -74,7 +73,9 @@ import {
   type ZoneId,
 } from "./layout";
 import { cheer, pop } from "./sound";
-import { achieve, toast } from "./store";
+import { achieve, toast, useWorld } from "./store";
+import { garagePlinths } from "./garageShots";
+import type { Domain } from "@/content/projects";
 import { heightAt } from "./terrain";
 import { pitAsphalt } from "./Island";
 import Park from "./park";
@@ -419,9 +420,9 @@ function PitLane() {
         </RigidBody>
       ))}
 
+      <GarageSpot />
       {GARAGES.map((g) => {
-        const list = projects.filter((p) => p.domain === g.domain);
-        const span = Math.min(7, list.length * 1.8);
+        const plinths = garagePlinths(g.domain);
         return (
           <group key={g.domain} position={[g.x, pitY, PIT.garageZ - 1]}>
             <RigidBody type="fixed" colliders={false}>
@@ -430,8 +431,7 @@ function PitLane() {
               <CuboidCollider args={[0.15, 2.25, 3.5]} position={[-4.35, 2.25, 0]} />
               <CuboidCollider args={[0.15, 2.25, 3.5]} position={[4.35, 2.25, 0]} />
             </RigidBody>
-            {list.map((p, i) => {
-              const x = list.length === 1 ? 0 : -span / 2 + (span / (list.length - 1)) * i;
+            {plinths.map(({ project: p, lx: x }) => {
               return (
                 <group key={p.slug} position={[x, 0, -1.4]}>
                   <RigidBody type="fixed" colliders={false}>
@@ -448,6 +448,27 @@ function PitLane() {
         );
       })}
     </>
+  );
+}
+
+// Garage experience: a red ring glows on the floor round the project on show while
+// its garage is open (the camera dollies in to it, Rig.tsx; the HUD shows its spec sheet).
+const spotMat = new THREE.MeshStandardMaterial({ color: C.red, emissive: new THREE.Color(C.red), emissiveIntensity: 2, toneMapped: false });
+function GarageSpot() {
+  const zone = useWorld((s) => s.zone);
+  const sel = useWorld((s) => s.garageSel);
+  const ring = useRef<THREE.Mesh>(null);
+  useFrame(({ clock }) => {
+    spotMat.emissiveIntensity = 1.6 + Math.sin(clock.elapsedTime * 3) * 0.6;
+    if (ring.current) ring.current.rotation.z = clock.elapsedTime * 0.4;
+  });
+  if (!zone?.startsWith("garage-")) return null;
+  const pl = garagePlinths(zone.slice(7) as Domain);
+  const p = pl[Math.min(sel, pl.length - 1)].pos;
+  return (
+    <mesh ref={ring} position={[p.x, p.y + 0.04, p.z]} rotation={[-Math.PI / 2, 0, 0]} material={spotMat}>
+      <ringGeometry args={[0.72, 0.82, 48, 1, 0, Math.PI * 1.7]} />
+    </mesh>
   );
 }
 

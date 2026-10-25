@@ -11,6 +11,13 @@ import { getState, setNear } from "./store";
 import { sceneParams } from "./Effects";
 import { dayNight } from "./daynight";
 import { zones, type Zone } from "./layout";
+import { garageShot } from "./garageShots";
+import type { Domain } from "@/content/projects";
+
+// Garage experience: the camera dollies in through the door to the project on show
+// and back out when the garage closes (power2.inOut, DOLLY s).
+const DOLLY = 1.3;
+const power2InOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 
 const OFFSET = new THREE.Vector3(10.5, 12.5, 14);
 const look = new THREE.Vector3();
@@ -28,6 +35,7 @@ export function CameraRig() {
   const zoomS = useRef(0);
   const shot = useRef<{ id: number; style: string; t: number } | null>(null);
   const idle = useRef(0);
+  const garage = useRef({ t: 0, pos: new THREE.Vector3(), look: new THREE.Vector3(), has: false });
 
   useFrame((_, dt) => {
     const phase = getState().phase;
@@ -69,6 +77,29 @@ export function CameraRig() {
       orbit.copy(camera.position);
       blend.current = 1;
       return;
+    }
+
+    // Garage open: dolly in to the project on show; closed: ease back to the chase camera.
+    {
+      const g = garage.current;
+      const z = getState().zone;
+      const dom = z && z.startsWith("garage-") ? (z.slice(7) as Domain) : null;
+      g.t = THREE.MathUtils.clamp(g.t + (dom ? dt : -dt) / DOLLY, 0, 1);
+      if (dom) {
+        const want = garageShot(dom, getState().garageSel, portrait);
+        const kk = g.has ? Math.min(1, dt * 3) : 1; // pan between plinths, snap on first open
+        g.pos.lerp(want.position, kk);
+        g.look.lerp(want.target, kk);
+        g.has = true;
+      } else if (g.t === 0) g.has = false;
+      if (g.t > 0) {
+        const k = power2InOut(g.t);
+        camera.position.lerpVectors(followPos, g.pos, k);
+        look.lerpVectors(target.current, g.look, k);
+        camera.lookAt(look);
+        orbit.copy(camera.position);
+        return;
+      }
     }
 
     // Agent camera shots take over for a few seconds.

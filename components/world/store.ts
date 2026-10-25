@@ -15,6 +15,7 @@ type State = {
   revealed: boolean; // the opening reveal has finished (Reveal.tsx)
   opened: boolean; // the loader ring is done and the small circle is open: the start prompt may show
   zone: ZoneId | null; // the card that is open
+  garageSel: number; // the project on show in an open garage (garageShots.ts)
   near: ZoneId | null; // the place the car is parked at, if any
   nearLink: string | null; // the contact medallion the car is next to (social/index.tsx LINKS key)
   found: ZoneId[];
@@ -51,6 +52,7 @@ let state: State = {
   revealed: false,
   opened: false,
   zone: null,
+  garageSel: 0,
   near: null,
   nearLink: null,
   found: [],
@@ -122,7 +124,7 @@ export function setNear(near: ZoneId | null) {
 }
 
 export function openZone(zone: ZoneId) {
-  setState((s) => ({ zone, found: s.found.includes(zone) ? s.found : [...s.found, zone] }));
+  setState((s) => ({ zone, garageSel: s.zone === zone ? s.garageSel : 0, found: s.found.includes(zone) ? s.found : [...s.found, zone] }));
 }
 
 export function closeZone() {

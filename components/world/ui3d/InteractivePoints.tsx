@@ -297,7 +297,8 @@ export default function InteractivePoints() {
     // HIDDEN until the opening has swept out, then every point shows its small diamond
     if (s.revealed) for (const it of list) if (it.state === HIDDEN) conceal(it);
     // the open one: the medallion the car is at, else the place
-    const want = !s.revealed ? null : s.nearLink ? `link-${s.nearLink}` : s.near;
+    // a place's card is open (or the garage shot): the prompt steps back
+    const want = !s.revealed || s.zone ? null : s.nearLink ? `link-${s.nearLink}` : s.near;
     const next = want ? (list.find((it) => it.id === want) ?? null) : null;
     if (next !== active.current) {
       if (active.current && active.current.state === OPEN) conceal(active.current);

@@ -313,6 +313,11 @@ function InteractKey() {
       if ((e.code === "KeyE" || e.code === "Enter") && s.nearLink && !s.zone) openLink(s.nearLink);
       else if ((e.code === "KeyE" || e.code === "Enter") && s.near && !s.zone) openZone(s.near);
       if (e.code === "Escape" && s.zone) closeZone();
+      // garage open: the arrow keys move along its plinths (the camera follows, Rig.tsx)
+      if (s.zone?.startsWith("garage-") && (e.code === "ArrowRight" || e.code === "ArrowLeft")) {
+        const n = projects.filter((p) => `garage-${p.domain}` === s.zone).length;
+        setState({ garageSel: (s.garageSel + (e.code === "ArrowRight" ? 1 : -1) + n) % n });
+      }
       if (e.code === "KeyM" && s.phase === "world") setState((w) => ({ menuOpen: !w.menuOpen }));
       if (e.code === "Escape" && (s.menuOpen || s.controlsOpen || s.settingsOpen)) setState({ menuOpen: false, controlsOpen: false, settingsOpen: false });
     };
