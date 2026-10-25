@@ -107,6 +107,17 @@ export default function World() {
 function Stepper() {
   const { step } = useRapier();
   useFrame((_, dt) => {
+    // Dev and headless checks: window.__realtime = true runs as many 60 fps steps as real
+    // time has passed, so a slow headless browser simulates the car like a real one.
+    const realtime = process.env.NODE_ENV !== "production" && (window as unknown as { __realtime?: boolean }).__realtime;
+    if (realtime) {
+      const n = Math.min(60, Math.max(1, Math.round(dt * 60)));
+      ticker.delta = 1 / 60;
+      ticker.deltaScaled = ticker.delta * ticker.scale;
+      for (let i = 0; i < n; i++) step(ticker.deltaScaled);
+      ticker.deltaScaled *= n; // per-frame readers (speed) see the whole frame
+      return;
+    }
     ticker.delta = Math.min(dt, 1 / 30);
     ticker.deltaScaled = ticker.delta * ticker.scale;
     step(ticker.deltaScaled);

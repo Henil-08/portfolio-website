@@ -54,6 +54,12 @@ const HANDBRAKE_AMPLITUDE = 4;
 const HANDBRAKE_RAMP = 0.4; // seconds to full brake
 const HANDBRAKE_REAR_GRIP = 1.6; // rear side friction while braking (normal: SIDE_FRICTION)
 const IDLE_BRAKE = 0.06;
+// Low-speed grip: below LOW_SPEED (m/s) the tyres' side grip eases down to LOW_SIDE of
+// normal. At a crawl with the wheels turned, full side friction overshot every step and
+// the car shook left-right as it stopped (measured: the yaw rate flipped sign ~200 times
+// in 6 s; with this, none).
+const LOW_SPEED = 1.5;
+const LOW_SIDE = 0.3;
 const REVERSE_BRAKE = 0.4;
 
 const SUSPENSION = {
@@ -90,6 +96,12 @@ const WHEELS = WHEEL_POSITIONS.map((w) => ({
   front: w.front,
   radius: (w.front ? WHEEL_RADIUS : WHEEL_RADIUS * REAR_WHEEL_SCALE) * S,
 }));
+
+/** Dev and headless checks: window.__tune overrides these at runtime to compare handling. */
+// frontBrake < 0: the front idle brake fades out as the wheels turn (a turned, braked
+// front wheel kicked the yaw the other way when the throttle came off).
+const tune = { idleBrake: IDLE_BRAKE, sideFriction: SIDE_FRICTION, frontBrake: -1, easeAng: 4, lowSide: LOW_SIDE, lowSpeed: LOW_SPEED };
+if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") (window as unknown as { __tune: typeof tune }).__tune = tune;
 
 const up = new THREE.Vector3(0, 1, 0);
 const tmpQ = new THREE.Quaternion();
@@ -210,13 +222,23 @@ export default function Vehicle() {
     const dts = ticker.deltaScaled;
     const b = body.current;
     const touching = input.forward || input.back || input.steer || input.handbrake;
+    // Dev and headless checks: window.__stepLog = [] records every physics step
+    // [ground speed, yaw rate, sideways speed, roll] (use with window.__realtime).
+    const log = process.env.NODE_ENV !== "production" ? (window as unknown as { __stepLog?: number[][] }).__stepLog : undefined;
+    if (log && b && log.length < 20000) {
+      const lv = b.linvel();
+      const r = b.rotation();
+      tmpQ.set(r.x, r.y, r.z, r.w);
+      const side = tmpV.set(0, 0, 1).applyQuaternion(tmpQ);
+      log.push([Math.hypot(lv.x, lv.z), b.angvel().y, lv.x * side.x + lv.z * side.z, Math.asin(THREE.MathUtils.clamp(side.y, -1, 1)), input.forward ? 1 : 0]);
+    }
     if (!parked.on && b) {
       const lv = b.linvel();
       // hands off and slow: ease to a stop (no bob, no creep) instead of coasting on the springs
       const hs = Math.hypot(lv.x, lv.z);
       const ease = !touching && hs < 2.5 ? 1 - hs / 2.5 : 0;
       b.setLinearDamping(0.1 + ease * 2.5);
-      b.setAngularDamping(0.1 + ease * 4);
+      b.setAngularDamping(0.1 + ease * tune.easeAng);
       const slow = Math.hypot(lv.x, lv.z) < REPARK_SPEED && Math.abs(b.angvel().y) < 0.6 && carState.grounded;
       parked.still = !touching && slow ? parked.still + ticker.delta : 0;
       if (parked.still > REPARK_AFTER) {
@@ -260,7 +282,7 @@ export default function Vehicle() {
     let brake = 0;
     if (braking) brake = Math.min(1, brakeHeld.current / HANDBRAKE_RAMP) ** 1.5 * HANDBRAKE_AMPLITUDE * dts;
     else {
-      let b = Math.abs(accelerating) < 0.1 ? IDLE_BRAKE : 0;
+      let b = Math.abs(accelerating) < 0.1 ? tune.idleBrake : 0;
       if (
         speed.current > 0.5 &&
         ((accelerating > 0 && !goingForward.current) ||
@@ -276,11 +298,15 @@ export default function Vehicle() {
     }
 
     const steer = steering * STEERING_AMPLITUDE;
+    const hsNow = b ? Math.hypot(b.linvel().x, b.linvel().z) : 0;
+    const sideK = tune.sideFriction * THREE.MathUtils.lerp(tune.lowSide, 1, Math.min(1, hsNow / tune.lowSpeed));
     for (let i = 0; i < WHEELS.length; i++) {
       v.setWheelSteering(i, WHEELS[i].front ? steer : 0);
-      v.setWheelBrake(i, brake);
+      // front brake fades out as the wheels turn (frontBrake < 0) or by a fixed factor
+      const fb = tune.frontBrake < 0 ? 1 - Math.min(1, Math.abs(steering)) : tune.frontBrake;
+      v.setWheelBrake(i, WHEELS[i].front ? brake * fb : brake);
       v.setWheelEngineForce(i, engine);
-      if (!WHEELS[i].front) v.setWheelSideFrictionStiffness(i, braking ? HANDBRAKE_REAR_GRIP : SIDE_FRICTION);
+      v.setWheelSideFrictionStiffness(i, braking && !WHEELS[i].front ? HANDBRAKE_REAR_GRIP : sideK);
     }
     v.updateVehicle(1 / 60);
 
@@ -311,6 +337,13 @@ export default function Vehicle() {
     prevPos.copy(tmpP);
     carState.speed = speed.current * 2 * (goingForward.current ? 1 : -1); // real m/s at 2x time
     carState.grounded = [0, 1, 2, 3].some((i) => v.wheelIsInContact(i));
+    {
+      const av = b.angvel();
+      const side = tmpV.set(0, 0, 1).applyQuaternion(tmpQ); // the car's right/left axis
+      carState.motion.yawRate = av.y;
+      carState.motion.roll = Math.asin(THREE.MathUtils.clamp(side.y, -1, 1));
+      carState.motion.lat = carState.vel.x * side.x + carState.vel.z * side.z;
+    }
 
     const st = stuck.current;
     if (Math.abs(input.forward - input.back) > 0.5 && getState().phase === "world") {

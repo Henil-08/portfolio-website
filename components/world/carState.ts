@@ -7,6 +7,8 @@ export const carState = {
   forward: new THREE.Vector3(1, 0, 0),
   speed: 0, // m/s, signed along forward
   grounded: true,
+  /** Side-to-side motion, for checks: yaw rate (rad/s), roll (rad), sideways speed (m/s). */
+  motion: { yawRate: 0, roll: 0, lat: 0 },
   /** Fitted tyres (wets in the rain) and the swap's progress, 0..1 (1 = not swapping). */
   tyres: { wet: false, swap: 1 },
 };
