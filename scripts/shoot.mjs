@@ -1,6 +1,6 @@
 // Headless screenshots of the world (macOS Chrome, software WebGL).
 // usage: node scripts/shoot.mjs <outPrefix> "<steps>" [w] [h] [url]
-// steps are |-separated, each op:arg — wait:ms | shot:name | down:Code | up:Code | key:Code (tap) | eval:js
+// steps are |-separated, each op:arg — wait:ms | shot:name | down:Code | up:Code | key:Code (tap) | eval:js | media:print
 // e.g. node scripts/shoot.mjs /tmp/shots/a "wait:16000|shot:spawn" 1400 850 "http://localhost:3100/?skip"
 // Shots land at <outPrefix>-<name>.jpg. Physics runs slow here (low fps): judge looks, not speed.
 import { spawn } from "node:child_process";
@@ -36,6 +36,7 @@ const key = (type, code) => send("Input.dispatchKeyEvent", { type, code, key: ke
 for (const step of script.split("|")) {
   const [op, ...rest] = step.split(":"); const arg = rest.join(":");
   if (op === "wait") await sleep(+arg);
+  if (op === "media") await send("Emulation.setEmulatedMedia", { media: arg }); // media:print checks print styles
   if (op === "down") await key("keyDown", arg);
   if (op === "up") await key("keyUp", arg);
   if (op === "key") { await key("keyDown", arg); await sleep(60); await key("keyUp", arg); }

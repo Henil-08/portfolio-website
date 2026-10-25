@@ -85,7 +85,7 @@ in its circle round the car (folio-2025's reveal). "Click to start" then sweeps 
 | Key hints, joystick, brake/gas (`Hints`, `Joystick`) | cream pills | key caps and square ink buttons |
 | Radio transcript, autopilot HUD, Ask box | mixed | ink chip / panel |
 | Map (MapMenu.tsx) | already A | — |
-| `/resume` | cream paper | stays cream paper (it prints) |
+| `/resume` | cream paper | option A on screen (panels, timing strip, hover states); plain ink on white in print (owner, 2026-10-25) |
 
 ## Option B: cream toy cards
 

@@ -173,7 +173,7 @@ export default function Specimen() {
                 ["Settings", "inside Controls", "small ink panel behind a gear tab"],
                 ["Key hints, joystick, gas/brake", "cream pills", "key caps and square ink buttons"],
                 ["Map", "already A", "—"],
-                ["/resume", "cream paper", "stays (it prints)"],
+                ["/resume", "cream paper", "option A on screen, ink on white in print"],
               ].map(([a, b, c]) => (
                 <tr key={a} className="border-b border-cream/10 last:border-0">
                   <td className="p-3 font-semibold text-cream">{a}</td>
