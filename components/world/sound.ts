@@ -115,6 +115,7 @@ function duck(from: number, to: number) {
 // ------------------------------------------------------------ engine
 
 let engine: { src: AudioBufferSourceNode; gain: GainNode } | null = null;
+const ENGINE_VOL = 0.65;
 async function startEngine() {
   const a = audio();
   if (!a || !master || engine) return;
@@ -137,9 +138,9 @@ export function engineUpdate(speedKmh: number, throttle: number, boost: boolean,
   if (!a || !engine) return;
   const s = Math.min(speedKmh / 140, 1.3);
   engine.src.playbackRate.setTargetAtTime(0.7 + s * 0.8 + (boost ? 0.08 : 0), a.currentTime, 0.12);
-  // Quiet under the music, silent when parked.
+  // Quiet under the music, silent when parked; ENGINE_VOL scales it all (owner: "a bit lower").
   const moving = speedKmh > 3 || throttle > 0;
-  engine.gain.gain.setTargetAtTime(moving ? 0.012 + s * 0.035 + throttle * 0.01 : 0, a.currentTime, 0.25);
+  engine.gain.gain.setTargetAtTime(moving ? (0.012 + s * 0.035 + throttle * 0.01) * ENGINE_VOL : 0, a.currentTime, 0.25);
   if (sliding && a.currentTime - lastSkid > 1.2 && speedKmh > 30) {
     lastSkid = a.currentTime;
     void play("skid", { vol: 0.35 });
