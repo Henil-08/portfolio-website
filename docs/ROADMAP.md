@@ -53,9 +53,12 @@ small, verified with headless screenshots, and committed on its own
    - `?skip` skips the opening entirely. Without it the loader waits for shader compiles (~30 s
      headless) and the animation runs ~10x slow: wait ~130 s before the circle is open.
    - `eval:window.__movables()` counts knock-about props out of place.
-   - Car feel bugs (vibration, creep, bounce): measure, don't guess. Sample `window.__car.pos/speed`
-     every frame with a `requestAnimationFrame` loop in an `eval:` step and read the numbers back.
-     The owner checks; "fixed" means a flat trace.
+   - Car feel bugs (vibration, creep, bounce): measure, don't guess. `window.__realtime = true` runs real
+     60 fps physics steps in the slow headless browser; `window.__stepLog = []` records every step
+     [ground speed, yaw rate, sideways speed, roll, throttle]; `window.__tune` overrides handling numbers
+     (Vehicle.tsx `tune`) to compare variants. Repeat each variant 3x: headless key timing varies.
+     `carState.motion` has yaw rate, roll and sideways speed. The owner checks; "fixed" means a flat trace.
+   - `media:print` in shoot.mjs checks print styles (the resume).
    - Layout scripts: run TS from a scratchpad script with jiti (`createJiti(cwd, { alias: { "@/": cwd + "/" } })`)
      to print ASCII maps of track/zones/water, heights, or scene facing before rendering.
 3. Before commit: `npx tsc --noEmit -p .` and `npx eslint components app` clean.
@@ -102,7 +105,8 @@ the real world with pins that teleport behind a wipe. Commit history has the det
 Next, in order (the first unticked box in the steps below is the one to do):
 1. **4e owner check** items left open below (only if the owner reports them again).
 2. 4b h-k are done (floodlights, pit wall, grandstands, rain + tyre swap).
-3. Steps 5-9 are done except brake/boost feel (needs the owner on a real GPU) and the "later" items.
+3. Steps 5-9 are done except brake/boost feel (needs the owner on a real GPU). Garage experience and the
+   /resume redesign are in (2026-10-25). Open: README credit to folio-2025 (owner: later).
 4. Owner said "later": credit folio-2025 / Bruno Simon in the main README (only there).
 
 ## Steps (do them in order; first unticked one is next)
@@ -405,4 +409,10 @@ Owns new components/world/ui3d/** and Race.tsx (`InteractionPoint`, the current 
 - [x] (a342ec7) Palms still use the old per-tree meshes; port them to the foliage registry (foliage/palm.ts).
 - [x] (e1895eb) Tree colours are a first pass (foliage/species.ts); shade side reads dark. Now the original's oak/bush colours.
 - [ ] Brake and boost feel: tune `HANDBRAKE_*` and the overspeed brake in Vehicle.tsx on a real GPU.
-- [ ] Later: engine sound; garage experience (dolly in, project spec sheets); scroll-driven site.
+- [x] (2fde5fd) Engine a bit quieter (owner, 2026-10-25: `ENGINE_VOL` 0.65 in sound.ts).
+- [x] (5d3c9c1) Car shook left-right while slowing (owner, 2026-10-25): measured yaw flipping every step at a
+      crawl with the wheels turned; low-speed side grip (`LOW_SPEED`, `LOW_SIDE`) and the front idle brake fading
+      as the wheels turn. Owner to confirm on a real GPU.
+- [x] (4f9c1f7) Garage experience: dolly in (Rig.tsx, garageShots.ts), spec sheet per project (Panels.tsx
+      `GarageSheet`), ring on the plinth, arrow keys.
+- [x] (3317f53) /resume in design A with hover states; ink on white in print. Scroll-driven site: dropped (owner).
