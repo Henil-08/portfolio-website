@@ -21,7 +21,8 @@ small, verified with headless screenshots, and committed on its own
 | Places (garages, sectors, pitches, letters, nature) | components/world/Places.tsx, models/sectors/*, models/props/* |
 | Street dressing (barriers, floodlights, skyline, run-off) | components/world/street/* (Floodlights.tsx, layoutStreet.ts `FLOODS`) |
 | Living world (wind, grass, leaves, confetti, birds) | components/world/alive/*, components/world/Grass.tsx |
-| Car | components/world/models/Car.tsx (`LIVERIES`, `DEFAULT_LIVERY`), Vehicle.tsx (physics) |
+| Vehicles | components/world/vehicles/* (`VEHICLES`, `LIVERIES`), Vehicle.tsx (physics, `tuneOf`, `VEHICLE_SCALE` from vehicles/scale.ts, `PLAYER_MODEL`) |
+| Powers (Shift) | components/world/powers/* (`usePowers`, meter.ts, state.ts, Trail.tsx, Thrusters.tsx), components/ui/PowerMeter.tsx |
 | Lighting, day/night, weather | components/world/Effects.tsx (`SCENES`), Rig.tsx (camera, sun, sky), World.tsx (canvas, post) |
 | HUD and panels | components/ui/* (Hud.tsx, Panels.tsx, Intro.tsx, RadioMessages.tsx, MapMenu.tsx); design language in docs/BRAND.md |
 | Store | components/world/store.ts (`near`, `zone`, `menuOpen`, `teleport`, `achievements`) |
@@ -33,10 +34,11 @@ small, verified with headless screenshots, and committed on its own
 | Waterfront | components/world/waterfront/* (`PROMENADE`, `PIER`, `nearPromenade`) |
 | Contact logos | components/world/social/* (`LINKS`, store `nearLink`) |
 | Trees, bushes (W10 faceted cypresses and round crowns) | components/world/foliage/* (`species.ts` geometry and colours, `registry.ts` one instanced draw per kind), models/props/Tree.tsx, park/bushes.ts |
-| Opening (boot, garage select, align, Bloom) | components/ui/Intro.tsx (stages, G reopens the garage), Boot.tsx (mark, decode, CSS bar), GarageSelect.tsx (chrome, keys, build log); components/world/bloom/state.ts (`opening` stage store, `boot`, `ALIGN`, dev `__alignT`/`__buildT`/`__swapT`), Opening.tsx (shader warm-up legs, turntable `Garage`, cameras, dots, paper floor), plan.ts (`PLAN` timings, `buildDots`, build log), patch.ts (central reveal patch on every world material, `bloomOn`/`bloomOff`); Experience.tsx `INTRO_MS` (deferred world mount) |
-| Start spot and the way to the track | components/world/startSpot.ts (`START_SPOT`, `REVEAL_AT`), start.ts, StartGarden.tsx; the sandy path to the pit lane is a garden path (garden/layout.ts `PATHS`) |
+| Opening (boot, garage select, align, Bloom) | components/ui/Intro.tsx (stages, G reopens the garage), Boot.tsx (mark, decode, CSS bar, the perspective floor still), GarageSelect.tsx (compact box, keys, touch, build log), garageParts.tsx (cards, liveries, stats; also Settings' Vehicle section); components/world/bloom/state.ts (`opening` stage store, `boot`, `studio`, `ALIGN`, `reenterGarage`, dev `__alignT`/`__buildT`/`__swapT`), view.ts (garage box and cell, select camera, `drawFloor`), Opening.tsx (shader warm-up legs, turntable `Garage`, cameras, dots, paper floor), plan.ts (`PLAN` timings incl. `water0`, `buildDots`, build log), patch.ts (central reveal patch on every world material, water last, `bloomOn`/`bloomOff`); Experience.tsx `INTRO_MS` (deferred world mount) |
+| Start spot and the way to the track | components/world/startSpot.ts (`START_SPOT`, layout.ts `SPAWN`; ?skip spawns here, the opening's garage stands here), start.ts, StartGarden.tsx; the sandy path to the pit lane is a garden path (garden/layout.ts `PATHS`) |
 | Park common ground (slab paths, lanterns, benches, fence) | components/world/districts/park.ts |
 | Car parking at rest (no jitter) | components/world/Vehicle.tsx (`parked`, `REPARK_*`, `SUSPENSION`) |
+| Places review page | app/docs/brand/places/* (every interactable place, live world views, the real sheets) |
 | Knock-about props (tyres, rocks, benches...) | components/world/Movables.tsx (`Movables`, `kindFromMatrices`, `HomeBody`) |
 
 ## Working rules
@@ -87,20 +89,20 @@ ink/paper kerbs, ink and paper objects with one orange (#ff4f00) accent each, ve
 world. Palette: components/world/palette.ts `C` (keys kept from the old palette, `red` is the orange
 accent). The UI and the opening follow docs/BRAND.md (Datasheet). The model swap runs as step 11 a–i.
 
-## Where it stands (2026-10-23, late night)
+## Where it stands (2026-10-26)
 
-The world is layout v5 (README "Track layout v5", docs/research/layout-v5-sketch.png): the main
-straight with a pit lane its whole length, the east side's S over the river on a low deck, the bridge
-loop that crosses its own entry 4.2 m up (no piers), the Monaco hairpin round a pond, the bottom-left
-chicane round a green block with the garden pond. The world is flat (land away from the road at 0).
-The car starts in front of HENIL GAJJAR under a shade tree, on the garden path that leads past the
-garages to the pit lane. The opening is folio-2025's sequence in the site's colours. Tyre walls, rocks,
-benches, lanterns, crates, cones and letters can be knocked about and tidy up when the car is 45 m
-away. The car parks dead still at rest (re-parks when left alone; damped stop). Floodlight towers
-light the lap at night, a pit wall with a fence separates the pit lane, grandstands line the main
-straight and T1, showers come and go (wets go on in a quick swap), and M opens a map rendered from
-the real world with pins that teleport behind a wipe. Commit history has the details; everything in
-4b, 4c, 4d, 4e and 5 below is done.
+The world is layout v5 (README "Track layout v5", docs/research/layout-v5-sketch.png) redrawn in
+Concrete & Ink (step 11): concrete town blocks and pit building, W03-W08 trackside, faceted
+cypresses and round crowns, a near-black matte road with ink/paper kerbs and gravel traps, IBM Plex
+type in the world, and a day/dusk/ink-night light with floodlights. You drive one of four vehicles
+(TH-18, E14, Atlas, Apollo) in five liveries, each with its own handling, and Shift (held) runs its
+power (OVERTAKE, SEND IT, SKYLINE, SPLIT). The opening is the approved start sequence: the boot on the
+perspective dot floor, the garage select as a compact box in a plain studio over that floor, Enter
+aligns the turntable onto the Bloom, and the real world blooms out round the car (water last) onto
+the chase camera. G, or the HUD's Garage tab, reopens the garage from wherever the car is; Settings
+swaps the vehicle in place. The car starts in front of HENIL GAJJAR on the garden path to the pit
+lane. Knock-about props tidy up when the car is 45 m away, M opens the map, showers come and go.
+The parent "Swap, model by model" box in step 11 waits for the owner's check.
 
 Next, in order (the first unticked box in the steps below is the one to do):
 1. **4e owner check** items left open below (only if the owner reports them again).
@@ -457,23 +459,23 @@ grass, orange sand) once approved. Proposals with turntable models: `/docs/brand
         Files: palette.ts, terrain.ts, Island.tsx, Grass.tsx, Water.tsx, street run-off.
   - [x] b. (172b8da..28f81ed) Trackside: W03 TecPro blocks replace the tyre walls, W04 concrete wall + ink debris fence (pit wall),
         W06 grandstands, W07 floodlights, W08 start gantry. Files: street/*, PitWallRun.tsx, Embankments.tsx.
-  - [ ] c. Buildings: W02 garages (concrete block, glazed bays, thin ink roof), W09 concrete town blocks.
+  - [x] c. (039dc3b, e423fe0, f316dff, e41dd2f) Buildings: W02 garages (concrete block, glazed bays, thin ink roof), W09 concrete town blocks.
         Files: Places.tsx garages, models/sectors/*, street/Skyline.tsx, street/town.ts, districts/*.
   - [x] d. (75c2a5f, 259b723; palms became cypresses) Trees: W10 faceted cypresses and round crowns. Files: foliage/*, models/props/Tree.tsx, Groves.tsx.
-  - [ ] e. Vehicles: the four vehicles (TH-18, E14, Atlas, Apollo) and five liveries drive in the game, each with
+  - [x] e. (1056955, ea97781) Vehicles: the four vehicles (TH-18, E14, Atlas, Apollo) and five liveries drive in the game, each with
         its own handling; models move to components/world/vehicles/ and the docs page imports them from there.
         Replaces models/Car.tsx (and its Racero use). Files: models/Car.tsx, liveries.ts, Vehicle.tsx, store.ts.
-  - [ ] f. (wave 2) Start sequence in the game: boot, garage select, align, Bloom of the real world, game camera.
+  - [x] f. (1748784; cleanup 60a11b8, b42ed0a, 49d6537, d7604ae, a077c71) (wave 2) Start sequence in the game: boot, garage select, align, Bloom of the real world, game camera.
         Replaces the Reveal.tsx / Intro.tsx opening.
-  - [ ] g. (wave 2) Powers: Shift replaces boost, the meter in the HUD, SKYLINE / OVERTAKE / SPLIT / SEND IT in real
+  - [x] g. (a434bb4, b3dfd86, 1ab2355) (wave 2) Powers: Shift replaces boost, the meter in the HUD, SKYLINE / OVERTAKE / SPLIT / SEND IT in real
         physics. In the game the vehicle keeps going from where the power leaves it (no reset to the grid).
-  - [ ] h. Night lighting rework (owner flagged it on the proposal).
-  - [ ] i. Racero leftovers (Timeline.tsx, models/Avatar.tsx, models/props/Label.tsx) move to IBM Plex.
-  - [ ] j. Sweep: everything not covered above follows the design language too (owner, 2026-10-26: design
+  - [x] h. (3112113, 8718965, 31557e9, 034ed0c) Night lighting rework (owner flagged it on the proposal).
+  - [x] i. (8f30e27, d08f975) Racero leftovers (Timeline.tsx, models/Avatar.tsx, models/props/Label.tsx) move to IBM Plex.
+  - [x] j. (f9e2d22, 1e89b37, 472f0c4, 9272d5c, 59d24f0, a3d99a4, d690f38, 6c8da28, 6c5b7bc, c44e95e, 950f2de, 679cccc, 0519d23) Sweep: everything not covered above follows the design language too (owner, 2026-10-26: design
         what the proposal lacks). Harbour, waterfront, park islands and slabs, garden (beds, hedges, flowers),
         StartGarden, timeline stones, contact logos, name letters, knock-about props, alive/* (birds, confetti,
         leaves), people, pit road paint.
-  - [ ] k. Road redesign (owner, 2026-10-26: "Road / track should be black"): plain near-black matte asphalt, no speckle
+  - [x] k. (03aed86, 8718965, af052f1) Road redesign (owner, 2026-10-26: "Road / track should be black"): plain near-black matte asphalt, no speckle
         (Island.tsx `ASPHALT`, `lit`, `roadPaint`); paper edge line both sides; W05 ink/paper kerbs in the bends; gravel trap
         behind the kerb (street/Runoff.tsx); pit entry/exit lines only off the track, no dark slivers or notches (PitRoads.tsx);
         ink/paper start line. Owner to check. Places.tsx pit lane lines still use an unlit material (swap to `roadPaint`).
