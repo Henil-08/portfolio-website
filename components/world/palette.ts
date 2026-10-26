@@ -1,31 +1,36 @@
-// One palette for the whole world: a premium designer-toy diorama, like
-// collectible figures and architectural models shot in a studio.
-// Glossy white, warm off-white, one signature racing red, charcoal and soft
-// greys. Everything else is muted and used sparingly (teal = side-quest lab,
+// One palette for the whole world: "Concrete & Ink" (docs/BRAND.md, World,
+// approved 2026-10-26), a modern circuit instead of a toy town. Concrete,
+// muted grass, gravel and dark asphalt on the ground; ink and paper for the
+// objects, and one orange accent per object (`red` is that accent now).
+// Everything else is muted and used sparingly (teal = side-quest lab,
 // gold = trophies). Key names are shared by the whole codebase: retune values,
 // never rename.
 
 export const C = {
   // ground
-  grass: "#a5a33e", // the original's olive-yellow grass, a touch quieter
-  grassDark: "#868434",
-  sand: "#eeaa68", // the original's warm orange sand, a touch quieter
-  water: "#4d8590", // deep muted teal-blue
-  waterDeep: "#36636f",
-  rock: "#bfb8ad",
-  asphalt: "#3c3f45", // charcoal tarmac
-  asphaltLine: "#f3f1ec",
+  grass: "#7a8462", // muted grass
+  grassDark: "#5f6a4c",
+  sand: "#cdc4b0", // gravel: shores, dunes and run-off are gravel and concrete, no sand
+  water: "#3e5a63",
+  waterDeep: "#2c4148",
+  rock: "#b8b4a9", // concrete dark
+  asphalt: "#3a3b3e",
+  asphaltLine: "#f3f2ed", // paper edge line
+  concrete: "#d9d6ce",
+  concreteDark: "#b8b4a9",
+  gravel: "#cdc4b0",
 
   // brand
-  red: "#d42a2f", // signature racing red
-  redDark: "#a01d23",
-  cream: "#f1ece3", // warm off-white
-  white: "#f8f7f4", // glossy white (never pure #fff, it clips under the sun)
-  ink: "#25272c", // charcoal
+  red: "#ff4f00", // the one orange accent per object
+  redDark: "#c73e00",
+  cream: "#e9e7e0", // paper in shade
+  white: "#f3f2ed", // paper (never pure #fff, it clips under the sun)
+  ink: "#151515",
+  paper: "#f3f2ed",
 
   // accents (muted, use sparingly)
   yellow: "#d4b062", // soft gold
-  orange: "#dc7a45",
+  orange: "#ff4f00",
   blue: "#5d7891", // steel blue
   teal: "#2fa79c", // side-quest lab signature
   green: "#6f9677",
@@ -36,8 +41,8 @@ export const C = {
   grey: "#8c8f95",
   greyLight: "#d3d2ce",
   greyDark: "#55585e",
-  charcoal: "#2f3238",
-  black: "#17181b", // tyre rubber, screens
+  charcoal: "#2b2c2e", // graphite
+  black: "#151515", // tyre rubber, screens
 
   // trophies
   gold: "#c9a047",
@@ -45,17 +50,16 @@ export const C = {
   bronze: "#b07650",
 
   // foliage
-  leaf: "#9a9a35", // olive, with the grass
-  leafDark: "#73742a",
-  leafPalm: "#6f8c63",
+  leaf: "#73805c", // with the grass
+  leafDark: "#5c6a4b",
 
   // wood / buildings
   wood: "#b89574",
   woodDark: "#7e6553",
-  roof: "#e6e2db",
-  wall: "#f0ece5",
+  roof: "#151515", // thin ink roofs
+  wall: "#d9d6ce", // concrete
   metal: "#b8bbc1", // brushed aluminium
-  glass: "#8fa9b3",
+  glass: "#1f262b",
 
   // people
   skin: "#c98a64",
