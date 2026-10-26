@@ -58,12 +58,14 @@ const B = (() => {
       list.push(parent.clone().multiply(compose(x, y, z, 0, sx, sy, sz)));
     at(root, foot.m, 0, 0.15, 0, 1.2, 0.3, 1.2);
     mast.m.push(root.clone());
-    // the head, tilted down toward the road (local +Z), lamps on its face
+    // the head, tilted down toward the road (local +Z). The lamps run through it and stand
+    // proud of both faces, so a head seen from behind (the camera is often on that side)
+    // still shows them lit at night.
     const h = root.clone().multiply(compose(0, MAST_H + 0.2, 0.3, 0, 1, 1, 1, TILT));
     at(h, head.m, 0, 0, 0, HEAD_W, HEAD_H, 0.3);
     const cw = 0.63;
     for (let c = 0; c < COLS; c++)
-      for (let r = 0; r < ROWS; r++) at(h, lamp.m, -0.95 + c * cw, r ? -0.3 : 0.3, 0.16, 0.5, 0.45, 0.04);
+      for (let r = 0; r < ROWS; r++) at(h, lamp.m, -0.95 + c * cw, r ? -0.3 : 0.3, 0, 0.5, 0.45, 0.36);
   }
   return { foot, mast, head, lamp };
 })();
