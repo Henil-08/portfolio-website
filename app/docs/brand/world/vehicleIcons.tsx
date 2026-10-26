@@ -66,47 +66,50 @@ const F1 = () => (
   />
 );
 
-/* Baja buggy: a sloped tube cage over a single seat, coilovers, big knobby tyres. */
+/* E14 Baja buggy: the triangular firewall at the back, a tall level-roofed cage dropping to the
+   bumper, a boxy side panel high off the ground, big knobby tyres. */
 const Baja = () => (
   <Icon
     knobs
     gap={1}
     wheels={[
-      { x: 12, y: 19.5, r: 6.5 },
-      { x: 51.5, y: 19.5, r: 6.5 },
+      { x: 12.5, y: 19.3, r: 6.7 },
+      { x: 51, y: 19.3, r: 6.7 },
     ]}
     body={[
-      // floor, side panel and motor bay
-      "M6.5 15.2H21L22.6 10.4H40L46.6 14.2L56.6 15.2V17.4L46 18.2H18L6.5 17.6Z",
+      // the firewall tent: apex on the hoop top, down to the back of the bay
+      "M7.6 13L20.2 1.6H22.2V12.6Z",
+      // side panel, the angled front corner with the plate
+      "M7.6 12.2H46.8L50.4 13.2V17.4L45.2 18.3H17.6L7.6 17.2Z",
     ].join("")}
+    cuts="M46.6 12.6V18"
     extra={
-      <g fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round">
-        {/* rear hoop, roof, sloped front bracing, front bulkhead */}
-        <path d="M22 15.5L23.6 3.4H37L45.4 12.6L47.8 15.4" />
-        {/* side impact member and rear bay */}
-        <path d="M23 10.5L44 10.8M22.6 8.6L9 13.4" />
+      <g fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round">
+        {/* level roof, front bracing to the bumper, the pillar to the dash, the bumper bar */}
+        <path d="M21.4 2.4H38.2L48.8 12.6M38.2 2.4L42 12.4M47 12.6H53" />
         {/* coilovers to the hubs */}
-        <path d="M14.5 18L20.5 6.5M48.5 18L41.8 8.4" strokeWidth="1.1" />
+        <path d="M12.6 18.2L18.4 8.4M50.8 18.4L46.2 10.8" strokeWidth="1.1" />
       </g>
     }
   />
 );
 
-/* Roadster: a low faceted wedge, canopy to the tail, swan-neck wing on struts. */
+/* Roadster: very low and long, a dark canopy from the windscreen over the roof, a sharp nose,
+   a wide wing high on two struts. */
 const Roadster = () => (
   <Icon
     wheels={[
-      { x: 14.5, y: 20.4, r: 5.1 },
-      { x: 50, y: 20.4, r: 5.1 },
+      { x: 14, y: 21.3, r: 4.8 },
+      { x: 50.4, y: 21.3, r: 4.8 },
     ]}
     body={[
-      // tail, ducktail, rear deck, canopy, windscreen, long flat nose, chin, sill
-      "M2.8 21.8L2.5 15.8L4.2 14.4L13 13.6L18.5 12.4L26.6 9.8H31L40.2 13.4L61.4 18.4L62.2 20.2L58.8 22.2L5 22.6Z",
-      // swan-neck wing: the plane, struts hooked over its top
-      "M1.4 8.8L10.6 8.2V9.6L1.8 10.2Z",
+      // tail, rear deck, canopy over the roof, windscreen, long hood, the nose's knife edge, sill
+      "M3 22.8L2.6 16.4L8.6 15.4L14 14.8C20 12 25 10.8 30 10.8C34 10.8 38.6 12.4 42.4 14.4L55.8 17.2L62.6 18.6L62.2 21.2L58.6 22.8L5.6 23.2Z",
+      // the wing, wider than the tail
+      "M0.6 9.8L12.2 9.2V10.8L1 11.4Z",
     ].join("")}
-    cuts="M17.2 13.4L40.4 14.4M52.8 18.6L60.2 20"
-    extra={<path d="M9.6 14C9.8 11 9.4 8.2 7.2 7.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />}
+    cuts="M14.6 15.2C24 14 34 13.8 42 14.6M56 17.6L62 18.9"
+    extra={<path d="M8.4 15.4L6.6 10.8M11.4 15.1L10 10.6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />}
   />
 );
 

@@ -2,30 +2,102 @@
 
 // The four cars in the garage, in the "Concrete & Ink" language of models.tsx: ink, paper,
 // one orange. Procedural three.js in metres, noses toward +z, wheels on y = 0.
-// Bodies are lofted from cross-sections and flat shaded so the panels read as facets.
-import { useMemo } from "react";
+// Bodies are lofted from cross-sections. Every vehicle takes a livery (body, trim, accent).
+import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { ConvexGeometry } from "three/examples/jsm/geometries/ConvexGeometry.js";
 import { Box, M, W, useLabel } from "./models";
 
 type V3 = [number, number, number];
 type P2 = [number, number];
 
-/* ------------------------------------------------------------------ shared kit */
+/* ------------------------------------------------------------------ liveries */
+
+/** A paint scheme: body is the main colour, trim the second, accent the one highlight. */
+export type Livery = {
+  name: string;
+  body: string;
+  trim: string;
+  accent: string;
+  /** tube frame (ATV) */
+  frame?: string;
+  /** coilovers (ATV) */
+  spring?: string;
+  /** tail lamp */
+  lamp?: string;
+};
+
+const INK = W.ink;
+const PAPER = W.paper;
+const ORANGE = W.orange;
+
+export const LIVERIES: Record<"V01" | "V02" | "V03" | "V04", Livery[]> = {
+  V01: [
+    { name: "Ink", body: INK, trim: PAPER, accent: ORANGE },
+    { name: "Paper", body: PAPER, trim: INK, accent: ORANGE },
+    { name: "Graphite", body: "#3d3e40", trim: PAPER, accent: ORANGE },
+    { name: "Orange", body: ORANGE, trim: INK, accent: PAPER },
+  ],
+  V02: [
+    { name: "Ink", body: INK, trim: PAPER, accent: ORANGE, frame: INK, spring: ORANGE },
+    { name: "Paper", body: PAPER, trim: INK, accent: ORANGE, frame: INK, spring: INK },
+    { name: "Graphite", body: "#3d3e40", trim: PAPER, accent: ORANGE, frame: INK, spring: PAPER },
+    { name: "Orange", body: ORANGE, trim: PAPER, accent: INK, frame: INK, spring: INK },
+    { name: "Team", body: "#141414", trim: "#ffffff", accent: "#d01c24", frame: "#1a1a1a", spring: "#2463d8", lamp: "#ff2418" },
+  ],
+  V03: [
+    { name: "Paper", body: "#e3e2dc", trim: INK, accent: ORANGE },
+    { name: "Ink", body: "#2f3032", trim: "#0e0e0e", accent: ORANGE },
+    { name: "Graphite", body: "#6b6b67", trim: INK, accent: ORANGE },
+    { name: "Orange", body: ORANGE, trim: INK, accent: PAPER },
+  ],
+  V04: [
+    { name: "Paper", body: PAPER, trim: INK, accent: ORANGE },
+    { name: "Ink", body: "#1b1b1c", trim: "#3d3e40", accent: ORANGE },
+    { name: "Graphite", body: "#5d5d58", trim: INK, accent: PAPER },
+    { name: "Orange", body: ORANGE, trim: INK, accent: PAPER },
+  ],
+};
 
 const std = (color: string, roughness: number, metalness = 0, extra: THREE.MeshStandardMaterialParameters = {}) =>
   new THREE.MeshStandardMaterial({ color, roughness, metalness, ...extra });
+
+const glow = (color: string, k = 2.4) => std(color, 0.3, 0, { emissive: color, emissiveIntensity: k, toneMapped: false });
+
+/** The livery's materials, rebuilt when the livery changes and freed after. */
+function useMats(l: Livery, body: [number, number] = [0.55, 0.2]) {
+  const [br, bm] = body;
+  const m = useMemo(
+    () => ({
+      body: std(l.body, br, bm),
+      trim: std(l.trim, 0.6, 0.1),
+      accent: std(l.accent, 0.5, 0.1),
+      frame: std(l.frame ?? INK, 0.5, 0.3),
+      spring: std(l.spring ?? ORANGE, 0.35, 0.45),
+      lamp: glow(l.lamp ?? l.accent),
+    }),
+    [l, br, bm],
+  );
+  useEffect(() => () => Object.values(m).forEach((x) => x.dispose()), [m]);
+  return m;
+}
+
+/* ------------------------------------------------------------------ shared kit */
 
 const K = {
   silver: std("#c9c7c0", 0.32, 0.65),
   steel: std("#8d8c87", 0.4, 0.7),
   rim: std("#26272a", 0.45, 0.55),
-  spoke: std("#4a4b4f", 0.38, 0.6),
+  spoke: std("#8b8b87", 0.35, 0.6),
+  /** tinted glass, a warm smoke like the roadster's canopy */
+  smoke: std("#3b302b", 0.12, 0.35),
   shell: std("#e9e8e3", 0.34, 0.22),
   canopy: std("#151a1f", 0.1, 0.6),
   paperLine: std(W.paper, 0.7),
   lampWhite: std("#ffffff", 0.3, 0, { emissive: "#ffffff", emissiveIntensity: 2.2, toneMapped: false }),
   lampOrange: std(W.orange, 0.3, 0, { emissive: W.orange, emissiveIntensity: 2.4, toneMapped: false }),
+  beacon: std("#ff7a10", 0.3, 0, { emissive: "#ff6a00", emissiveIntensity: 2.2, toneMapped: false }),
 };
 
 const unitTube = new THREE.CylinderGeometry(1, 1, 1, 10);
@@ -190,7 +262,8 @@ function FormulaWheel({ x, z, w }: { x: number; z: number; w: number }) {
   );
 }
 
-export function Formula() {
+export function Formula({ livery = LIVERIES.V01[0] }: { livery?: Livery }) {
+  const mt = useMats(livery);
   const geo = useMemo(() => {
     // nose and survival cell: half profiles, bottom centre → out → top centre
     const cell = (z: number, yb: number, yt: number, w: number): Sec => ({
@@ -326,7 +399,7 @@ export function Formula() {
       beam: aerofoil(0.2, 0.035, 0.9),
     };
   }, []);
-  const num = useLabel("08", { fg: W.ink, bg: W.paper, w: 256, h: 128, size: 104 });
+  const num = useLabel("08", { fg: livery.body, bg: livery.trim, w: 256, h: 128, size: 104 });
   const halo = useMemo(() => {
     const c = new THREE.CatmullRomCurve3(
       ([
@@ -345,24 +418,24 @@ export function Formula() {
   return (
     <group>
       <mesh geometry={geo.floor} material={M.inkMatte} castShadow receiveShadow />
-      <mesh geometry={geo.tub} material={M.ink} castShadow />
-      <mesh geometry={geo.pods} material={M.ink} castShadow />
-      <mesh geometry={geo.podTops} material={M.paper} castShadow />
-      <mesh geometry={geo.cover} material={M.paper} castShadow />
-      <mesh geometry={geo.fin} material={M.paper} castShadow />
+      <mesh geometry={geo.tub} material={mt.body} castShadow />
+      <mesh geometry={geo.pods} material={mt.body} castShadow />
+      <mesh geometry={geo.podTops} material={mt.trim} castShadow />
+      <mesh geometry={geo.cover} material={mt.trim} castShadow />
+      <mesh geometry={geo.fin} material={mt.trim} castShadow />
       {SIDES.map((s) => (
         <mesh key={s} position={[s * 0.01, 0.84, -1.28]} rotation={[0, (s * Math.PI) / 2, 0]} material={num}>
           <planeGeometry args={[0.4, 0.2]} />
         </mesh>
       ))}
       {/* the one orange line, along the top of the nose */}
-      <Tube a={[0, 0.296, 2.6]} b={[0, 0.54, 1.62]} r={0.012} m={M.orange} />
-      <Tube a={[0, 0.54, 1.62]} b={[0, 0.66, 0.85]} r={0.012} m={M.orange} />
+      <Tube a={[0, 0.296, 2.6]} b={[0, 0.54, 1.62]} r={0.012} m={mt.accent} />
+      <Tube a={[0, 0.54, 1.62]} b={[0, 0.66, 0.85]} r={0.012} m={mt.accent} />
       {/* cockpit opening, headrest, airbox mouth, halo */}
       <Box s={[0.46, 0.03, 0.95]} p={[0, 0.655, 0.0]} m={K.canopy} />
       <Box s={[0.5, 0.08, 0.22]} p={[0, 0.69, -0.42]} m={M.graphite} />
       <Box s={[0.18, 0.13, 0.02]} p={[0, 0.9, -0.31]} m={K.canopy} />
-      <mesh geometry={halo} material={M.ink} castShadow />
+      <mesh geometry={halo} material={mt.body} castShadow />
       <Tube a={[0, 0.66, 0.38]} b={[0, 0.9, 0.08]} r={0.03} />
       {/* sidepod inlets */}
       {SIDES.map((s) => (
@@ -372,24 +445,24 @@ export function Formula() {
       {SIDES.map((s) => (
         <group key={s}>
           <Tube a={[s * 0.36, 0.62, 0.42]} b={[s * 0.5, 0.74, 0.42]} r={0.012} />
-          <Box s={[0.14, 0.06, 0.04]} p={[s * 0.53, 0.76, 0.42]} m={M.ink} />
+          <Box s={[0.14, 0.06, 0.04]} p={[s * 0.53, 0.76, 0.42]} m={mt.body} />
         </group>
       ))}
       {/* front wing: three elements and endplates */}
-      <mesh geometry={geo.main} position={[0, 0.09, 2.62]} material={M.ink} castShadow />
-      <mesh geometry={geo.el2} position={[0, 0.15, 2.4]} rotation={[-0.32, 0, 0]} material={M.ink} castShadow />
-      <mesh geometry={geo.el3} position={[0, 0.22, 2.3]} rotation={[-0.55, 0, 0]} material={M.paper} castShadow />
+      <mesh geometry={geo.main} position={[0, 0.09, 2.62]} material={mt.body} castShadow />
+      <mesh geometry={geo.el2} position={[0, 0.15, 2.4]} rotation={[-0.32, 0, 0]} material={mt.body} castShadow />
+      <mesh geometry={geo.el3} position={[0, 0.22, 2.3]} rotation={[-0.55, 0, 0]} material={mt.trim} castShadow />
       {SIDES.map((s) => (
-        <mesh key={s} geometry={geo.fEnd} position={[s * 0.95, 0, 0]} material={M.ink} castShadow />
+        <mesh key={s} geometry={geo.fEnd} position={[s * 0.95, 0, 0]} material={mt.body} castShadow />
       ))}
       {/* rear wing: main plane, paper flap, beam wing, endplates, pylon, diffuser */}
-      <mesh geometry={geo.rMain} position={[0, 0.8, -2.3]} rotation={[0.12, 0, 0]} material={M.ink} castShadow />
-      <mesh geometry={geo.rFlap} position={[0, 0.9, -2.46]} rotation={[0.5, 0, 0]} material={M.paper} castShadow />
-      <mesh geometry={geo.beam} position={[0, 0.46, -2.3]} rotation={[0.2, 0, 0]} material={M.ink} castShadow />
+      <mesh geometry={geo.rMain} position={[0, 0.8, -2.3]} rotation={[0.12, 0, 0]} material={mt.body} castShadow />
+      <mesh geometry={geo.rFlap} position={[0, 0.9, -2.46]} rotation={[0.5, 0, 0]} material={mt.trim} castShadow />
+      <mesh geometry={geo.beam} position={[0, 0.46, -2.3]} rotation={[0.2, 0, 0]} material={mt.body} castShadow />
       {SIDES.map((s) => (
-        <mesh key={s} geometry={geo.rEnd} position={[s * 0.52, 0, 0]} material={M.ink} castShadow />
+        <mesh key={s} geometry={geo.rEnd} position={[s * 0.52, 0, 0]} material={mt.body} castShadow />
       ))}
-      <mesh geometry={geo.pylon} material={M.ink} castShadow />
+      <mesh geometry={geo.pylon} material={mt.body} castShadow />
       <Box s={[0.96, 0.03, 0.5]} p={[0, 0.16, -2.02]} r={[-0.3, 0, 0]} m={M.inkMatte} />
       <Box s={[0.14, 0.14, 0.3]} p={[0, 0.36, -2.24]} m={M.graphite} />
       {/* suspension: wishbones and pushrods to the uprights */}
@@ -412,46 +485,86 @@ export function Formula() {
   );
 }
 
+
+/* ------------------------------------------------------------------ small helpers */
+
+/** The rotation that lays a +z-facing plane flat on a face with normal n, its text upright. */
+function faceQuat(n: THREE.Vector3) {
+  const up = new THREE.Vector3(0, 1, 0).addScaledVector(n, -n.y).normalize();
+  const right = new THREE.Vector3().crossVectors(up, n);
+  return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, up, n));
+}
+
+/** A canvas texture drawn once; flip mirrors it left to right (for the other side of a car). */
+function canvasTex(w: number, h: number, draw: (g: CanvasRenderingContext2D) => void, flip = false) {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  draw(c.getContext("2d")!);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  if (flip) {
+    t.repeat.x = -1;
+    t.offset.x = 1;
+  }
+  return t;
+}
+
 /* ------------------------------------------------------------------ V02 ATV (E14) */
 
-/** A knobby off-road tyre: a round-shouldered carcass with blocks in a staggered chevron. */
+/** A knobby off-road tyre: a round-shouldered carcass with big blocks in a staggered chevron. */
 function knobbyGeo(r: number, w: number) {
-  const parts: THREE.BufferGeometry[] = [tyreGeo(r - 0.03, w, r * 0.55, 0.35)];
-  const n = 18;
+  const parts: THREE.BufferGeometry[] = [tyreGeo(r - 0.035, w, r * 0.5, 0.35)];
+  const n = 20;
   for (let i = 0; i < n; i++) {
     for (const row of [-1, 1]) {
       const a = ((i + (row > 0 ? 0.5 : 0)) / n) * Math.PI * 2;
-      const g = new THREE.BoxGeometry(0.04, w * 0.36, 0.06);
-      g.rotateX(row * 0.35);
-      g.translate(r - 0.03, row * w * 0.24, 0);
+      const g = new THREE.BoxGeometry(0.05, w * 0.4, 0.07);
+      g.rotateX(row * 0.3);
+      g.translate(r - 0.035, row * w * 0.24, 0);
       g.rotateY(-a);
       parts.push(g);
     }
     // shoulder lugs so the sidewall reads knobby in profile
-    const g = new THREE.BoxGeometry(0.06, 0.04, 0.06);
-    g.translate(r - 0.065, (i % 2 ? 1 : -1) * (w / 2 - 0.005), 0);
+    const g = new THREE.BoxGeometry(0.07, 0.05, 0.07);
+    g.translate(r - 0.07, (i % 2 ? 1 : -1) * (w / 2 - 0.01), 0);
     g.rotateY(-((i + 0.25) / n) * Math.PI * 2);
     parts.push(g);
   }
   return mergeGeometries(parts.map((g) => (g.index ? g.toNonIndexed() : g)));
 }
 
+/** Big knobby on a silver dished rim: a star-cut centre with four lugs. */
 function OffroadWheel({ p, geo, r, w }: { p: V3; geo: THREE.BufferGeometry; r: number; w: number }) {
   const s = Math.sign(p[0]);
+  const face = -s * (w / 2 - 0.03);
   return (
     <group position={p} rotation={[0, 0, Math.PI / 2]}>
       <mesh geometry={geo} material={M.tyre} castShadow />
-      {/* silver dished rim with six slots, an ink hub */}
-      <mesh position={[0, -s * (w / 2 - 0.035), 0]} material={K.silver}>
-        <cylinderGeometry args={[r * 0.56, r * 0.56, 0.05, 24]} />
+      <mesh position={[0, face, 0]} material={K.silver}>
+        <cylinderGeometry args={[r * 0.55, r * 0.55, 0.05, 28]} />
       </mesh>
-      {Array.from({ length: 6 }, (_, i) => (
-        <mesh key={i} position={[Math.cos((i / 6) * Math.PI * 2) * r * 0.34, -s * (w / 2 - 0.005), Math.sin((i / 6) * Math.PI * 2) * r * 0.34]} material={M.graphite}>
-          <cylinderGeometry args={[0.022, 0.022, 0.012, 8]} />
-        </mesh>
-      ))}
-      <mesh position={[0, -s * (w / 2 + 0.005), 0]} material={M.ink}>
-        <cylinderGeometry args={[r * 0.16, r * 0.16, 0.04, 10]} />
+      <mesh position={[0, face - s * 0.026, 0]} rotation={[s * Math.PI / 2, 0, 0]} material={K.steel}>
+        <ringGeometry args={[r * 0.46, r * 0.5, 28]} />
+      </mesh>
+      {/* four cut-outs round the hub, four lug nuts between them */}
+      {Array.from({ length: 4 }, (_, i) => {
+        const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
+        const b = a + Math.PI / 4;
+        return (
+          <group key={i}>
+            <mesh position={[Math.cos(a) * r * 0.3, face - s * 0.027, Math.sin(a) * r * 0.3]} material={M.inkMatte}>
+              <cylinderGeometry args={[r * 0.1, r * 0.1, 0.004, 12]} />
+            </mesh>
+            <mesh position={[Math.cos(b) * r * 0.2, face - s * 0.032, Math.sin(b) * r * 0.2]} material={K.steel}>
+              <cylinderGeometry args={[0.014, 0.014, 0.016, 6]} />
+            </mesh>
+          </group>
+        );
+      })}
+      <mesh position={[0, face - s * 0.03, 0]} material={K.steel}>
+        <cylinderGeometry args={[r * 0.12, r * 0.12, 0.03, 12]} />
       </mesh>
     </group>
   );
@@ -460,7 +573,7 @@ function OffroadWheel({ p, geo, r, w }: { p: V3; geo: THREE.BufferGeometry; r: n
 // One coil spring, 1 m long along y, scaled to fit.
 const springGeo = (() => {
   const pts: THREE.Vector3[] = [];
-  const turns = 9;
+  const turns = 10;
   for (let i = 0; i <= turns * 16; i++) {
     const t = i / (turns * 16);
     pts.push(new THREE.Vector3(Math.cos(t * turns * Math.PI * 2) * 0.042, t - 0.5, Math.sin(t * turns * Math.PI * 2) * 0.042));
@@ -468,8 +581,8 @@ const springGeo = (() => {
   return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), turns * 16, 0.009, 5);
 })();
 
-/** Long-travel coilover: a silver shaft, a graphite body, the orange spring round it. */
-function Coilover({ a, b }: { a: V3; b: V3 }) {
+/** Long-travel coilover from the arm (a) to the frame (b): shaft, body and the coil round it. */
+function Coilover({ a, b, body, coil }: { a: V3; b: V3; body: THREE.Material; coil: THREE.Material }) {
   const va = new THREE.Vector3(...a);
   const dir = new THREE.Vector3(...b).sub(va);
   const len = dir.length();
@@ -477,136 +590,272 @@ function Coilover({ a, b }: { a: V3; b: V3 }) {
   const at = (k: number) => va.clone().addScaledVector(dir, k).toArray() as V3;
   return (
     <>
-      <Tube a={a} b={at(0.5)} r={0.012} m={K.silver} />
-      <Tube a={at(0.4)} b={b} r={0.026} m={M.graphite} />
-      <mesh geometry={springGeo} position={at(0.56)} quaternion={q} scale={[1, len * 0.62, 1]} material={M.orange} castShadow />
+      <Tube a={a} b={at(0.45)} r={0.013} m={K.silver} />
+      <Tube a={at(0.4)} b={b} r={0.028} m={body} />
+      <Tube a={at(0.86)} b={at(0.93)} r={0.05} m={body} />
+      <mesh geometry={springGeo} position={at(0.5)} quaternion={q} scale={[1.05, len * 0.62, 1.05]} material={coil} castShadow />
     </>
   );
 }
 
-// Baja space frame, right side (x mirrors). Rear roll hoop, overhead members, sloped front
-// bracing to a front bulkhead, side impact members, lower frame sides, the motor bay.
-const RRHb: V3 = [0.36, 0.3, -0.36];
-const RRHs: V3 = [0.38, 0.92, -0.4];
-const RRHt: V3 = [0.32, 1.36, -0.46];
-const RHOf: V3 = [0.29, 1.32, 0.2];
-const FBMm: V3 = [0.25, 0.86, 0.56];
-const BHt: V3 = [0.2, 0.62, 0.84];
-const BHb: V3 = [0.18, 0.3, 0.86];
-const LFSm: V3 = [0.36, 0.28, 0.12];
-const SIMr: V3 = [0.38, 0.62, -0.38];
-const SIMm: V3 = [0.36, 0.64, 0.14];
-const RBu: V3 = [0.3, 0.66, -0.9];
-const RBb: V3 = [0.26, 0.32, -0.92];
-const half: [V3, V3][] = [
-  [RRHb, RRHs],
-  [RRHs, RRHt],
-  [RRHt, RHOf],
-  [RHOf, FBMm],
-  [FBMm, BHt],
-  [BHt, BHb],
-  [BHb, LFSm],
-  [LFSm, RRHb],
-  [SIMr, SIMm],
-  [SIMm, BHt],
-  [SIMm, FBMm],
-  [SIMm, LFSm],
-  [RRHs, RBu],
-  [RBu, RBb],
-  [RBb, RRHb],
-  [RRHb, RBu],
-  [SIMr, RBu],
+/** Air shock (the front pair): a dark body over a bare silver shaft, no coil. */
+function Shock({ a, b }: { a: V3; b: V3 }) {
+  const va = new THREE.Vector3(...a);
+  const dir = new THREE.Vector3(...b).sub(va);
+  const at = (k: number) => va.clone().addScaledVector(dir, k).toArray() as V3;
+  return (
+    <>
+      <Tube a={a} b={at(0.45)} r={0.012} m={K.silver} />
+      <Tube a={at(0.38)} b={b} r={0.032} m={M.graphite} />
+    </>
+  );
+}
+
+const E = { fz: 0.74, rz: -0.74, r: 0.32, fx: 0.7, rx: 0.68 };
+
+// Space frame nodes, right side (x mirrors). The rear roll hoop narrows to the top, the roof runs
+// forward level, the front bracing drops to the bumper; a rear bay carries the motor.
+const EN: Record<string, V3> = {
+  hb: [0.4, 0.34, -0.46],
+  hm: [0.4, 0.8, -0.46],
+  ht: [0.19, 1.5, -0.5],
+  rf: [0.24, 1.5, 0.2],
+  bu: [0.3, 0.8, 0.88],
+  bl: [0.24, 0.36, 0.86],
+  sf: [0.4, 0.8, 0.55],
+  lf: [0.4, 0.34, 0.5],
+  rt: [0.37, 0.84, -0.98],
+  rb: [0.32, 0.36, -0.98],
+};
+const E_EDGES: [string, string][] = [
+  ["hb", "hm"],
+  ["hm", "ht"],
+  ["ht", "rf"],
+  ["rf", "bu"],
+  ["rf", "sf"],
+  ["hm", "sf"],
+  ["sf", "bu"],
+  ["bu", "bl"],
+  ["hb", "lf"],
+  ["lf", "bl"],
+  ["lf", "sf"],
+  ["hm", "rt"],
+  ["hb", "rb"],
+  ["rt", "rb"],
+  ["hb", "rt"],
 ];
-const ATV_TUBES: [V3, V3][] = [];
-for (const s of SIDES) for (const [a, b] of half) ATV_TUBES.push([mx(a, s), mx(b, s)]);
-// cross members
-for (const p of [RRHb, RRHs, RRHt, RHOf, FBMm, BHt, BHb, RBu, RBb, LFSm]) ATV_TUBES.push([p, mx(p, -1)]);
-// rear hoop X brace
-ATV_TUBES.push([RRHb, mx(RRHs, -1)], [mx(RRHb, -1), RRHs]);
+const E_TUBES: [V3, V3][] = [];
+for (const s of SIDES) for (const [a, b] of E_EDGES) E_TUBES.push([mx(EN[a], s), mx(EN[b], s)]);
+for (const k of ["hb", "ht", "rf", "bl", "rt", "rb"]) E_TUBES.push([EN[k], mx(EN[k], -1)]);
+// a diagonal across the roof
+E_TUBES.push([EN.ht, mx(EN.rf, -1)]);
 
+// The firewall "tent" behind the seat: a ridge on the hoop top, down to the rear of the bay.
+const TENT: V3[] = [
+  [0.17, 1.49, -0.5],
+  [0.39, 0.8, -0.45],
+  [0.37, 0.84, -0.97],
+];
+const tentN = {
+  rear: new THREE.Vector3(0, 0.66, 0.48).normalize().cross(new THREE.Vector3(-1, 0, 0)).negate().normalize(),
+  side: (() => {
+    const [a, b, c] = TENT.map((p) => new THREE.Vector3(...p));
+    const n = b.clone().sub(a).cross(c.clone().sub(a)).normalize();
+    return n.x < 0 ? n.negate() : n;
+  })(),
+};
 
-export function Atv() {
-  const R = 0.3;
-  const W2 = 0.24;
-  const front = 0.78;
-  const rear = -0.74;
-  const tyre = useMemo(() => knobbyGeo(R, W2), []);
-  const num = useLabel("E14", { fg: W.paper, bg: W.ink, w: 256, h: 128, size: 92 });
-
-  // ink panels: hood over the sloped front, a skid plate, the side panels
-  const panels = useMemo(() => {
-    const quad = (pts: V3[]) => {
-      const out: number[] = [];
-      for (let i = 1; i < pts.length - 1; i++) out.push(...pts[0], ...pts[i], ...pts[i + 1]);
-      const g = new THREE.BufferGeometry();
-      g.setAttribute("position", new THREE.Float32BufferAttribute(out, 3));
-      g.computeVertexNormals();
-      return g;
+/** Side graphics: diagonal accent and trim stripes falling toward the nose, a band low at the front. */
+function drawSide(l: Livery) {
+  return (g: CanvasRenderingContext2D) => {
+    const w = 512;
+    const h = 218;
+    g.fillStyle = l.body;
+    g.fillRect(0, 0, w, h);
+    const band = (y0: number, y1: number, th: number, c: string, x0 = 0) => {
+      g.fillStyle = c;
+      g.beginPath();
+      g.moveTo(x0 * w, y0 * h);
+      g.lineTo(w, y1 * h);
+      g.lineTo(w, (y1 + th) * h);
+      g.lineTo(x0 * w, (y0 + th) * h);
+      g.closePath();
+      g.fill();
     };
-    const hood = quad([mx(BHt, -1), BHt, FBMm, mx(FBMm, -1)].map(([x, y, z]): V3 => [x * 1.05, y + 0.03, z]).reverse());
-    const nose = quad([mx(BHb, -1), BHb, BHt, mx(BHt, -1)].map(([x, y, z]): V3 => [x * 1.05, y, z + 0.02]).reverse());
-    return { hood, nose };
-  }, []);
+    band(0.06, 0.3, 0.12, l.accent, 0.08);
+    band(0.24, 0.46, 0.035, l.trim, 0.02);
+    band(0.33, 0.55, 0.08, l.accent, 0.18);
+    band(0.47, 0.66, 0.03, l.trim, 0.3);
+    // the low band with a jagged leading edge
+    g.fillStyle = l.accent;
+    g.beginPath();
+    g.moveTo(0.36 * w, 0.82 * h);
+    g.lineTo(0.42 * w, 0.72 * h);
+    g.lineTo(w, 0.68 * h);
+    g.lineTo(w, 0.94 * h);
+    g.lineTo(0.3 * w, 0.98 * h);
+    g.lineTo(0.4 * w, 0.88 * h);
+    g.closePath();
+    g.fill();
+    // a thin edge line top and bottom
+    g.fillStyle = l.trim;
+    g.fillRect(0, 0, w, 3);
+  };
+}
 
+/** Hood graphics: two accent chevrons pointing forward. */
+function drawHood(l: Livery) {
+  return (g: CanvasRenderingContext2D) => {
+    const w = 256;
+    const h = 256;
+    g.fillStyle = l.body;
+    g.fillRect(0, 0, w, h);
+    const chev = (y: number, th: number, c: string) => {
+      g.fillStyle = c;
+      g.beginPath();
+      g.moveTo(0, y + 70);
+      g.lineTo(w / 2, y);
+      g.lineTo(w, y + 70);
+      g.lineTo(w, y + 70 + th);
+      g.lineTo(w / 2, y + th);
+      g.lineTo(0, y + 70 + th);
+      g.closePath();
+      g.fill();
+    };
+    chev(70, 46, l.accent);
+    chev(132, 12, l.trim);
+    chev(160, 28, l.accent);
+  };
+}
+
+export function Atv({ livery = LIVERIES.V02[0] }: { livery?: Livery }) {
+  const { fz, rz, r, fx, rx } = E;
+  const mt = useMats(livery, [0.62, 0.15]);
+  const tyre = useMemo(() => knobbyGeo(r, 0.24), [r]);
+  const tyreR = useMemo(() => knobbyGeo(r, 0.27), [r]);
+  const num = useLabel("E14", { fg: livery.trim, bg: livery.body, w: 256, h: 128, size: 98 });
+  const plate = useLabel("E14", { fg: livery.trim, bg: livery.body, w: 256, h: 300, size: 118 });
+  const paint = useMemo(() => {
+    const side = drawSide(livery);
+    const mk = (t: THREE.Texture) => new THREE.MeshStandardMaterial({ map: t, roughness: 0.6, side: THREE.DoubleSide });
+    return {
+      left: mk(canvasTex(512, 218, side)),
+      right: mk(canvasTex(512, 218, side, true)),
+      hood: mk(canvasTex(256, 256, drawHood(livery))),
+    };
+  }, [livery]);
+  useEffect(
+    () => () =>
+      Object.values(paint).forEach((m) => {
+        m.map?.dispose();
+        m.dispose();
+      }),
+    [paint],
+  );
+  const tent = useMemo(() => new ConvexGeometry(TENT.flatMap((p) => SIDES.map((s) => new THREE.Vector3(...mx(p, s))))), []);
+  const q = useMemo(() => ({ rear: faceQuat(tentN.rear), side: faceQuat(tentN.side), sideL: faceQuat(tentN.side.clone().setX(-tentN.side.x)) }), []);
+  const sideC = new THREE.Vector3(...TENT.reduce((a, p) => [a[0] + p[0] / 3, a[1] + p[1] / 3, a[2] + p[2] / 3], [0, 0, 0] as V3));
+  const rearAt = (k: number, off = 0.006) => new THREE.Vector3(0, 0.84 + 0.66 * k, -0.98 + 0.48 * k).addScaledVector(tentN.rear, off).toArray() as V3;
+  const hoodTilt = -Math.PI / 2 + Math.atan2(0.17, 0.46);
+  const cornerN = new THREE.Vector3(0.33, 0, 0.1).normalize();
   return (
     <group>
-      {ATV_TUBES.map(([a, b], i) => (
-        <Tube key={i} a={a} b={b} r={0.021} />
+      {E_TUBES.map(([a, b], i) => (
+        <Tube key={i} a={a} b={b} r={0.02} m={mt.frame} />
       ))}
-      {/* front bumper loop */}
-      <Tube a={[-0.2, 0.42, 0.98]} b={[0.2, 0.42, 0.98]} r={0.018} />
+      {/* front bumper bar, proud of the body */}
+      <Tube a={[-0.38, 0.8, 0.9]} b={[0.38, 0.8, 0.9]} r={0.02} m={mt.frame} />
+
+      {/* body: side panels with the stripes, the angled corners with the plate, the nose, the hood */}
       {SIDES.map((s) => (
-        <Tube key={s} a={[s * 0.2, 0.42, 0.98]} b={mx(BHt, s)} r={0.018} />
-      ))}
-      <mesh geometry={panels.hood} material={M.inkMatte} castShadow />
-      <mesh geometry={panels.nose} material={M.inkMatte} castShadow />
-      {/* skid plate, upturned at the front */}
-      <Box s={[0.66, 0.02, 1.26]} p={[0, 0.26, -0.24]} m={M.graphite} />
-      <Box s={[0.4, 0.02, 0.36]} p={[0, 0.33, 0.52]} r={[-0.22, 0, 0]} m={M.graphite} />
-      {/* side panels with the number */}
-      {SIDES.map((s) => (
-        <group key={s} position={[s * 0.385, 0.46, -0.12]} rotation={[0, s * 0.04, 0]}>
-          <Box s={[0.012, 0.3, 0.5]} p={[0, 0, 0]} m={M.inkMatte} />
-          <mesh position={[s * 0.008, 0, 0]} rotation={[0, (s * Math.PI) / 2, 0]} material={num}>
-            <planeGeometry args={[0.46, 0.23]} />
+        <group key={s}>
+          <mesh position={[s * 0.405, 0.575, 0.045]} rotation={[0, (s * Math.PI) / 2, 0]} material={s > 0 ? paint.right : paint.left} castShadow>
+            <planeGeometry args={[1.01, 0.43]} />
+          </mesh>
+          <mesh position={[s * 0.352, 0.575, 0.715]} quaternion={faceQuat(cornerN.clone().setX(s * cornerN.x))} material={plate} castShadow>
+            <planeGeometry args={[0.345, 0.43]} />
           </mesh>
         </group>
       ))}
-      {/* seat, belts' anchor bar, firewall */}
-      <Box s={[0.44, 0.08, 0.4]} p={[0, 0.38, -0.12]} m={M.graphite} />
-      <Box s={[0.44, 0.6, 0.08]} p={[0, 0.7, -0.3]} r={[-0.16, 0, 0]} m={M.graphite} />
-      <Box s={[0.7, 0.86, 0.02]} p={[0, 0.74, -0.42]} r={[-0.06, 0, 0]} m={M.inkMatte} />
-      {/* steering column and wheel */}
-      <Tube a={[0, 0.66, 0.66]} b={[0, 0.86, 0.34]} r={0.016} m={M.graphite} />
-      <mesh position={[0, 0.88, 0.32]} rotation={[0.95, 0, 0]} material={M.ink}>
+      <mesh position={[0, 0.58, 0.885]} material={mt.body} castShadow>
+        <planeGeometry args={[0.6, 0.44]} />
+      </mesh>
+      <mesh position={[0, 0.885, 0.65]} rotation={[hoodTilt, 0, 0]} material={paint.hood} castShadow>
+        <planeGeometry args={[0.62, 0.49]} />
+      </mesh>
+      {/* floor pan */}
+      <Box s={[0.8, 0.02, 1.0]} p={[0, 0.34, 0.02]} m={M.graphite} />
+      <Box s={[0.5, 0.02, 0.36]} p={[0, 0.35, 0.68]} m={M.graphite} />
+
+      {/* the firewall tent: E14 on the back and both flanks, the brake light and the beacon */}
+      <mesh geometry={tent} material={mt.body} castShadow />
+      <mesh position={rearAt(0.42)} quaternion={q.rear} material={num}>
+        <planeGeometry args={[0.4, 0.2]} />
+      </mesh>
+      <mesh position={rearAt(0.8, 0.02)} quaternion={q.rear} material={mt.lamp}>
+        <boxGeometry args={[0.24, 0.045, 0.03]} />
+      </mesh>
+      {SIDES.map((s) => (
+        <mesh key={s} position={sideC.clone().setX(s * sideC.x).addScaledVector(s > 0 ? tentN.side : tentN.side.clone().setX(-tentN.side.x), 0.006).toArray()} quaternion={s > 0 ? q.side : q.sideL} material={num}>
+          <planeGeometry args={[0.24, 0.12]} />
+        </mesh>
+      ))}
+      <mesh position={[0, 1.52, -0.5]} material={M.ink}>
+        <boxGeometry args={[0.12, 0.03, 0.08]} />
+      </mesh>
+      <mesh position={[0, 1.565, -0.5]} material={K.beacon}>
+        <cylinderGeometry args={[0.04, 0.045, 0.07, 14]} />
+      </mesh>
+
+      {/* cockpit: seat, steering, fire extinguisher */}
+      <Box s={[0.4, 0.08, 0.42]} p={[0, 0.4, -0.18]} m={mt.accent} />
+      <Box s={[0.4, 0.56, 0.07]} p={[0, 0.7, -0.4]} r={[-0.14, 0, 0]} m={mt.accent} />
+      <Tube a={[0, 0.74, 0.66]} b={[0, 0.88, 0.32]} r={0.016} m={M.graphite} />
+      <mesh position={[0, 0.9, 0.3]} rotation={[1.0, 0, 0]} material={M.ink}>
         <torusGeometry args={[0.13, 0.017, 6, 22]} />
       </mesh>
-      {/* motor, gearbox and battery in the rear bay */}
-      <mesh position={[0, 0.5, -0.7]} rotation={[0, 0, Math.PI / 2]} material={K.silver} castShadow>
-        <cylinderGeometry args={[0.12, 0.12, 0.34, 16]} />
+      <mesh position={[-0.3, 0.62, -0.36]} material={mt.accent} castShadow>
+        <cylinderGeometry args={[0.045, 0.045, 0.26, 14]} />
       </mesh>
-      <Box s={[0.42, 0.22, 0.24]} p={[0, 0.44, -0.5]} m={M.graphite} />
-      <Box s={[0.5, 0.14, 0.34]} p={[0, 0.76, -0.66]} m={M.inkMatte} />
-      {/* front double A-arms and coilovers */}
+      <mesh position={[-0.3, 0.77, -0.36]} material={K.silver}>
+        <cylinderGeometry args={[0.02, 0.03, 0.05, 10]} />
+      </mesh>
+
+      {/* the bay: motor, gearbox, battery, the orange HV runs, half shafts */}
+      <mesh position={[0, 0.5, -0.8]} rotation={[0, 0, Math.PI / 2]} material={K.silver} castShadow>
+        <cylinderGeometry args={[0.12, 0.12, 0.28, 18]} />
+      </mesh>
+      <Box s={[0.32, 0.2, 0.18]} p={[0, 0.42, -0.64]} m={M.graphite} />
+      <Box s={[0.5, 0.2, 0.28]} p={[0, 0.7, -0.66]} m={M.inkMatte} />
       {SIDES.map((s) => (
-        <group key={`f${s}`}>
-          <Tube a={[s * 0.2, 0.32, front + 0.08]} b={[s * 0.56, 0.26, front]} r={0.015} />
-          <Tube a={[s * 0.2, 0.32, front - 0.2]} b={[s * 0.56, 0.26, front]} r={0.015} />
-          <Tube a={[s * 0.21, 0.54, front + 0.04]} b={[s * 0.54, 0.44, front]} r={0.015} />
-          <Tube a={[s * 0.23, 0.56, front - 0.18]} b={[s * 0.54, 0.44, front]} r={0.015} />
-          <Box s={[0.04, 0.22, 0.05]} p={[s * 0.57, 0.35, front]} m={M.graphite} />
-          <Coilover a={[s * 0.44, 0.29, front - 0.03]} b={[s * 0.27, 0.98, front - 0.36]} />
-          <OffroadWheel p={[s * 0.69, R, front]} geo={tyre} r={R} w={W2} />
+        <group key={s}>
+          <Tube a={[s * 0.06, 0.62, -0.84]} b={[s * 0.16, 0.72, -0.9]} r={0.012} m={M.orange} />
+          <Tube a={[s * 0.16, 0.72, -0.9]} b={[s * 0.22, 0.66, -0.56]} r={0.012} m={M.orange} />
+          <Tube a={[s * 0.14, 0.42, -0.72]} b={[s * (rx - 0.1), r, rz]} r={0.018} m={K.steel} />
         </group>
       ))}
-      {/* rear trailing arms, toe links and coilovers */}
+
+      {/* front: double A-arms, air shocks, uprights, wheels */}
+      {SIDES.map((s) => (
+        <group key={`f${s}`}>
+          <Tube a={[s * 0.24, 0.37, fz + 0.12]} b={[s * 0.56, 0.25, fz]} r={0.016} m={mt.accent} />
+          <Tube a={[s * 0.36, 0.36, fz - 0.22]} b={[s * 0.56, 0.25, fz]} r={0.016} m={mt.accent} />
+          <Tube a={[s * 0.25, 0.6, fz + 0.1]} b={[s * 0.54, 0.43, fz]} r={0.016} m={mt.accent} />
+          <Tube a={[s * 0.36, 0.6, fz - 0.18]} b={[s * 0.54, 0.43, fz]} r={0.016} m={mt.accent} />
+          <Box s={[0.05, 0.24, 0.06]} p={[s * 0.57, 0.34, fz]} m={M.graphite} />
+          <Shock a={[s * 0.47, 0.28, fz - 0.02]} b={[s * 0.38, 0.86, 0.56]} />
+          <OffroadWheel p={[s * fx, r, fz]} geo={tyre} r={r} w={0.24} />
+        </group>
+      ))}
+      {/* rear: trailing arms and toe links, the long coilovers, wheels */}
       {SIDES.map((s) => (
         <group key={`r${s}`}>
-          <Tube a={[s * 0.37, 0.34, -0.1]} b={[s * 0.56, R, rear]} r={0.022} />
-          <Tube a={[s * 0.26, 0.32, -0.88]} b={[s * 0.56, R - 0.04, rear]} r={0.015} />
-          <Tube a={[s * 0.27, 0.6, -0.88]} b={[s * 0.56, R + 0.12, rear]} r={0.015} />
-          <Coilover a={[s * 0.52, R + 0.04, rear + 0.06]} b={[s * 0.35, 1.0, -0.42]} />
-          <OffroadWheel p={[s * 0.68, R, rear]} geo={tyre} r={R} w={W2} />
+          <Tube a={[s * 0.4, 0.4, -0.18]} b={[s * 0.54, 0.3, rz]} r={0.022} m={mt.accent} />
+          <Tube a={[s * 0.3, 0.38, -0.92]} b={[s * 0.53, 0.26, rz]} r={0.015} m={mt.accent} />
+          <Tube a={[s * 0.32, 0.58, -0.94]} b={[s * 0.52, 0.42, rz]} r={0.015} m={mt.accent} />
+          <Box s={[0.05, 0.24, 0.06]} p={[s * 0.53, 0.33, rz]} m={M.graphite} />
+          <Coilover a={[s * 0.5, 0.36, rz + 0.1]} b={[s * 0.41, 0.98, -0.6]} body={mt.spring} coil={livery.name === "Team" ? M.ink : mt.spring} />
+          <OffroadWheel p={[s * rx, r, rz]} geo={tyreR} r={r} w={0.27} />
         </group>
       ))}
     </group>
@@ -615,7 +864,7 @@ export function Atv() {
 
 /* ------------------------------------------------------------------ V03 Roadster */
 
-const RS = { fz: 1.42, rz: -1.34, r: 0.355, ra: 0.415, cy: 0.355 };
+const RS = { fz: 1.45, rz: -1.35, r: 0.36, ra: 0.41, cy: 0.35 };
 
 /** Height of the wheel-arch cut at z, or 0 outside the arches. */
 function archAt(z: number) {
@@ -626,210 +875,314 @@ function archAt(z: number) {
   return 0;
 }
 
-const rHalf = curve([
-  [2.3, 0.78],
-  [2.12, 0.9],
-  [1.85, 0.96],
-  [1.42, 0.98],
-  [0.9, 0.95],
-  [0.2, 0.91],
-  [-0.5, 0.94],
-  [-1.0, 1.0],
-  [-1.7, 1.0],
-  [-2.05, 0.97],
-  [-2.3, 0.9],
+// Plan and elevation of the creases, front (z = 2.3) to tail (z = -2.3).
+const rsHw = curve([
+  [2.3, 0.84],
+  [2.15, 0.92],
+  [1.9, 0.97],
+  [1.45, 0.99],
+  [0.6, 0.96],
+  [-0.3, 0.95],
+  [-1.35, 1.0],
+  [-2.0, 0.98],
+  [-2.3, 0.93],
 ]);
-const rTop = curve([
-  [2.3, 0.42],
-  [1.9, 0.62],
-  [1.42, 0.73],
-  [0.6, 0.75],
-  [-1.6, 0.84],
-  [-2.05, 0.86],
+/** shoulder crease, the widest line */
+const rsYc = curve([
+  [2.3, 0.47],
+  [2.0, 0.62],
+  [1.45, 0.8],
+  [0.9, 0.72],
+  [0.2, 0.66],
+  [-0.6, 0.7],
+  [-1.35, 0.82],
+  [-2.0, 0.82],
   [-2.3, 0.8],
 ]);
-const rShoulder = curve([
-  [2.3, 0.42],
-  [1.9, 0.66],
-  [1.42, 0.83],
-  [1.0, 0.8],
-  [0.6, 0.75],
-  [-0.6, 0.77],
-  [-1.34, 0.9],
-  [-2.05, 0.88],
-  [-2.3, 0.8],
+/** where the dark lower body ends, rising toward the tail */
+const rsYs = curve([
+  [2.3, 0.24],
+  [1.9, 0.26],
+  [0.6, 0.29],
+  [-0.6, 0.31],
+  [-1.8, 0.35],
+  [-2.3, 0.38],
 ]);
-const rBelt = curve([
-  [2.3, 0.33],
-  [1.42, 0.6],
-  [0.6, 0.53],
-  [-0.4, 0.5],
-  [-1.34, 0.66],
-  [-2.3, 0.62],
+/** hood and deck edge: the inner crease of the fenders */
+const rsXe = curve([
+  [2.3, 0.7],
+  [1.45, 0.74],
+  [0.95, 0.72],
+  [0.2, 0.76],
+  [-1.35, 0.78],
+  [-2.3, 0.72],
+]);
+const rsYd = curve([
+  [2.3, 0.5],
+  [2.0, 0.63],
+  [1.45, 0.82],
+  [0.95, 0.86],
+  [0.3, 0.8],
+  [-0.6, 0.8],
+  [-1.35, 0.87],
+  [-2.0, 0.88],
+  [-2.3, 0.86],
+]);
+/** centre line: hood, (hidden under the canopy), rear deck */
+const rsYt = curve([
+  [2.3, 0.505],
+  [2.0, 0.6],
+  [1.45, 0.76],
+  [0.95, 0.865],
+  [0.6, 0.78],
+  [-1.5, 0.82],
+  [-1.7, 0.89],
+  [-2.3, 0.875],
 ]);
 
-// top of the ink skirt: a dark wedge rising toward the rear wheel and into the diffuser
-const rSkirt = curve([
-  [2.3, 0.29],
-  [1.0, 0.3],
-  [0.0, 0.35],
-  [-0.85, 0.43],
-  [-1.8, 0.42],
-  [-2.3, 0.47],
-]);
-
-/** Half profile of the roadster at z. Points 0-4 are the ink skirt, 4-8 the body. */
-function roadsterProfile(z: number, arch: number): P2[] {
-  const hw = rHalf(z);
-  const yb = 0.15;
-  const nose = Math.max(0, (z - 1.95) / 0.35); // the chin rises toward the light bar
-  const yl = arch > 0 ? arch : 0.18 + nose * 0.06;
-  const raw: P2[] = [
+/** Half section at z: 0 bottom centre, 1-2 the dark sill (or the wheel-well roof), 3 shoulder, 4 deck edge, 5 top centre. */
+function rsProfile(z: number, arch: number): P2[] {
+  const hw = rsHw(z);
+  const yc = rsYc(z);
+  const yb = 0.14 + Math.max(0, (z - 1.9) / 0.4) * 0.08;
+  const a = arch > 0 ? Math.min(arch, yc - 0.03) : 0;
+  return [
     [0, yb],
-    [hw - 0.34, yb],
-    [hw - 0.34, Math.max(yb, yl)],
-    [hw - 0.07, yl],
-    [hw - 0.02, Math.max(yl + 0.03, rSkirt(z))],
-    [hw, Math.max(yl + 0.05, rBelt(z))],
-    [hw - 0.14, rShoulder(z)],
-    [Math.min(0.52, hw - 0.3), rTop(z) + 0.025],
-    [0, rTop(z)],
+    a ? [hw - 0.3, a - 0.01] : [hw - 0.1, yb],
+    [hw - 0.08, a || rsYs(z)],
+    [hw, yc],
+    [rsXe(z), Math.max(rsYd(z), yc + 0.02)],
+    [0, rsYt(z)],
   ];
-  // keep the creases stacked: each at least a hair above the one below it
-  for (let i = 4; i < 6; i++) raw[i + 1][1] = Math.max(raw[i + 1][1], raw[i][1] + 0.025);
-  // the hood and deck run as one flat plane from the fender crease to the centre, a hair crowned
-  raw[7][1] = raw[8][1] + (raw[6][1] - raw[8][1]) * (raw[7][0] / raw[6][0]) + 0.012;
-  return raw;
 }
 
-function roadsterSections() {
-  const zs: [number, number | null][] = [];
-  const push = (z: number, arch: number | null = null) => zs.push([z, arch]);
-  push(2.3);
-  push(2.22);
-  push(2.08);
-  push(RS.fz + RS.ra, 0);
-  for (let i = 0; i <= 10; i++) {
-    const z = RS.fz + RS.ra - (i / 10) * RS.ra * 2;
-    push(z, archAt(z));
+function rsSections(): Sec[] {
+  const out: Sec[] = [];
+  const push = (z: number, arch = archAt(z)) => out.push({ z, p: rsProfile(z, arch) });
+  for (const z of [2.3, 2.24, 2.14, 2.0]) push(z);
+  for (const cz of [RS.fz, RS.rz]) {
+    if (cz === RS.rz) for (const z of [1.0, 0.95, 0.6, 0.2, -0.3, -0.6]) push(z);
+    push(cz + RS.ra, 0);
+    for (let i = 0; i <= 14; i++) push(cz + RS.ra - (i / 14) * RS.ra * 2);
+    push(cz - RS.ra, 0);
   }
-  push(RS.fz - RS.ra, 0);
-  for (const z of [0.6, 0.2, -0.3, -0.7]) push(z);
-  push(RS.rz + RS.ra, 0);
-  for (let i = 0; i <= 10; i++) {
-    const z = RS.rz + RS.ra - (i / 10) * RS.ra * 2;
-    push(z, archAt(z));
+  for (const z of [-1.95, -2.15, -2.26, -2.3]) push(z);
+  return out;
+}
+
+/**
+ * Smooth-shaded strip through the points a..b of every section: one indexed grid, so the
+ * normals are smooth inside the strip and crisp where it meets the next one. A strip that ends
+ * on the centre line runs on across it; any other is mirrored to the left as its own piece.
+ */
+function strip(secs: Sec[], a: number, b: number) {
+  const rings: P2[][] = [];
+  const zs: number[] = [];
+  for (const { z, p } of secs) {
+    const pts = p.slice(a, b + 1);
+    const prev = rings[rings.length - 1];
+    // a repeated section (the vertical edge of an arch) only matters to the strips it changes
+    if (prev && zs[zs.length - 1] === z && pts.every((q, i) => q[0] === prev[i][0] && q[1] === prev[i][1])) continue;
+    rings.push(pts);
+    zs.push(z);
   }
-  push(RS.rz - RS.ra, 0);
-  push(-2.0);
-  push(-2.18);
-  push(-2.3);
-  return zs.map(([z, a]) => ({ z, p: roadsterProfile(z, a ?? archAt(z)) }));
+  const first = rings[0][0][0] === 0;
+  const last = rings[0][rings[0].length - 1][0] === 0;
+  const full = (r: P2[]): P2[] => {
+    if (last) return [...r, ...r.slice(0, -1).reverse().map(([x, y]): P2 => [-x, y])];
+    if (first) return [...r.slice(1).reverse().map(([x, y]): P2 => [-x, y]), ...r];
+    return r;
+  };
+  const build = (rs: P2[][], mirror: boolean) => {
+    const pos: number[] = [];
+    const idx: number[] = [];
+    const C = rs[0].length;
+    rs.forEach((r, s) => r.forEach(([x, y]) => pos.push(mirror ? -x : x, y, zs[s])));
+    const flip = (zs[zs.length - 1] < zs[0]) !== mirror;
+    for (let s = 0; s < rs.length - 1; s++) {
+      for (let j = 0; j < C - 1; j++) {
+        const p = s * C + j;
+        const q = p + 1;
+        const t = p + C + 1;
+        const u = p + C;
+        if (flip) idx.push(p, t, q, p, u, t);
+        else idx.push(p, q, t, p, t, u);
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    return g;
+  };
+  if (first || last) return build(rings.map(full), false);
+  return mergeGeometries([build(rings, false), build(rings, true)]);
+}
+
+/** A flat cap over a whole section (mirrored), facing +z or -z. */
+function cap(p: P2[], z: number, back: boolean) {
+  const ring = [...p, ...p.slice(1, -1).reverse().map(([x, y]): P2 => [-x, y])].filter((q, i, arr) => {
+    const n = arr[(i + 1) % arr.length];
+    return Math.hypot(q[0] - n[0], q[1] - n[1]) > 1e-6;
+  });
+  const s = new THREE.Shape(ring.map(([x, y]) => new THREE.Vector2(x, y)));
+  const g = new THREE.ShapeGeometry(s);
+  if (back) {
+    g.scale(-1, 1, 1);
+    g.rotateY(Math.PI);
+  }
+  g.translate(0, 0, z);
+  return g;
 }
 
 function RoadsterWheel({ x, z, w }: { x: number; z: number; w: number }) {
-  const geo = useMemo(() => tyreGeo(RS.r, w, 0.27, 0.22), [w]);
+  const geo = useMemo(() => tyreGeo(RS.r, w, 0.285, 0.22), [w]);
   const s = Math.sign(x);
   const face = -s * (w / 2 - 0.012);
   return (
     <group position={[x, RS.r, z]} rotation={[0, 0, Math.PI / 2]}>
       <mesh geometry={geo} material={M.tyre} castShadow />
-      <mesh position={[0, face + s * 0.012, 0]} material={K.rim}>
-        <cylinderGeometry args={[0.27, 0.27, 0.03, 32]} />
+      <mesh position={[0, face + s * 0.014, 0]} material={K.rim}>
+        <cylinderGeometry args={[0.285, 0.285, 0.03, 36]} />
       </mesh>
-      {/* five twin spokes, a touch lighter than the dark aero disc */}
+      {/* turbine: five twin spokes, a touch lighter than the dark disc */}
       {Array.from({ length: 10 }, (_, i) => {
-        const a = (Math.floor(i / 2) / 5) * Math.PI * 2 + (i % 2 ? 0.13 : -0.13);
+        const a = (Math.floor(i / 2) / 5) * Math.PI * 2 + (i % 2 ? 0.12 : -0.12);
         return (
-          <mesh key={i} position={[Math.cos(a) * 0.14, face - s * 0.006, Math.sin(a) * 0.14]} rotation={[0, -a, 0]} material={K.spoke}>
-            <boxGeometry args={[0.24, 0.012, 0.03]} />
+          <mesh key={i} position={[Math.cos(a) * 0.15, face - s * 0.004, Math.sin(a) * 0.15]} rotation={[0, -a + (i % 2 ? 0.1 : -0.1), 0]} material={K.spoke}>
+            <boxGeometry args={[0.25, 0.014, 0.026]} />
           </mesh>
         );
       })}
-      <mesh position={[0, face - s * 0.01, 0]} material={K.spoke}>
-        <cylinderGeometry args={[0.055, 0.055, 0.016, 12]} />
+      <mesh position={[0, face - s * 0.008, 0]} material={K.spoke}>
+        <cylinderGeometry args={[0.05, 0.05, 0.016, 12]} />
       </mesh>
     </group>
   );
 }
 
-export function Roadster() {
+export function Roadster({ livery = LIVERIES.V03[0] }: { livery?: Livery }) {
+  const mt = useMats(livery, [0.3, 0.35]);
   const geo = useMemo(() => {
-    const secs = roadsterSections();
-    // the skirt closes back in under the wheel-well wall, so it never shows through the hood
-    const skirt = loft(secs.map(({ z, p }) => ({ z, p: [...p.slice(0, 5), [p[1][0] - 0.015, p[4][1]], [p[1][0] - 0.015, p[0][1] + 0.02]] })));
-    const body = loft(secs.map(({ z, p }) => ({ z, p: p.slice(4) })));
-    // dark glass canopy from the windscreen over the roof, down into the rear deck
-    const cn = (z: number, wb: number, wm: number, ym: number, wt: number, yt: number): Sec => ({
-      z,
-      p: [
-        [0, rTop(z) - 0.06],
-        [wb, rTop(z) - 0.06],
-        [wb, rTop(z) + 0.005],
-        [wm, ym],
-        [wt, yt],
-        [0, yt + 0.012],
-      ],
-    });
-    const canopy = loft([
-      cn(0.62, 0.66, 0.66, rTop(0.62) + 0.01, 0.64, rTop(0.62) + 0.015),
-      cn(0.25, 0.7, 0.63, 0.88, 0.47, 0.99),
-      cn(-0.3, 0.72, 0.64, 0.95, 0.44, 1.1),
-      cn(-0.85, 0.72, 0.62, 0.95, 0.42, 1.08),
-      cn(-1.35, 0.66, 0.55, 0.92, 0.36, 0.99),
-      cn(-1.82, 0.5, 0.44, 0.88, 0.27, 0.9),
+    const secs = rsSections();
+    const front = secs[0];
+    const back = secs[secs.length - 1];
+    // the canopy: dark glass from the windscreen over the roof, falling into the rear deck
+    const cz = [0.95, 0.75, 0.5, 0.2, -0.2, -0.6, -0.9, -1.2, -1.45, -1.62];
+    const roofY = curve([
+      [0.95, 0.87],
+      [0.75, 0.94],
+      [0.5, 1.02],
+      [0.2, 1.08],
+      [-0.2, 1.11],
+      [-0.6, 1.1],
+      [-0.9, 1.06],
+      [-1.2, 0.99],
+      [-1.45, 0.93],
+      [-1.62, 0.885],
     ]);
-    const strut = plate(
-      [
-        [-1.8, 0.82],
-        [-1.86, 1.02],
-        [-1.98, 1.2],
-        [-2.12, 1.3],
-        [-2.26, 1.31],
-        [-2.27, 1.24],
-        [-2.14, 1.245],
-        [-2.02, 1.15],
-        [-1.94, 1.0],
-        [-1.94, 0.82],
-      ],
-      0.03,
-    );
-    return { skirt, body, canopy, strut, wing: aerofoil(0.34, 0.045, 1.78) };
+    const roofX = curve([
+      [0.95, 0.62],
+      [0.75, 0.6],
+      [0.5, 0.56],
+      [0.2, 0.53],
+      [-0.6, 0.52],
+      [-1.2, 0.47],
+      [-1.62, 0.4],
+    ]);
+    const csec = (z: number): Sec => {
+      const xe = rsXe(z) - 0.01;
+      const yd = rsYd(z) + 0.004;
+      const yr = roofY(z);
+      const k = Math.min(1, Math.max(0, (yr - yd) / 0.2));
+      return { z, p: [[xe, yd], [roofX(z) + (xe - roofX(z)) * (1 - k) * 0.6, yd + (yr - yd) * 0.88], [0, yr]] };
+    };
+    const canopySecs = cz.map(csec);
+    const rearSide = canopySecs.filter(({ z }) => z <= -0.6);
+    // a body-coloured rail along each roof edge, between the roof glass and the side glass
+    const rail = (sx: number) =>
+      new THREE.TubeGeometry(new THREE.CatmullRomCurve3(canopySecs.slice(1, -1).map(({ z, p }) => new THREE.Vector3(sx * (p[1][0] + 0.004), p[1][1] + 0.004, z))), 48, 0.016, 6);
+    return {
+      lower: strip(secs, 0, 2),
+      side: strip(secs, 2, 3),
+      fender: strip(secs, 3, 4),
+      deck: strip(secs, 4, 5),
+      nose: cap(front.p, front.z, false),
+      tail: cap(back.p, back.z, true),
+      glassSide: strip(canopySecs.filter(({ z }) => z >= -0.6), 0, 1),
+      sail: strip(rearSide, 0, 1),
+      roof: strip(canopySecs, 1, 2),
+      rails: mergeGeometries([rail(1), rail(-1)]),
+      strut: plate(
+        [
+          [-1.86, 0.84],
+          [-1.92, 1.0],
+          [-2.06, 1.12],
+          [-2.18, 1.13],
+          [-2.2, 1.08],
+          [-2.08, 1.07],
+          [-2.0, 0.98],
+          [-1.98, 0.84],
+        ],
+        0.03,
+      ),
+      wing: aerofoil(0.34, 0.04, 1.86),
+      end: plate(
+        [
+          [-2.0, 1.16],
+          [-2.36, 1.16],
+          [-2.36, 1.02],
+          [-2.2, 1.06],
+        ],
+        0.02,
+      ),
+    };
   }, []);
+  const glass = K.smoke;
   return (
     <group>
-      <mesh geometry={geo.body} material={K.shell} castShadow receiveShadow />
-      <mesh geometry={geo.skirt} material={M.inkMatte} castShadow />
-      <mesh geometry={geo.canopy} material={K.canopy} castShadow />
-      {/* front light bar on the leading edge, the full-width orange bar at the back */}
-      <Box s={[1.42, 0.022, 0.03]} p={[0, 0.375, 2.3]} m={K.lampWhite} />
-      <Box s={[1.62, 0.035, 0.03]} p={[0, 0.72, -2.3]} m={K.lampOrange} />
-      {/* swan-neck wing on two struts */}
-      {SIDES.map((s) => (
-        <mesh key={s} geometry={geo.strut} position={[s * 0.42, 0, 0]} material={M.ink} castShadow />
-      ))}
-      <mesh geometry={geo.wing} position={[0, 1.205, -2.2]} rotation={[0.06, 0, 0]} material={K.shell} castShadow />
-      {SIDES.map((s) => (
-        <Box key={s} s={[0.02, 0.1, 0.36]} p={[s * 0.9, 1.21, -2.2]} m={M.ink} />
-      ))}
-      {/* rear diffuser fins and four round exhausts */}
-      {[-0.6, -0.3, 0, 0.3, 0.6].map((x) => (
-        <Box key={x} s={[0.02, 0.16, 0.24]} p={[x, 0.23, -2.22]} m={M.ink} />
-      ))}
-      {[-0.46, -0.18, 0.18, 0.46].map((x) => (
-        <group key={x} position={[x * 1.0, 0.27, -2.3]} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh geometry={geo.side} material={mt.body} castShadow receiveShadow />
+      <mesh geometry={geo.fender} material={mt.body} castShadow receiveShadow />
+      <mesh geometry={geo.deck} material={mt.body} castShadow receiveShadow />
+      <mesh geometry={geo.lower} material={mt.trim} castShadow />
+      <mesh geometry={geo.nose} material={mt.body} castShadow />
+      <mesh geometry={geo.tail} material={mt.body} castShadow />
+      <mesh geometry={geo.glassSide} material={glass} castShadow />
+      <mesh geometry={geo.roof} material={glass} castShadow />
+      <mesh geometry={geo.sail} material={mt.body} castShadow />
+      <mesh geometry={geo.rails} material={mt.body} castShadow />
+      {/* the face: a thin light bar along the leading edge over a dark intake */}
+      <Box s={[1.5, 0.018, 0.02]} p={[0, 0.48, 2.302]} m={K.lampWhite} />
+      <Box s={[1.42, 0.17, 0.03]} p={[0, 0.3, 2.296]} m={mt.trim} />
+      {/* the back: a full-width light bar under a dark strip, the diffuser and four round exhausts */}
+      <Box s={[1.78, 0.07, 0.02]} p={[0, 0.79, -2.302]} m={mt.trim} />
+      <Box s={[1.7, 0.026, 0.02]} p={[0, 0.79, -2.314]} m={mt.lamp} />
+      <Box s={[1.36, 0.24, 0.05]} p={[0, 0.3, -2.29]} m={mt.trim} />
+      {[-0.45, -0.15, 0.15, 0.45].map((x) => (
+        <group key={x} position={[x, 0.36, -2.32]} rotation={[Math.PI / 2, 0, 0]}>
           <mesh material={K.steel}>
-            <cylinderGeometry args={[0.048, 0.048, 0.06, 16]} />
+            <cylinderGeometry args={[0.045, 0.045, 0.05, 18]} />
           </mesh>
-          <mesh position={[0, 0.031, 0]} material={M.ink}>
-            <cylinderGeometry args={[0.034, 0.034, 0.005, 14]} />
+          <mesh position={[0, 0.026, 0]} material={M.ink}>
+            <cylinderGeometry args={[0.032, 0.032, 0.004, 16]} />
           </mesh>
         </group>
       ))}
+      {[-0.55, -0.3, 0, 0.3, 0.55].map((x) => (
+        <Box key={x} s={[0.02, 0.12, 0.2]} p={[x, 0.2, -2.2]} m={M.ink} />
+      ))}
+      {/* the wing on two struts, endplates angled down */}
+      {SIDES.map((s) => (
+        <mesh key={s} geometry={geo.strut} position={[s * 0.4, 0, 0]} material={mt.trim} castShadow />
+      ))}
+      <mesh geometry={geo.wing} position={[0, 1.13, -2.2]} rotation={[0.08, 0, 0]} material={mt.trim} castShadow />
+      {SIDES.map((s) => (
+        <mesh key={s} geometry={geo.end} position={[s * 0.93, 0, 0]} material={mt.trim} castShadow />
+      ))}
       {SIDES.map((s) => (
         <group key={s}>
-          <RoadsterWheel x={s * (rHalf(RS.fz) - 0.17)} z={RS.fz} w={0.26} />
-          <RoadsterWheel x={s * (rHalf(RS.rz) - 0.18)} z={RS.rz} w={0.3} />
+          <RoadsterWheel x={s * (rsHw(RS.fz) - 0.17)} z={RS.fz} w={0.27} />
+          <RoadsterWheel x={s * (rsHw(RS.rz) - 0.17)} z={RS.rz} w={0.32} />
         </group>
       ))}
     </group>
@@ -870,8 +1223,9 @@ function BikeWheel({ z, w, front }: { z: number; w: number; front?: boolean }) {
   );
 }
 
-export function Bike() {
+export function Bike({ livery = LIVERIES.V04[0] }: { livery?: Livery }) {
   const { fz, rz, r } = B;
+  const mt = useMats(livery, [0.5, 0.15]);
   const geo = useMemo(() => {
     // the fairing: a sharp nose with the twin-light face, flaring to wide flanks
     const fr = (z: number, yb: number, yt: number, wb: number, wm: number, ym: number, wt: number): Sec => ({
@@ -901,33 +1255,37 @@ export function Bike() {
       fr(0.06, 0.76, 0.99, 0.12, 0.16, 0.88, 0.12),
       fr(-0.16, 0.76, 0.86, 0.1, 0.12, 0.81, 0.1),
     ]);
+    // tail cowl: wide under the seat, kicking up to a short blunt tail with the lamp in its face
     const tail = loft([
-      fr(-0.1, 0.7, 0.84, 0.1, 0.12, 0.77, 0.1),
-      fr(-0.4, 0.8, 0.93, 0.07, 0.1, 0.86, 0.08),
-      fr(-0.64, 0.93, 1.02, 0.03, 0.055, 0.97, 0.04),
-      fr(-0.76, 1.0, 1.04, 0.01, 0.015, 1.02, 0.01),
+      fr(-0.1, 0.66, 0.84, 0.1, 0.125, 0.76, 0.1),
+      fr(-0.28, 0.7, 0.9, 0.1, 0.125, 0.8, 0.1),
+      fr(-0.44, 0.76, 0.96, 0.085, 0.11, 0.86, 0.085),
+      fr(-0.56, 0.83, 0.99, 0.06, 0.08, 0.91, 0.06),
+      fr(-0.6, 0.86, 0.985, 0.05, 0.065, 0.925, 0.05),
     ]);
     const seat = loft([
       fr(-0.12, 0.8, 0.87, 0.11, 0.12, 0.84, 0.1),
-      fr(-0.42, 0.84, 0.93, 0.08, 0.09, 0.89, 0.07),
+      fr(-0.36, 0.84, 0.92, 0.085, 0.095, 0.885, 0.075),
     ]);
     const screen = loft([
       { z: 0.6, p: [[0, 0.98], [0.15, 0.97], [0.13, 1.0], [0, 1.01]] },
       { z: 0.42, p: [[0, 1.1], [0.11, 1.08], [0.09, 1.105], [0, 1.115]] },
     ]);
+    // twin-spar frame from the headstock round the engine to the swingarm pivot
     const frame = loft(
       [
-        { z: 0.42, p: [[0.1, 0.86], [0.13, 0.86], [0.13, 0.98], [0.1, 0.98]] as P2[] },
-        { z: -0.12, p: [[0.15, 0.5], [0.19, 0.5], [0.19, 0.72], [0.15, 0.72]] as P2[] },
-      ].map(({ z, p }) => ({ z, p })),
+        { z: 0.42, p: [[0.1, 0.88], [0.125, 0.88], [0.125, 0.97], [0.1, 0.97]] as P2[] },
+        { z: 0.12, p: [[0.14, 0.66], [0.17, 0.66], [0.17, 0.78], [0.14, 0.78]] as P2[] },
+        { z: -0.12, p: [[0.14, 0.42], [0.17, 0.42], [0.17, 0.6], [0.14, 0.6]] as P2[] },
+      ],
       { mirror: false },
     );
     const frameL = frame.clone();
     frameL.scale(-1, 1, 1);
     const swing = loft(
       [
-        { z: -0.12, p: [[0.12, 0.42], [0.16, 0.42], [0.16, 0.54], [0.12, 0.54]] as P2[] },
-        { z: rz, p: [[0.1, r - 0.04], [0.13, r - 0.04], [0.13, r + 0.04], [0.1, r + 0.04]] as P2[] },
+        { z: -0.1, p: [[0.11, 0.4], [0.15, 0.4], [0.15, 0.5], [0.11, 0.5]] as P2[] },
+        { z: rz, p: [[0.1, r - 0.035], [0.13, r - 0.035], [0.13, r + 0.035], [0.1, r + 0.035]] as P2[] },
       ],
       { mirror: false },
     );
@@ -954,26 +1312,39 @@ export function Bike() {
     <group>
       <BikeWheel z={fz} w={0.12} front />
       <BikeWheel z={rz} w={0.19} />
-      {/* USD forks: thick ink tubes up top, silver legs at the axle; the triple clamp and clip-ons */}
+      {/* USD forks: thick tubes up top, silver legs at the axle; the triple clamp and clip-ons */}
       {SIDES.map((s) => (
         <group key={s}>
           <Tube a={[s * 0.09, r, fz]} b={[s * 0.09, 0.62, fk(0.62)]} r={0.022} m={K.silver} />
           <Tube a={[s * 0.09, 0.56, fk(0.56)]} b={[s * 0.09, 0.97, fk(0.97)]} r={0.034} m={M.graphite} />
           <Tube a={[s * 0.09, 0.93, fk(0.93)]} b={[s * 0.27, 0.9, fk(0.93) - 0.1]} r={0.013} m={M.ink} />
-          {/* front calipers */}
           <Box s={[0.03, 0.12, 0.06]} p={[s * 0.085, r + 0.12, fz - 0.08]} r={[0.6, 0, 0]} m={M.ink} />
-          {/* mirrors on the fairing */}
           <Tube a={[s * 0.14, 0.95, 0.62]} b={[s * 0.24, 0.99, 0.6]} r={0.01} m={M.ink} />
           <Box s={[0.11, 0.05, 0.03]} p={[s * 0.27, 1.0, 0.6]} r={[0, s * 0.2, 0]} m={M.ink} />
-          {/* rearsets */}
+          {/* rearsets and their hangers */}
           <Tube a={[s * 0.12, 0.5, -0.24]} b={[s * 0.2, 0.5, -0.26]} r={0.012} m={M.graphite} />
+          <Tube a={[s * 0.14, 0.56, -0.14]} b={[s * 0.13, 0.48, -0.26]} r={0.012} m={K.steel} />
+          {/* the subframe under the tail: an upper rail and a stay down to the frame */}
+          <Tube a={[s * 0.12, 0.76, -0.08]} b={[s * 0.07, 0.86, -0.54]} r={0.012} m={K.steel} />
+          <Tube a={[s * 0.14, 0.52, -0.12]} b={[s * 0.08, 0.84, -0.5]} r={0.011} m={K.steel} />
         </group>
       ))}
       <Box s={[0.24, 0.04, 0.08]} p={[0, 0.96, fk(0.96)]} m={M.graphite} />
-      {/* frame, swingarm, engine */}
-      <mesh geometry={geo.frame} material={M.ink} castShadow />
-      <mesh geometry={geo.swing} material={M.ink} castShadow />
-      <Box s={[0.26, 0.34, 0.4]} p={[0, 0.46, 0.06]} m={M.graphite} />
+      {/* frame, swingarm */}
+      <mesh geometry={geo.frame} material={M.graphite} castShadow />
+      <mesh geometry={geo.swing} material={M.graphite} castShadow />
+      {/* engine: crankcase, the cylinder block leaning forward, the head and its cover */}
+      <Box s={[0.24, 0.18, 0.34]} p={[0, 0.36, 0.02]} m={M.graphite} />
+      <Box s={[0.22, 0.2, 0.2]} p={[0, 0.54, 0.14]} r={[0.35, 0, 0]} m={K.steel} />
+      <Box s={[0.24, 0.07, 0.2]} p={[0, 0.67, 0.2]} r={[0.35, 0, 0]} m={M.ink} />
+      <mesh position={[0.125, 0.36, -0.02]} rotation={[0, 0, Math.PI / 2]} material={K.silver}>
+        <cylinderGeometry args={[0.08, 0.08, 0.012, 20]} />
+      </mesh>
+      {/* under the seat: the rear shock, the battery box behind it */}
+      <Tube a={[0, 0.44, -0.24]} b={[0, 0.7, -0.14]} r={0.018} m={K.silver} />
+      <mesh geometry={springGeo} position={[0, 0.6, -0.18]} rotation={[-0.37, 0, 0]} scale={[0.75, 0.2, 0.75]} material={mt.accent} />
+      <Box s={[0.05, 0.05, 0.05]} p={[0, 0.72, -0.13]} m={M.ink} />
+      <Box s={[0.15, 0.12, 0.17]} p={[0, 0.72, -0.34]} m={M.inkMatte} />
       {/* chain side (left): sprockets and the two runs of chain */}
       <mesh position={[-0.14, 0.46, -0.08]} rotation={[0, 0, Math.PI / 2]} material={K.steel}>
         <cylinderGeometry args={[0.05, 0.05, 0.012, 14]} />
@@ -983,29 +1354,27 @@ export function Bike() {
       </mesh>
       <Tube a={[-0.14, 0.51, -0.08]} b={[-0.14, r + 0.12, rz]} r={0.008} m={K.steel} />
       <Tube a={[-0.14, 0.41, -0.08]} b={[-0.14, r - 0.12, rz]} r={0.008} m={K.steel} />
-      {/* bodywork: paper fairing and tail, ink tank, graphite seat, dark screen */}
-      <mesh geometry={geo.fairing} material={M.paper} castShadow />
-      <mesh geometry={geo.mask} material={M.ink} castShadow />
-      <mesh geometry={geo.tank} material={M.ink} castShadow />
-      <mesh geometry={geo.tail} material={M.paper} castShadow />
+      {/* bodywork: body fairing and tail, trim tank, graphite seat, dark screen */}
+      <mesh geometry={geo.fairing} material={mt.body} castShadow />
+      <mesh geometry={geo.mask} material={mt.trim} castShadow />
+      <mesh geometry={geo.tank} material={mt.trim} castShadow />
+      <mesh geometry={geo.tail} material={mt.body} castShadow />
       <mesh geometry={geo.seat} material={M.graphite} castShadow />
       <mesh geometry={geo.screen} material={K.canopy} castShadow />
-      {/* the face: two angled headlights either side of a ram-air intake */}
       {SIDES.map((s) => (
         <Box key={s} s={[0.09, 0.024, 0.012]} p={[s * 0.075, 0.855, 0.848]} r={[0.1, s * 0.84, s * -0.2]} m={K.lampWhite} />
       ))}
-
       {/* winglets on the flanks */}
       {SIDES.map((s) => (
-        <Box key={s} s={[0.12, 0.018, 0.16]} p={[s * 0.24, 0.8, 0.6]} r={[-0.12, 0, s * -0.12]} m={M.ink} />
+        <Box key={s} s={[0.12, 0.018, 0.16]} p={[s * 0.24, 0.8, 0.6]} r={[-0.12, 0, s * -0.12]} m={mt.trim} />
       ))}
-      {/* the orange accent: a line along each flank of the fairing */}
+      {/* the accent: a line along each flank of the fairing */}
       {SIDES.map((s) => (
-        <Tube key={s} a={[s * 0.203, 0.74, 0.56]} b={[s * 0.195, 0.5, 0.22]} r={0.009} m={M.orange} />
+        <Tube key={s} a={[s * 0.203, 0.74, 0.56]} b={[s * 0.195, 0.5, 0.22]} r={0.009} m={mt.accent} />
       ))}
-      {/* front mudguard, tail light, hugger */}
-      <Box s={[0.12, 0.02, 0.36]} p={[0, r + 0.33, fz - 0.02]} r={[0.2, 0, 0]} m={M.paper} />
-      <Box s={[0.05, 0.025, 0.02]} p={[0, 0.99, -0.72]} m={K.lampOrange} />
+      {/* front mudguard, tail lamp in the tail's face, hugger */}
+      <Box s={[0.12, 0.02, 0.36]} p={[0, r + 0.33, fz - 0.02]} r={[0.2, 0, 0]} m={mt.body} />
+      <Box s={[0.09, 0.03, 0.012]} p={[0, 0.925, -0.606]} m={K.lampOrange} />
       <Box s={[0.12, 0.02, 0.3]} p={[0, r + 0.34, rz + 0.12]} r={[-0.25, 0, 0]} m={M.ink} />
       {/* exhaust: header under the engine to a short can on the right */}
       <Tube a={[0.1, 0.5, 0.3]} b={[0.12, 0.26, 0.1]} r={0.025} m={K.steel} />

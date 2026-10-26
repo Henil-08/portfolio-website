@@ -2,14 +2,14 @@
 
 // 04 · Start sequence mock: after the boot, pick a vehicle on a loadout screen, press Enter,
 // and the world builds itself around it. Both stages draw through the page's one canvas.
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera, View } from "@react-three/drei";
 import { Count, Decode, d } from "@/components/brand/motion";
 import { Lights, M } from "./models";
-import { BUILD_LOG, GRID, Island, PaperFloor, T, type BuildClock } from "./island";
-import { Atv, Bike, Formula, Roadster } from "./vehicles";
+import { BUILD_LOG, BUILD_MODES, GRID, ISLAND, Island, PLAN, PaperFloor, type BuildClock, type BuildMode } from "./island";
+import { Atv, Bike, Formula, LIVERIES, Roadster, type Livery } from "./vehicles";
 import { VEHICLE_ICONS } from "./vehicleIcons";
 
 type V3 = [number, number, number];
@@ -23,7 +23,10 @@ type Vehicle = {
   len: number;
   cam: V3;
   target: V3;
-  model: () => ReactNode;
+  /** display scale on the turntable, so every vehicle fills the same plinth */
+  fit: number;
+  liveries: Livery[];
+  model: (l?: Livery) => ReactNode;
   icon: ReactNode;
 };
 
@@ -38,7 +41,9 @@ const VEHICLES: Vehicle[] = [
     len: 5.6,
     cam: [5.3, 2.0, 6.0],
     target: [0, 0.45, 0],
-    model: () => <Formula />,
+    fit: 0.6,
+    liveries: LIVERIES.V01,
+    model: (l) => <Formula livery={l} />,
     icon: VEHICLE_ICONS.V01,
   },
   {
@@ -50,19 +55,23 @@ const VEHICLES: Vehicle[] = [
     len: 2.4,
     cam: [3.3, 1.75, 3.9],
     target: [0, 0.62, 0],
-    model: () => <Atv />,
+    fit: 1.22,
+    liveries: LIVERIES.V02,
+    model: (l) => <Atv livery={l} />,
     icon: VEHICLE_ICONS.V02,
   },
   {
     code: "V03",
     kind: "Road car",
     name: "Roadster",
-    line: "A low wedge of flat, creased panels under a dark glass canopy, with a tall wing on two struts. The easy one to start with.",
+    line: "Long, low and pale, with crisp creases, a dark glass canopy and a tall wing on two struts. The easy one to start with.",
     stats: [92, 80, 82],
     len: 4.6,
     cam: [5.1, 2.0, 5.8],
     target: [0, 0.5, 0],
-    model: () => <Roadster />,
+    fit: 0.66,
+    liveries: LIVERIES.V03,
+    model: (l) => <Roadster livery={l} />,
     icon: VEHICLE_ICONS.V03,
   },
   {
@@ -74,7 +83,9 @@ const VEHICLES: Vehicle[] = [
     len: 2.1,
     cam: [2.9, 1.45, 3.4],
     target: [0, 0.62, 0],
-    model: () => <Bike />,
+    fit: 1.36,
+    liveries: LIVERIES.V04,
+    model: (l) => <Bike livery={l} />,
     icon: VEHICLE_ICONS.V04,
   },
 ];
@@ -91,6 +102,8 @@ declare global {
   interface Window {
     /** Dev only: freeze the build-in at this many seconds (for stills). */
     __buildT?: number;
+    /** Dev only: freeze the loadout swap at this many seconds (for stills). */
+    __swapT?: number;
   }
 }
 
@@ -113,43 +126,73 @@ const dotFloor = (() => {
 
 /* ------------------------------------------------------------------ stage B scene */
 
-/** Roughly the island's middle: where the camera looks while it's high. */
-const MID = new THREE.Vector3(2, 0, -8);
-/** How far round the camera swings (radians): three quarters of a turn. */
-const SWEEP = Math.PI * 1.5;
-
 /**
- * Close on the car, then up and round the island in a wide arc while the ring builds it,
- * then down behind the car into the chase cam as the last pieces land.
+ * The game's own camera (components/world/Rig.tsx): a fixed world offset from the car, looking
+ * at the car's position less 0.3 m, fov 34 (components/world/World.tsx). Every build-in lands here.
  */
-function BuildCamera({ v, clock }: { v: Vehicle; clock: BuildClock }) {
+const GAME_OFFSET = new THREE.Vector3(10.5, 12.5, 14);
+const GAME_FOV = 34;
+/** A camera on a sphere round a target: distance, bearing (atan2(z, x)) and elevation. */
+type Pose = { tx: number; ty: number; tz: number; r: number; az: number; el: number };
+const END: Pose = {
+  tx: GRID.x,
+  ty: 0.2,
+  tz: GRID.z,
+  r: GAME_OFFSET.length(),
+  az: Math.atan2(GAME_OFFSET.z, GAME_OFFSET.x),
+  el: Math.asin(GAME_OFFSET.y / GAME_OFFSET.length()),
+};
+/** High over the island's middle, framing all of it. */
+const over = (k: number, az: number, el: number): Pose => ({ tx: ISLAND.x, ty: 0, tz: ISLAND.z, r: ISLAND.r * k, az, el });
+
+/** Camera keyframes per build-in: [seconds, pose]. Eased between, ending on the game view. */
+const PATHS: Record<BuildMode, [number, Pose][]> = {
+  // high and turning slowly while the pen draws the lap, then down onto the car
+  trace: [
+    [0, over(2.45, END.az - 0.75, 1.02)],
+    [2.9, over(2.3, END.az - 0.12, 0.92)],
+    [PLAN.trace.camEnd, END],
+  ],
+  // square on to the scan line, a slow push in, then down
+  scan: [
+    [0, over(2.45, END.az, 0.98)],
+    [3.0, over(2.2, END.az, 0.9)],
+    [PLAN.scan.camEnd, END],
+  ],
+  // close on the car, rising with the bloom, then back down
+  bloom: [
+    [0, { ...END, ty: 0.5, r: 12, el: 0.42, az: END.az + 0.9 }],
+    [2.4, over(2.2, END.az + 0.3, 1.05)],
+    [PLAN.bloom.camEnd, END],
+  ],
+};
+const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
+
+function BuildCamera({ mode, clock }: { mode: BuildMode; clock: BuildClock }) {
   const cam = useRef<THREE.PerspectiveCamera>(null!);
-  const pivot = useRef(new THREE.Vector3());
   useFrame((s) => {
     const t = clock(s.clock.elapsedTime);
-    const u = clamp01((t - T.cam0) / T.camDur);
-    const e = power2InOut(u);
-    // 0 at the car, 1 over the island: up, hold a beat while the ring crosses it, down
-    const high = power2InOut(clamp01(Math.min(u / 0.42, (1 - u) / 0.38)));
-    const close = { r: v.len * 0.95 + 2.8, h: 1.1 + v.len * 0.14 };
-    const chase = { r: 4.6 + v.len * 1.9, h: 2.3 + v.len * 0.62 };
-    const behind = Math.atan2(-GRID.fz, -GRID.fx);
-    const az = behind + (1 - e) * SWEEP;
-    const r = close.r + (chase.r - close.r) * e + 104 * high;
-    const h = close.h + (chase.h - close.h) * e + 76 * high;
-    // the camera turns round a pivot that drifts from the car to the island's middle and back
-    pivot.current.set(GRID.x, 0.6, GRID.z).lerp(MID, high * 0.85);
+    const path = PATHS[mode];
+    let i = 0;
+    while (i < path.length - 2 && t > path[i + 1][0]) i++;
+    const [t0, a] = path[i];
+    const [t1, b] = path[i + 1];
+    const k = power2InOut(clamp01((t - t0) / (t1 - t0)));
+    // distance eases in log space, so the long fall from the overview lands softly
+    const r = Math.exp(lerp(Math.log(a.r), Math.log(b.r), k));
+    const az = lerp(a.az, b.az, k);
+    const el = lerp(a.el, b.el, k);
+    // the look-at leaves the car late on the way up and reaches it early on the way down,
+    // so the car stays in frame while the camera is low
+    const kt = b === END ? 1 - Math.pow(1 - k, 3) : b.r > a.r * 4 ? k * k * k : k;
+    const tx = lerp(a.tx, b.tx, kt);
+    const ty = lerp(a.ty, b.ty, kt);
+    const tz = lerp(a.tz, b.tz, kt);
     const c = cam.current;
-    c.position.set(pivot.current.x + Math.cos(az) * r, h, pivot.current.z + Math.sin(az) * r);
-    // looking at the pivot, and at the end along the car's nose like the chase cam
-    pivot.current.x += GRID.fx * 10 * e * e;
-    pivot.current.z += GRID.fz * 10 * e * e;
-    pivot.current.y = 0.6 - 0.3 * e;
-    c.lookAt(pivot.current);
-    c.fov = 38 + 10 * high;
-    c.updateProjectionMatrix();
+    c.position.set(tx + Math.cos(el) * Math.cos(az) * r, ty + Math.sin(el) * r, tz + Math.cos(el) * Math.sin(az) * r);
+    c.lookAt(tx, ty, tz);
   });
-  return <PerspectiveCamera ref={cam} makeDefault fov={38} position={[GRID.x + 6, 2, GRID.z + 6]} near={0.2} far={900} />;
+  return <PerspectiveCamera ref={cam} makeDefault fov={GAME_FOV} position={[GRID.x + GAME_OFFSET.x, GAME_OFFSET.y, GRID.z + GAME_OFFSET.z]} near={0.5} far={2400} />;
 }
 
 /** Daylight over the whole island, with a shadow box that covers it. */
@@ -175,7 +218,7 @@ function IslandLights() {
   );
 }
 
-function BuildScene({ v }: { v: Vehicle }) {
+function BuildScene({ v, mode }: { v: Vehicle; mode: BuildMode }) {
   const t0 = useRef(-1);
   const clock = useCallback((now: number) => {
     if (process.env.NODE_ENV !== "production" && typeof window !== "undefined" && typeof window.__buildT === "number") return window.__buildT;
@@ -185,13 +228,13 @@ function BuildScene({ v }: { v: Vehicle }) {
   return (
     <>
       <color attach="background" args={["#ebe9e3"]} />
-      <fog attach="fog" args={["#ebe9e3", 240, 620]} />
-      <BuildCamera v={v} clock={clock} />
+      <fog attach="fog" args={["#ebe9e3", 420, 1100]} />
+      <BuildCamera mode={mode} clock={clock} />
       <IslandLights />
-      {/* 1 · the paper floor and its dot grid, eaten by the ring as the island arrives */}
+      {/* 1 · the paper floor and its dot grid, giving way as the island arrives */}
       <PaperFloor map={dotFloor} />
-      {/* 2 · the whole island, element by element as the ring reaches it */}
-      <Island clock={clock} />
+      {/* 2 · the whole island: first as dots in its own layout, then rising out of them */}
+      <Island clock={clock} mode={mode} />
       {/* the chosen vehicle on its grid slot */}
       <group position={[GRID.x, GRID.y, GRID.z]} rotation={[0, GRID.yaw, 0]}>
         {v.model()}
@@ -202,46 +245,231 @@ function BuildScene({ v }: { v: Vehicle }) {
 
 /* ------------------------------------------------------------------ stage A scene */
 
-/** The selected vehicle drops onto the plinth with a little overshoot. */
-function DropIn({ children }: { children: ReactNode }) {
-  const g = useRef<THREE.Group>(null!);
-  const t0 = useRef(-1);
-  useFrame((s) => {
-    if (t0.current < 0) t0.current = s.clock.elapsedTime;
-    const k = clamp01((s.clock.elapsedTime - t0.current) / 0.5);
-    g.current.position.y = (1 - power2Out(k)) * 0.9;
-    g.current.scale.setScalar(0.82 + 0.18 * backOut(k, 2));
-  });
+/** The turntable: one size for every vehicle (each is scaled to fit it instead). */
+const PLINTH = 1.75;
+const SELECT_CAM: V3 = [4.3, 2.15, 4.9];
+const SELECT_TARGET: V3 = [0, 0.42, 0];
+/** Loadout swap timings (s): old slides off, the table spins, the scan line reveals the new one. */
+const SWAP = { old: 0.3, spin: 0.55, scan0: 0.05, scan1: 0.42, pop0: 0.12, pop1: 0.58 };
+const SPIN = Math.PI * 0.8;
+const power2In = (k: number) => k * k;
+const power3Out = (k: number) => 1 - Math.pow(1 - k, 3);
+
+/** The plinth's top: a paper disc with a dial of ticks round the rim, one orange, and the code. */
+function plinthTop(code: string) {
+  const S = 1024;
+  const c = document.createElement("canvas");
+  c.width = c.height = S;
+  const g = c.getContext("2d")!;
+  const R = S / 2;
+  g.fillStyle = "#f3f2ed";
+  g.fillRect(0, 0, S, S);
+  g.translate(R, R);
+  g.strokeStyle = "#cfcdc4";
+  g.lineWidth = 3;
+  g.beginPath();
+  g.arc(0, 0, R * 0.86, 0, Math.PI * 2);
+  g.stroke();
+  g.beginPath();
+  g.arc(0, 0, R * 0.5, 0, Math.PI * 2);
+  g.stroke();
+  // 120 ticks, every tenth long; the orange one points at the nose (+z is the canvas bottom)
+  for (let i = 0; i < 120; i++) {
+    const a = Math.PI / 2 + (i / 120) * Math.PI * 2;
+    const long = i % 10 === 0;
+    const r0 = R * (long ? 0.88 : 0.91);
+    g.strokeStyle = i === 0 ? "#ff4f00" : long ? "#111" : "#5d5d58";
+    g.lineWidth = i === 0 ? 12 : long ? 5 : 3;
+    g.beginPath();
+    g.moveTo(Math.cos(a) * r0, Math.sin(a) * r0);
+    g.lineTo(Math.cos(a) * R * (i === 0 ? 0.99 : 0.97), Math.sin(a) * R * (i === 0 ? 0.99 : 0.97));
+    g.stroke();
+  }
+  const fam = getComputedStyle(document.body).getPropertyValue("--font-plex-mono").trim() || "monospace";
+  g.fillStyle = "rgba(93,93,88,0.55)";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.font = `600 58px ${fam}, monospace`;
+  g.fillText(code, 0, R * 0.7);
+  g.font = `500 22px ${fam}, monospace`;
+  g.fillText("HG-08 / GARAGE", 0, -R * 0.7);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+
+/** A low paper drum with an ink band round its edge; the top spins with the vehicle. */
+function Plinth({ code }: { code: string }) {
+  const top = useMemo(() => new THREE.MeshStandardMaterial({ map: plinthTop(code), roughness: 0.85 }), [code]);
+  useEffect(
+    () => () => {
+      top.map?.dispose();
+      top.dispose();
+    },
+    [top],
+  );
   return (
-    <group ref={g} position={[0, 0.9, 0]} scale={0.82}>
-      {children}
-    </group>
+    <>
+      <mesh position={[0, -0.075, 0]} material={M.paper} receiveShadow>
+        <cylinderGeometry args={[PLINTH, PLINTH, 0.15, 96]} />
+      </mesh>
+      <mesh position={[0, -0.06, 0]} material={M.inkMatte}>
+        <cylinderGeometry args={[PLINTH + 0.006, PLINTH + 0.006, 0.07, 96, 1, true]} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]} material={top} receiveShadow>
+        <circleGeometry args={[PLINTH, 96]} />
+      </mesh>
+    </>
   );
 }
 
-function SelectScene({ v }: { v: Vehicle }) {
-  const r = v.len * 0.62 + 0.3;
+type Slot = { v: Vehicle; l: Livery; n: number };
+type Slots = { a: Slot | null; b: Slot | null; cur: "a" | "b"; n: number };
+type SwapAnim = {
+  n: number;
+  l: Livery | null;
+  t0: number;
+  ts: number;
+  a0: number;
+  a1: number;
+  h: number;
+  dir: THREE.Vector3;
+  /** keeps what's below the scan line */
+  plane: THREE.Plane;
+  clips: [THREE.Mesh, THREE.Material, THREE.Material][];
+  fades: THREE.Material[];
+};
+
+/** Put back the materials the reveal swapped for clipped copies. */
+function unclip(A: SwapAnim) {
+  for (const [mesh, orig, clone] of A.clips) {
+    if (mesh.material === clone) mesh.material = orig;
+    clone.dispose();
+  }
+  A.clips = [];
+}
+
+const eachMesh = (o: THREE.Object3D, f: (m: THREE.Mesh, mat: THREE.Material) => void) =>
+  o.traverse((x) => {
+    if (x instanceof THREE.Mesh && !Array.isArray(x.material)) f(x, x.material);
+  });
+
+/**
+ * Two slots take turns: on a switch the old vehicle slides off sideways and fades while the
+ * table spins round, and an orange scan line sweeps up the new one, revealing it as it rises.
+ * A new livery runs the scan line alone. All tweens mutate refs in useFrame.
+ */
+function SelectScene({ v, livery }: { v: Vehicle; livery: Livery }) {
+  const [st, setSt] = useState<Slots>(() => ({ a: { v, l: livery, n: 0 }, b: null, cur: "a", n: 0 }));
+  const live = st[st.cur]!;
+  if (live.v !== v) {
+    const next = st.cur === "a" ? "b" : "a";
+    setSt({ ...st, [next]: { v, l: livery, n: st.n + 1 }, cur: next, n: st.n + 1 });
+  } else if (live.l !== livery) {
+    setSt({ ...st, [st.cur]: { ...live, l: livery } });
+  }
+  const slotA = useRef<THREE.Group>(null!);
+  const slotB = useRef<THREE.Group>(null!);
+  const table = useRef<THREE.Group>(null!);
+  const scan = useRef<THREE.Group>(null!);
+  const scanMat = useRef<THREE.MeshBasicMaterial>(null!);
+  const anim = useRef<SwapAnim>({ n: -1, l: null, t0: -10, ts: -10, a0: 0, a1: 0, h: 1, dir: new THREE.Vector3(), plane: new THREE.Plane(new THREE.Vector3(0, -1, 0), 0), clips: [], fades: [] });
+
+  useFrame((s) => {
+    const now = s.clock.elapsedTime;
+    const A = anim.current;
+    const cur = (st.cur === "a" ? slotA : slotB).current;
+    const old = (st.cur === "a" ? slotB : slotA).current;
+    const curSlot = st[st.cur]!;
+    if (A.n !== st.n) {
+      // a switch: settle the last one, then set this one up
+      unclip(A);
+      A.fades.forEach((m) => m.dispose());
+      A.fades = [];
+      s.gl.localClippingEnabled = true;
+      A.n = st.n;
+      A.l = curSlot.l;
+      A.t0 = A.ts = now;
+      A.a0 = table.current.rotation.y;
+      A.a1 = A.a0 + SPIN;
+      cur.visible = true;
+      cur.position.set(0, 0, 0);
+      cur.rotation.y = A.a0;
+      cur.scale.setScalar(1);
+      eachMesh(cur, (mesh, mat) => {
+        const c = mat.clone();
+        c.clippingPlanes = [A.plane];
+        c.clipShadows = true;
+        mesh.material = c;
+        A.clips.push([mesh, mat, c]);
+      });
+      A.h = new THREE.Box3().setFromObject(cur).max.y;
+      if (st.n > 0) {
+        // the old one leaves toward the camera's right, fading as it goes
+        A.dir.setFromMatrixColumn(s.camera.matrixWorld, 0).setY(0).normalize();
+        eachMesh(old, (mesh, mat) => {
+          const c = mat.clone();
+          c.transparent = true;
+          c.depthWrite = false;
+          mesh.material = c;
+          mesh.castShadow = false;
+          A.fades.push(c);
+        });
+      }
+    } else if (A.l !== curSlot.l) {
+      // a new livery: the scan line only
+      A.l = curSlot.l;
+      A.ts = now;
+    }
+    const frozen = process.env.NODE_ENV !== "production" && typeof window.__swapT === "number" ? window.__swapT : null;
+    const t = frozen ?? now - A.t0;
+    table.current.rotation.y = A.a0 + (A.a1 - A.a0) * power3Out(clamp01(t / SWAP.spin));
+    cur.rotation.y = table.current.rotation.y;
+    cur.scale.setScalar(0.96 + 0.04 * backOut(clamp01((t - SWAP.pop0) / (SWAP.pop1 - SWAP.pop0)), 2.4));
+    const ko = clamp01(t / SWAP.old);
+    old.visible = st.n > 0 && ko < 1;
+    old.position.copy(A.dir).multiplyScalar(power2In(ko) * 2.6);
+    for (const m of A.fades) m.opacity = 1 - power2Out(ko);
+    // the scan line rises through the vehicle; below it the vehicle is there, above it not yet
+    const k = ((frozen ?? now - A.ts) - SWAP.scan0) / (SWAP.scan1 - SWAP.scan0);
+    const y = -0.02 + (A.h + 0.1) * power2InOut(clamp01(k));
+    A.plane.constant = y;
+    scan.current.visible = k > 0 && k < 1.25;
+    scan.current.position.y = y;
+    scanMat.current.opacity = 1 - clamp01((k - 1) / 0.25);
+    if (k >= 1 && A.clips.length) unclip(A);
+  });
+
+  const slot = (o: Slot | null) => o && <group key={o.n} scale={o.v.fit}>{o.v.model(o.l)}</group>;
   return (
     <>
       <color attach="background" args={["#ebe9e3"]} />
-      <PerspectiveCamera makeDefault position={v.cam} fov={30} />
-      <OrbitControls makeDefault target={v.target} autoRotate autoRotateSpeed={1.4} enableZoom={false} enablePan={false} minPolarAngle={0.9} maxPolarAngle={1.45} />
+      <PerspectiveCamera makeDefault position={SELECT_CAM} fov={30} />
+      <OrbitControls makeDefault target={SELECT_TARGET} autoRotate autoRotateSpeed={1.4} enableZoom={false} enablePan={false} minPolarAngle={0.9} maxPolarAngle={1.45} />
       <Lights size={6} />
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.13, 0]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.15, 0]} receiveShadow>
         <circleGeometry args={[40, 32]} />
         <meshStandardMaterial color="#e1ded6" roughness={1} />
       </mesh>
-      {/* paper plinth with an ink rim and one orange tick at the front */}
-      <mesh position={[0, -0.07, 0]} material={M.ink}>
-        <cylinderGeometry args={[r + 0.05, r + 0.05, 0.12, 64]} />
-      </mesh>
-      <mesh position={[0, -0.05, 0]} material={M.paper} receiveShadow>
-        <cylinderGeometry args={[r, r, 0.1, 64]} />
-      </mesh>
-      <mesh position={[0, 0.002, r - 0.12]} material={M.orange}>
-        <boxGeometry args={[0.06, 0.004, 0.2]} />
-      </mesh>
-      <DropIn>{v.model()}</DropIn>
+      <group ref={table}>
+        <Plinth code={live.v.code} />
+      </group>
+      <group ref={slotA}>{slot(st.a)}</group>
+      <group ref={slotB} visible={false}>
+        {slot(st.b)}
+      </group>
+      {/* the scan line: a thin orange hoop just inside the rim, with a faint plane */}
+      <group ref={scan} visible={false}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[PLINTH * 0.965, PLINTH, 96]} />
+          <meshBasicMaterial ref={scanMat} color="#ff4f00" transparent depthWrite={false} toneMapped={false} side={THREE.DoubleSide} />
+        </mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[PLINTH * 0.965, 96]} />
+          <meshBasicMaterial color="#ff4f00" transparent opacity={0.045} depthWrite={false} toneMapped={false} side={THREE.DoubleSide} />
+        </mesh>
+      </group>
     </>
   );
 }
@@ -260,18 +488,26 @@ const CSS = `
 @media (prefers-reduced-motion:reduce){.ss-cover,.ss-uncover,.ss-fadeout{animation-duration:1ms}}
 `;
 
-/** What arrives when (ms), read from the island's own timeline so the log ticks with it. */
-const BUILD_STEPS = BUILD_LOG();
-const DONE_MS = BUILD_STEPS[BUILD_STEPS.length - 1][1];
+/** What arrives when (ms) per build-in, read from the island's own timeline so the log ticks with it. */
+const BUILD_STEPS = Object.fromEntries(BUILD_MODES.map((m) => [m.id, BUILD_LOG(m.id)])) as Record<BuildMode, [string, number][]>;
+const doneMs = (mode: BuildMode) => BUILD_STEPS[mode][BUILD_STEPS[mode].length - 1][1];
 
 export default function StartSequence() {
   const box = useRef<HTMLDivElement>(null);
   const [sel, setSel] = useState(0);
   const [phase, setPhase] = useState<Phase>("select");
   const [run, setRun] = useState(0); // bumps to replay
+  const [mode, setMode] = useState<BuildMode>("trace"); // which build-in plays after Enter
   const [down, setDown] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const v = VEHICLES[sel];
+  // the chosen livery per vehicle (index into its liveries), kept while you switch around
+  const [livs, setLivs] = useState<Record<string, number>>({});
+  const base = VEHICLES[sel];
+  const liv = livs[base.code] ?? 0;
+  const livery = base.liveries[liv];
+  const paint = (i: number) => setLivs((m) => ({ ...m, [base.code]: i }));
+  // stage B gets the vehicle already in its chosen livery
+  const v: Vehicle = { ...base, model: (l) => base.model(l ?? livery) };
 
   const go = () => {
     if (phase !== "select") return;
@@ -350,7 +586,7 @@ export default function StartSequence() {
             <div className="grid min-h-0 grid-cols-1 md:grid-cols-[1fr_300px]">
               <div data-cursor="drag" className="relative min-h-0 border-b-2 border-[#111] md:border-b-0 md:border-r-2">
                 <View className="absolute inset-0">
-                  <SelectScene key={v.code} v={v} />
+                  <SelectScene v={base} livery={livery} />
                 </View>
                 <span className="font-mono pointer-events-none absolute left-3 top-3 z-[25] bg-white px-1.5 py-0.5 text-[11.5px] shadow-[3px_3px_0_#111] ring-2 ring-[#111]">
                   {v.code} · Drag to turn
@@ -360,15 +596,46 @@ export default function StartSequence() {
               {/* spec column: decodes and counts on every switch */}
               <div key={v.code} data-anim="" data-run="" className="flex flex-col gap-4 p-4">
                 <div>
+                  {/* timed with the swap: the code as the old one leaves, the name with the scan line */}
                   <p className="font-mono text-[12px] text-[#ff4f00]">
-                    <Decode text={`${v.code} · ${v.kind}`} run delay={60} dur={300} />
+                    <Decode text={`${v.code} · ${v.kind}`} run delay={40} dur={260} />
                   </p>
                   <h3 className="mt-1 text-[34px] font-semibold leading-none tracking-tight">
-                    <Decode text={v.name} run delay={120} dur={380} />
+                    <Decode text={v.name} run delay={80} dur={360} />
                   </h3>
-                  <p className="dsa-rise mt-2.5 text-[14.5px] leading-relaxed text-[#5d5d58]" style={d(220)}>
+                  <p className="dsa-rise mt-2.5 text-[14.5px] leading-relaxed text-[#5d5d58]" style={d(180)}>
                     {v.line}
                   </p>
+                </div>
+                {/* livery: square swatches, the chosen one framed in ink */}
+                <div className="dsa-rise" style={d(220)}>
+                  <div className="flex items-baseline justify-between text-[12px] font-semibold uppercase tracking-[0.06em]">
+                    <span>Livery</span>
+                    <span className="font-mono text-[12px] normal-case tracking-normal text-[#5d5d58]">{livery.name}</span>
+                  </div>
+                  <div role="radiogroup" aria-label="Livery" className="mt-1.5 flex gap-2">
+                    {v.liveries.map((o, i) => {
+                      const on = i === liv;
+                      return (
+                        <button
+                          key={o.name}
+                          type="button"
+                          role="radio"
+                          aria-checked={on}
+                          aria-label={o.name}
+                          title={o.name}
+                          onClick={() => paint(i)}
+                          className={`relative h-8 w-8 border-2 border-[#111] p-[3px] transition-colors ${on ? "bg-[#111]" : "bg-white hover:bg-[#cfcdc4]"}`}
+                        >
+                          <span className="relative block h-full w-full overflow-hidden ring-1 ring-[#111]/25" style={{ background: o.body }}>
+                            <span className="absolute bottom-0 right-0 h-1/2 w-1/2" style={{ background: o.accent }} />
+                            <span className="absolute bottom-0 left-0 h-[3px] w-1/2" style={{ background: o.trim }} />
+                          </span>
+                          {on && <span className="absolute -bottom-[7px] left-1/2 h-[3px] w-3 -translate-x-1/2 bg-[#ff4f00]" />}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div className="mt-auto space-y-3">
                   {STATS.map((s, i) => (
@@ -376,12 +643,12 @@ export default function StartSequence() {
                       <div className="flex items-baseline justify-between text-[12px] font-semibold uppercase tracking-[0.06em]">
                         <span>{s}</span>
                         <span className="font-mono text-[13px]">
-                          <Count value={String(v.stats[i])} run delay={200 + i * 90} dur={600} />
+                          <Count value={String(v.stats[i])} run delay={140 + i * 70} dur={420} />
                         </span>
                       </div>
                       <div className="mt-1 h-[10px] border-2 border-[#111] bg-[#f3f2ed]">
                         <div className="h-full origin-left" style={{ width: `${v.stats[i]}%` }}>
-                          <div className="dsa-x h-full bg-[#111]" style={d(200 + i * 90)} />
+                          <div className="dsa-x h-full bg-[#111]" style={d(140 + i * 70)} />
                         </div>
                       </div>
                     </div>
@@ -426,7 +693,7 @@ export default function StartSequence() {
         ) : (
           <div key={`b${run}`} className="absolute inset-0">
             <View className="absolute inset-0">
-              <BuildScene v={v} />
+              <BuildScene v={v} mode={mode} />
             </View>
             {/* HUD over the build */}
             <div data-anim="" data-run="" className="pointer-events-none absolute inset-0 z-[25]">
@@ -435,7 +702,7 @@ export default function StartSequence() {
                   HG-08 / WORLD · <span className="text-[#ff4f00]">{v.code}</span>
                 </div>
                 <ol className="px-2 py-1.5">
-                  {BUILD_STEPS.map(([s, ms], i) => (
+                  {BUILD_STEPS[mode].map(([s, ms], i) => (
                     <li key={s} className="dsa-wipe font-mono flex justify-between text-[11.5px] leading-[1.7]" style={d(ms)}>
                       <span>
                         <span className="text-[#ff4f00]">{String(i + 1).padStart(2, "0")}</span> {s}
@@ -445,10 +712,10 @@ export default function StartSequence() {
                   ))}
                 </ol>
               </div>
-              <p className="ss-fadeout font-mono absolute bottom-16 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap text-[13px]" style={d(DONE_MS - 600)}>
+              <p className="ss-fadeout font-mono absolute bottom-16 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap text-[13px]" style={d(doneMs(mode) - 600)}>
                 Press <kbd className="x-key is-down">Enter</kbd> to drive
               </p>
-              <div className="dsa-flicker absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center border-2 border-[#111] bg-white shadow-[3px_3px_0_#111]" style={d(DONE_MS + 150)}>
+              <div className="dsa-flicker absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center border-2 border-[#111] bg-white shadow-[3px_3px_0_#111]" style={d(doneMs(mode) + 150)}>
                 <span className="font-mono bg-[#111] px-2 py-1 text-[12px] text-white">E</span>
                 <span className="px-2.5 py-1 text-[13px] font-semibold uppercase tracking-[0.06em]">
                   <span className="font-mono mr-1.5 text-[#ff4f00]">Z01</span>Start grid
@@ -465,6 +732,27 @@ export default function StartSequence() {
         <button type="button" onClick={replay} className="x-btn x-secondary">
           ↺ Replay {phase === "build" ? "build-in" : "select"}
         </button>
+        {/* which build-in plays after Enter; picking one mid-build replays it */}
+        <div role="group" aria-label="Build-in" className="flex items-stretch border-2 border-[#111] shadow-[3px_3px_0_#111]">
+          <span className="font-mono flex items-center bg-[#111] px-2 text-[11px] uppercase tracking-[0.06em] text-white">Build-in</span>
+          {BUILD_MODES.map((m, i) => {
+            const on = m.id === mode;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => {
+                  setMode(m.id);
+                  if (phase === "build") replay();
+                }}
+                className={`font-mono px-2.5 py-1.5 text-[12px] uppercase tracking-[0.06em] transition-colors ${i ? "border-l-2 border-[#111]" : ""} ${on ? "bg-[#111] text-white" : "bg-white hover:bg-[#f3f2ed]"}`}
+              >
+                <span className={on ? "text-[#ff4f00]" : "text-[#5d5d58]"}>{String(i + 1).padStart(2, "0")}</span> {m.label}
+              </button>
+            );
+          })}
+        </div>
         {phase === "build" && (
           <button type="button" onClick={back} className="x-btn x-secondary">
             {key("Escape", "Esc")} Back to select
