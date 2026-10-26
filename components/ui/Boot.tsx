@@ -17,6 +17,7 @@ export default function Boot() {
   const floor = useRef<HTMLDivElement>(null);
   const label = useRef<HTMLSpanElement>(null);
   const bar = useRef<HTMLSpanElement>(null);
+  const pct = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     // The bar is a CSS transition, so it keeps moving on the compositor while the main thread
@@ -36,7 +37,13 @@ export default function Boot() {
       raf = requestAnimationFrame(tick);
       const full = boot.out || boot.lit >= 1;
       const now = full ? "ready" : boot.stage;
-      if (label.current) label.current.textContent = full ? STAGE.ready : now === "world" ? STAGE.world : STAGE.shaders;
+      if (label.current) label.current.textContent = STAGE[now === "ready" ? "ready" : now === "world" ? "world" : "shaders"];
+      // the percent reads the bar's live (transitioning) scale, so it always matches what you see
+      if (b && pct.current) {
+        const m = getComputedStyle(b).transform;
+        const k = m.startsWith("matrix(") ? parseFloat(m.slice(7)) : 0;
+        pct.current.textContent = `${Math.floor((full && k > 0.995 ? 1 : k) * 100)}%`;
+      }
       if (now !== stage) {
         stage = now;
         if (now === "shaders") leg(0.88, 2.5);
@@ -71,12 +78,23 @@ export default function Boot() {
             <p className="mt-3 text-center font-mono text-[12px] text-graphite sm:text-[13px]">
               <Decode text={`HG-08 · ${profile.role} · ${profile.location}`} run={run} delay={1000} dur={600} />
             </p>
-            <div className="dsa-rise mt-10 w-[min(320px,80vw)]" style={d(1100)}>
-              <p className="mb-1.5 font-mono text-[12px]">
-                <span ref={label}>{STAGE.world}</span>
-              </p>
-              <div className="h-[6px] border border-ink">
-                <span ref={bar} className="block h-full origin-left bg-ink will-change-transform" style={{ transform: "scaleX(0)" }} />
+            {/* the same sticker as the power meter (Shift): key chip, label, percent, ink fill with an orange head */}
+            <div className="dsa-rise mt-10 w-[min(320px,80vw)] border-2 border-ink bg-white shadow-[3px_3px_0_var(--color-ink)]" style={d(1100)}>
+              <div className="flex items-center font-mono text-[12px]">
+                <span className="bg-ink px-2 py-1 text-white">BOOT</span>
+                <span className="px-2 py-1 font-semibold uppercase tracking-[0.06em]">
+                  · <span ref={label}>{STAGE.world}</span>
+                </span>
+                <span ref={pct} className="ml-auto px-2 py-1 font-semibold tabular-nums">
+                  0%
+                </span>
+              </div>
+              <div className="mx-2 mb-2 mt-1 border-2 border-ink bg-paper p-[2px]">
+                <div className="h-[8px]">
+                  <span ref={bar} className="relative block h-full origin-left bg-ink will-change-transform" style={{ transform: "scaleX(0)" }}>
+                    <span className="absolute inset-y-0 right-0 w-[12%] bg-signal" />
+                  </span>
+                </div>
               </div>
             </div>
           </>

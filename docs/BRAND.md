@@ -8,6 +8,7 @@ disagree, the page is what the owner approved; fix this file.
 
 | Date | Decision |
 |---|---|
+| 2026-10-26 | The whole world follows this design language. Where the approved proposal has no model for something, design one in Concrete & Ink (concrete, ink, paper, glass, muted grass, one orange accent per object, hard faceted forms); nothing stays in the old toy look. The boot loading bar is the power-meter sticker: BOOT key chip, stage label, percent, ink fill with an orange head. |
 | 2026-10-26 | World approved ("Everything looks good"): Concrete & Ink palette and models W02–W10, the four vehicles and five liveries (they replace W01), the start sequence and powers. Build order in ROADMAP step 11. |
 | 2026-10-26 | Select to build is one continuous shot, no black wipe. On Enter (0.9 s) the garage chrome slides off (header up, spec column right, cards down), the turntable turns the vehicle to its grid heading, the camera glides onto the bloom's first frame and the dotted paper floor fades in. The build scene starts on that exact frame with the same plinth under the car, which sinks into the ground as the world blooms. In the select view the 3D spans the whole mock under the chrome; a camera view offset keeps the vehicle framed in its cell. |
 | 2026-10-26 | Tyres must read solid from the front and back, never hollow: every tyre closes its bore (inner wall at the rim radius plus a web across the middle). |
