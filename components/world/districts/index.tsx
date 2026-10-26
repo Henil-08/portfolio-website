@@ -39,7 +39,7 @@ function onGround(kind: MovableKind) {
 
 export default function Districts() {
   const vc = mat("#ffffff", { r: 0.8, vc: true });
-  const props = useMemo(() => ({ lantern: lanternGeo(), light: lanternLightGeo(), bench: benchGeo(), crate: new RoundedBoxGeometry(1, 1, 1, 2, 0.08), slab: new RoundedBoxGeometry(1, 1, 1, 2, 0.3), flower: flowerGeometry(), rock: new THREE.IcosahedronGeometry(1, 0), fence: fenceGeo(), tuft: tuftGeometry(), reed: reedGeometry(), pad: padGeometry() }), []);
+  const props = useMemo(() => ({ lantern: lanternGeo(), light: lanternLightGeo(), bench: benchGeo(), crate: new RoundedBoxGeometry(1, 1, 1, 2, 0.08), slab: new THREE.BoxGeometry(1, 1, 1), flower: flowerGeometry(), rock: new THREE.IcosahedronGeometry(1, 0), fence: fenceGeo(), tuft: tuftGeometry(), reed: reedGeometry(), pad: padGeometry() }), []);
   const lilies = useMemo(() => ({ m: WATERSIDE.flowers }), []);
   const fences = useMemo(() => ({ m: [...DUNES.fences, ...PARK.fences] }), []);
   const lanterns = useMemo(() => ({ m: [...OLD_TOWN.lanterns, ...HARBOUR.lanterns, ...PARK.lanterns] }), []);

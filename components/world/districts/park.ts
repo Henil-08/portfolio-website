@@ -1,6 +1,6 @@
 // The park's common ground between the place islands, dressed the way
 // folio-2025 (MIT, see public/vendor/LICENSE.md) dresses its park: stepping-slab
-// paths between the islands (the original's terrain's two-tone slabs, toned to our palette), the original's
+// paths between the islands (the original's terrain's slabs, as hard-edged concrete), the original's
 // lanterns where a path reaches an island, the original's benches beside the paths, small
 // wildflower clusters on the verges (Flowers.js, see ./hills.ts) and a run of the original's
 // fence round the north side of the football island. Pure data, read by ./index.tsx.
@@ -14,9 +14,10 @@ import { PROP_SCALE, propFoot } from "../models/props/kit";
 import { ISLANDS, islandDist } from "../park/layout";
 import { C } from "../palette";
 
-// gravel-toned slabs, with the run-off and shores
-const TONES = ["#cdc4b0", "#c3baa5", "#d6cfbe", "#bdb4a0"].map((c) => new THREE.Color(c));
-const PETALS = [C.white, C.white, C.cream, C.pink, C.yellow].map((c) => new THREE.Color(c));
+// concrete stepping slabs (Concrete & Ink), a few tones from concrete to concrete dark
+const TONES = [C.concrete, "#cfccc3", "#c6c2b8", C.concreteDark].map((c) => new THREE.Color(c));
+// muted wildflowers: paper and pale concrete
+const PETALS = [C.paper, C.paper, C.cream, C.concrete].map((c) => new THREE.Color(c));
 
 const at = (id: ZoneId) => zoneById[id].pos;
 const isl = (i: number) => [ISLANDS[i].x, ISLANDS[i].z] as [number, number];
@@ -90,13 +91,13 @@ export const PARK = (() => {
       const [x, z] = point(t);
       if (!onSand(x, z)) continue;
       on.push(t);
-      // two slabs a row, staggered, each a little turned
-      for (const side of [-0.42, 0.42]) {
-        const jx = x - dz * (side + (r() - 0.5) * 0.18);
-        const jz = z + dx * (side + (r() - 0.5) * 0.18);
-        const w = 0.7 + r() * 0.25;
-        const d = 0.55 + r() * 0.25;
-        slabs.m.push(compose(jx, heightAt(jx, jz) + 0.015, jz, yaw + (r() - 0.5) * 0.35, w, 0.07, d));
+      // two hard-edged precast slabs a row, square to the path, a hair staggered
+      for (const side of [-0.45, 0.45]) {
+        const jx = x - dz * (side + (r() - 0.5) * 0.06);
+        const jz = z + dx * (side + (r() - 0.5) * 0.06);
+        const w = 0.62 + r() * 0.1;
+        const d = 0.8 + r() * 0.06;
+        slabs.m.push(compose(jx, heightAt(jx, jz) + 0.015, jz, yaw + (r() - 0.5) * 0.06, w, 0.07, d));
         slabs.c.push(TONES[Math.floor(r() * TONES.length)]);
       }
     }
