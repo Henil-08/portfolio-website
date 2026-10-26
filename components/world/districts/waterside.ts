@@ -1,5 +1,6 @@
-// By the water: reeds with cattails and a few rocks round the spring lake and
-// along the river banks, lily pads (one in a few in flower) floating on the lake.
+// By the water, in Concrete & Ink: faceted reeds (leaf-toned blades and a few slim seed
+// spikes) and concrete-toned rocks round the spring lake and along the river banks, and
+// hexagonal lily pads (one in a few in flower) floating on the lake.
 // Pure data, read by ./index.tsx.
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
@@ -22,7 +23,7 @@ function waterEdge(x: number, z: number) {
   return Math.max(canalDist(RIVER, x, z), ...LAKES.map((l) => lakeDepthDist(l, x, z)));
 }
 
-/** Reeds: a dozen tall green blades and three brown cattail heads, vertex coloured. */
+/** Reeds: a dozen tall three-sided blades and three seed spikes on stems, vertex coloured, muted. */
 export function reedGeometry() {
   const r = rng(515);
   const parts: THREE.BufferGeometry[] = [];
@@ -42,32 +43,33 @@ export function reedGeometry() {
     g.rotateZ((r() - 0.5) * 0.5);
     g.rotateY(r() * Math.PI * 2);
     g.translate((r() - 0.5) * 0.3, 0, (r() - 0.5) * 0.3);
-    parts.push(paint(g, r() < 0.5 ? "#6f8a55" : "#829a62"));
+    parts.push(paint(g, r() < 0.5 ? "#5c6a4b" : "#73805c")); // leaf dark / leaf
   }
   for (let i = 0; i < 3; i++) {
     const h = 1.1 + r() * 0.35;
     const stem = new THREE.CylinderGeometry(0.012, 0.012, h, 4);
     stem.translate(0, h / 2, 0);
-    const head = new THREE.CapsuleGeometry(0.045, 0.16, 2, 6);
+    // a hard four-sided seed spike, not a soft cattail
+    const head = new THREE.CylinderGeometry(0.03, 0.04, 0.2, 4);
     head.translate(0, h + 0.05, 0);
     const ox = (r() - 0.5) * 0.25;
     const oz = (r() - 0.5) * 0.25;
     stem.translate(ox, 0, oz);
     head.translate(ox, 0, oz);
-    parts.push(paint(stem, "#7d915a"), paint(head, "#7a5236"));
+    parts.push(paint(stem, "#8b9270"), paint(head, "#a9a08c")); // sage stem, dry gravel-toned spike
   }
   return mergeGeometries(parts);
 }
 
-/** A lily pad: a flat disc with its notch. */
+/** A lily pad: a flat faceted disc with its notch. */
 export function padGeometry() {
-  const g = new THREE.CircleGeometry(0.34, 14, 0.35, Math.PI * 2 - 0.7);
+  const g = new THREE.CircleGeometry(0.34, 6, 0.35, Math.PI * 2 - 0.7);
   g.rotateX(-Math.PI / 2);
   return g;
 }
 
-const STONE = ["#bfb8ad", "#b1aa9f", "#c9c2b6"].map((c) => new THREE.Color(c));
-const PADS = ["#6f9677", "#7fa480", "#5f8a69"].map((c) => new THREE.Color(c));
+const STONE = ["#d9d6ce", "#c6c2b8", "#b8b4a9"].map((c) => new THREE.Color(c)); // concrete to concrete dark
+const PADS = ["#5c6a4b", "#73805c", "#68755a"].map((c) => new THREE.Color(c)); // leaf tones
 
 export const WATERSIDE = (() => {
   const r = rng(9090);

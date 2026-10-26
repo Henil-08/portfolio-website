@@ -39,8 +39,8 @@ export function flowerGeometry() {
   return g;
 }
 
-const PETALS = [C.white, C.white, C.white, C.cream, C.pink, C.yellow].map((c) => new THREE.Color(c));
-const STONE = ["#bfb8ad", "#b1aa9f", "#c9c2b6", "#a9a398"].map((c) => new THREE.Color(c));
+const PETALS = [C.paper, C.paper, C.paper, C.cream, C.concrete].map((c) => new THREE.Color(c)); // muted: paper and pale concrete
+const STONE = [C.concrete, "#c6c2b8", C.concreteDark, "#a9a59b"].map((c) => new THREE.Color(c));
 
 export const HILLS = (() => {
   const r = rng(4242);
