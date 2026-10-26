@@ -1,9 +1,9 @@
 "use client";
 
-// The harbour bridge: where the west sweepers cross the harbour arm, the road runs
-// on a stone deck with open water underneath. A thick deck edge under the road,
-// low parapets with a sand coping (they stop the car too), solid abutments where
-// it meets the banks and two slim piers in the channel.
+// The harbour bridge, in Concrete & Ink: where the track crosses the water, the road
+// runs on a concrete deck with open water underneath. A thick deck edge under the road,
+// low concrete parapets with a paper coping (they stop the car too), solid abutments
+// where it meets the banks and two slim piers in the channel.
 import { useMemo } from "react";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
@@ -135,8 +135,9 @@ function build() {
 
 export default function Harbour() {
   const parts = useMemo(() => build(), []);
-  const stone = mat(C.rock, { r: 0.9 });
-  const coping = mat(C.sand, { r: 0.85 });
+  const stone = mat(C.concreteDark, { r: 0.9 });
+  const wall = mat(C.concrete, { r: 0.9 });
+  const coping = mat(C.paper, { r: 0.85 });
   const bottom = SEA_Y - 1.6;
   return (
     <>
@@ -144,7 +145,7 @@ export default function Harbour() {
         <mesh key={`d${i}`} geometry={g} material={stone} castShadow receiveShadow />
       ))}
       {parts.walls.map((g, i) => (
-        <mesh key={`w${i}`} geometry={g} material={stone} castShadow receiveShadow />
+        <mesh key={`w${i}`} geometry={g} material={wall} castShadow receiveShadow />
       ))}
       {parts.caps.map((g, i) => (
         <mesh key={`c${i}`} geometry={g} material={coping} castShadow receiveShadow />
@@ -248,10 +249,10 @@ const QUAYS = (() => {
   return { walls, copes, bollards };
 })();
 
-/** Stone quay walls with a sand coping and iron bollards along the harbour's town side. */
+/** Concrete quay walls with a paper coping and ink bollards along a canal's quay side. */
 export function Quays() {
-  const stone = mat(C.rock, { r: 0.9 });
-  const coping = mat(C.sand, { r: 0.85 });
+  const stone = mat(C.concreteDark, { r: 0.9 });
+  const coping = mat(C.concrete, { r: 0.85 });
   return (
     <>
       {QUAYS.walls.map((g, i) => (
@@ -260,7 +261,7 @@ export function Quays() {
       {QUAYS.copes.map((g, i) => (
         <mesh key={`qc${i}`} geometry={g} material={coping} castShadow receiveShadow />
       ))}
-      <Instances geometry={unitCyl()} material={mat(C.charcoal, { r: 0.45, m: 0.4 })} batch={QUAYS.bollards} />
+      <Instances geometry={unitCyl()} material={mat(C.ink, { r: 0.6 })} batch={QUAYS.bollards} />
     </>
   );
 }

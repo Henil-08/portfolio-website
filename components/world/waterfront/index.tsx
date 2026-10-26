@@ -1,28 +1,31 @@
 "use client";
 
-// The waterfront along the south bay: a paved promenade with a railing on the
-// sea side, lamps that glow after dark and benches facing the water; a wooden
-// pier you can drive out onto; and little boats bobbing in the harbour and the
-// bay. Instanced or merged per material, so it stays a handful of draw calls.
+// The waterfront along the south bay, in Concrete & Ink: a concrete promenade with
+// an ink railing (paper top rail) on the sea side, lamps with a paper light box that
+// glows after dark and the district benches facing the water; a concrete pier on
+// graphite piles you can drive out onto, with one orange marker at its head; and
+// faceted boats bobbing in the bay. Instanced or merged per material, so it stays a
+// handful of draw calls.
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
-import { RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
+import { ConvexGeometry } from "three/examples/jsm/geometries/ConvexGeometry.js";
 import { SEA_FLOOR, SEA_Y, coastR } from "../layout";
 import { PIER, PIER_I, PIER_LAMP, PROMENADE, PROM_LAMPS, PROM_W, frame } from "./layout";
 import { heightAt } from "../terrain";
 import { dayNight } from "../daynight";
 import { C } from "../palette";
-import { geo, lowSphere, mat, unitBox, unitCyl } from "../models/props/shared";
+import { geo, mat, unitBox } from "../models/props/shared";
 import { compose } from "../street/common";
 import { PROP_SCALE } from "../models/props/kit";
 import { batch, Instances } from "../street/Instances";
+import { benchGeo } from "../districts/furniture";
 
 // ------------------------------------------------------------ promenade
 
-const STONE = "#ddd0b6";
-const STONE_EDGE = "#cbb895";
+const STONE = C.concrete;
+const STONE_EDGE = C.concreteDark;
 
 function promenadeGeometry() {
   const pave: number[] = [];
@@ -60,6 +63,7 @@ function Promenade() {
   const parts = useMemo(() => {
     const posts = batch();
     const rails = batch();
+    const tops = batch();
     const benches = batch();
     const off = PROM_W / 2 + 0.15;
     let prev: THREE.Vector3 | null = null;
@@ -73,13 +77,14 @@ function Promenade() {
       const x = PROMENADE[i][0] + f.nx * off;
       const z = PROMENADE[i][1] + f.nz * off;
       const y = heightAt(x, z) + 0.09;
-      posts.m.push(compose(x, y + 0.5, z, 0, 0.07, 1, 0.07));
+      posts.m.push(compose(x, y + 0.5, z, 0, 0.08, 1, 0.08));
       const here = new THREE.Vector3(x, y, z);
       if (prev) {
         const mid = prev.clone().add(here).multiplyScalar(0.5);
         const len = prev.distanceTo(here);
         const yaw = Math.atan2(-(here.z - prev.z), here.x - prev.x);
-        for (const ry of [0.95, 0.55]) rails.m.push(compose(mid.x, mid.y + ry, mid.z, yaw, len, 0.06, 0.06));
+        rails.m.push(compose(mid.x, mid.y + 0.55, mid.z, yaw, len, 0.05, 0.05));
+        tops.m.push(compose(mid.x, mid.y + 1.0, mid.z, yaw, len + 0.08, 0.07, 0.14));
       }
       prev = here;
     }
@@ -90,20 +95,20 @@ function Promenade() {
       const x = PROMENADE[i][0] - f.nx * (PROM_W / 2 - 0.45);
       const z = PROMENADE[i][1] - f.nz * (PROM_W / 2 - 0.45);
       const y = heightAt(x, z) + 0.05;
-      const yaw = Math.atan2(f.nx, f.nz); // local +z toward the sea
-      const s = PROP_SCALE;
-      benches.m.push(compose(x, y + 0.45 * s, z, yaw, 1.6 * s, 0.08 * s, 0.42 * s));
-      benches.m.push(compose(x - f.nx * 0.22 * s, y + 0.75 * s, z - f.nz * 0.22 * s, yaw, 1.6 * s, 0.36 * s, 0.07 * s));
+      const yaw = Math.atan2(f.nx, f.nz); // local +z toward the sea, the back toward -z
+      const k = 0.68 * PROP_SCALE;
+      benches.m.push(compose(x, y + 0.78 * k, z, yaw, k, k, k));
     }
-    return { posts, rails, benches };
+    return { posts, rails, tops, benches };
   }, []);
   return (
     <>
       <mesh geometry={g.pave} material={mat(STONE, { r: 0.9, side: THREE.DoubleSide })} receiveShadow />
       <mesh geometry={g.edge} material={mat(STONE_EDGE, { r: 0.85, side: THREE.DoubleSide })} receiveShadow />
-      <Instances geometry={unitCyl()} material={mat(C.charcoal, { r: 0.45, m: 0.3 })} batch={parts.posts} />
-      <Instances geometry={unitBox()} material={mat(C.charcoal, { r: 0.45, m: 0.3 })} batch={parts.rails} />
-      <Instances geometry={unitBox()} material={mat(C.wood, { r: 0.7 })} batch={parts.benches} />
+      <Instances geometry={unitBox()} material={mat(C.ink, { r: 0.6 })} batch={parts.posts} />
+      <Instances geometry={unitBox()} material={mat(C.ink, { r: 0.6 })} batch={parts.rails} />
+      <Instances geometry={unitBox()} material={mat(C.paper, { r: 0.8 })} batch={parts.tops} />
+      <Instances geometry={benchGeo()} material={mat("#ffffff", { r: 0.8, vc: true })} batch={parts.benches} />
     </>
   );
 }
@@ -111,32 +116,34 @@ function Promenade() {
 // ------------------------------------------------------------ lamps
 
 const LAMP_H = 3.4;
-/** Owned here, so it is safe to animate: dim by day, warm and blooming at night. */
-const globeMat = new THREE.MeshStandardMaterial({ color: "#fff1dc", emissive: new THREE.Color("#ffc47e"), emissiveIntensity: 0.15, roughness: 0.35, toneMapped: false });
+/** Owned here, so it is safe to animate: a paper box, dim by day, glowing at night. */
+const globeMat = new THREE.MeshStandardMaterial({ color: C.paper, emissive: new THREE.Color("#fff3dc"), emissiveIntensity: 0.15, roughness: 0.5, toneMapped: false });
 
 function Lamps() {
   const parts = useMemo(() => {
+    // a concrete foot, a square ink pole, a paper light box under a thin ink cap
+    const feet = batch();
     const poles = batch();
     const globes = batch();
-    for (const [x, z] of PROM_LAMPS) {
-      const y = heightAt(x, z) + 0.05;
-      poles.m.push(compose(x, y + LAMP_H / 2, z, 0, 0.06, LAMP_H, 0.06));
-      poles.m.push(compose(x, y + 0.12, z, 0, 0.16, 0.24, 0.16));
-      globes.m.push(compose(x, y + LAMP_H + 0.2, z, 0, 0.24, 0.26, 0.24));
-    }
+    const lamp = (x: number, y: number, z: number) => {
+      feet.m.push(compose(x, y + 0.12, z, 0, 0.34, 0.24, 0.34));
+      poles.m.push(compose(x, y + LAMP_H / 2, z, 0, 0.1, LAMP_H, 0.1));
+      poles.m.push(compose(x, y + LAMP_H + 0.4, z, 0, 0.36, 0.05, 0.36));
+      globes.m.push(compose(x, y + LAMP_H + 0.2, z, 0, 0.28, 0.34, 0.28));
+    };
+    for (const [x, z] of PROM_LAMPS) lamp(x, heightAt(x, z) + 0.05, z);
     // and one at the end of the pier
-    const [ex, ez] = PIER_LAMP;
-    poles.m.push(compose(ex, PIER.y + LAMP_H / 2, ez, 0, 0.06, LAMP_H, 0.06));
-    globes.m.push(compose(ex, PIER.y + LAMP_H + 0.2, ez, 0, 0.24, 0.26, 0.24));
-    return { poles, globes };
+    lamp(PIER_LAMP[0], PIER.y, PIER_LAMP[1]);
+    return { feet, poles, globes };
   }, []);
   useFrame(() => {
     globeMat.emissiveIntensity = 0.15 + dayNight.night * 2.8;
   });
   return (
     <>
-      <Instances geometry={unitCyl()} material={mat(C.charcoal, { r: 0.45, m: 0.35 })} batch={parts.poles} />
-      <Instances geometry={lowSphere()} material={globeMat} batch={parts.globes} shadow={false} />
+      <Instances geometry={unitBox()} material={mat(C.concreteDark, { r: 0.9 })} batch={parts.feet} />
+      <Instances geometry={unitBox()} material={mat(C.ink, { r: 0.6 })} batch={parts.poles} />
+      <Instances geometry={unitBox()} material={globeMat} batch={parts.globes} shadow={false} />
     </>
   );
 }
@@ -148,13 +155,17 @@ function Pier() {
     const planks = batch();
     const piles = batch();
     const rails = batch();
+    const tops = batch();
+    const marker = batch();
     const yaw = Math.atan2(-PIER.dz, PIER.dx); // local +x along the pier
-    for (let k = 0; k < PIER.len / 0.5; k++) {
-      const d = 0.25 + k * 0.5;
+    // precast concrete deck slabs with a dark joint between them
+    const SLAB = 2;
+    for (let k = 0; k < PIER.len / SLAB; k++) {
+      const d = SLAB / 2 + k * SLAB;
       const x = PIER.x + PIER.dx * d;
       const z = PIER.z + PIER.dz * d;
-      planks.m.push(compose(x, PIER.y, z, yaw, 0.44, 0.1, PIER.w));
-      planks.c.push(new THREE.Color(k % 3 ? C.wood : "#a98668"));
+      planks.m.push(compose(x, PIER.y, z, yaw, SLAB - 0.06, 0.14, PIER.w));
+      planks.c.push(new THREE.Color(k % 2 ? C.concrete : "#cfccc3"));
     }
     const sx = -PIER.dz;
     const sz = PIER.dx;
@@ -163,24 +174,32 @@ function Pier() {
         const x = PIER.x + PIER.dx * d + sx * s * (PIER.w / 2 - 0.1);
         const z = PIER.z + PIER.dz * d + sz * s * (PIER.w / 2 - 0.1);
         const bottom = SEA_FLOOR - 0.2;
-        piles.m.push(compose(x, (PIER.y + bottom) / 2, z, 0, 0.14, PIER.y - bottom, 0.14));
-        piles.m.push(compose(x, PIER.y + 0.5, z, 0, 0.07, 1, 0.07));
+        piles.m.push(compose(x, (PIER.y + bottom) / 2, z, yaw, 0.26, PIER.y - bottom, 0.26));
+        rails.m.push(compose(x, PIER.y + 0.5, z, yaw, 0.08, 1, 0.08));
       }
     }
     for (const s of [-1, 1]) {
       const cx = PIER.x + PIER.dx * (PIER.len / 2 + 0.5) + sx * s * (PIER.w / 2 - 0.1);
       const cz = PIER.z + PIER.dz * (PIER.len / 2 + 0.5) + sz * s * (PIER.w / 2 - 0.1);
-      rails.m.push(compose(cx, PIER.y + 0.95, cz, yaw, PIER.len - 1, 0.07, 0.07));
-      rails.m.push(compose(cx, PIER.y + 0.55, cz, yaw, PIER.len - 1, 0.06, 0.06));
+      tops.m.push(compose(cx, PIER.y + 1.0, cz, yaw, PIER.len - 1, 0.07, 0.14));
+      rails.m.push(compose(cx, PIER.y + 0.55, cz, yaw, PIER.len - 1, 0.05, 0.05));
     }
-    return { planks, piles, rails, yaw };
+    // the pier head: an ink rail across the end with one orange marker board on it
+    const hx = PIER.x + PIER.dx * (PIER.len - 0.1);
+    const hz = PIER.z + PIER.dz * (PIER.len - 0.1);
+    tops.m.push(compose(hx, PIER.y + 1.0, hz, yaw, 0.14, 0.07, PIER.w - 0.1));
+    rails.m.push(compose(hx, PIER.y + 0.55, hz, yaw, 0.05, 0.05, PIER.w - 0.1));
+    marker.m.push(compose(hx + PIER.dx * 0.06, PIER.y + 0.78, hz + PIER.dz * 0.06, yaw, 0.04, 0.34, 0.7));
+    return { planks, piles, rails, tops, marker, yaw };
   }, []);
   const mid = { x: PIER.x + PIER.dx * (PIER.len / 2), z: PIER.z + PIER.dz * (PIER.len / 2) };
   return (
     <>
-      <Instances geometry={unitBox()} material={mat("#ffffff", { r: 0.8 })} batch={parts.planks} />
-      <Instances geometry={unitCyl()} material={mat(C.woodDark, { r: 0.8 })} batch={parts.piles} />
-      <Instances geometry={unitBox()} material={mat(C.woodDark, { r: 0.7 })} batch={parts.rails} />
+      <Instances geometry={unitBox()} material={mat("#ffffff", { r: 0.9 })} batch={parts.planks} />
+      <Instances geometry={unitBox()} material={mat(C.charcoal, { r: 0.8 })} batch={parts.piles} />
+      <Instances geometry={unitBox()} material={mat(C.ink, { r: 0.6 })} batch={parts.rails} />
+      <Instances geometry={unitBox()} material={mat(C.paper, { r: 0.8 })} batch={parts.tops} />
+      <Instances geometry={unitBox()} material={mat(C.red, { r: 0.6 })} batch={parts.marker} />
       <RigidBody type="fixed" colliders={false} position={[mid.x, PIER.y - 0.05, mid.z]} rotation={[0, parts.yaw, 0]}>
         <CuboidCollider args={[PIER.len / 2, 0.08, PIER.w / 2]} friction={1} />
         <CuboidCollider args={[PIER.len / 2, 0.5, 0.06]} position={[0, 0.55, PIER.w / 2 - 0.1]} />
@@ -195,31 +214,30 @@ function Pier() {
 
 // ------------------------------------------------------------ boats
 
-type Boat = { x: number; z: number; yaw: number; hull: string; cabin: string; sail: boolean; s: number; phase: number };
+type Boat = { x: number; z: number; yaw: number; hull: string; top: string; sail: boolean; s: number; phase: number };
 
 const BOATS: Boat[] = (() => {
   const out: Boat[] = [];
   const sx = -PIER.dz;
   const sz = PIER.dx;
-  out.push({ x: PIER.x + PIER.dx * 9 + sx * 3.4, z: PIER.z + PIER.dz * 9 + sz * 3.4, yaw: Math.atan2(-PIER.dz, PIER.dx), hull: C.cream, cabin: "#9fb79a", sail: false, s: 1, phase: 0.6 });
-  out.push({ x: PIER.x + PIER.dx * 14 - sx * 3.6, z: PIER.z + PIER.dz * 14 - sz * 3.6, yaw: Math.atan2(-PIER.dz, PIER.dx) + 0.2, hull: "#d9826b", cabin: C.cream, sail: true, s: 1.1, phase: 2.3 });
+  out.push({ x: PIER.x + PIER.dx * 9 + sx * 3.4, z: PIER.z + PIER.dz * 9 + sz * 3.4, yaw: Math.atan2(-PIER.dz, PIER.dx), hull: C.paper, top: C.ink, sail: false, s: 1, phase: 0.6 });
+  out.push({ x: PIER.x + PIER.dx * 14 - sx * 3.6, z: PIER.z + PIER.dz * 14 - sz * 3.6, yaw: Math.atan2(-PIER.dz, PIER.dx) + 0.2, hull: C.ink, top: C.paper, sail: true, s: 1.1, phase: 2.3 });
   const a = (70 * Math.PI) / 180;
   const r = coastR(a) + 16;
-  out.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, yaw: 1.2, hull: C.white, cabin: C.cream, sail: true, s: 1.4, phase: 4.1 });
+  out.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, yaw: 1.2, hull: C.charcoal, top: C.paper, sail: true, s: 1.4, phase: 4.1 });
   return out;
 })();
 
+/** A hard-chined hull: the deck outline with a pointed bow over a narrower flat keel, flat shaded. */
 const hullGeo = () =>
-  geo("boat-hull", () => {
-    // a soft bowl: the bottom half of a sphere, stretched long, with a pointed bow
-    const g = new THREE.SphereGeometry(1, 24, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2);
-    const p = g.attributes.position;
-    for (let i = 0; i < p.count; i++) {
-      const x = p.getX(i);
-      p.setX(i, x > 0 ? x * (1 + 0.35 * (1 - Math.abs(p.getZ(i)))) : x);
-    }
-    g.scale(1.7, 0.55, 0.75);
-    g.computeVertexNormals();
+  geo("boat-hull-ci", () => {
+    const deck: [number, number][] = [[-1.7, 0.68], [-0.4, 0.78], [0.8, 0.7], [1.95, 0]];
+    const keel: [number, number][] = [[-1.55, 0.42], [0.5, 0.42], [1.45, 0]];
+    const pts: THREE.Vector3[] = [];
+    for (const [x, z] of deck) pts.push(new THREE.Vector3(x, 0, z), new THREE.Vector3(x, 0, -z));
+    for (const [x, z] of keel) pts.push(new THREE.Vector3(x, -0.5, z), new THREE.Vector3(x, -0.5, -z));
+    const g = new ConvexGeometry(pts);
+    g.deleteAttribute("uv");
     return g;
   });
 const sailGeo = () =>
@@ -238,24 +256,27 @@ function BoatModel({ b }: { b: Boat }) {
     const g = ref.current;
     if (!g) return;
     const t = clock.elapsedTime + b.phase;
-    g.position.y = SEA_Y + 0.05 + Math.sin(t * 1.1) * 0.05;
+    g.position.y = SEA_Y + 0.4 + Math.sin(t * 1.1) * 0.05;
     g.rotation.z = Math.sin(t * 0.9) * 0.04;
     g.rotation.x = Math.sin(t * 0.7 + 1) * 0.03;
   });
   return (
     <group position={[b.x, SEA_Y, b.z]} rotation={[0, b.yaw, 0]}>
       <group ref={ref} scale={b.s}>
-        <mesh geometry={hullGeo()} rotation={[Math.PI, 0, 0]} position={[0, 0.02, 0]} material={mat(b.hull, { r: 0.45 })} castShadow />
-        {/* deck rim stripe */}
-        <mesh position={[0, 0.06, 0]} scale={[1.75, 0.06, 0.78]} geometry={unitCyl()} material={mat(C.red, { r: 0.4 })} />
-        <mesh position={[0, 0.09, 0]} scale={[1.6, 0.05, 0.7]} geometry={unitCyl()} material={mat(C.wood, { r: 0.7 })} />
+        <mesh geometry={hullGeo()} material={mat(b.hull, { r: 0.6, flat: true })} castShadow />
+        {/* the one orange: a rubbing strake round the gunwale */}
+        <mesh geometry={hullGeo()} position={[0, 0.005, 0]} scale={[1.02, 0.12, 1.05]} material={mat(C.red, { r: 0.5, flat: true })} />
+        <mesh geometry={hullGeo()} position={[0, 0.05, 0]} scale={[0.92, 0.06, 0.86]} material={mat(C.concrete, { r: 0.9, flat: true })} />
         {b.sail ? (
           <>
-            <mesh position={[0.15, 1.6, 0]} scale={[0.04, 3.1, 0.04]} geometry={unitCyl()} material={mat(C.woodDark, { r: 0.6 })} castShadow />
-            <mesh geometry={sailGeo()} position={[0.2, 0.35, 0]} material={mat(C.cream, { r: 0.8, side: THREE.DoubleSide })} castShadow />
+            <mesh position={[0.15, 1.6, 0]} scale={[0.06, 3.1, 0.06]} geometry={unitBox()} material={mat(C.ink, { r: 0.6 })} castShadow />
+            <mesh geometry={sailGeo()} position={[0.2, 0.35, 0]} material={mat(b.top, { r: 0.8, side: THREE.DoubleSide })} castShadow />
           </>
         ) : (
-          <RoundedBox args={[0.9, 0.55, 0.85]} radius={0.12} smoothness={2} position={[-0.3, 0.38, 0]} material={mat(b.cabin, { r: 0.55 })} castShadow />
+          <>
+            <mesh position={[-0.35, 0.38, 0]} scale={[1.0, 0.6, 0.9]} geometry={unitBox()} material={mat(b.top, { r: 0.6 })} castShadow />
+            <mesh position={[0.16, 0.44, 0]} scale={[0.04, 0.26, 0.76]} geometry={unitBox()} material={mat(C.glass, { r: 0.2, m: 0.3 })} />
+          </>
         )}
       </group>
     </group>
