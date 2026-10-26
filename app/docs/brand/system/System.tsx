@@ -370,25 +370,25 @@ function Tabs() {
   );
 }
 
-// I09: five cursor styles to live with. The page never moves; only the cursor changes form over
-// clickable things. Picking one sets <html data-cursor-style> and saves it in this browser.
+// I09: the small square, with two hover behaviours to pick from. The page never moves; only the
+// cursor changes over clickable things. Picking one sets <html data-cursor-style> and saves it in this browser.
 const subscribeStyle = (fn: () => void) => {
   const mo = new MutationObserver(fn);
   mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-cursor-style"] });
   return () => mo.disconnect();
 };
-const readStyle = () => document.documentElement.dataset.cursorStyle ?? "1";
+const readStyle = () => document.documentElement.dataset.cursorStyle ?? "a";
 
 function CursorLab() {
-  const style = useSyncExternalStore(subscribeStyle, readStyle, () => "1");
+  const style = useSyncExternalStore(subscribeStyle, readStyle, () => "a");
   const i = Math.max(0, CURSOR_STYLES.findIndex((s) => s.id === style));
   return (
-    <div className="space-y-5">
-      <div className="relative grid grid-cols-5 border-2 border-[#111] bg-white">
-        <span className="absolute inset-y-0 left-0 w-1/5 bg-[#111] transition-transform duration-200 ease-[cubic-bezier(.6,0,.2,1)]" style={{ transform: `translateX(${i * 100}%)` }} />
+    <div data-lab="cursor" className="space-y-5">
+      <div className="relative grid max-w-md grid-cols-2 border-2 border-[#111] bg-white">
+        <span className="absolute inset-y-0 left-0 w-1/2 bg-[#111] transition-transform duration-200 ease-[cubic-bezier(.6,0,.2,1)]" style={{ transform: `translateX(${i * 100}%)` }} />
         {CURSOR_STYLES.map((s, j) => (
           <button key={s.id} type="button" aria-pressed={i === j} onClick={() => setCursorStyle(s.id)} className={`font-mono relative px-2 py-2 text-[12px] uppercase tracking-[0.06em] transition-colors ${i === j ? "text-white" : "text-[#111]"}`}>
-            <span className={i === j ? "text-[#ff4f00]" : "text-[#5d5d58]"}>{s.code}</span> {s.name}
+            <span className={i === j ? "text-[#ff4f00]" : "text-[#5d5d58]"}>{s.code}</span> · {s.name}
           </button>
         ))}
       </div>
@@ -601,7 +601,7 @@ function Interactions() {
             </span>
           </div>
         </Panel>
-        <Panel code="I09" title="Cursor" note="Live on every page. Nothing on the page moves; the cursor itself changes form over anything clickable. An I-beam over text, DRAG over 3D views. Pick one of five; it is saved in this browser so you can carry it around the site. Mouse and pen only; touch keeps its own.">
+        <Panel code="I09" title="Cursor" note="Live on every page. The cursor is the small square; nothing on the page moves. Over anything clickable it either opens into an outline and fills orange (A), or flickers on as an orange square (B). An I-beam over text, DRAG over 3D views. Pick one; it is saved in this browser so you can carry it around the site. Mouse and pen only; touch keeps its own.">
           <CursorLab />
         </Panel>
       </div>

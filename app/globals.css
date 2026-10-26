@@ -247,7 +247,8 @@ body {
 
 
 /* --- the custom cursor (components/brand/Cursor.tsx, docs/BRAND.md I09). The page is left alone;
-   only the cursor changes form over clickable things. Five styles on html[data-cursor-style]. */
+   only the cursor changes over clickable things. The small square on the pointer, with two hover
+   behaviours on html[data-cursor-style]: a (border and fill, the default) and b (flicker). */
 @media (pointer: fine) {
   html.has-cursor,
   html.has-cursor * {
@@ -262,7 +263,6 @@ body {
   position: fixed;
   inset: 0;
   z-index: 2147483000;
-  --cur-t: 0.12s;
 }
 .cur-at {
   position: fixed;
@@ -275,22 +275,90 @@ body {
 .cur-at > * {
   position: absolute;
 }
-.cur-form,
-.cur-ibeam,
-.cur-ring {
+
+/* the square: 7 px ink with a 1 px paper outline, so it reads on paper, white, ink and the 3D world.
+   Odd sizes keep it on whole pixels; the centre sits on the pointer. Its ::after is the fill. */
+.cur-sq {
+  left: -3px;
+  top: -3px;
+  width: 7px;
+  height: 7px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--color-ink);
+  background: var(--color-ink);
+  box-shadow: 0 0 0 1px var(--color-paper);
+  transition: left 0.07s, top 0.07s, width 0.07s, height 0.07s, scale 0.06s;
+}
+.cur-sq::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--color-signal);
+  transform: scale(0);
+  transition: transform 0.05s;
+}
+.cursor-layer[data-down] .cur-sq {
+  scale: 0.8;
+}
+
+/* A · Border and fill: the square opens into a 15 px hollow ink outline (60 ms), with paper on both
+   sides of the line, then orange fills it from the centre (80 ms) inside a thin ink edge. */
+html[data-cursor-style="a"][data-cursor-mode="hover"] .cur-sq {
+  left: -7px;
+  top: -7px;
+  width: 15px;
+  height: 15px;
+  background: transparent;
+  box-shadow: 0 0 0 1px var(--color-paper), inset 0 0 0 1px var(--color-paper);
+  transition: left 0.06s cubic-bezier(0.2, 0.9, 0.3, 1), top 0.06s cubic-bezier(0.2, 0.9, 0.3, 1), width 0.06s cubic-bezier(0.2, 0.9, 0.3, 1),
+    height 0.06s cubic-bezier(0.2, 0.9, 0.3, 1), scale 0.06s;
+}
+html[data-cursor-style="a"][data-cursor-mode="hover"] .cur-sq::after {
+  transform: scale(1);
+  transition: transform 0.08s cubic-bezier(0.3, 0.7, 0.4, 1) 0.06s, background-color 0.05s;
+}
+html[data-cursor-style="a"][data-cursor-mode="hover"] .cursor-layer[data-down] .cur-sq::after {
+  background: var(--color-ink);
+}
+
+/* B · Flicker: the square jumps to 13 px and flickers on in steps, like dsa-flicker, settling as
+   a solid orange square with an ink edge. A press flashes it ink. */
+html[data-cursor-style="b"][data-cursor-mode="hover"] .cur-sq {
+  left: -6px;
+  top: -6px;
+  width: 13px;
+  height: 13px;
+  transition: scale 0.06s;
+  animation: cur-flicker 0.22s steps(1, end) both;
+}
+html[data-cursor-style="b"][data-cursor-mode="hover"] .cur-sq::after {
+  transform: scale(1);
+  transition: none;
+}
+html[data-cursor-style="b"][data-cursor-mode="hover"] .cursor-layer[data-down] .cur-sq {
+  scale: none;
+}
+html[data-cursor-style="b"][data-cursor-mode="hover"] .cursor-layer[data-down] .cur-sq::after {
+  animation: cur-flash 0.14s steps(1, end);
+}
+@keyframes cur-flicker {
+  0% { opacity: 0; }
+  17% { opacity: 1; }
+  34% { opacity: 0.15; }
+  51% { opacity: 1; }
+  68% { opacity: 0.4; }
+  85%, 100% { opacity: 1; }
+}
+@keyframes cur-flash {
+  0% { background-color: var(--color-ink); }
+  100% { background-color: var(--color-signal); }
+}
+
+/* over text: the I-beam instead of the square */
+.cur-ibeam {
   display: none;
 }
-html:not([data-cursor-style]) .cur-form[data-s="1"],
-html[data-cursor-style="1"] .cur-form[data-s="1"],
-html[data-cursor-style="2"] .cur-form[data-s="2"],
-html[data-cursor-style="3"] .cur-form[data-s="3"],
-html[data-cursor-style="4"] .cur-form[data-s="4"],
-html[data-cursor-style="5"] .cur-form[data-s="5"],
-html[data-cursor-style="5"] .cur-ring {
-  display: block;
-}
-/* over text every style is the same I-beam */
-html[data-cursor-mode="text"] .cur-form {
+html[data-cursor-mode="text"] .cur-sq {
   visibility: hidden;
 }
 html[data-cursor-mode="text"] .cur-ibeam {
@@ -308,224 +376,7 @@ html[data-cursor-mode="hidden"] .cursor-layer > * {
   opacity: 0 !important;
 }
 
-/* 1 · Mark: a 2x2 attention map (3 px cells) that opens into the 4x4 logo. The hotspot is the
-   top-left cell; the logo grows down and right on a paper plate so it reads on ink too. */
-.cur-mark {
-  left: -1.5px;
-  top: -1.5px;
-  transform-origin: 1.5px 1.5px;
-  transition: transform 0.08s;
-}
-.cur-mark > span {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 3px;
-  height: 3px;
-  background: var(--ic);
-  opacity: var(--io);
-  transform: translate(var(--x), var(--y)) scale(var(--is));
-  transition: transform 0.06s, opacity 0.06s, background-color 0.06s;
-}
-.cur-plate {
-  position: absolute;
-  left: -1px;
-  top: -1px;
-  width: 9px;
-  height: 9px;
-  background: var(--color-paper);
-  transition: width 0.1s, height 0.1s;
-}
-html[data-cursor-mode="hover"] .cur-mark > span {
-  background: var(--hc);
-  opacity: var(--ho);
-  transform: translate(var(--x), var(--y));
-  transition-delay: var(--d);
-}
-html[data-cursor-mode="hover"] .cur-plate {
-  width: 17px;
-  height: 17px;
-}
-.cursor-layer[data-down] .cur-mark {
-  transform: scale(0.7);
-}
-
-/* 2 · Reticle: a 6 px square that becomes four ticks round a gap with an orange centre */
-.cur-ret-sq {
-  position: absolute;
-  left: -3px;
-  top: -3px;
-  width: 6px;
-  height: 6px;
-  background: var(--color-ink);
-  outline: 1px solid var(--color-paper);
-  transition: all var(--cur-t);
-}
-.cur-ret-ticks {
-  position: absolute;
-  left: -9px;
-  top: -9px;
-  width: 18px;
-  height: 18px;
-  opacity: 0;
-  transform: rotate(45deg) scale(0.6);
-  transition: transform var(--cur-t) cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.08s;
-}
-.cur-ret-ticks > i {
-  position: absolute;
-  background: var(--color-ink);
-  outline: 1px solid var(--color-paper);
-  transition: translate 0.08s;
-}
-.cur-ret-ticks > [data-t="n"],
-.cur-ret-ticks > [data-t="s"] {
-  left: 8px;
-  width: 2px;
-  height: 4px;
-}
-.cur-ret-ticks > [data-t="e"],
-.cur-ret-ticks > [data-t="w"] {
-  top: 8px;
-  width: 4px;
-  height: 2px;
-}
-.cur-ret-ticks > [data-t="n"] { top: 0; }
-.cur-ret-ticks > [data-t="s"] { top: 14px; }
-.cur-ret-ticks > [data-t="w"] { left: 0; }
-.cur-ret-ticks > [data-t="e"] { left: 14px; }
-html[data-cursor-mode="hover"] .cur-ret-ticks {
-  opacity: 1;
-  transform: none;
-}
-html[data-cursor-mode="hover"] .cur-ret-sq {
-  left: -1.5px;
-  top: -1.5px;
-  width: 3px;
-  height: 3px;
-  background: var(--color-signal);
-}
-.cursor-layer[data-down] .cur-ret-ticks > [data-t="n"] { translate: 0 3px; }
-.cursor-layer[data-down] .cur-ret-ticks > [data-t="s"] { translate: 0 -3px; }
-.cursor-layer[data-down] .cur-ret-ticks > [data-t="w"] { translate: 3px 0; }
-.cursor-layer[data-down] .cur-ret-ticks > [data-t="e"] { translate: -3px 0; }
-
-/* 3 · Arrow: an angular ink arrow, its tip on the pointer. Over a clickable the tail turns orange and
-   a chip says where it goes. */
-.cur-arrow {
-  left: -2px;
-  top: -2px;
-  transition: translate 0.08s;
-}
-.cur-arrow svg {
-  display: block;
-  overflow: visible;
-}
-.cur-arrow path {
-  fill: var(--color-ink);
-  stroke: var(--color-paper);
-  stroke-width: 2;
-  stroke-linejoin: miter;
-  paint-order: stroke;
-  transition: fill var(--cur-t);
-}
-html[data-cursor-mode="hover"] .cur-arrow .cur-arrow-tail {
-  fill: var(--color-signal);
-}
-.cur-chip {
-  position: absolute;
-  left: 14px;
-  top: 9px;
-  padding: 2px;
-  background: var(--color-ink);
-  outline: 1px solid var(--color-paper);
-  opacity: 0;
-  transform: translate(-3px, -3px);
-  transition: opacity 0.08s, transform var(--cur-t);
-}
-.cur-chip > svg {
-  display: block;
-  fill: none;
-  stroke: var(--color-paper);
-  stroke-width: 1.4;
-  stroke-linecap: square;
-}
-.cur-chip > svg + svg,
-.cursor-layer[data-ext] .cur-chip > svg:first-child {
-  display: none;
-}
-.cursor-layer[data-ext] .cur-chip > svg + svg {
-  display: block;
-}
-html[data-cursor-mode="hover"] .cur-chip {
-  opacity: 1;
-  transform: none;
-}
-.cursor-layer[data-down] .cur-arrow {
-  translate: 2px 2px;
-}
-
-/* 4 · Caret: a slow-blinking terminal bar that fills into an orange block, a selected cell */
-.cur-caret {
-  left: -1px;
-  top: -8px;
-  width: 2px;
-  height: 16px;
-  background: var(--color-ink);
-  outline: 1px solid var(--color-paper);
-  animation: cur-blink 1.1s steps(1) infinite;
-  transition: width 0.09s, height 0.09s, top 0.09s, background-color 0.09s;
-}
-@keyframes cur-blink {
-  50% {
-    opacity: 0.25;
-  }
-}
-html[data-cursor-mode="hover"] .cur-caret {
-  top: -7px;
-  width: 10px;
-  height: 14px;
-  background: var(--color-signal);
-  animation: none;
-}
-.cursor-layer[data-down] .cur-caret {
-  background: var(--color-ink);
-}
-
-/* 5 · Ring: a 4 px dot on the pointer; a square ring eases out round it over a clickable */
-.cur-dot {
-  left: -2px;
-  top: -2px;
-  width: 4px;
-  height: 4px;
-  background: var(--color-ink);
-  outline: 1px solid var(--color-paper);
-  transition: background-color 0.08s;
-}
-html[data-cursor-mode="hover"] .cur-dot {
-  background: var(--color-signal);
-}
-.cur-ring {
-  left: 0;
-  top: 0;
-  width: 10px;
-  height: 10px;
-  translate: -50% -50%;
-  border: 1.5px solid var(--color-ink);
-  box-shadow: 0 0 0 1px var(--color-paper);
-  opacity: 0;
-  transition: width var(--cur-t) cubic-bezier(0.2, 0.9, 0.3, 1), height var(--cur-t) cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.08s;
-}
-html[data-cursor-mode="hover"] .cur-ring {
-  width: 26px;
-  height: 26px;
-  opacity: 1;
-}
-html[data-cursor-mode="hover"] .cursor-layer[data-down] .cur-ring {
-  width: 18px;
-  height: 18px;
-}
-
-/* every style: DRAG beside the idle form over 3D views */
+/* DRAG beside the square over 3D views */
 .cursor-tag {
   opacity: 0;
   padding: 2px 6px;
@@ -542,13 +393,14 @@ html[data-cursor-mode="hover"] .cursor-layer[data-down] .cur-ring {
 html[data-cursor-mode="drag"] .cursor-tag {
   opacity: 1;
 }
+
+/* reduced motion: no easing and no flicker, just the end state */
 @media (prefers-reduced-motion: reduce) {
   .cursor-layer *,
-  html[data-cursor-mode="hover"] .cur-mark > span {
+  .cursor-layer *::after,
+  html[data-cursor-mode] .cursor-layer .cur-sq,
+  html[data-cursor-mode] .cursor-layer .cur-sq::after {
     transition: none !important;
     animation: none !important;
-  }
-  .cur-ret-ticks {
-    transform: none;
   }
 }
