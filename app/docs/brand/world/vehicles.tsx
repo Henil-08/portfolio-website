@@ -241,7 +241,11 @@ function aerofoil(c: number, th: number, w: number) {
   );
 }
 
-/** A tyre as a lathe: rounded shoulders, axis along y (rotate the parent to put it on x). */
+/**
+ * A tyre as a lathe: rounded shoulders, axis along y (rotate the parent to put it on x). The bore
+ * is closed (an inner wall at the rim radius and a web across the middle), so it reads solid from
+ * the front and back instead of hollow.
+ */
 function tyreGeo(r: number, w: number, rim: number, round = 0.25) {
   const sh = Math.min(w, r - rim) * round;
   const pts = [
@@ -254,7 +258,10 @@ function tyreGeo(r: number, w: number, rim: number, round = 0.25) {
     new THREE.Vector2(r - sh, w / 2),
     new THREE.Vector2(rim, w / 2),
   ];
-  return new THREE.LatheGeometry(pts.reverse(), 40);
+  const bore = new THREE.LatheGeometry([new THREE.Vector2(rim, -w / 2), new THREE.Vector2(rim, w / 2)], 40);
+  const web = (a: number) => new THREE.CircleGeometry(rim, 40).rotateX(a);
+  const parts = [new THREE.LatheGeometry(pts.reverse(), 40), bore, web(-Math.PI / 2), web(Math.PI / 2)];
+  return mergeGeometries(parts.map((g) => (g.index ? g.toNonIndexed() : g)));
 }
 
 /* ------------------------------------------------------------------ V01 Formula (TH-18) */
