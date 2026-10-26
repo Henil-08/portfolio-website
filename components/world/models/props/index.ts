@@ -5,7 +5,6 @@ export * from "./Stumps";
 export * from "./Tree";
 export * from "./Billboard";
 export * from "./Goal";
-export * from "./Garage";
 export * from "./Lab";
 export * from "./Podium";
 export * from "./Flag";

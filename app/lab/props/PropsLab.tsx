@@ -65,7 +65,6 @@ const ENTRIES: Entry[] = [
       </>
     ),
   },
-  { name: "garage", r: 6.5, el: <P.Garage /> },
   { name: "lab", r: 5, el: <P.Lab /> },
   { name: "podium", r: 3, el: <P.Podium /> },
   { name: "flag", r: 2.4, cy: 2, el: <><P.Flag color={C.red} position={[-0.8, 0, 0]} /><P.Flag color={C.teal} position={[0.8, 0, 0]} speed={1.3} /></> },
