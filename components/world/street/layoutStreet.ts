@@ -5,8 +5,8 @@ import { GANTRY, LEN, FRAMES, N_FRAMES, barrierOffset, farSign, farSpot, inPitSi
 import { STAND_SPOTS } from "./standSpots";
 import { PIT, PIT_LANE_WIDTH, PIT_WALL, STRAIGHT_Z, TRACK_WIDTH, inLand, nearCrossing, nearestT, onBridge, pitWallZ } from "../layout";
 
-// The original circuit has no walls: open run-off past the kerbs, and a short tyre wall
-// on the outside of the tight corners only, with a rounded block at each end.
+// The original circuit has no walls: open run-off past the kerbs, and a short TecPro
+// barrier (W03) on the outside of the tight corners only.
 
 // Extra access gaps on the inside (u, half length in m) so the infield is reachable.
 const ACCESS: [number, number][] = [
@@ -40,14 +40,21 @@ function skip(side: 1 | -1, i: number, x: number, z: number) {
   return false;
 }
 
-export const STACK_GAP = 0.92; // tyre stacks touch
+/** TecPro block size: `BLOCK` along the wall, `BLOCK_H` tall, `BLOCK_D` deep. */
+export const BLOCK = 1.0;
+export const BLOCK_H = 0.8;
+export const BLOCK_D = 0.8;
 const WALL_MIN = 4; // m
 const WALL_MAX = 16; // m
 const RUN_MIN = 0.35; // run-off amount that marks a tight corner
 
-/** A tyre stack (`end` false) or a rounded end block (`end` true) on the outside of a corner. */
-export type WallPiece = { x: number; z: number; yaw: number; k: number; end: boolean };
+/**
+ * A TecPro block on the outside of a corner: two rows, the top row set half a block along.
+ * `end` marks the first and last block of a row, `wall` and `i` which wall and which block.
+ */
+export type WallPiece = { x: number; z: number; yaw: number; k: number; row: 0 | 1; wall: number; i: number; end: boolean };
 
+/** The TecPro walls (the name is from the tyre walls they replaced; Grass.tsx reads it too). */
 export const TYRE_WALLS: WallPiece[] = (() => {
   const out: WallPiece[] = [];
   // corners: runs of frames with run-off (cyclic)
@@ -63,6 +70,7 @@ export const TYRE_WALLS: WallPiece[] = (() => {
     else runs.push([i, i + 1]);
   }
   let k = 0;
+  let wall = 0;
   for (const [a, b] of runs) {
     // the wall sits around the deepest run-off, where a car that runs wide ends up
     let peak = a;
@@ -72,7 +80,7 @@ export const TYRE_WALLS: WallPiece[] = (() => {
     const line: THREE.Vector3[] = [];
     for (let i = a; i < b; i++) {
       const j = i % N_FRAMES;
-      line.push(FRAMES[j].p.clone().addScaledVector(FRAMES[j].n, barrierOffset(j, side) + side * 0.3));
+      line.push(FRAMES[j].p.clone().addScaledVector(FRAMES[j].n, barrierOffset(j, side) + side * 0.45));
     }
     const lens = [0];
     for (let i = 1; i < line.length; i++) lens.push(lens[i - 1] + line[i].distanceTo(line[i - 1]));
@@ -81,22 +89,30 @@ export const TYRE_WALLS: WallPiece[] = (() => {
     if (want < WALL_MIN) continue;
     const mid = lens[peak - a];
     const from = THREE.MathUtils.clamp(mid - want / 2, 0, total - want);
-    const n = Math.floor(want / STACK_GAP);
+    const n = Math.floor(want / BLOCK);
     const pieces: WallPiece[] = [];
-    for (let m = 0; m <= n + 1; m++) {
-      const d = from + (m - 0.5) * STACK_GAP;
-      let s = 1;
-      while (s < lens.length - 1 && lens[s] < d) s++;
-      const p0 = line[s - 1];
-      const p1 = line[s];
-      const t = THREE.MathUtils.clamp((d - lens[s - 1]) / Math.max(1e-6, lens[s] - lens[s - 1]), 0, 1);
-      const x = p0.x + (p1.x - p0.x) * t;
-      const z = p0.z + (p1.z - p0.z) * t;
-      const end = m === 0 || m === n + 1;
-      if (skip(side, (a + s) % N_FRAMES, x, z)) continue;
-      pieces.push({ x, z, yaw: Math.atan2(-(p1.z - p0.z), p1.x - p0.x), k: k++, end });
+    for (const row of [0, 1] as const) {
+      const count = row ? n - 1 : n;
+      for (let m = 0; m < count; m++) {
+        const d = from + (m + 0.5 + row * 0.5) * BLOCK;
+        let s = 1;
+        while (s < lens.length - 1 && lens[s] < d) s++;
+        const p0 = line[s - 1];
+        const p1 = line[s];
+        const t = THREE.MathUtils.clamp((d - lens[s - 1]) / Math.max(1e-6, lens[s] - lens[s - 1]), 0, 1);
+        const x = p0.x + (p1.x - p0.x) * t;
+        const z = p0.z + (p1.z - p0.z) * t;
+        if (skip(side, (a + s) % N_FRAMES, x, z)) continue;
+        pieces.push({ x, z, yaw: Math.atan2(-(p1.z - p0.z), p1.x - p0.x), k: k++, row, wall, i: m, end: m === 0 || m === count - 1 });
+      }
     }
-    if (pieces.filter((p) => !p.end).length >= 3) out.push(...pieces);
+    // a top block needs both blocks under it
+    const base = new Set(pieces.filter((p) => p.row === 0).map((p) => p.i));
+    const kept = pieces.filter((p) => p.row === 0 || (base.has(p.i) && base.has(p.i + 1)));
+    if (kept.filter((p) => p.row === 0).length >= 3) {
+      out.push(...kept);
+      wall++;
+    }
   }
   return out;
 })();
@@ -107,7 +123,7 @@ export const TYRE_WALLS: WallPiece[] = (() => {
 export type Flood = { x: number; z: number; yaw: number; px: number; pz: number; py: number; pyaw: number; pitch: number };
 export const FLOOD_SPACING = 17;
 const FLOOD_STRAIGHT = 9; // m between towers on the pit wall
-const FLOOD_BACK = 2.6; // m past the barrier line, clear of tyre walls and the catch fence
+const FLOOD_BACK = 2.6; // m past the barrier line, clear of the TecPro walls and the catch fence
 
 /**
  * Night-race floodlight towers on the far side, set back outside the run-off, every ~17 m.

@@ -1,78 +1,54 @@
 "use client";
 
 import * as THREE from "three";
-import { heightAt } from "../terrain";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
-import { C } from "../palette";
-import { geo, mat } from "../models/props/shared";
-import { TYRE_H, TYRE_R, bandGeo, rubberGeo } from "../models/props/Tyre";
+import { heightAt } from "../terrain";
+import { geo } from "../models/props/shared";
 import { Movables, type MovableItem, type MovableKind } from "../Movables";
-import { STACK_GAP, TYRE_WALLS } from "./layoutStreet";
+import { BLOCK, BLOCK_D, BLOCK_H, TYRE_WALLS } from "./layoutStreet";
+import { K, km } from "./ink";
 
-// No walls round the circuit: open run-off past the kerbs and a short tyre wall
-// on the outside of each tight corner, three tyres high with red and white bands,
-// a rounded block at each end. All of it can be knocked over.
+// No walls round the circuit: open run-off past the kerbs and a short TecPro barrier
+// (W03) on the outside of each tight corner: two rows of rounded blocks, ink and paper
+// in turn, the top row set half a block along, a graphite strap round each block and
+// one orange block per wall. Every block is its own light body, so the car can scatter
+// a wall; Movables puts them back once the car is well away.
 
-const LAYERS = 3;
-const END = { w: 1.3, h: 0.6, d: 0.75 };
+const blockGeo = () =>
+  geo("tecpro-block", () => new RoundedBoxGeometry(BLOCK, BLOCK_H, BLOCK_D, 2, 0.12));
+/** The strap: a thin band round the middle, just proud of the faces. */
+const strapGeo = () => geo("tecpro-strap", () => new THREE.BoxGeometry(BLOCK - 0.04, 0.06, BLOCK_D + 0.012));
 
-const endGeo = () =>
-  geo("street-wall-end", () => {
-    const g = new RoundedBoxGeometry(END.w, END.h, END.d, 3, 0.14);
-    g.translate(0, END.h / 2, 0);
-    return g;
-  });
+const INK = new THREE.Color(K.ink);
+const PAPER = new THREE.Color(K.paper);
+const ORANGE = new THREE.Color(K.orange);
 
-const RED = new THREE.Color(C.red);
-const WHITE = new THREE.Color(C.white);
-
-const lift = (y: number) => new THREE.Matrix4().makeTranslation(0, y, 0);
-
-// Every tyre is its own light body (three to a stack) and every end block too, so
-// the car can scatter a wall; Movables puts them back once the car is well away.
-const KINDS = (() => {
-  const tyres: MovableItem[] = [];
-  const bands: THREE.Color[] = [];
-  const ends: MovableItem[] = [];
+const KIND = (() => {
+  const items: MovableItem[] = [];
+  const colors: THREE.Color[] = [];
+  // one orange block per wall, two thirds along its top row
+  const tops = new Map<number, number>();
+  for (const w of TYRE_WALLS) if (w.row === 1) tops.set(w.wall, Math.max(tops.get(w.wall) ?? 0, w.i));
   for (const w of TYRE_WALLS) {
     const y = heightAt(w.x, w.z);
-    if (w.end) {
-      ends.push({ x: w.x, y: y + END.h / 2 + 0.005, z: w.z, yaw: w.yaw });
-      continue;
-    }
-    for (let l = 0; l < LAYERS; l++) {
-      // a hand-stacked wobble, the same every load
-      const j = Math.sin(w.k * 12.9898 + l * 78.233) * 43758.5453;
-      const r = j - Math.floor(j);
-      tyres.push({ x: w.x + (r - 0.5) * 0.04, y: y + l * (TYRE_H + 0.004) + TYRE_H / 2 + 0.003, z: w.z, yaw: w.yaw + r * Math.PI });
-      bands.push(w.k % 2 ? WHITE : RED);
-    }
+    items.push({ x: w.x, y: y + BLOCK_H / 2 + w.row * (BLOCK_H + 0.004) + 0.003, z: w.z, yaw: w.yaw });
+    const orange = w.row === 1 && w.i === Math.round(((tops.get(w.wall) ?? 0) * 2) / 3);
+    colors.push(orange ? ORANGE : (w.i + w.row) % 2 ? PAPER : INK);
   }
-  const tyre: MovableKind = {
-    items: tyres,
+  const kind: MovableKind = {
+    items,
     parts: [
-      { geometry: rubberGeo(), material: mat(C.black, { r: 0.78 }), local: lift(-TYRE_H / 2) },
-      { geometry: bandGeo(), material: mat(C.white, { r: 0.45 }), local: lift(TYRE_H / 2 + 0.002), colors: bands, shadow: false },
+      { geometry: blockGeo(), material: km.painted(), colors },
+      { geometry: strapGeo(), material: km.graphite(), shadow: false },
     ],
-    shape: { type: "cylinder", halfHeight: TYRE_H / 2, radius: Math.min(TYRE_R, STACK_GAP / 2) },
-    mass: 0.12,
+    shape: { type: "box", hx: BLOCK / 2, hy: BLOCK_H / 2, hz: BLOCK_D / 2, round: 0.1 },
+    mass: 0.3,
     friction: 0.6,
-    restitution: 0.3,
+    restitution: 0.2,
   };
-  const end: MovableKind = {
-    items: ends,
-    parts: [{ geometry: endGeo(), material: mat(C.white, { r: 0.42 }), local: lift(-END.h / 2), colors: ends.map(() => RED) }],
-    shape: { type: "box", hx: END.w / 2, hy: END.h / 2, hz: END.d / 2, round: 0.1 },
-    mass: 0.5,
-  };
-  return { tyre, end };
+  return kind;
 })();
 
 export function Barriers() {
-  return (
-    <>
-      <Movables kind={KINDS.tyre} />
-      <Movables kind={KINDS.end} />
-    </>
-  );
+  return <Movables kind={KIND} />;
 }
