@@ -2,21 +2,62 @@
 
 // Chibi Henil as a designer-vinyl racing figure.
 // Avatar: standing, origin at feet, faces +Z, ~1.3 m tall.
-// Driver: seated, origin at hip, faces +X. Place it in CarBody at DRIVER_SEAT.
 
 import { useMemo, useRef } from "react";
 import type { ThreeElements } from "@react-three/fiber";
 import { useFrame } from "@react-three/fiber";
 import { RoundedBox, Text } from "@react-three/drei";
 import * as THREE from "three";
-import { glslColor, liveryMaterial, physical } from "./Car";
 
 type GroupProps = ThreeElements["group"];
 const PI = Math.PI;
 
-/** Where Driver goes inside CarBody space (hip point, chassis-centre origin). */
-export const DRIVER_SEAT: [number, number, number] = [0.02, 0.0, 0];
-const DRIVER_SCALE = 0.45;
+
+/* ------------------------------------------------------------------ */
+/* Material helpers                                                    */
+/* ------------------------------------------------------------------ */
+
+/** Hex -> GLSL vec3 in linear space. */
+function glslColor(hex: string) {
+  const c = new THREE.Color(hex);
+  return `vec3(${c.r.toFixed(4)},${c.g.toFixed(4)},${c.b.toFixed(4)})`;
+}
+
+const GLSL_HELPERS = /* glsl */ `
+float lvAA(float d) { float w = fwidth(d) * 0.8 + 1e-5; return smoothstep(-w, w, d); }
+float lvBand(float v, float a, float b) { return lvAA(v - a) * lvAA(b - v); }
+float lvCat(float a, float b, float c, float d, float t) {
+  float t2 = t * t; float t3 = t2 * t;
+  return 0.5 * (2.0 * b + (-a + c) * t + (2.0 * a - 5.0 * b + 4.0 * c - d) * t2 + (-a + 3.0 * b - 3.0 * c + d) * t3);
+}
+`;
+
+/**
+ * MeshPhysicalMaterial whose colour and roughness come from
+ * `vec4 livery(vec3 p, vec3 n)` (geometry-space position and normal,
+ * returns rgb + roughness).
+ */
+function liveryMaterial(key: string, glsl: string, params: THREE.MeshPhysicalMaterialParameters = {}) {
+  const m = new THREE.MeshPhysicalMaterial({ roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.15, ...params });
+  m.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec3 vLvP;\nvarying vec3 vLvN;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvLvP = position;\nvLvN = normal;");
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", `#include <common>\nvarying vec3 vLvP;\nvarying vec3 vLvN;\n${GLSL_HELPERS}\n${glsl}`)
+      .replace(
+        "#include <color_fragment>",
+        "#include <color_fragment>\nvec4 lvOut = livery(vLvP, normalize(vLvN));\ndiffuseColor.rgb = lvOut.rgb;",
+      )
+      .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\nroughnessFactor = lvOut.a;");
+  };
+  m.customProgramCacheKey = () => "livery-" + key;
+  return m;
+}
+
+function physical(color: string, roughness = 0.3, extra: THREE.MeshPhysicalMaterialParameters = {}) {
+  return new THREE.MeshPhysicalMaterial({ color, roughness, ...extra });
+}
 
 const COL = {
   suit: "#f4f3ef",
@@ -398,109 +439,6 @@ export function Avatar({ wave = false, look, ...props }: AvatarProps) {
         </group>
         <group ref={head} position={[0, 0.6, 0]}>
           <Head kit={kit} />
-        </group>
-      </group>
-    </group>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Driver (seated, origin at hip, faces +X)                            */
-/* ------------------------------------------------------------------ */
-
-export type DriverProps = GroupProps & { steer?: number; wave?: boolean };
-
-const WHEEL_POS = new THREE.Vector3(0, 0.2, 0.32);
-const WHEEL_R = 0.1;
-
-/** Capsule spanning two points. */
-function Limb({ kit, from, to, radius, material }: { kit: Kit; from: THREE.Vector3; to: THREE.Vector3; radius: number; material?: THREE.Material }) {
-  const { pos, quat, len } = useMemo(() => {
-    const dir = to.clone().sub(from);
-    const len = dir.length();
-    const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
-    return { pos: from.clone().add(to).multiplyScalar(0.5), quat, len };
-  }, [from, to]);
-  return (
-    <mesh
-      geometry={kit.g.capsule}
-      material={material ?? kit.m.suit}
-      position={pos}
-      quaternion={quat}
-      scale={[radius, Math.max(0.001, len / 2 - radius), radius]}
-      castShadow
-    />
-  );
-}
-
-export function Driver({ steer = 0, wave = false, ...props }: DriverProps) {
-  const kit = useKit();
-  const { m, g } = kit;
-  const wheel = useRef<THREE.Group>(null);
-  const rig = useRef<THREE.Group>(null);
-  const head = useRef<THREE.Group>(null);
-  const torso = useRef<THREE.Group>(null);
-  const waveArm = useRef<THREE.Group>(null);
-  const waveAmt = useRef(0);
-  const steerS = useRef(0);
-
-  const pts = useMemo(() => {
-    const shoulderL = new THREE.Vector3(0.16, SHOULDER_Y, 0.02);
-    const shoulderR = new THREE.Vector3(-0.16, SHOULDER_Y, 0.02);
-    const handL = new THREE.Vector3(WHEEL_R, 0, 0).add(WHEEL_POS);
-    const handR = new THREE.Vector3(-WHEEL_R, 0, 0).add(WHEEL_POS);
-    return { shoulderL, shoulderR, handL, handR };
-  }, []);
-
-  useFrame((state, dt) => {
-    const t = state.clock.elapsedTime;
-    steerS.current = THREE.MathUtils.damp(steerS.current, THREE.MathUtils.clamp(steer, -1, 1), 10, dt);
-    const s = steerS.current;
-    waveAmt.current = THREE.MathUtils.damp(waveAmt.current, wave ? 1 : 0, 6, dt);
-    const w = waveAmt.current;
-    if (rig.current) rig.current.rotation.z = -s * 0.45;
-    if (wheel.current) wheel.current.rotation.z = -s * 0.5;
-    if (torso.current) torso.current.rotation.z = -s * 0.05;
-    if (head.current) {
-      head.current.rotation.z = -s * 0.1;
-      head.current.rotation.y = s * 0.28 + Math.sin(t * 0.9) * 0.025 - w * 0.3;
-      head.current.position.y = 0.6 + Math.sin(t * 2.6) * 0.004;
-    }
-    if (waveArm.current) {
-      waveArm.current.visible = w > 0.02;
-      waveArm.current.scale.setScalar(Math.max(0.001, w));
-      waveArm.current.rotation.z = -2.3 + Math.sin(t * 9) * 0.35;
-    }
-  });
-
-  return (
-    <group {...props}>
-      {/* build facing +Z at figure scale, then turn so +Z -> +X */}
-      <group rotation={[0, PI / 2, 0]} scale={DRIVER_SCALE}>
-        {[1, -1].map((s) => (
-          <mesh key={s} geometry={g.capsule} material={m.leg} position={[s * 0.085, 0.02, 0.24]} rotation={[PI / 2, 0, 0]} scale={[0.07, 0.16, 0.07]} />
-        ))}
-        <group ref={torso}>
-          <Torso kit={kit} />
-          <group ref={head} position={[0, 0.6, 0]}>
-            <Head kit={kit} />
-          </group>
-        </group>
-        <group ref={rig} position={WHEEL_POS}>
-          <group position={[-WHEEL_POS.x, -WHEEL_POS.y, -WHEEL_POS.z]}>
-            <Limb kit={kit} from={pts.shoulderL} to={pts.handL} radius={0.05} />
-            <mesh geometry={g.sphere} material={m.black} position={pts.handL} scale={0.055} castShadow />
-            {!wave && <Limb kit={kit} from={pts.shoulderR} to={pts.handR} radius={0.05} />}
-            {!wave && <mesh geometry={g.sphere} material={m.black} position={pts.handR} scale={0.055} castShadow />}
-          </group>
-          <group ref={wheel} rotation={[-0.35, 0, 0]}>
-            <RoundedBox args={[0.28, 0.12, 0.05]} radius={0.024} smoothness={2} material={m.black} castShadow />
-            <RoundedBox args={[0.1, 0.06, 0.055]} radius={0.015} smoothness={2} position={[0, 0.01, 0.01]} material={m.red} />
-          </group>
-        </group>
-        {/* waving arm (car's right side, toward the game camera) */}
-        <group ref={waveArm} position={[-0.17, SHOULDER_Y, 0.02]} visible={false}>
-          <Arm kit={kit} side={-1} />
         </group>
       </group>
     </group>

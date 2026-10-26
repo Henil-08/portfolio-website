@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
   CoefficientCombineRule,
@@ -11,32 +11,21 @@ import {
   type RapierRigidBody,
 } from "@react-three/rapier";
 import * as THREE from "three";
-import {
-  CarBody,
-  CarWheel,
-  tyreMaterials,
-  CHASSIS_HALF,
-  REAR_WHEEL_SCALE,
-  WHEEL_POSITIONS,
-  WHEEL_RADIUS,
-  WING_TIPS,
-  CAR_SCALE as S,
-  GROUND_Y,
-} from "./models/Car";
-import { Driver, DRIVER_SEAT } from "./models/Avatar";
+import { RigContext, liveryOf, vehicleByCode, type VehicleDef, type VehicleRig } from "./vehicles";
 import { input } from "./input";
 import { carState, ticker } from "./carState";
 import { getState, setState, subscribe, toast, useWorld } from "./store";
 import { BoostTrail } from "./BoostTrail";
 import { dayNight } from "./daynight";
 import { heightAt } from "./terrain";
+import { setWheelLocal } from "./alive/ground";
 import { SEA_Y, SPAWN, headingFromTangent, nearestT3, trackPoint, trackTangent, zoneById } from "./layout";
 import { engineIdle, engineUpdate, honk } from "./sound";
 
 // Driving model ported from folio-2025 (MIT, see public/vendor/LICENSE.md),
 // sources/Game/Physics/PhysicsVehicle.js and Player.js: same engine, brake and
 // steering formulas, same suspension and friction settings, same 2x time scale.
-// Only the wheel layout comes from our F1 car model.
+// The wheel layout and the handling numbers come from each vehicle (vehicles/index.tsx).
 
 type VehicleController = ReturnType<
   ReturnType<typeof useRapier>["world"]["createVehicleController"]
@@ -79,34 +68,114 @@ const SAG = 0.34;
 // (a ray starting inside a wall or post reports a wild suspension length).
 const WHEEL_REST = SUSPENSION.restLength - SAG;
 const WHEEL_PLAY = 0.25;
-// The chassis centre rides ~0.4 m above the ground. Below the ground it has been
+// The chassis centre rides ~0.45 m above the ground. Below the ground it has been
 // shoved through the terrain (a post or wall at speed): respawn instead of
 // leaving the body buried with the wheels sticking out.
 const BURIED = 0.15;
-// Half length of the chassis collider: between the axles, so a crest meets the tyres first.
-const CHASSIS_CLEAR_HALF = 0.95;
-// Chassis centre height above the ground at rest. Dropping the car from any
-// higher (the old 0.45 m) made it bounce on its springs at every load and teleport.
-const REST_Y = -GROUND_Y * S + 0.02;
+/** Chassis centre height above the ground at rest, the same for every vehicle. */
+const RIDE = 0.43;
+// Dropped from a hair above rest. From any higher (the old 0.45 m) the car bounced on its
+// springs at every load and teleport.
+const REST_Y = RIDE + 0.02;
+/** The old car's wheelbase (m): steering is scaled from it so every vehicle turns alike at the same handling. */
+const BASE_WHEELBASE = 2.48;
+const BASE_TRACK = 1.38;
+/**
+ * The vehicles are modelled in true metres (TH-18 5.6 m long) for the proposal's 12 m road; the
+ * game's road is 8 m (layout.ts TRACK_WIDTH), so they drive at 2/3 size to keep the proposal's
+ * car-to-road proportion (owner, 2026-10-26: the F1 looked too big for the world).
+ */
+export const VEHICLE_SCALE = 8 / 12;
+const S = VEHICLE_SCALE;
+/** The bike rides on two pairs of wheels this far either side of its centre line (hidden), and stays upright. */
+const BIKE_TRACK = 0.28;
+const BIKE_UPRIGHT = 10; // roll rate (rad/s) per rad of roll that brings the bike back up
+const BIKE_LEAN_MAX = 0.7;
 
-// Mount each wheel's suspension so the car settles with the tyres on the road.
-// The wheel layout scales with the car; the springs (and so the sag) do not.
-const WHEELS = WHEEL_POSITIONS.map((w) => ({
-  pos: new THREE.Vector3(w.x * S, w.y * S + SUSPENSION.restLength - SAG, w.z * S),
-  front: w.front,
-  radius: (w.front ? WHEEL_RADIUS : WHEEL_RADIUS * REAR_WHEEL_SCALE) * S,
-}));
+/**
+ * Each vehicle's handling, from its garage stats [speed, grip, handling] (0..100):
+ * - speed scales the top speed (steeply: the cap is soft) and a little of the engine force
+ *   (90 = the old car),
+ * - grip scales the tyres' side friction,
+ * - handling scales the steering lock, which also grows with the wheelbase so a long car
+ *   turns as tightly as a short one at the same handling, and the yaw inertia shrinks with it.
+ * Inertia grows with the size the old car had: pitch with the wheelbase squared, roll with the
+ * track squared (a long car on old-car inertia rocked on its springs and never got going).
+ * E14 pulls harder than its speed says (its best event was acceleration).
+ * The rest are the old car's numbers. Dev and headless checks: window.__tune is the live
+ * vehicle's table (change it to compare variants).
+ */
+function tuneOf(def: VehicleDef) {
+  const [speed, grip, handling] = def.stats;
+  const k = (speed / 90) ** 1.5;
+  const fz = Math.max(...def.wheels.map((w) => w.z)) * S;
+  const rz = Math.min(...def.wheels.map((w) => w.z)) * S;
+  const wheelbase = fz - rz;
+  const track = Math.max(0.6, 2 * S * Math.max(...def.wheels.map((w) => Math.abs(w.x))));
+  const L = (wheelbase / BASE_WHEELBASE) ** 2;
+  return {
+    idleBrake: IDLE_BRAKE,
+    sideFriction: (SIDE_FRICTION * grip) / 90,
+    // frontBrake < 0: the front idle brake fades out as the wheels turn (a turned, braked
+    // front wheel kicked the yaw the other way when the throttle came off)
+    frontBrake: -1,
+    easeAng: 4,
+    lowSide: LOW_SIDE,
+    lowSpeed: LOW_SPEED,
+    topSpeed: TOP_SPEED * k,
+    engine: ENGINE_FORCE * (def.code === "V02" ? 1.05 : 0.8 + (0.2 * speed) / 90),
+    steer: Math.atan(((Math.tan(STEERING_AMPLITUDE) * wheelbase) / BASE_WHEELBASE) * (handling / 82)),
+    /** roll, yaw, pitch (the chassis frame's x, y, z) */
+    inertia: [1.9 * (track / BASE_TRACK) ** 2, 1.9 * L * (82 / handling), 1.9 * L] as [number, number, number],
+  };
+}
+type Tune = ReturnType<typeof tuneOf>;
 
-/** Dev and headless checks: window.__tune overrides these at runtime to compare handling. */
-// frontBrake < 0: the front idle brake fades out as the wheels turn (a turned, braked
-// front wheel kicked the yaw the other way when the throttle came off).
-const tune = { idleBrake: IDLE_BRAKE, sideFriction: SIDE_FRICTION, frontBrake: -1, easeAng: 4, lowSide: LOW_SIDE, lowSpeed: LOW_SPEED };
-if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") (window as unknown as { __tune: typeof tune }).__tune = tune;
+/** Everything the physics needs from a vehicle, in the chassis frame (forward +X, right +Z). */
+function specOf(def: VehicleDef) {
+  const bike = def.wheels.length === 2;
+  // model space (nose +z, left +x) to the chassis frame: x = model z, z = -model x
+  const wheels = def.wheels.flatMap((w, i) =>
+    (bike ? [BIKE_TRACK, -BIKE_TRACK] : [-w.x * S]).map((z) => ({
+      slot: i,
+      pos: new THREE.Vector3(w.z * S, -RIDE + w.r * S + WHEEL_REST, z),
+      front: w.front,
+      radius: w.r * S,
+    })),
+  );
+  const fz = Math.max(...def.wheels.map((w) => w.z)) * S;
+  const rz = Math.min(...def.wheels.map((w) => w.z)) * S;
+  const halfW = Math.max(...def.wheels.map((w) => Math.abs(w.x))) * S;
+  const min = def.box.min.map((v) => v * S);
+  const max = def.box.max.map((v) => v * S);
+  const top = Math.min(max[1], 1.2) - RIDE;
+  return {
+    bike,
+    wheels,
+    /** the physics wheels behind each visible wheel (two for each bike wheel) */
+    slots: def.wheels.map((_, i) => wheels.flatMap((w, j) => (w.slot === i ? [j] : []))),
+    /** the mass box: between the axles, so a crest meets the tyres first */
+    chassis: { half: [(fz - rz) / 2, 0.19, bike ? BIKE_TRACK : Math.max(0.3, halfW - 0.1)] as const, x: (fz + rz) / 2 },
+    /** the massless bumper round the whole body */
+    bumper: { half: [(max[2] - min[2]) / 2, (top - 0.03) / 2, Math.max(max[0], -min[0], bike ? BIKE_TRACK + 0.05 : 0)] as const, x: (max[2] + min[2]) / 2, y: (top + 0.03) / 2 },
+    tips: def.tips.map(([x, y, z]) => new THREE.Vector3(z * S, y * S - RIDE, -x * S)),
+    steerAxis: new THREE.Vector3(...def.steerAxis),
+    tune: tuneOf(def),
+  };
+}
+type Spec = ReturnType<typeof specOf>;
+const SPECS = new Map<string, Spec>();
+const specFor = (def: VehicleDef) => {
+  let s = SPECS.get(def.code);
+  if (!s) SPECS.set(def.code, (s = specOf(def)));
+  return s;
+};
 
 const up = new THREE.Vector3(0, 1, 0);
 const tmpQ = new THREE.Quaternion();
 const tmpV = new THREE.Vector3();
 const tmpP = new THREE.Vector3();
+const tmpF = new THREE.Vector3();
 const prevPos = new THREE.Vector3();
 let snapWheels = true; // set by place(): put the wheel visuals straight at rest
 // Parked: after a spawn or teleport the car is held in place (only its height
@@ -123,22 +192,33 @@ const SWAP_TIME = 1.3;
 const SWAP_EACH = 0.95;
 const SWAP_STAGGER = 0.1;
 const SWAP_OUT = 0.5; // m the old tyre slides out along the axle
+// Wets: the TH-18's paper sidewall band turns blue.
+const BAND_DRY = new THREE.MeshStandardMaterial({ color: "#f3f2ed", roughness: 0.7 });
+const BAND_WET = new THREE.MeshStandardMaterial({ color: "#1f7fe0", roughness: 0.6 });
 
+/** The player's vehicle: the one picked in the store, remounted whole when it changes. */
 export default function Vehicle() {
-  const livery = useWorld((s) => s.livery);
+  const code = useWorld((s) => s.vehicle);
+  return <Drive key={code} def={vehicleByCode[code]} />;
+}
+
+function Drive({ def }: { def: VehicleDef }) {
+  const spec = specFor(def);
+  const { wheels: WHEELS, tune } = spec;
+  const liveryName = useWorld((s) => s.livery);
+  const livery = liveryOf(def.code, liveryName);
   const body = useRef<RapierRigidBody>(null);
+  const model = useRef<THREE.Group>(null);
+  const lean = useRef<THREE.Group>(null);
   const controller = useRef<VehicleController | null>(null);
-  const wheelRefs = useRef<(THREE.Group | null)[]>([]);
-  const spinRefs = useRef<(THREE.Group | null)[]>([]);
-  const swapRefs = useRef<(THREE.Group | null)[]>([]);
-  const tyreRefs = useRef<(THREE.Mesh | null)[]>([]);
+  // the model's wheel groups, per visible wheel (WheelSlot), and the TH-18's DRS flap
+  const parts = useRef({ steer: [] as (THREE.Group | null)[], swap: [] as (THREE.Group | null)[], spin: [] as (THREE.Group | null)[], drs: null as THREE.Group | null });
+  const lamps = useRef<{ mesh: THREE.Mesh; mat: THREE.MeshStandardMaterial; base: number }[]>([]);
+  const bands = useRef<THREE.Mesh[][]>([]);
   // Tyres: slicks in the dry, wets in the rain. `t` runs 0..1 through a swap.
   const tyres = useRef({ wet: null as boolean | null, to: false, t: 1 });
-  const drs = useRef<THREE.Group>(null);
-  const tipRefs = useRef<(THREE.Group | null)[]>([]);
   const tipA = useRef<THREE.Group | null>(null);
   const tipB = useRef<THREE.Group | null>(null);
-  const rain = useRef<THREE.Mesh<THREE.BoxGeometry, THREE.MeshStandardMaterial>>(null);
   const flipped = useRef(0);
   const wet = useRef(0);
   const buried = useRef(0);
@@ -150,6 +230,20 @@ export default function Vehicle() {
   // The original stuck test: on the throttle, but under 0.5 m covered in the last 3 s.
   const stuck = useRef({ items: [] as [number, number][], told: false });
   const { world } = useRapier();
+
+  const rig = useMemo<VehicleRig>(() => {
+    const keep = (list: "steer" | "swap" | "spin") => (i: number) => (el: THREE.Group | null) => {
+      parts.current[list][i] = el;
+    };
+    return {
+      steer: keep("steer"),
+      swap: keep("swap"),
+      spin: keep("spin"),
+      drs: (el) => {
+        parts.current.drs = el;
+      },
+    };
+  }, []);
 
   useEffect(() => {
     const b = body.current;
@@ -167,13 +261,20 @@ export default function Vehicle() {
       v.setWheelFrictionSlip(i, FRICTION_SLIP);
       v.setWheelMaxSuspensionForce(i, SUSPENSION.maxForce);
       v.setWheelMaxSuspensionTravel(i, SUSPENSION.maxTravel);
-      v.setWheelSideFrictionStiffness(i, SIDE_FRICTION);
+      v.setWheelSideFrictionStiffness(i, tune.sideFriction);
       v.setWheelSuspensionCompression(i, SUSPENSION.compression);
       v.setWheelSuspensionRelaxation(i, SUSPENSION.relaxation);
       v.setWheelSuspensionStiffness(i, SUSPENSION.stiffness);
     }
     controller.current = v;
-    place(b, SPAWN[0], SPAWN[1], SPAWN[2]);
+    if (process.env.NODE_ENV !== "production") (window as unknown as { __tune: Tune }).__tune = tune;
+    // the skid marks, dust and tracks follow this vehicle's wheels
+    setWheelLocal(spec.bike ? WHEELS.map((w) => ({ x: w.pos.x, z: Math.sign(w.pos.z) * 0.04, rear: !w.front })) : WHEELS.map((w) => ({ x: w.pos.x, z: w.pos.z, rear: !w.front })));
+    // A new vehicle picks up where the last one stood; the first one starts at the spawn.
+    if (getState().ready) {
+      const f = carState.forward;
+      place(b, carState.pos.x, carState.pos.z, Math.atan2(-f.z, f.x));
+    } else place(b, SPAWN[0], SPAWN[1], SPAWN[2]);
     const t = b.translation();
     prevPos.set(t.x, t.y, t.z);
     setState({ ready: true });
@@ -181,7 +282,39 @@ export default function Vehicle() {
       world.removeVehicleController(v);
       controller.current = null;
     };
-  }, [world]);
+  }, [world, WHEELS, tune, spec]);
+
+  // The lamps glow brighter as brake lights: each vehicle's lamp meshes get their own copy of
+  // the material (some are shared with the docs turntables). Again after a livery change.
+  useEffect(() => {
+    const list: typeof lamps.current = [];
+    model.current?.traverse((o) => {
+      if (o instanceof THREE.Mesh && o.name === "lamp" && o.material instanceof THREE.MeshStandardMaterial) {
+        const mat = o.material.clone();
+        list.push({ mesh: o, mat, base: o.material.emissiveIntensity });
+        o.userData.lampFrom = o.material;
+        o.material = mat;
+      }
+    });
+    lamps.current = list;
+    return () => {
+      for (const l of list) {
+        if (l.mesh.material === l.mat) l.mesh.material = l.mesh.userData.lampFrom;
+        l.mat.dispose();
+      }
+    };
+  }, [livery]);
+
+  // The tyre bands that turn blue on wets (TH-18), per visible wheel.
+  useEffect(() => {
+    bands.current = parts.current.spin.map((g) => {
+      const out: THREE.Mesh[] = [];
+      g?.traverse((o) => {
+        if (o instanceof THREE.Mesh && o.name === "band") out.push(o);
+      });
+      return out;
+    });
+  }, []);
 
   // Teleports from the map menu and the race engineer.
   useEffect(() => {
@@ -223,7 +356,7 @@ export default function Vehicle() {
     const b = body.current;
     const touching = input.forward || input.back || input.steer || input.handbrake;
     // Dev and headless checks: window.__stepLog = [] records every physics step
-    // [ground speed, yaw rate, sideways speed, roll] (use with window.__realtime).
+    // [ground speed, yaw rate, sideways speed, roll, throttle] (use with window.__realtime).
     const log = process.env.NODE_ENV !== "production" ? (window as unknown as { __stepLog?: number[][] }).__stepLog : undefined;
     if (log && b && log.length < 20000) {
       const lv = b.linvel();
@@ -264,6 +397,18 @@ export default function Vehicle() {
         b.setAngvel({ x: 0, y: 0, z: 0 }, false);
       }
     }
+    // The bike's chassis is held upright: its roll rate is replaced by one that undoes the roll.
+    // It leans only in the picture (useFrame).
+    if (spec.bike && b && !parked.on) {
+      const r = b.rotation();
+      tmpQ.set(r.x, r.y, r.z, r.w);
+      const fwd = tmpF.set(1, 0, 0).applyQuaternion(tmpQ);
+      const roll = Math.asin(THREE.MathUtils.clamp(tmpV.set(0, 0, 1).applyQuaternion(tmpQ).y, -1, 1));
+      const av = b.angvel();
+      const along = av.x * fwd.x + av.y * fwd.y + av.z * fwd.z;
+      const want = roll * BIKE_UPRIGHT;
+      b.setAngvel({ x: av.x + (want - along) * fwd.x, y: av.y + (want - along) * fwd.y, z: av.z + (want - along) * fwd.z }, true);
+    }
 
     let accelerating = driving ? input.forward - input.back : 0;
     const braking = driving && input.handbrake ? 1 : 0;
@@ -271,10 +416,10 @@ export default function Vehicle() {
     const boost = driving && input.boost && accelerating > 0 ? 1 : 0;
     const steering = driving ? -input.steer : 0;
 
-    const top = THREE.MathUtils.lerp(TOP_SPEED, TOP_SPEED_BOOST, boost);
+    const top = THREE.MathUtils.lerp(tune.topSpeed, TOP_SPEED_BOOST, boost);
     const overflow = Math.max(0, speed.current - top);
     let engine =
-      ((accelerating * (1 + boost * BOOST_MULTIPLIER) * ENGINE_FORCE) /
+      ((accelerating * (1 + boost * BOOST_MULTIPLIER) * tune.engine) /
         (1 + overflow)) *
       dts;
 
@@ -293,11 +438,11 @@ export default function Vehicle() {
       }
       // Off the boost and over normal top speed: ease back to it in about a second
       // (the original lets the car coast down from boost speed, which feels like boost lingers).
-      if (!boost && speed.current > TOP_SPEED * 1.15) b = Math.max(b, Math.min(0.35, ((speed.current - TOP_SPEED) / TOP_SPEED) * 0.12));
+      if (!boost && speed.current > tune.topSpeed * 1.15) b = Math.max(b, Math.min(0.35, ((speed.current - tune.topSpeed) / tune.topSpeed) * 0.12));
       brake = b * BRAKE_AMPLITUDE * dts;
     }
 
-    const steer = steering * STEERING_AMPLITUDE;
+    const steer = steering * tune.steer;
     const hsNow = b ? Math.hypot(b.linvel().x, b.linvel().z) : 0;
     const sideK = tune.sideFriction * THREE.MathUtils.lerp(tune.lowSide, 1, Math.min(1, hsNow / tune.lowSpeed));
     for (let i = 0; i < WHEELS.length; i++) {
@@ -306,7 +451,7 @@ export default function Vehicle() {
       const fb = tune.frontBrake < 0 ? 1 - Math.min(1, Math.abs(steering)) : tune.frontBrake;
       v.setWheelBrake(i, WHEELS[i].front ? brake * fb : brake);
       v.setWheelEngineForce(i, engine);
-      v.setWheelSideFrictionStiffness(i, braking && !WHEELS[i].front ? HANDBRAKE_REAR_GRIP : sideK);
+      v.setWheelSideFrictionStiffness(i, braking && !WHEELS[i].front ? HANDBRAKE_REAR_GRIP * (tune.sideFriction / SIDE_FRICTION) : sideK);
     }
     v.updateVehicle(1 / 60);
 
@@ -336,7 +481,7 @@ export default function Vehicle() {
     carState.pos.copy(tmpP);
     prevPos.copy(tmpP);
     carState.speed = speed.current * 2 * (goingForward.current ? 1 : -1); // real m/s at 2x time
-    carState.grounded = [0, 1, 2, 3].some((i) => v.wheelIsInContact(i));
+    carState.grounded = WHEELS.some((_, i) => v.wheelIsInContact(i));
     {
       const av = b.angvel();
       const side = tmpV.set(0, 0, 1).applyQuaternion(tmpQ); // the car's right/left axis
@@ -362,28 +507,41 @@ export default function Vehicle() {
       } else if (dist > 2) st.told = false;
     } else st.items.length = 0;
 
-    // Wheels follow the suspension; spin from forward speed.
-    for (let i = 0; i < WHEELS.length; i++) {
-      const g = wheelRefs.current[i];
+    // Wheels follow the suspension (a bike wheel the mean of its pair), turn with the steering and spin.
+    const P = parts.current;
+    for (let i = 0; i < spec.slots.length; i++) {
+      const g = P.steer[i];
       if (!g) continue;
-      const raw = v.wheelIsInContact(i) ? v.wheelSuspensionLength(i) ?? WHEEL_REST : WHEEL_REST;
-      const len = THREE.MathUtils.clamp(raw, WHEEL_REST - WHEEL_PLAY, WHEEL_REST + WHEEL_PLAY);
-      const ty = WHEELS[i].pos.y - len;
+      let len = 0;
+      let steerNow = 0;
+      for (const j of spec.slots[i]) {
+        const raw = v.wheelIsInContact(j) ? v.wheelSuspensionLength(j) ?? WHEEL_REST : WHEEL_REST;
+        len += THREE.MathUtils.clamp(raw, WHEEL_REST - WHEEL_PLAY, WHEEL_REST + WHEEL_PLAY) / spec.slots[i].length;
+        steerNow = v.wheelSteering(j) ?? 0;
+      }
+      const ty = (WHEEL_REST - len) / S; // in the model's (unscaled) space
       g.position.y = snapWheels ? ty : g.position.y + (ty - g.position.y) * Math.min(1, dt * 50);
-      if (WHEELS[i].front)
-        g.rotation.y +=
-          ((v.wheelSteering(i) ?? 0) - g.rotation.y) * Math.min(1, dt * 32);
-      const s = spinRefs.current[i];
-      if (s && !input.handbrake)
-        s.rotation.z -= (carState.speed / WHEELS[i].radius) * dt;
+      const ud = g.userData as { steer?: number };
+      const was = ud.steer ?? 0;
+      // the bike's bars turn less than the physics wheels: it leans into the corner instead
+      const steerVis = (spec.bike ? 0.5 : 1) * steerNow;
+      ud.steer = was + (steerVis - was) * Math.min(1, dt * 32);
+      g.quaternion.setFromAxisAngle(spec.steerAxis, ud.steer);
+      const s = P.spin[i];
+      if (s && !input.handbrake) s.rotation.x += (carState.speed / (def.wheels[i].r * S)) * dt;
     }
     snapWheels = false;
+
+    // The bike leans into corners (the chassis stays upright): lean from the sideways pull.
+    if (lean.current) {
+      const want = spec.bike ? THREE.MathUtils.clamp(-Math.atan((speed.current * b.angvel().y) / 9.81), -BIKE_LEAN_MAX, BIKE_LEAN_MAX) : 0;
+      lean.current.rotation.x += (want - lean.current.rotation.x) * Math.min(1, dt * 6);
+    }
 
     // Rain starts or stops: a quick pit-stop swap, each tyre pops off sideways and the
     // new one springs on, a few hundredths apart. On load the right set is simply fitted.
     const ty = tyres.current;
     const wantWet = getState().scene.weather === "rain";
-    const mats = tyreMaterials(livery);
     if (ty.wet === null) ty.wet = ty.to = wantWet;
     else if (ty.t >= 1 && wantWet !== ty.wet) {
       ty.to = wantWet;
@@ -391,47 +549,45 @@ export default function Vehicle() {
     }
     if (ty.t < 1) {
       ty.t = Math.min(1, ty.t + Math.min(dt, 1 / 30) / SWAP_TIME);
-      for (let i = 0; i < WHEELS.length; i++) {
-        const g = swapRefs.current[i];
-        const m = tyreRefs.current[i];
-        if (!g || !m) continue;
+      for (let i = 0; i < def.wheels.length; i++) {
+        const g = P.swap[i];
+        if (!g) continue;
         const k = THREE.MathUtils.clamp((ty.t * SWAP_TIME - i * SWAP_STAGGER) / SWAP_EACH, 0, 1);
-        const side = Math.sign(WHEELS[i].pos.z) || 1;
+        const side = Math.sign(def.wheels[i].x) || 1;
         if (k < 0.45) {
           const out = (k / 0.45) ** 2;
-          g.position.z = side * SWAP_OUT * out;
+          g.position.x = side * SWAP_OUT * out;
           g.scale.setScalar(1 - out);
         } else {
-          m.material = ty.to ? mats.wet : mats.slick;
+          for (const m of bands.current[i] ?? []) m.material = ty.to ? BAND_WET : BAND_DRY;
           const u = (k - 0.45) / 0.55;
           const c = 2.2; // back-out overshoot
           const s = 1 + (c + 1) * (u - 1) ** 3 + c * (u - 1) ** 2;
-          g.position.z = side * SWAP_OUT * (1 - u) ** 2;
+          g.position.x = side * SWAP_OUT * (1 - u) ** 2;
           g.scale.setScalar(Math.max(0, s));
         }
       }
       if (ty.t >= 1) {
         ty.wet = ty.to;
-        for (const g of swapRefs.current) {
-          g?.position.setZ(0);
+        for (const g of P.swap) {
+          g?.position.setX(0);
           g?.scale.setScalar(1);
         }
       }
-    } else for (const m of tyreRefs.current) if (m) m.material = ty.wet ? mats.wet : mats.slick; // also after a livery change
+    } else for (const list of bands.current) for (const m of list) m.material = ty.wet ? BAND_WET : BAND_DRY;
     carState.tyres.wet = ty.t < 1 ? ty.to : ty.wet;
     carState.tyres.swap = ty.t;
 
-    // The rain light glows a little, more at night, and flares as a brake light (handbrake,
-    // or S while still rolling forward); no headlights, it's a race car. Not tone mapped,
-    // so the flare blooms.
+    // The tail lamps glow a little, more at night, and flare as brake lights (handbrake,
+    // or S while still rolling forward). Not tone mapped, so the flare blooms.
     const brakeLight = input.handbrake || (input.back > 0 && carState.speed > 1);
-    if (rain.current) rain.current.material.emissiveIntensity = brakeLight ? 4.5 : 0.35 + dayNight.night * 0.9;
+    const glow = brakeLight ? 2 : 0.55 + dayNight.night * 0.45;
+    for (const l of lamps.current) l.mat.emissiveIntensity = l.base * glow;
 
-    // DRS: the flap opens while boosting.
-    if (drs.current) {
-      const want = boosting.current ? 0.75 : 0;
-      drs.current.rotation.z +=
-        (want - drs.current.rotation.z) * Math.min(1, dt * 12);
+    // DRS (TH-18): the flap opens while boosting.
+    if (P.drs) {
+      const want = boosting.current ? -0.45 : 0;
+      P.drs.rotation.x += (want - P.drs.rotation.x) * Math.min(1, dt * 12);
     }
 
     // Recover from flips and falls.
@@ -473,6 +629,8 @@ export default function Vehicle() {
     }
   });
 
+  const { chassis, bumper } = spec;
+  const inertia = tune.inertia;
   return (
     <>
       <BoostTrail anchor={tipA} />
@@ -487,80 +645,41 @@ export default function Vehicle() {
         ccd
       >
         {/* The original chassis: mass 2.5 with the centre of mass well below the body.
-            The colliders ride higher than the low F1 body (0.3 m off the ground, not
-            0.18) and the chassis box is shorter, so the car never beaches on a crest or
-            a bank; the body may dip into the grass a little, which reads as cartoony. */}
+            The colliders ride higher than the low bodies (the bumper 0.46 m off the ground)
+            and the mass box only spans the axles, so a vehicle never beaches on a crest or
+            a bank; a body may dip into the grass a little, which reads as cartoony. */}
         <CuboidCollider
-          args={[CHASSIS_CLEAR_HALF * S, 0.14 * S, CHASSIS_HALF[2] * S]}
-          position={[0, 0.14 * S, 0]}
+          args={[...chassis.half]}
+          position={[chassis.x, 0.19, 0]}
           friction={0.4}
           massProperties={{
             mass: 2.5,
-            centerOfMass: { x: 0, y: -0.5, z: 0 },
-            // grown with the car (S^2): the wheels sit further out, so with 1 the springs rock the body
-            principalAngularInertia: { x: S * S, y: S * S, z: S * S },
+            centerOfMass: { x: chassis.x, y: -0.5, z: 0 },
+            principalAngularInertia: { x: inertia[0], y: inertia[1], z: inertia[2] },
             angularInertiaLocalFrame: { x: 0, y: 0, z: 0, w: 1 },
           }}
         />
-        {/* The original bumper: a massless, frictionless box around the wheels and wings,
-            so walls push the car along instead of catching a tyre, and no wheel
+        {/* The original bumper: a massless, frictionless box round the whole body,
+            so walls push the vehicle along instead of catching a tyre, and no wheel
             ever pokes into a wall or a building. */}
         <CuboidCollider
-          args={[1.5 * S, 0.18 * S, 0.74 * S]}
-          position={[0.02 * S, 0.2 * S, 0]}
+          args={[...bumper.half]}
+          position={[bumper.x, bumper.y, 0]}
           density={0}
           friction={0}
           frictionCombineRule={CoefficientCombineRule.Min}
           restitution={0.05}
         />
-        <mesh ref={rain} position={[-1.5 * S, -0.05 * S, 0]} scale={S}>
-        <boxGeometry args={[0.04, 0.07, 0.16]} />
-        <meshStandardMaterial color="#ff2a1f" emissive="#ff2a1f" emissiveIntensity={0.4} toneMapped={false} />
-      </mesh>
-        <group scale={S}>
-          <CarBody brakeLight={false} drsRef={drs} livery={livery}>
-            <Driver position={DRIVER_SEAT} />
-          </CarBody>
-        </group>
-        {WING_TIPS.map((p, i) => (
-          <group
-            key={i}
-            position={[p[0] * S, p[1] * S, p[2] * S]}
-            ref={(el) => {
-              tipRefs.current[i] = el;
-              if (i === 0) tipA.current = el;
-              else tipB.current = el;
-            }}
-          />
-        ))}
-        {WHEELS.map((w, i) => (
-          <group
-            key={i}
-            ref={(el) => {
-              wheelRefs.current[i] = el;
-            }}
-            position={[w.pos.x, w.pos.y - SUSPENSION.restLength, w.pos.z]}
-          >
-            <group
-              ref={(el) => {
-                swapRefs.current[i] = el;
-              }}
-            >
-              <group
-                ref={(el) => {
-                  spinRefs.current[i] = el;
-                }}
-              >
-                <CarWheel
-                  scale={(w.front ? 1 : REAR_WHEEL_SCALE) * S}
-                  livery={livery}
-                  tyreRef={(el) => {
-                    tyreRefs.current[i] = el;
-                  }}
-                />
-              </group>
-            </group>
+        {/* the model stands on the ground line (and the bike leans about it); nose +z turned to +X */}
+        <group ref={lean} position={[0, -RIDE, 0]}>
+          <group ref={model} rotation={[0, Math.PI / 2, 0]} scale={S}>
+            <RigContext.Provider value={rig}>
+              <def.Model livery={livery} />
+            </RigContext.Provider>
           </group>
+        </group>
+        {spec.tips.map((p, i) => (
+          <group key={i} position={p} ref={i === 0 ? tipA : tipB} />
         ))}
       </RigidBody>
     </>

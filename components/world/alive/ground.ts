@@ -2,7 +2,6 @@
 // Shared by dust, skid marks, ground tracks and leaves.
 import * as THREE from "three";
 import { carState } from "../carState";
-import { CAR_SCALE } from "../models/Car";
 import { heightAt } from "../terrain";
 import { TRACK_WIDTH, inLand, nearestT, trackPoint } from "../layout";
 
@@ -14,14 +13,18 @@ export function offTrack(x: number, z: number) {
   return nearestT(x, z).dist > TRACK_WIDTH / 2 + 0.4;
 }
 
-// Wheel contact points relative to the chassis (see models/Car.tsx WHEEL_POSITIONS,
-// times CAR_SCALE): x along the car's forward, z to its side.
+// Wheel contact points relative to the chassis: x along the car's forward, z to its side.
+// Always four; Vehicle.tsx sets them for the vehicle you drive (a bike's pairs sit together).
 export const WHEEL_LOCAL: { x: number; z: number; rear: boolean }[] = [
-  { x: 0.86 * CAR_SCALE, z: 0.5 * CAR_SCALE, rear: false },
-  { x: 0.86 * CAR_SCALE, z: -0.5 * CAR_SCALE, rear: false },
-  { x: -0.94 * CAR_SCALE, z: 0.5 * CAR_SCALE, rear: true },
-  { x: -0.94 * CAR_SCALE, z: -0.5 * CAR_SCALE, rear: true },
+  { x: 1.78, z: 0.8, rear: false },
+  { x: 1.78, z: -0.8, rear: false },
+  { x: -1.82, z: 0.78, rear: true },
+  { x: -1.82, z: -0.78, rear: true },
 ];
+
+export function setWheelLocal(list: { x: number; z: number; rear: boolean }[]) {
+  list.slice(0, WHEEL_LOCAL.length).forEach((w, i) => Object.assign(WHEEL_LOCAL[i], w));
+}
 
 /**
  * Height of the visible surface: the road ribbon on the track (it sits ~0.22 m

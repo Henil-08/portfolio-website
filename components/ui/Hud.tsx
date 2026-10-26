@@ -5,7 +5,7 @@
 
 import { LINKS, openLink } from "@/components/world/social";
 import { zoneById } from "@/components/world/layout";
-import { LIVERIES, LIVERY_NAMES } from "@/components/world/liveries";
+import { LIVERIES } from "@/components/world/vehicles/liveries";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
@@ -146,32 +146,32 @@ const CONTROLS: [string, string][] = [
   ["Esc", "Close a card"],
 ];
 
-// Car paint, remembered in this browser: square swatches, the chosen one framed in ink.
+// The vehicle's paint, remembered in this browser: square swatches, the chosen one framed in ink.
 function LiveryPicker() {
   const current = useWorld((s) => s.livery);
+  const vehicle = useWorld((s) => s.vehicle);
   return (
     <div className="pt-4">
       <p className="mb-2 flex items-baseline gap-3 border-b border-ink pb-1.5 text-[12.5px] font-semibold uppercase tracking-[0.06em]">
         <span className="font-mono text-signal">2</span>Livery
       </p>
       <div className="flex flex-wrap gap-2 pt-1">
-        {LIVERY_NAMES.map((n) => {
-          const l = LIVERIES[n];
-          const on = n === current;
+        {LIVERIES[vehicle].map((l) => {
+          const on = l.name === current;
           return (
             <button
-              key={n}
-              title={l.label}
-              aria-label={l.label}
+              key={l.name}
+              title={l.name}
+              aria-label={l.name}
               aria-pressed={on}
-              onClick={() => setState({ livery: n })}
+              onClick={() => setState({ livery: l.name })}
               className={`h-9 w-9 border-2 transition ${on ? "border-ink outline outline-2 outline-offset-2 outline-ink" : "border-rule hover:border-ink"}`}
-              style={{ background: `linear-gradient(135deg, ${l.body} 0 55%, ${l.low} 55% 85%, ${l.accent} 85%)` }}
+              style={{ background: `linear-gradient(135deg, ${l.body} 0 55%, ${l.trim} 55% 85%, ${l.accent} 85%)` }}
             />
           );
         })}
       </div>
-      <p className="mt-2 font-mono text-[12px] text-graphite">{LIVERIES[current].label}</p>
+      <p className="mt-2 font-mono text-[12px] text-graphite">{current}</p>
     </div>
   );
 }

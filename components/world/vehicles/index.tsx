@@ -116,4 +116,3 @@ export const VEHICLES: VehicleDef[] = [
 ];
 
 export const vehicleByCode = Object.fromEntries(VEHICLES.map((v) => [v.code, v])) as Record<VehicleCode, VehicleDef>;
-export const DEFAULT_VEHICLE: VehicleCode = "V01";

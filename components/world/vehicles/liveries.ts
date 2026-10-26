@@ -21,7 +21,11 @@ export const LIVERY_NAMES = ["Paper", "Ink", "Graphite", "Orange", "Silver Arrow
 export type LiveryName = (typeof LIVERY_NAMES)[number];
 export const DEFAULT_LIVERY: LiveryName = "Paper";
 
-export type VehicleCode = "V01" | "V02" | "V03" | "V04";
+export const VEHICLE_CODES = ["V01", "V02", "V03", "V04"] as const;
+/** V01 TH-18, V02 E14, V03 Atlas, V04 Apollo. */
+export type VehicleCode = (typeof VEHICLE_CODES)[number];
+/** What you drive until you pick another in the garage. */
+export const DEFAULT_VEHICLE: VehicleCode = "V01";
 
 const INK = "#151515";
 const PAPER = "#f3f2ed";

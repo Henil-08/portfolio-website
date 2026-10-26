@@ -1,6 +1,6 @@
 "use client";
 
-import { DEFAULT_LIVERY, LIVERIES, type LiveryName } from "./liveries";
+import { DEFAULT_LIVERY, DEFAULT_VEHICLE, LIVERY_NAMES, VEHICLE_CODES, type LiveryName, type VehicleCode } from "./vehicles/liveries";
 import { useSyncExternalStore } from "react";
 import type { ZoneId } from "./layout";
 
@@ -34,7 +34,8 @@ type State = {
   controlsOpen: boolean;
   settingsOpen: boolean;
   voice: boolean; // race engineer speaks out loud
-  livery: LiveryName; // car paint, picked in settings and remembered
+  vehicle: VehicleCode; // what you drive (vehicles/index.tsx VEHICLES), picked in the garage and remembered
+  livery: LiveryName; // its paint, the same five names on every vehicle, remembered
   hallucinating: boolean;
   achievements: string[];
   radioMsg: { id: number; text: string } | null; // transient team-radio transcript
@@ -69,6 +70,7 @@ let state: State = {
   controlsOpen: false,
   settingsOpen: false,
   voice: true,
+  vehicle: DEFAULT_VEHICLE,
   livery: DEFAULT_LIVERY,
   hallucinating: false,
   achievements: [],
@@ -140,24 +142,29 @@ export function teleport(zone: ZoneId) {
   setState({ teleport: { id: ++tpId, zone }, menuOpen: false });
 }
 
-// Dev and headless-check hook: window.__world.teleport("garage-agents") etc.
+// Dev and headless-check hook: window.__world.teleport("garage-agents") etc.;
+// window.__world.setState({ vehicle: "V04", livery: "Orange" }) swaps what you drive.
 if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
   (window as unknown as { __world: object }).__world = { teleport, setState, getState, openZone };
 }
 
-// The livery choice lives in this browser only.
+// The vehicle and livery choice live in this browser only.
+const VEHICLE_KEY = "hg-vehicle";
 const LIVERY_KEY = "hg-livery";
 if (typeof window !== "undefined") {
   try {
-    const saved = window.localStorage.getItem(LIVERY_KEY);
-    if (saved && saved in LIVERIES) state = { ...state, livery: saved as LiveryName };
+    const v = window.localStorage.getItem(VEHICLE_KEY);
+    if (v && (VEHICLE_CODES as readonly string[]).includes(v)) state = { ...state, vehicle: v as VehicleCode };
+    const l = window.localStorage.getItem(LIVERY_KEY);
+    if (l && (LIVERY_NAMES as readonly string[]).includes(l)) state = { ...state, livery: l as LiveryName };
   } catch {}
-  let last = state.livery;
+  let last = { vehicle: state.vehicle, livery: state.livery };
   subscribe(() => {
-    if (state.livery === last) return;
-    last = state.livery;
+    if (state.vehicle === last.vehicle && state.livery === last.livery) return;
+    last = { vehicle: state.vehicle, livery: state.livery };
     try {
-      window.localStorage.setItem(LIVERY_KEY, last);
+      window.localStorage.setItem(VEHICLE_KEY, last.vehicle);
+      window.localStorage.setItem(LIVERY_KEY, last.livery);
     } catch {}
   });
 }

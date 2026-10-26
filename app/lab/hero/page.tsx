@@ -10,5 +10,5 @@ export default async function HeroLabPage({
 }) {
   const sp = await searchParams;
   const one = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : undefined);
-  return <HeroLab view={one("view") ?? "car"} angle={one("angle") ?? "front"} wave={one("wave") === "1"} steer={Number(one("steer") ?? 0)} brake={one("brake") === "1"} dist={Number(one("dist") ?? 1) || 1} drs={one("drs") === "1"} />;
+  return <HeroLab view={one("view") ?? "avatar"} angle={one("angle") ?? "front"} wave={one("wave") === "1"} dist={Number(one("dist") ?? 1) || 1} />;
 }
