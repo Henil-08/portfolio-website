@@ -3,14 +3,28 @@
 import * as THREE from "three";
 import { carState } from "../carState";
 import { heightAt } from "../terrain";
-import { TRACK_WIDTH, inLand, nearestT, trackPoint } from "../layout";
+import { PIT, PIT_LANE_WIDTH, TRACK_WIDTH, inLand, nearestT, pitRoadCurves, trackPoint } from "../layout";
 
 export { heightAt };
 
-/** True on grass or gravel: off the asphalt (kerbs included) and on the island. */
+let lanePts: THREE.Vector3[] | null = null;
+/** On the pit lane (6 m of asphalt along the straight) or the roads that peel off and rejoin the lap. */
+export function onPitRoad(x: number, z: number, margin = 0) {
+  const half = PIT_LANE_WIDTH / 2 + 0.2 + margin;
+  if (Math.abs(z - PIT.z) < half && x > PIT.from - 4 && x < PIT.to + 4) return true;
+  lanePts ??= pitRoadCurves().flatMap((c) => c.getSpacedPoints(80));
+  return lanePts.some((q) => (q.x - x) ** 2 + (q.z - z) ** 2 < half * half);
+}
+
+/** On asphalt: the track (kerbs included) or a pit road. */
+export function onAsphalt(x: number, z: number, margin = 0) {
+  return nearestT(x, z).dist <= TRACK_WIDTH / 2 + 0.4 + margin || onPitRoad(x, z, margin);
+}
+
+/** True on grass or gravel: off the asphalt (kerbs and pit roads included) and on the island. */
 export function offTrack(x: number, z: number) {
   if (!inLand(x, z)) return false;
-  return nearestT(x, z).dist > TRACK_WIDTH / 2 + 0.4;
+  return !onAsphalt(x, z);
 }
 
 // Wheel contact points relative to the chassis: x along the car's forward, z to its side.

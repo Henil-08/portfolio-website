@@ -8,8 +8,8 @@
 // the faster they run (8 s in a calm, 2 s in a gale).
 // Changes: the four lines are instances of one mesh (one draw call), gsap
 // tweens became a per-frame timeline, the side of each vertex is an attribute
-// (WebGL has no vertexIndex here), lines sit 2 m above the terrain, and they
-// fade out at night.
+// (WebGL has no vertexIndex here), lines sit 2 m above the terrain, they
+// fade out at night, and they only show over grass, never over the road or pit lanes.
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -19,7 +19,7 @@ import { carState } from "../carState";
 import { dayNight } from "../daynight";
 import { remapClamp } from "./noise";
 import { updateWind, wind } from "./wind";
-import { heightAt } from "./ground";
+import { heightAt, onAsphalt } from "./ground";
 
 const POOL = 4;
 const INTERVAL = { min: 300, max: 2000 };
@@ -137,11 +137,18 @@ export function WindLines() {
         line.available = false;
         line.t = 0;
         line.duration = remapClamp(wind.weather, 0, 1, 8, 2);
-        line.x = carState.pos.x + (Math.random() - 0.5) * AREA_RADIUS;
-        line.z = carState.pos.z + (Math.random() - 0.5) * AREA_RADIUS;
         // 2 m over the highest ground under the line
         const dx = Math.sin(wind.angle) * 5;
         const dz = Math.cos(wind.angle) * 5;
+        // over grass only: paper streaks over the near-black road read as road paint, so a spot
+        // where any of the line (and its 1 m drift) would cross asphalt is skipped
+        const overRoad = (x: number, z: number) => [-1, -0.5, 0, 0.5, 1, 1.2].some((k) => onAsphalt(x + dx * k, z + dz * k, 1));
+        let tries = 0;
+        do {
+          line.x = carState.pos.x + (Math.random() - 0.5) * AREA_RADIUS;
+          line.z = carState.pos.z + (Math.random() - 0.5) * AREA_RADIUS;
+        } while (overRoad(line.x, line.z) && ++tries < 6);
+        if (tries >= 6) line.available = true; // all road around here: no streak this time
         line.y = Math.max(heightAt(line.x, line.z), heightAt(line.x + dx, line.z + dz), heightAt(line.x - dx, line.z - dz)) + 2;
       }
     }

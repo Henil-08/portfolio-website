@@ -1,7 +1,7 @@
 "use client";
 
 // The four vehicles in the garage: what the select screen shows (name, line, stats, icon,
-// liveries) and what the game needs to drive them (wheels, size, trail anchors).
+// liveries) and what the game needs to drive them (wheels, size).
 import type { ComponentType, ReactNode } from "react";
 import { Atv, ATV_WHEELS } from "./Atv";
 import { Bike, BIKE_STEER_AXIS, BIKE_WHEELS } from "./Bike";
@@ -27,11 +27,10 @@ export type VehicleDef = {
   liveries: Livery[];
   Model: ComponentType<{ livery?: Livery }>;
   icon: ReactNode;
-  /** Model space (nose +z, ground y = 0): the wheels, the steering axis, the body's bounding box, boost trail anchors. */
+  /** Model space (nose +z, ground y = 0): the wheels, the steering axis, the body's bounding box. */
   wheels: WheelSpec[];
   steerAxis: V3;
   box: { min: V3; max: V3 };
-  tips: V3[];
 };
 
 const VERTICAL: V3 = [0, 1, 0];
@@ -50,11 +49,6 @@ export const VEHICLES: VehicleDef[] = [
     wheels: FORMULA_WHEELS,
     steerAxis: VERTICAL,
     box: { min: [-1.0, 0, -2.62], max: [1.0, 1.0, 2.86] },
-    // the rear wing endplates' top corners
-    tips: [
-      [0.53, 0.98, -2.6],
-      [-0.53, 0.98, -2.6],
-    ],
   },
   {
     code: "V02",
@@ -69,11 +63,6 @@ export const VEHICLES: VehicleDef[] = [
     wheels: ATV_WHEELS,
     steerAxis: VERTICAL,
     box: { min: [-0.82, 0, -1.06], max: [0.82, 1.5, 1.06] },
-    // the roll hoop's top corners
-    tips: [
-      [0.19, 1.5, -0.5],
-      [-0.19, 1.5, -0.5],
-    ],
   },
   {
     code: "V03",
@@ -88,11 +77,6 @@ export const VEHICLES: VehicleDef[] = [
     wheels: ROADSTER_WHEELS,
     steerAxis: VERTICAL,
     box: { min: [-1.0, 0, -2.38], max: [1.0, 1.16, 2.31] },
-    // the wing's endplates
-    tips: [
-      [0.93, 1.14, -2.34],
-      [-0.93, 1.14, -2.34],
-    ],
   },
   {
     code: "V04",
@@ -107,11 +91,6 @@ export const VEHICLES: VehicleDef[] = [
     wheels: BIKE_WHEELS,
     steerAxis: BIKE_STEER_AXIS,
     box: { min: [-0.3, 0, -1.01], max: [0.3, 1.12, 1.03] },
-    // the tail's corners
-    tips: [
-      [0.06, 0.95, -0.6],
-      [-0.06, 0.95, -0.6],
-    ],
   },
 ];
 
