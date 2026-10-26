@@ -4,7 +4,7 @@
 // timing, the micro-interactions as live components, and the real screens (boot, driving
 // HUD, garage, map, resume, 404) built from them. All copy comes from content/*.
 import Link from "next/link";
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { profile, story } from "@/content/profile";
 import { projects, DOMAINS } from "@/content/projects";
 import { ACHIEVEMENTS } from "@/content/achievements";
@@ -16,6 +16,7 @@ import { DsCard, DsResume } from "@/components/brand/sheets";
 import { DS, pad } from "@/components/brand/tokens";
 import { ATTENTION, Lockup, Mark } from "@/components/brand/mark";
 import Corners from "@/components/brand/Corners";
+import { CURSOR_STYLE_KEY } from "@/components/brand/Cursor";
 
 /* ------------------------------------------------------------------ page frame */
 
@@ -369,6 +370,77 @@ function Tabs() {
   );
 }
 
+// I09 lab: the hover options for the cursor. The choice is <html data-cursor-style>, saved in
+// localStorage so Cursor.tsx applies it on every page until one is picked for real.
+const CURSOR_OPTIONS = [
+  { id: "", label: "Current", note: "No change over clickable things; the target's own hover does the work." },
+  { id: "a", label: "A · Grow", note: "The square doubles to 14 px and turns signal orange." },
+  { id: "b", label: "B · Frame", note: "The square opens into an 18 px ink frame with a 4 px dot in the middle." },
+  { id: "c", label: "C · Cross", note: "The square turns into a 12 px ink plus with an orange centre." },
+];
+
+function watchCursorStyle(cb: () => void) {
+  const mo = new MutationObserver(cb);
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-cursor-style"] });
+  return () => mo.disconnect();
+}
+
+function pickCursorStyle(id: string) {
+  if (id) document.documentElement.setAttribute("data-cursor-style", id);
+  else document.documentElement.removeAttribute("data-cursor-style");
+  try {
+    if (id) localStorage.setItem(CURSOR_STYLE_KEY, id);
+    else localStorage.removeItem(CURSOR_STYLE_KEY);
+  } catch {}
+}
+
+function CursorLab() {
+  const style = useSyncExternalStore(watchCursorStyle, () => document.documentElement.dataset.cursorStyle ?? "", () => "");
+  const i = Math.max(0, CURSOR_OPTIONS.findIndex((o) => o.id === style));
+  return (
+    <div className="space-y-5">
+      <div className="relative inline-grid grid-cols-4 border-2 border-[#111] bg-white">
+        <span className="absolute inset-y-0 w-1/4 bg-[#111] transition-transform duration-200 ease-[cubic-bezier(.6,0,.2,1)]" style={{ transform: `translateX(${i * 100}%)` }} />
+        {CURSOR_OPTIONS.map((o, j) => (
+          <button key={o.label} type="button" onClick={() => pickCursorStyle(o.id)} aria-pressed={i === j} className={`font-mono relative px-4 py-2 text-[12px] uppercase tracking-[0.06em] transition-colors ${i === j ? "text-white" : "text-[#111]"}`}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+      <ul className="space-y-1 text-[13.5px]">
+        {CURSOR_OPTIONS.map((o, j) => (
+          <li key={o.label} className={i === j ? "text-[#111]" : "text-[#5d5d58]"}>
+            <span className="font-mono mr-2 text-[12px] uppercase">{o.label}</span>
+            {o.note}
+          </li>
+        ))}
+      </ul>
+      <div className="flex flex-wrap items-center gap-5 text-[14px]">
+        <button type="button" className="x-btn x-primary">
+          Primary
+        </button>
+        <button type="button" className="x-btn x-secondary">
+          Secondary
+        </button>
+        <a href="#interactions" className="x-link font-medium">
+          A link
+        </a>
+        <button type="button" className="x-chip">
+          Chip
+        </button>
+        <input placeholder="Text field" className="w-36 border-2 border-[#111] bg-white px-2 py-1.5 outline-none" />
+        <span data-cursor="drag" className="font-mono grid h-16 w-28 place-items-center border-2 border-dashed border-[#111] text-[12px] text-[#5d5d58]">
+          3D view
+        </span>
+      </div>
+      <a href="#interactions" className="x-row grid grid-cols-[1fr_18px] items-center gap-3 border-y border-[#cfcdc4] px-2 py-2.5 text-[14px]">
+        <span>A row link, like the project list</span>
+        <span className="x-arrow">→</span>
+      </a>
+    </div>
+  );
+}
+
 function Toggle({ label }: { label: string }) {
   const [on, setOn] = useState(true);
   return (
@@ -541,17 +613,8 @@ function Interactions() {
             </span>
           </div>
         </Panel>
-        <Panel code="I09" title="Cursor" note="Live on every page. A small ink square follows you and shrinks while you press. A bar over text, DRAG over 3D views. Hover feedback comes from the targets themselves. Mouse and pen only; touch keeps its own.">
-          <div className="flex flex-wrap items-center gap-5 text-[14px]">
-            <button type="button" className="x-btn x-secondary">
-              Hover me
-            </button>
-            <span className="x-chip">Chip</span>
-            <input placeholder="Text field" className="w-36 border-2 border-[#111] bg-white px-2 py-1.5 outline-none" />
-            <span data-cursor="drag" className="font-mono grid h-16 w-28 place-items-center border-2 border-dashed border-[#111] text-[12px] text-[#5d5d58]">
-              3D view
-            </span>
-          </div>
+        <Panel code="I09" title="Cursor" note="Live on every page. A small ink square follows you and shrinks while you press. A bar over text, DRAG over 3D views. Pick what it does over clickable things; the choice is saved in this browser so you can carry it around the site. Mouse and pen only; touch keeps its own.">
+          <CursorLab />
         </Panel>
       </div>
     </Section>

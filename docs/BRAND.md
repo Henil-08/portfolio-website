@@ -8,6 +8,7 @@ disagree, the page is what the owner approved; fix this file.
 
 | Date | Decision |
 |---|---|
+| 2026-10-26 | Cursor hover options for the owner to pick, live in the I09 lab on /docs/brand/system: A Grow (14 px orange), B Frame (18 px hollow ink square, ink dot), C Cross (ink plus, orange centre). Default stays "no change". The choice previews site-wide from localStorage `hg:cursor-style` until one is chosen. |
 | 2026-10-26 | Boot bar runs on CSS (no jump to 100%), the floor grid waits for the world, cursor 7 px (owner). |
 | 2026-10-26 | Step 10 done: every screen (boot, HUD, sheets, garage, map, overlays, prompt, resume, 404, trackside boards) is in this language; the old UI layer and docs/DESIGN.md are deleted. |
 | 2026-10-26 | Cursor: no corner brackets on hover, just the square (owner). |
