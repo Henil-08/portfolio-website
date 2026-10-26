@@ -1,123 +1,96 @@
-// Static. Start/finish gantry, 8 m clear span between the pillars, ~5.6 m tall. Faces +Z
-// (the road runs along Z, through the arch).
-// Colliders: pillars at x = +-4.35, cuboid 0.7 x 5.6 x 0.9 centered at (+-4.35, 2.8, 0).
-// The beam is at y = 4.6..5.6 (overhead, no collider needed).
+// Static. Start/finish gantry (W08 in the approved world, docs/BRAND.md): ink pillars on
+// concrete feet, an ink beam with an LED board and five start lights that glow orange.
+// 8 m clear span between the pillars, ~7 m tall. Faces +Z (the road runs along Z, through the arch).
+// The beam is at y = 5.4..7.0 (overhead, no collider needed).
 "use client";
 
-import { RoundedBox } from "@react-three/drei";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import * as THREE from "three";
-import { C } from "../../palette";
-import { Label } from "./Label";
+import { K, km } from "../../street/ink";
+import { loadBoardFonts } from "../../street/boardArt";
 import { mat, unitBox, unitCyl, type GroupProps } from "./shared";
 
 const SPAN = 8;
 const PX = SPAN / 2 + 0.35;
-const BEAM_Y = 5.1;
+const PILLAR_H = 6.4;
+const BEAM_Y = 6.2;
+const BEAM_H = 1.6;
+const BEAM_L = SPAN + 1.7;
+const BOARD = { x: -2.25, w: 4.6, h: 1.2 };
+const LIGHT_X = 0.6;
 
-function useChequer(cols: number, rows: number) {
-  return useMemo(() => {
-    const c = document.createElement("canvas");
-    c.width = cols * 16;
-    c.height = rows * 16;
-    const g = c.getContext("2d")!;
-    for (let y = 0; y < rows; y++)
-      for (let x = 0; x < cols; x++) {
-        g.fillStyle = (x + y) % 2 ? C.ink : C.white;
-        g.fillRect(x * 16, y * 16, 16, 16);
-      }
-    const t = new THREE.CanvasTexture(c);
-    t.magFilter = THREE.NearestFilter;
-    t.colorSpace = THREE.SRGBColorSpace;
-    return new THREE.MeshStandardMaterial({ map: t, roughness: 0.5 });
-  }, [cols, rows]);
+const Part = ({ s, p, m, shadow = true }: { s: [number, number, number]; p: [number, number, number]; m: THREE.Material; shadow?: boolean }) => (
+  <mesh geometry={unitBox()} scale={s} position={p} material={m} castShadow={shadow} receiveShadow />
+);
+
+/** The LED board: orange mono text on near-black, drawn once the fonts are in. */
+function useBoard(text: string) {
+  const [m, setM] = useState<THREE.MeshStandardMaterial | null>(null);
+  useEffect(() => {
+    let dead = false;
+    let made: THREE.MeshStandardMaterial | null = null;
+    void loadBoardFonts().then((fonts) => {
+      if (dead) return;
+      const c = document.createElement("canvas");
+      c.width = 512;
+      c.height = Math.round((512 * BOARD.h) / BOARD.w);
+      const g = c.getContext("2d")!;
+      g.fillStyle = "#0c0c0c";
+      g.fillRect(0, 0, c.width, c.height);
+      g.fillStyle = K.orange;
+      g.font = `600 ${Math.round(c.height * 0.46)}px ${fonts.mono}`;
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.fillText(text, c.width / 2, c.height / 2 + 2);
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = 4;
+      made = new THREE.MeshStandardMaterial({ color: "#000000", emissiveMap: t, emissive: "#ffffff", emissiveIntensity: 1.4, roughness: 0.4, toneMapped: false });
+      setM(made);
+    });
+    return () => {
+      dead = true;
+      made?.emissiveMap?.dispose();
+      made?.dispose();
+    };
+  }, [text]);
+  return m;
 }
 
-/** Broadcast banner face: white panel, chequer + red block at the ends, Racero headline. */
-function Banner({ text, sub }: { text: string; sub: string }) {
-  const chequer = useChequer(4, 4);
-  const w = SPAN - 0.3; // fits between the pylons
-  return (
-    <group>
-      <mesh geometry={unitBox()} scale={[w, 0.78, 0.02]} material={mat(C.white, { r: 0.3 })} />
-      {[-1, 1].map((s) => (
-        <group key={s}>
-          <mesh geometry={unitBox()} scale={[0.7, 0.78, 0.022]} position={[s * (w / 2 - 0.35), 0, 0.001]} material={mat(C.red, { r: 0.35 })} />
-          <mesh position={[s * (w / 2 - 0.35), 0, 0.013]} material={chequer}>
-            <planeGeometry args={[0.48, 0.48]} />
-          </mesh>
-        </group>
-      ))}
-      <Label position={[0, 0.06, 0.015]} fontSize={0.36} color={C.ink} letterSpacing={0.08}>
-        {text}
-      </Label>
-      <Label position={[0, -0.24, 0.015]} fontSize={0.1} color={C.greyDark} letterSpacing={0.4}>
-        {sub}
-      </Label>
-    </group>
-  );
-}
-
-/** Modern F1 start gantry: white pylons, charcoal beam, 5 pairs of start lights on a black panel (`lights` = columns lit). */
+/** Start gantry (W08): `lights` = how many of the five start lights are lit. */
 export function Gantry({ lights = 0, ...props }: GroupProps & { lights?: number }) {
-  const white = mat(C.white, { r: 0.3 });
-  const red = mat(C.red, { r: 0.35 });
-  const ink = mat(C.ink, { r: 0.45, m: 0.15 });
-  const black = mat(C.black, { r: 0.35, m: 0.2 });
-  const lit = mat(C.black, { e: C.red, glow: 2.4, r: 0.3 }); // dark base so only the emissive red shows
-  const off = mat("#24262a", { r: 0.12, m: 0.3 });
-  const bezel = mat(C.charcoal, { r: 0.3, m: 0.4 });
+  const ink = km.ink();
+  const lit = mat(K.ink, { e: K.orange, glow: 2.4, r: 0.3 }); // dark base so only the emissive orange shows
+  const board = useBoard("HG-08  LAP 1");
   return (
     <group {...props}>
       {[-1, 1].map((s) => (
         <group key={s} position={[s * PX, 0, 0]}>
-          {/* plinth + white pylon with a red inset stripe facing the road */}
-          <RoundedBox args={[0.9, 0.2, 1.1]} radius={0.03} smoothness={2} position={[0, 0.1, 0]} material={ink} castShadow receiveShadow />
-          <RoundedBox args={[0.62, BEAM_Y + 0.4, 0.82]} radius={0.05} smoothness={3} position={[0, (BEAM_Y + 0.4) / 2 + 0.1, 0]} material={white} castShadow receiveShadow />
-          {[-1, 1].map((f) => (
-            <mesh key={f} geometry={unitBox()} scale={[0.14, BEAM_Y - 0.9, 0.02]} position={[-s * 0.12, (BEAM_Y - 0.9) / 2 + 0.4, f * 0.415]} material={red} />
-          ))}
-          <mesh geometry={unitBox()} scale={[0.02, BEAM_Y - 0.9, 0.12]} position={[-s * 0.315, (BEAM_Y - 0.9) / 2 + 0.4, 0]} material={red} />
+          <Part s={[1.2, 0.3, 1.2]} p={[0, 0.15, 0]} m={km.concrete()} />
+          <Part s={[0.6, PILLAR_H, 0.6]} p={[0, PILLAR_H / 2, 0]} m={ink} />
         </group>
       ))}
-      {/* main beam: charcoal box section, banners front and back */}
-      <RoundedBox args={[SPAN + 1.5, 0.95, 0.7]} radius={0.04} smoothness={2} position={[0, BEAM_Y + 0.05, 0]} material={ink} castShadow receiveShadow />
-      <group position={[0, BEAM_Y + 0.05, 0.36]}>
-        <Banner text="START · FINISH" sub="HG-08 · GRAND PRIX" />
-      </group>
-      <group position={[0, BEAM_Y + 0.05, -0.36]} rotation={[0, Math.PI, 0]}>
-        <Banner text="HG-08" sub="LIGHTS OUT AND AWAY WE GO" />
-      </group>
-
-      {/* start light panel hanging under the beam: 5 columns x 2 lights */}
-      <group position={[0, BEAM_Y - 1.0, 0.05]}>
-        {[-1.5, 1.5].map((x) => (
-          <mesh key={x} geometry={unitBox()} scale={[0.05, 0.4, 0.05]} position={[x, 0.55, -0.05]} material={ink} />
-        ))}
-        <RoundedBox args={[3.9, 0.9, 0.32]} radius={0.03} smoothness={2} material={black} castShadow receiveShadow />
-        <mesh geometry={unitBox()} scale={[3.9, 0.04, 0.33]} position={[0, 0.43, 0]} material={red} />
-        {Array.from({ length: 5 }, (_, i) => {
-          const on = i < lights;
-          return (
-            <group key={i} position={[(i - 2) * 0.72, 0, 0.165]}>
-              <mesh geometry={unitBox()} scale={[0.56, 0.78, 0.02]} material={bezel} />
-              {[0.18, -0.18].map((y) => (
-                <group key={y} position={[0, y, 0]}>
-                  <mesh geometry={unitCyl()} rotation={[Math.PI / 2, 0, 0]} scale={[0.15, 0.03, 0.15]} position={[0, 0, 0.012]} material={on ? lit : off} />
-                  {/* visor */}
-                  <mesh geometry={unitBox()} scale={[0.34, 0.025, 0.08]} position={[0, 0.17, 0.05]} material={black} />
-                </group>
+      <Part s={[BEAM_L, BEAM_H, 0.7]} p={[0, BEAM_Y, 0]} m={ink} />
+      {/* both faces: the LED board on the left and five start lights on the right */}
+      {[1, -1].map((f) => (
+        <group key={f} position={[0, BEAM_Y, f * 0.36]} rotation={[0, f > 0 ? 0 : Math.PI, 0]}>
+          {board && (
+            <mesh position={[BOARD.x, 0, 0]} material={board}>
+              <planeGeometry args={[BOARD.w, BOARD.h]} />
+            </mesh>
+          )}
+          {Array.from({ length: 5 }, (_, i) => (
+            <group key={i} position={[LIGHT_X + i * 0.9, 0, 0]}>
+              <Part s={[0.7, 1.2, 0.1]} p={[0, 0, 0]} m={km.graphite()} shadow={false} />
+              {[0.25, -0.25].map((y) => (
+                <mesh key={y} geometry={unitCyl()} rotation={[Math.PI / 2, 0, 0]} scale={[0.2, 0.03, 0.2]} position={[0, y, 0.06]} material={y > 0 && i < lights ? lit : km.inkMatte()} />
               ))}
             </group>
-          );
-        })}
-        {/* always mounted so toggling lights never recompiles shaders */}
-        <pointLight color={C.red} intensity={Math.max(0, Math.min(5, lights)) * 1.5} distance={6} position={[0, -0.6, 1]} />
-      </group>
-      {/* roof graphic for the high camera */}
-      <Label position={[0, BEAM_Y + 0.53, 0]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.38} color={C.white} letterSpacing={0.12}>
-        START · FINISH
-      </Label>
+          ))}
+        </group>
+      ))}
+      {/* always mounted so toggling lights never recompiles shaders */}
+      <pointLight color={K.orange} intensity={Math.max(0, Math.min(5, lights)) * 1.5} distance={8} position={[2.4, BEAM_Y - 1, 1.2]} />
     </group>
   );
 }
