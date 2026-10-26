@@ -8,6 +8,7 @@ disagree, the page is what the owner approved; fix this file.
 
 | Date | Decision |
 |---|---|
+| 2026-10-26 | Cursor: no corner brackets on hover, just the square (owner). |
 | 2026-10-26 | Custom cursor approved (I09). The brand code moved to components/brand; the old exploration pages are deleted, and /docs/brand/system and /docs/brand/world are kept. Step 10 started. |
 | 2026-10-26 | Lockup: next to the name, the visible square is as tall as the name's font size, 0.4× apart (`<Lockup size name />` in mark.tsx). The old 36 px mark beside 20 px text looked too heavy. |
 | 2026-10-26 | World proposal "Concrete & Ink" liked ("All of this is nice"). Night lighting needs more work later. The owner expects it to be lighter on memory too: share materials and instance repeated models when it's built. |
@@ -113,9 +114,9 @@ panel: frame, bars, text, figures, details.
 | I07 | Toast | Flickers on, an ink countdown bar runs, it leaves. One at a time, top centre. |
 | I08 | Tooltip, status | Tooltip is a white sticker with a hard shadow. Status dots are the only round thing: orange blinking = live, ink = visited, outline = not yet. |
 
-| I09 | Cursor | `components/brand/Cursor.tsx`, mounted once in app/layout.tsx. A 10 px ink square with a paper outline follows the pointer. Over anything clickable it shrinks to an aim point and orange corner brackets lock onto the target (6 px out, 3 px tighter while pressed), following it in one rAF loop. A 2 px bar over text fields. `data-cursor="drag"` shows a DRAG tag (3D views), `data-cursor="none"` hides it, and `data-cursor="hover"` marks extra clickables. The current mode is on `<html data-cursor-mode>`; never write to `data-cursor` on html, since the selectors read it. Mouse and pen only; touch is unchanged. Reduced motion snaps instead of easing. |
+| I09 | Cursor | `components/brand/Cursor.tsx`, mounted once in app/layout.tsx. A 10 px ink square with a paper outline follows the pointer and shrinks to 0.7 while pressed. **No brackets on hover** (owner, 2026-10-26); hover feedback is the target's own. A 2 px bar over text fields; `data-cursor="drag"` shows a DRAG tag (3D views); `data-cursor="none"` hides it. The current mode is on `<html data-cursor-mode>`. Mouse and pen only; touch is unchanged. |
 
-Hover, keyboard focus and the cursor share one signal, the orange corner brackets (`x-sel` + `<Corners/>`).
+Hover and keyboard focus share one signal, the orange corner brackets (`x-sel` + `<Corners/>`). The cursor itself never shows brackets.
 
 ## Screens (S01–S06 in System.tsx; build the real ones from these)
 

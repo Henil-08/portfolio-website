@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 
 // The intro floor colour (world/Reveal.tsx FLOOR): painted before the canvas exists, so the page never jumps.
-const FLOOR = "#171928";
+const FLOOR = "#f3f2ed"; // the boot floor, paper (world/Reveal.tsx)
 
 // Everything here is client only: WebGL, Rapier's WASM, audio and sessionStorage.
 const World = dynamic(() => import("@/components/world/World"), { ssr: false });

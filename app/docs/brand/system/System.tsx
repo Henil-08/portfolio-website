@@ -542,7 +542,7 @@ function Interactions() {
             </span>
           </div>
         </Panel>
-        <Panel code="I09" title="Cursor" note="Live on every page. The ink square follows you; over anything clickable it hides and the orange brackets lock onto the target, tightening when you press. A bar over text, DRAG over 3D views. Mouse and pen only; touch keeps its own.">
+        <Panel code="I09" title="Cursor" note="Live on every page. A small ink square follows you and shrinks while you press. A bar over text, DRAG over 3D views. Hover feedback comes from the targets themselves. Mouse and pen only; touch keeps its own.">
           <div className="flex flex-wrap items-center gap-5 text-[14px]">
             <button type="button" className="x-btn x-secondary">
               Hover me

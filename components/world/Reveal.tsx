@@ -3,9 +3,9 @@
 // The opening, after folio-2025 (MIT, see public/vendor/LICENSE.md):
 // sources/Game/Reveal.js and World/Intro.js, in the site's own colours, 1.5x faster.
 //
-//  1. Loading: an ink floor with a soft dot grid (the site's colours) and F1 start lights
-//     over it (components/ui/StartLights.tsx): five red lights come on one by one as the
-//     world gets ready (`boot.lit`), hold, then go out together (`boot.out`).
+//  1. Loading: a paper floor with an ink dot grid and the boot screen over it
+//     (components/ui/Boot.tsx, docs/BRAND.md S01): the mark builds, the name decodes and the
+//     progress counts the real load (`boot.lit`); when it is ready (`boot.out`) it lifts away.
 //  2. Lights out: the world opens inside a circle round the car (back.out). Every surface the circle cuts glows along the cut, so
 //     trees and grass end in a bright cylinder wall. A "click to start" label
 //     and the sound toggle pop in beside it (elastic.out).
@@ -34,7 +34,7 @@ export const reveal = {
 };
 
 /** The intro floor; Experience.tsx paints the page this colour before the canvas exists, so nothing jumps. */
-export const FLOOR = "#171928";
+export const FLOOR = "#f3f2ed";
 
 const OPEN = 5; // the original's 3.5, scaled with our bigger car
 const FAR = 36;
@@ -68,8 +68,8 @@ uniform vec3 uDot;
 uniform vec3 uLine;
 uniform float uGrid;     // 0..1 grid fade-in
 
-// Our floor: deep ink with a timing-screen grid, soft cream dots every metre and
-// faint hairlines every 10 m (the site's ink / cream / red, not the original's purple).
+// Our floor: paper with a fine ink dot every metre and rule-grey hairlines every 10 m
+// (docs/BRAND.md colours, not the original's purple).
 float dots(vec2 p, float cell, float radius) {
   vec2 q = fract(p / cell) - 0.5;
   float d = length(q) * cell;
@@ -132,10 +132,10 @@ class RevealEffect extends Effect {
         ["uRadius", new THREE.Uniform(0)],
         ["uThick", new THREE.Uniform(0.08)],
         // the site's racing red, past 1 so it blooms
-        ["uRing", new THREE.Uniform(new THREE.Color("#ff4b3e").multiplyScalar(4.5))],
+        ["uRing", new THREE.Uniform(new THREE.Color("#ff4f00").multiplyScalar(3.5))],
         ["uFloor", new THREE.Uniform(new THREE.Color(FLOOR))],
-        ["uDot", new THREE.Uniform(new THREE.Color("#fff8ec"))],
-        ["uLine", new THREE.Uniform(new THREE.Color("#4a4d63"))],
+        ["uDot", new THREE.Uniform(new THREE.Color("#111111"))],
+        ["uLine", new THREE.Uniform(new THREE.Color("#b9b6ad"))],
         ["uGrid", new THREE.Uniform(0)],
         ["uInvProj", new THREE.Uniform(new THREE.Matrix4())],
         ["uInvView", new THREE.Uniform(new THREE.Matrix4())],
@@ -152,8 +152,8 @@ class RevealEffect extends Effect {
 const load = { shown: 0, ring: 0, label: 0, grid: 0 };
 
 /**
- * The start lights (components/ui/StartLights.tsx) read this: `lit` 0..1 of the five
- * lights on (the real loading progress), `stage` what is loading, `out` lights out.
+ * The boot screen (components/ui/Boot.tsx) reads this: `lit` 0..1 of the real loading
+ * progress, `stage` what is loading, `out` once the world is ready to open.
  */
 export const boot = { lit: 0, stage: "world" as "world" | "shaders" | "ready", out: false };
 
@@ -274,8 +274,8 @@ export function RevealDriver() {
 const COARSE = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
 
 /**
- * The start label and sound toggle, in the site's own type (Geist Mono, cream),
- * beside the circle in the world. Drawn as DOM over the canvas
+ * The start label and sound toggle as a sticker (docs/BRAND.md I02/I08): the key to press on
+ * an ink tab, a hard shadow, the sound toggle under it. Drawn as DOM over the canvas
  * (drei Html) so the reveal pass doesn't paint the grid over it.
  */
 export function IntroLabel() {
@@ -298,29 +298,23 @@ export function IntroLabel() {
   return (
     <group ref={group}>
       <Html center zIndexRange={[60, 60]}>
-        <div ref={box} style={{ transform: "scale(0)", transformOrigin: "0% 50%" }} className="pointer-events-none flex select-none items-center gap-3 text-[#fff8ec]">
-          <svg width="54" height="22" viewBox="0 0 54 22" fill="none" aria-hidden className="opacity-80">
-            <path d="M53 4C38 2 20 4 6 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M5 8l1 7.5 7.5-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <div className="flex flex-col items-start gap-2">
-            <p className="whitespace-nowrap font-mono text-[13px] uppercase leading-none tracking-[0.3em]">{COARSE ? "Tap to start" : "Click to start"}</p>
-            <button
-              type="button"
-              aria-label={muted ? "Sound off" : "Sound on"}
-              onClick={(e) => {
-                e.stopPropagation();
-                setState({ muted: !muted });
-              }}
-              className="pointer-events-auto flex items-center gap-2 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.25em] text-[#fff8ec]/60 transition hover:text-[#fff8ec]"
-            >
-              <svg width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden>
-                <path d="M1.5 5h2.5L8 1.8v10.4L4 9H1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-                {muted ? <path d="M11 4.5l4 5m0-5l-4 5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /> : <path d="M11 4.2c1.2 1.6 1.2 4 0 5.6M13.2 2.6c2.1 2.6 2.1 6.2 0 8.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />}
-              </svg>
-              {muted ? "Sound off" : "Sound on"}
-            </button>
+        <div ref={box} style={{ transform: "scale(0)", transformOrigin: "0% 50%" }} className="pointer-events-none flex select-none flex-col items-start gap-2 text-ink">
+          <div className="flex items-stretch border-2 border-ink bg-white shadow-[3px_3px_0_var(--color-ink)]">
+            <span className="grid place-items-center bg-ink px-2.5 font-mono text-[12px] font-semibold text-white">{COARSE ? "Tap" : "Enter"}</span>
+            <span className="whitespace-nowrap px-3 py-1.5 text-[15px] font-semibold">{COARSE ? "Tap to drive" : "Press to drive"}</span>
           </div>
+          <button
+            type="button"
+            aria-label={muted ? "Sound off" : "Sound on"}
+            onClick={(e) => {
+              e.stopPropagation();
+              setState({ muted: !muted });
+            }}
+            className="x-link pointer-events-auto flex items-center gap-1.5 whitespace-nowrap font-mono text-[12px]"
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${muted ? "border border-ink" : "bg-signal"}`} />
+            {muted ? "Sound off" : "Sound on"}
+          </button>
         </div>
       </Html>
     </group>
