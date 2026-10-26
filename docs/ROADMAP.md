@@ -418,6 +418,7 @@ Owns new components/world/ui3d/** and Race.tsx (`InteractionPoint`, the current 
 - [x] (3317f53) /resume in design A with hover states; ink on white in print. Scroll-driven site: dropped (owner).
 
 ### 10. Brand: Datasheet (owner, 2026-10-25)
+Spec: docs/BRAND.md (source of truth). Part number HG-08.
 Owner picked the Datasheet direction (`/docs/brand/datasheet`), with motion. It replaces design A
 (pit wall broadcast) on every screen; the 3D world's art direction stays as it is. Reference parts:
 app/docs/brand/datasheet/{parts,shared}.tsx. Tokens: paper #f3f2ed, ink #111111, graphite #5d5d58,
@@ -443,3 +444,10 @@ to ink on hover, one scan line on a panel's first open. `prefers-reduced-motion`
 - [ ] /resume (page, Tailored, PrintButton) as the datasheet resume; print stays ink on white.
 - [ ] not-found, /docs/design specimen replaced by the datasheet specimen.
 - [ ] In-world text that carries the brand: trackside "HG RACING" boards (Trackside.tsx) to the new mark.
+
+### 11. World redesign (owner, 2026-10-25)
+Owner: next to the new UI "the world feels childish (car, building, fence, colors, etc)" and asked
+to "design everything again". This overrides the old art direction above (folio-2025 look, olive
+grass, orange sand) once approved. Proposals with turntable models: `/docs/brand/world`.
+- [ ] Owner picks the world palette and models on /docs/brand/world; record them in docs/BRAND.md.
+- [ ] Then plan the swap model by model (car, garages, barriers, fences, kerbs, stands, lights, town, trees, ground).
