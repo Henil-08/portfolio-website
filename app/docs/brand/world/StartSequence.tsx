@@ -11,8 +11,7 @@ import { Lights, M } from "./models";
 import { BUILD_LOG, GRID, ISLAND, Island, PLAN, PaperFloor, type BuildClock } from "./island";
 import type { RefObject } from "react";
 import { PowerMeter, Powers, powerName, type Follow, type PowerState } from "./powers";
-import { Atv, Bike, Formula, LIVERIES, Roadster, type Livery } from "./vehicles";
-import { VEHICLE_ICONS } from "./vehicleIcons";
+import { VEHICLES as GARAGE, type Livery } from "@/components/world/vehicles";
 
 type V3 = [number, number, number];
 
@@ -40,65 +39,27 @@ type Vehicle = {
  */
 const fit = (r: number, swept: number) => r / swept;
 
-// Game stats only: how each one drives in the world, not facts about anything real.
-const VEHICLES: Vehicle[] = [
-  {
-    code: "V01",
-    kind: "Formula",
-    name: "TH-18",
-    line: "The open-wheeler the world was built around. Fastest on the straight, nervous on the grass.",
-    stats: [96, 90, 82],
-    len: 5.6,
-    cam: [5.3, 2.0, 6.0],
-    target: [0, 0.45, 0],
-    scale: fit(1.42, 3.02), // front wing tips
-    liveries: LIVERIES.V01,
-    model: (l) => <Formula livery={l} />,
-    icon: VEHICLE_ICONS.V01,
-  },
-  {
-    code: "V02",
-    kind: "ATV",
-    name: "E14",
-    line: "Like E14, the electric ATV I led at SAE e-BAJA (5th of 47, Best Acceleration). Slow on tarmac, happy off it.",
-    stats: [58, 94, 74],
-    len: 2.4,
-    cam: [3.3, 1.75, 3.9],
-    target: [0, 0.62, 0],
-    scale: fit(1.0, 1.33), // tyre shoulders
-    liveries: LIVERIES.V02,
-    model: (l) => <Atv livery={l} />,
-    icon: VEHICLE_ICONS.V02,
-  },
-  {
-    code: "V03",
-    kind: "Road car",
-    name: "Atlas",
-    line: "Long, low and pale, with crisp creases, a dark glass canopy and a tall wing on two struts. The easy one to start with.",
-    stats: [92, 80, 82],
-    len: 4.6,
-    cam: [5.1, 2.0, 5.8],
-    target: [0, 0.5, 0],
-    scale: fit(1.25, 2.55), // wing endplates
-    liveries: LIVERIES.V03,
-    model: (l) => <Roadster livery={l} />,
-    icon: VEHICLE_ICONS.V03,
-  },
-  {
-    code: "V04",
-    kind: "Bike",
-    name: "Apollo",
-    line: "A sport bike, light and quick to turn. Two wheels, so it forgives nothing.",
-    stats: [84, 62, 95],
-    len: 2.1,
-    cam: [2.9, 1.45, 3.4],
-    target: [0, 0.62, 0],
-    scale: fit(0.95, 1.03), // tyres, nose to tail
-    liveries: LIVERIES.V04,
-    model: (l) => <Bike livery={l} />,
-    icon: VEHICLE_ICONS.V04,
-  },
-];
+/** The turntable framing per vehicle: camera, target and display scale. */
+const TURNTABLE: Record<string, { cam: V3; target: V3; scale: number }> = {
+  V01: { cam: [5.3, 2.0, 6.0], target: [0, 0.45, 0], scale: fit(1.42, 3.02) }, // front wing tips
+  V02: { cam: [3.3, 1.75, 3.9], target: [0, 0.62, 0], scale: fit(1.0, 1.33) }, // tyre shoulders
+  V03: { cam: [5.1, 2.0, 5.8], target: [0, 0.5, 0], scale: fit(1.25, 2.55) }, // wing endplates
+  V04: { cam: [2.9, 1.45, 3.4], target: [0, 0.62, 0], scale: fit(0.95, 1.03) }, // tyres, nose to tail
+};
+
+// The garage table (components/world/vehicles) with the turntable framing.
+const VEHICLES: Vehicle[] = GARAGE.map(({ code, kind, name, line, stats, len, liveries, Model, icon }) => ({
+  code,
+  kind,
+  name,
+  line,
+  stats,
+  len,
+  ...TURNTABLE[code],
+  liveries,
+  model: (l) => <Model livery={l} />,
+  icon,
+}));
 const STATS = ["Speed", "Grip", "Handling"];
 
 /* ------------------------------------------------------------------ easing and tweens */

@@ -4,6 +4,7 @@
 // fill="currentColor" from the parent <svg>, nose to the right, ground at y = 26.
 // Each body is masked clear of its wheels so the tyres read as crisp rings.
 import { useId, type ReactNode } from "react";
+import type { VehicleCode } from "./liveries";
 
 type Wheel = { x: number; y: number; r: number };
 
@@ -133,7 +134,7 @@ const Bike = () => (
   />
 );
 
-export const VEHICLE_ICONS: Record<"V01" | "V02" | "V03" | "V04", ReactNode> = {
+export const VEHICLE_ICONS: Record<VehicleCode, ReactNode> = {
   V01: <F1 />,
   V02: <Baja />,
   V03: <Roadster />,
