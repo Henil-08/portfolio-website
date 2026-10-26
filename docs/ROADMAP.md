@@ -431,7 +431,7 @@ to ink on hover, one scan line on a panel's first open. `prefers-reduced-motion`
 
 - [x] Logo picked (owner, 2026-10-25): L10 · A "draw and fill" (app/docs/brand/mark.tsx). Reference for every item
       below: `/docs/brand/system` (identity, motion M00–M09, interactions I01–I08, screens S01–S06).
-- [x] (FOUNDATION) Favicon app/icon.svg; brand code in components/brand; tokens, motion and interaction
+- [x] (d0096d3) Favicon app/icon.svg; brand code in components/brand; tokens, motion and interaction
       CSS in globals.css; IBM Plex in app/layout.tsx; custom cursor (I09); old exploration pages deleted.
 - [ ] Remove the old `hud-*`, `r-*`, `map-pin*`, `start-*` CSS, Racero and the `--font-geist*` aliases once nothing uses them.
 - [ ] Boot (StartLights.tsx, Reveal.tsx): the mark assembles, name and part number decode, then the wipe into the world.
