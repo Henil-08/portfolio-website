@@ -3,7 +3,7 @@
 // The custom cursor (docs/BRAND.md I09). The page is left alone: only the cursor changes over
 // something clickable. It is the small square (7 px ink, 1 px paper outline) sitting on the
 // pointer with no lag. Over a clickable thing it becomes one cell of the logo, animated the way
-// the mark draws itself: a 13 px outline traces round its edge, then orange fills it from the left
+// the mark draws itself: an 11 px outline traces round its edge, then orange fills it from the left
 // (owner's pick, "border and fill"). A press shrinks it and turns the fill ink. An I-beam over
 // text, DRAG over [data-cursor="drag"], hidden over [data-cursor="none"]. The mode lives on
 // <html data-cursor-mode>; press is a flag on the layer. Mouse and pen only. One rAF loop writes
@@ -95,10 +95,10 @@ export default function Cursor() {
         {/* idle: the square */}
         <div className="cur-sq" />
         {/* over a clickable: one logo cell, the outline traces round, then the fill wipes from the left */}
-        <svg className="cur-cell" width="17" height="17" viewBox="-2 -2 17 17">
-          <rect className="cur-halo" x="0" y="0" width="13" height="13" />
-          <rect className="cur-fill" x="1.5" y="1.5" width="10" height="10" />
-          <rect className="cur-trace" x="0.75" y="0.75" width="11.5" height="11.5" pathLength={1} />
+        <svg className="cur-cell" width="15" height="15" viewBox="-2 -2 15 15">
+          <rect className="cur-halo" x="0" y="0" width="11" height="11" />
+          <rect className="cur-fill" x="1.5" y="1.5" width="8" height="8" />
+          <rect className="cur-trace" x="0.75" y="0.75" width="9.5" height="9.5" pathLength={1} />
         </svg>
         {/* over text: the I-beam */}
         <svg className="cur-ibeam" width="10" height="22" viewBox="-2 -2 10 22">

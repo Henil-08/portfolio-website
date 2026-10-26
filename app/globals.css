@@ -286,13 +286,13 @@ body {
   box-shadow: 0 0 0 1px var(--color-paper);
 }
 
-/* over a clickable: a 13 px cell (about 1.8x), centred. The paper halo shows at once, the ink
+/* over a clickable: an 11 px cell (about 1.5x), centred. The paper halo shows at once, the ink
    outline traces round in 90 ms, then orange wipes in from the left in 80 ms (the mark's
    trace-then-fill, docs/BRAND.md logo animation). */
 .cur-cell {
   display: none;
-  left: -8.5px;
-  top: -8.5px;
+  left: -7.5px;
+  top: -7.5px;
   overflow: visible;
   transition: scale 0.06s;
 }
