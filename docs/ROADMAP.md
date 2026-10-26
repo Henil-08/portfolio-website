@@ -435,9 +435,9 @@ to ink on hover, one scan line on a panel's first open. `prefers-reduced-motion`
       CSS in globals.css; IBM Plex in app/layout.tsx; custom cursor (I09); old exploration pages deleted.
 - [ ] Remove the old `hud-*`, `r-*`, `map-pin*`, `start-*` CSS, Racero and the `--font-geist*` aliases once nothing uses them.
 - [x] (59526e3) Boot S01: components/ui/Boot.tsx replaces StartLights; paper floor with an ink dot grid, orange reveal ring; the start label is a sticker with the key.
-- [x] (HUD) HUD S02 (Hud.tsx): tabs top right, the `Sheet` frame every place opens in, toast, hints, speed, Controls and Settings modals, touch stick and pedals.
+- [x] (bcf5046) HUD S02 (Hud.tsx): tabs top right, the `Sheet` frame every place opens in, toast, hints, speed, Controls and Settings modals, touch stick and pedals.
 - [ ] Zone card and interact prompt (Hud.tsx, ui3d/InteractivePoints.tsx canvas label): the parts sticker.
-- [x] (HUD) Garage S03: GarageSheet shows `DsCard` (container-aware, prev/next within the garage); place bodies in Panels.tsx rewritten (roles as rows, papers and patents as coded rows, compounds as code squares, contact as rows).
+- [x] (bcf5046) Garage S03: GarageSheet shows `DsCard` (container-aware, prev/next within the garage); place bodies in Panels.tsx rewritten (roles as rows, papers and patents as coded rows, compounds as code squares, contact as rows).
 - [ ] Other panels (Panels.tsx), FitPanel, Ask, RadioMessages, AutopilotHud, RaceHud, EasterEggs, Section.
 - [ ] Map menu (MapMenu.tsx): zone codes on pins, achievements as a spec table.
 - [ ] /resume (page, Tailored, PrintButton) as the datasheet resume; print stays ink on white.
