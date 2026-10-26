@@ -11,41 +11,7 @@ const mono = "[font-family:var(--b-plex-mono)]";
 
 type Mark = (p: { s: number; fg: string; bg: string }) => ReactNode;
 
-/** L1 · the IC package: an outline with the pin-1 notch, pins down both sides. */
-const Package: Mark = ({ s, fg, bg }) => (
-  <svg width={s} height={s} viewBox="0 0 64 64" aria-hidden>
-    {[16, 27, 38, 49].map((y) => (
-      <g key={y} fill={fg}>
-        <rect x="2" y={y - 2.5} width="10" height="5" />
-        <rect x="52" y={y - 2.5} width="10" height="5" />
-      </g>
-    ))}
-    <rect x="12" y="6" width="40" height="52" fill={bg} stroke={fg} strokeWidth="4" />
-    <path d="M26 6 A6 6 0 0 0 38 6" fill={bg} stroke={fg} strokeWidth="4" />
-    <circle cx="20" cy="16" r="3" fill={ORANGE} />
-    <text x="32" y="43" textAnchor="middle" fill={fg} fontFamily="var(--b-plex)" fontWeight="700" fontSize="17" letterSpacing="-0.5">
-      HG
-    </text>
-  </svg>
-);
-
-/** L2 · the sticker: the zone label's black key tab, with the initials on it. */
-const Sticker: Mark = ({ s, fg, bg }) => (
-  <svg width={s} height={s} viewBox="0 0 64 64" aria-hidden>
-    <rect x="6" y="6" width="54" height="54" fill={fg} />
-    <rect x="2" y="2" width="54" height="54" fill={bg} stroke={fg} strokeWidth="4" />
-    <rect x="2" y="2" width="22" height="54" fill={fg} />
-    <text x="13" y="37" textAnchor="middle" fill={bg} fontFamily="var(--b-plex-mono)" fontWeight="600" fontSize="17">
-      H
-    </text>
-    <text x="40" y="37" textAnchor="middle" fill={fg} fontFamily="var(--b-plex-mono)" fontWeight="600" fontSize="17">
-      G
-    </text>
-    <circle cx="49" cy="11" r="2.6" fill={ORANGE} />
-  </svg>
-);
-
-/** L3 · the selection: the initials inside the orange corner brackets the cards show on hover. */
+/** The selection: the initials inside the orange corner brackets the cards show on hover. */
 const Brackets: Mark = ({ s, fg }) => (
   <svg width={s} height={s} viewBox="0 0 64 64" aria-hidden fill="none">
     <path d="M4 18 V4 H18 M46 4 H60 V18 M60 46 V60 H46 M18 60 H4 V46" stroke={ORANGE} strokeWidth="5" />
@@ -55,51 +21,112 @@ const Brackets: Mark = ({ s, fg }) => (
   </svg>
 );
 
-/** L4 · pin 1: no letters, just the part seen from above with its pin-1 dot. */
-const PinOne: Mark = ({ s, fg }) => (
+/** The dot: a solid square with one orange point. No letters. */
+const Dot: Mark = ({ s, fg }) => (
   <svg width={s} height={s} viewBox="0 0 64 64" aria-hidden>
     <rect x="6" y="6" width="52" height="52" fill={fg} />
     <circle cx="18" cy="18" r="5.5" fill={ORANGE} />
   </svg>
 );
 
-// H and G in ASCII, as bits: 0x48 = 01001000, 0x47 = 01000111
-const BITS = "0100100001000111";
-/** L5 · the timing diagram: the bytes for "HG" drawn as a digital signal. */
-const Timing: Mark = ({ s, fg }) => {
-  const w = 56 / BITS.length;
-  let d = "";
-  [...BITS].forEach((b, i) => {
-    const y = b === "1" ? 18 : 44;
-    const x = 4 + i * w;
-    d += i === 0 ? `M${x} ${y}` : ` V${y}`;
-    d += ` H${x + w}`;
-  });
-  return (
-    <svg width={s} height={s} viewBox="0 0 64 64" aria-hidden fill="none">
-      <rect x="2" y="2" width="60" height="60" stroke={fg} strokeWidth="4" />
-      <line x1="32" y1="8" x2="32" y2="56" stroke={ORANGE} strokeWidth="2" strokeDasharray="3 3" />
-      <path d={d} stroke={fg} strokeWidth="3.5" strokeLinejoin="miter" />
-    </svg>
-  );
-};
-
-/** L6 · the net: an H drawn as a schematic, two rails joined by a wire, junction dots in orange. */
-const Net: Mark = ({ s, fg }) => (
+/** Focus: the two you liked, together. Orange brackets locked on to a square. */
+const Focus: Mark = ({ s, fg }) => (
   <svg width={s} height={s} viewBox="0 0 64 64" aria-hidden fill="none">
-    <path d="M16 6 V58 M48 6 V58 M16 32 H48" stroke={fg} strokeWidth="7" />
-    <circle cx="16" cy="32" r="7" fill={ORANGE} />
-    <circle cx="48" cy="32" r="7" fill={ORANGE} />
+    <path d="M4 18 V4 H18 M46 4 H60 V18 M60 46 V60 H46 M18 60 H4 V46" stroke={ORANGE} strokeWidth="5" />
+    <rect x="18" y="18" width="28" height="28" fill={fg} />
   </svg>
 );
 
-const OPTIONS: { id: string; name: string; mark: Mark; why: string }[] = [
-  { id: "L1", name: "Package", mark: Package, why: "A real chip drawing: the pin-1 notch and dot, pins on both sides, the initials as the part marking. Clearer than the first draft, which read as a square with spikes." },
-  { id: "L2", name: "Sticker", mark: Sticker, why: "The zone label from the world, made into the mark: a hard offset shadow, H on the black key tab. The logo and the UI become the same object." },
-  { id: "L3", name: "Brackets", mark: Brackets, why: "The hover state as the logo. Orange corner brackets around the initials, the way a game marks the slot you are on. It moves well: the brackets can snap in." },
-  { id: "L4", name: "Pin 1", mark: PinOne, why: "No letters at all. A part from above with its pin-1 dot. The quietest and the most confident; works at 16px better than anything else here." },
-  { id: "L5", name: "Timing", mark: Timing, why: "The ASCII for H and G (0x48, 0x47) drawn as a digital signal, with the byte boundary dashed in orange. A detail engineers will spot." },
-  { id: "L6", name: "Net", mark: Net, why: "An H drawn as a schematic: two rails, one wire, orange junction dots. Bold and simple; reads as an H and as a circuit." },
+/** Apex: one curve that is a racing line and a loss curve at once; the dot is the apex and the minimum. */
+const Apex: Mark = ({ s, fg }) => (
+  <svg width={s} height={s} viewBox="0 0 64 64" aria-hidden fill="none">
+    <path d="M6 8 C14 40 22 52 34 52 S54 40 58 24" stroke={fg} strokeWidth="6" strokeLinecap="square" />
+    <circle cx="34" cy="52" r="6.5" fill={ORANGE} />
+  </svg>
+);
+
+/** Tokens: the initials split the way a tokenizer would, the boundary in orange. */
+const Tokens: Mark = ({ s, fg, bg }) => (
+  <svg width={s} height={s} viewBox="0 0 64 64" aria-hidden>
+    <rect x="3" y="14" width="27" height="36" fill={bg} stroke={fg} strokeWidth="4" />
+    <rect x="34" y="14" width="27" height="36" fill={fg} />
+    <rect x="30.5" y="8" width="3" height="48" fill={ORANGE} />
+    <text x="16.5" y="39" textAnchor="middle" fill={fg} fontFamily="var(--b-plex-mono)" fontWeight="600" fontSize="20">
+      H
+    </text>
+    <text x="47.5" y="39" textAnchor="middle" fill={bg} fontFamily="var(--b-plex-mono)" fontWeight="600" fontSize="20">
+      G
+    </text>
+  </svg>
+);
+
+// attention weights, row by row: heavy on the diagonal, one cell picked out
+const ATT = [
+  [1, 0.25, 0.1, 0.1],
+  [0.45, 1, 0.2, 0.1],
+  [0.15, 0.4, 1, 0.25],
+  [0.1, 0.2, 0.5, -1],
+];
+/** Attention: a 4x4 attention map, the strongest cell in orange. */
+const Attention: Mark = ({ s, fg }) => (
+  <svg width={s} height={s} viewBox="0 0 64 64" aria-hidden>
+    {ATT.flatMap((row, r) =>
+      row.map((w, c) => <rect key={`${r}${c}`} x={4 + c * 14.5} y={4 + r * 14.5} width="12.5" height="12.5" fill={w < 0 ? ORANGE : fg} opacity={w < 0 ? 1 : w} />),
+    )}
+  </svg>
+);
+
+/** Graph: an agent graph, square nodes and edges, one step running in orange. */
+const Graph: Mark = ({ s, fg }) => (
+  <svg width={s} height={s} viewBox="0 0 64 64" aria-hidden fill="none">
+    <path d="M14 32 L48 12 M14 32 L48 52 M48 12 V52" stroke={fg} strokeWidth="4" />
+    <rect x="4" y="22" width="20" height="20" fill={fg} />
+    <rect x="40" y="4" width="16" height="16" fill={fg} />
+    <rect x="40" y="44" width="16" height="16" fill={ORANGE} />
+  </svg>
+);
+
+/** Cursor: the initials as streamed text, the orange block where the next token lands. */
+const Cursor: Mark = ({ s, fg }) => (
+  <svg width={s} height={s} viewBox="0 0 64 64" aria-hidden>
+    <text x="2" y="44" fill={fg} fontFamily="var(--b-plex-mono)" fontWeight="600" fontSize="30" letterSpacing="-1.5">
+      hg
+    </text>
+    <rect x="40" y="20" width="14" height="28" fill={ORANGE} />
+  </svg>
+);
+
+/** Flag: the chequered flag cut down to nine squares, the last one orange. */
+const Flag: Mark = ({ s, fg }) => (
+  <svg width={s} height={s} viewBox="0 0 64 64" aria-hidden>
+    {[0, 1, 2].flatMap((r) =>
+      [0, 1, 2].map((c) => ((r + c) % 2 === 0 ? <rect key={`${r}${c}`} x={5 + c * 18} y={5 + r * 18} width="18" height="18" fill={r === 2 && c === 2 ? ORANGE : fg} /> : null)),
+    )}
+    <rect x="5" y="5" width="54" height="54" fill="none" stroke={fg} strokeWidth="3" />
+  </svg>
+);
+
+/** Monogram: just the letters, lowercase and tight, closed with an orange full stop. */
+const Monogram: Mark = ({ s, fg }) => (
+  <svg width={s} height={s} viewBox="0 0 64 64" aria-hidden>
+    <text x="3" y="44" fill={fg} fontFamily="var(--b-plex)" fontWeight="700" fontSize="38" letterSpacing="-2.5">
+      hg
+    </text>
+    <rect x="45" y="37" width="10" height="10" fill={ORANGE} />
+  </svg>
+);
+
+const OPTIONS: { id: string; name: string; mark: Mark; why: string; liked?: boolean }[] = [
+  { id: "L3", name: "Brackets", mark: Brackets, liked: true, why: "The hover state as the logo. Orange corner brackets around the initials, the way a game marks the slot you are on. The brackets can snap in on load." },
+  { id: "L4", name: "Dot", mark: Dot, liked: true, why: "No letters. A solid square and one orange point. The quietest and the most confident; the best at 16px." },
+  { id: "L7", name: "Focus", mark: Focus, why: "Your two picks in one: the brackets locked on to the square. On load they snap in from the corners, like a target being acquired." },
+  { id: "L8", name: "Apex", mark: Apex, why: "One curve, two readings: a racing line through a corner and a loss curve going down. The orange dot is the apex and the minimum." },
+  { id: "L9", name: "Tokens", mark: Tokens, why: "HG split the way a tokenizer splits text, with the boundary in orange. Says LLMs without a single neural-net cliché." },
+  { id: "L10", name: "Attention", mark: Attention, why: "A small attention map: strong on the diagonal, the one cell that matters in orange. Abstract, reads as a pattern at any size." },
+  { id: "L11", name: "Graph", mark: Graph, why: "An agent graph: square nodes, edges, the step that is running in orange. Agents are most of your work, from Edlight to Waters." },
+  { id: "L12", name: "Cursor", mark: Cursor, why: "hg as streamed output, with the orange block where the next token goes. It can blink, and it can type itself out in the boot." },
+  { id: "L13", name: "Flag", mark: Flag, why: "The chequered flag cut down to nine squares, the last one orange. The F1 side of you, said quietly." },
+  { id: "L14", name: "Monogram", mark: Monogram, why: "Just the letters, lowercase and tight, with a square orange full stop. Plain and typographic, like a signature." },
 ];
 
 export default function Logos() {
@@ -117,11 +144,11 @@ export default function Logos() {
           <h1 className="text-[34px] font-semibold leading-none tracking-tight sm:text-[44px]">Pick a mark</h1>
         </div>
         <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-[#5d5d58]">
-          Each one is shown four ways: large, reversed on ink, at favicon size (32 and 16 px), and next to your name the way it sits in the site header and on the resume.
+          Your shortlist (L3, L4) first, then eight new ones. Each one is shown four ways: large, reversed on ink, at favicon size (32 and 16 px), and next to your name the way it sits in the site header and on the resume.
         </p>
 
         <div className="mt-10 space-y-6">
-          {OPTIONS.map(({ id, name, mark: M, why }) => (
+          {OPTIONS.map(({ id, name, mark: M, why, liked }) => (
             <section key={id} className="group grid border-2 border-[#111] bg-white md:grid-cols-[1fr_1.4fr]">
               <div className="grid grid-cols-2 border-b-2 border-[#111] md:border-b-0 md:border-r-2">
                 <div className="grid place-items-center p-6">
@@ -135,6 +162,7 @@ export default function Logos() {
                 <div className="flex items-baseline gap-3 border-b border-[#111] pb-1.5">
                   <span className={`${mono} text-[13px] text-[#ff4f00]`}>{id}</span>
                   <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em]">{name}</h2>
+                  {liked && <span className={`${mono} ml-auto bg-[#111] px-2 py-0.5 text-[11px] text-white`}>Shortlisted</span>}
                 </div>
                 <p className="mt-3 text-[15px] leading-relaxed">{why}</p>
                 <div className="mt-auto flex flex-wrap items-end gap-6 pt-6">
