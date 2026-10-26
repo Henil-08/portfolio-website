@@ -174,7 +174,7 @@ export const TREES: [number, number, number][] = (() => {
     if (inTownBelt(x, z)) continue;
     if (nearPromenade(x, z, 2)) continue;
     const roll = r();
-    const tree = roll < 0.7; // round / pine / palm; the rest are bushes and rocks
+    const tree = roll < 0.7; // round / cypress; the rest are bushes and rocks
     r();
     r();
     r();

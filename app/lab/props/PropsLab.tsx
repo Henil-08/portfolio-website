@@ -43,10 +43,10 @@ const ENTRIES: Entry[] = [
     cy: 2.2,
     el: (
       <>
-        <P.Tree variant="oak" seed={1} position={[-6, 0, 0]} />
-        <P.Tree variant="cherry" seed={2} position={[-1, 0, -1]} />
-        <P.Tree variant="pine" seed={3} position={[2.5, 0, 0]} />
-        <P.Tree variant="palm" position={[5, 0, 0]} />
+        <P.Tree variant="round" seed={1} position={[-6, 0, 0]} />
+        <P.Tree variant="round" seed={2} position={[-1, 0, -1]} scale={0.8} />
+        <P.Tree variant="cypress" seed={3} position={[2.5, 0, 0]} />
+        <P.Tree variant="cypress" seed={4} position={[5, 0, 0]} scale={0.85} />
         <P.Bush position={[-1.5, 0, 2]} />
         <P.Bush seed={4} position={[-3.2, 0, 2.6]} scale={0.8} />
         <P.Rock position={[1.5, 0, 2]} />

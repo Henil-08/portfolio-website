@@ -1,69 +1,75 @@
-// Tree species: which of the original trunk models to use, how big, where the foliage
-// clumps sit, and their two tones. The original colours are bright (oak #b4b536 ->
-// #d8cf3b, cherry #ff6d6d -> #ff9990); these are pulled toward our sage palette
-// (palette.ts leaf / leafDark) and a dusty, quiet pink.
+// W10 trees (docs/BRAND.md "World", /docs/brand/world): two forms only, a tall
+// faceted cypress and a round faceted crown, on ink trunks, plus a low faceted
+// bush in the same language. Each kind is one merged geometry with its colours as
+// vertex colours, so the registry draws every tree of a kind in one instanced call;
+// the material's flat shading gives the facets.
 import * as THREE from "three";
-import { BIRCH, CHERRY, OAK, type TreeModel } from "./treeModels";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
-export type TrunkId = "oak" | "cherry" | "birch";
-export type SpeciesId = "oak" | "cherry" | "pine" | "bush";
+export type TreeKind = "cypress" | "round" | "bush";
 
-export type Species = {
-  trunk: TrunkId | null;
-  /** model -> world scale (the original oak is ~7 m to the trunk top, ours ~4.5 m) */
-  scale: number;
-  /** foliage clumps in model space: [x, y, z, radius-ish scale] */
-  crowns: [number, number, number, number][];
-  /** shade side -> sun side, sRGB hex */
-  colA: string;
-  colB: string;
-  /** metres of push per metre of height at full wind */
-  sway: number;
+/** Concrete & Ink: leaf, leaf light, ink (sRGB). */
+export const LEAF = { leaf: "#5c6a4b", leafLight: "#73805c", ink: "#151515" } as const;
+
+/**
+ * Sizes at scale 1, metres. Placement scales them 0.8-1.35.
+ * cypress: ~1.8 x 6 x 1.8   round: ~3.4 x 5.1 x 3.4   bush: ~2 x 1.1 x 1.6
+ */
+export const KINDS: Record<TreeKind, { build: () => THREE.BufferGeometry; /** seeded height stretch, +- */ stretch: number }> = {
+  cypress: { build: () => tree(trunk(0.22, 1), cone(0.88, 5.2, 0.8), LEAF.leaf), stretch: 0.14 },
+  round: { build: () => tree(trunk(0.26, 2.2), crown(1.7, 2.2 + 1.7 * 0.7), LEAF.leafLight), stretch: 0.06 },
+  bush: { build: bush, stretch: 0.1 },
 };
 
-export const TRUNKS: Record<TrunkId, TreeModel> = { oak: OAK, cherry: CHERRY, birch: BIRCH };
-
-export const SPECIES: Record<SpeciesId, Species> = {
-  // the original's oak and bush colours (World.js / Bushes.js): shade #b4b536, sun #d8cf3b
-  oak: { trunk: "oak", scale: 0.62, crowns: OAK.crowns, colA: "#b4b536", colB: "#d8cf3b", sway: 0.05 },
-  // dusty pink instead of the original's coral; the shade side lifted the same way
-  cherry: { trunk: "cherry", scale: 0.72, crowns: CHERRY.crowns, colA: "#d79c98", colB: "#f0c9bd", sway: 0.05 },
-  // "pine" is the original birch: tall, narrow, a deeper green than the oaks
-  pine: { trunk: "birch", scale: 0.55, crowns: BIRCH.crowns, colA: "#8c9433", colB: "#bdbb3e", sway: 0.04 },
-  bush: {
-    trunk: null,
-    scale: 1,
-    // The original bush: one round clump about as tall as its jeep (Bushes.js references)
-    crowns: [[0, 0.55, 0, 0.75]],
-    colA: "#b4b536",
-    colB: "#d8cf3b",
-    sway: 0.12,
-  },
-};
-
-const linear = new Map<string, THREE.Color>();
-/** sRGB hex -> linear colour (what the shader mixes), cached. */
-export function linearColor(hex: string) {
-  let c = linear.get(hex);
-  if (!c) {
-    c = new THREE.Color(hex);
-    linear.set(hex, c);
-  }
-  return c;
+function trunk(w: number, h: number) {
+  return new THREE.BoxGeometry(w, h, w).translate(0, h / 2, 0);
 }
 
-const trunkGeos = new Map<TrunkId, THREE.BufferGeometry>();
-/** The original trunk + branches mesh as a BufferGeometry, built once per model. */
-export function trunkGeometry(id: TrunkId) {
-  let g = trunkGeos.get(id);
+/** Six-sided cone from `base` up, like the proposal's cypress. */
+function cone(r: number, h: number, base: number) {
+  return new THREE.ConeGeometry(r, h, 6).translate(0, base + h / 2, 0);
+}
+
+/** Icosahedron crown (detail 0: twenty facets) centred at y. */
+function crown(r: number, y: number) {
+  return new THREE.IcosahedronGeometry(r, 0).translate(0, y, 0);
+}
+
+function painted(g: THREE.BufferGeometry, hex: string) {
+  const out = g.index ? g.toNonIndexed() : g;
+  const c = new THREE.Color(hex);
+  const n = out.getAttribute("position").count;
+  const col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) col.set([c.r, c.g, c.b], i * 3);
+  out.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  return out;
+}
+
+/** Three faceted balls of two greens, so a bush reads as leaves and not as a rock. */
+function bush() {
+  const ball = (r: number, x: number, y: number, z: number, hex: string) => painted(new THREE.IcosahedronGeometry(r, 0).rotateY(x * 3).translate(x, y, z), hex);
+  const g = mergeGeometries([
+    ball(0.62, 0, 0.52, 0, LEAF.leafLight),
+    ball(0.48, 0.58, 0.38, 0.22, LEAF.leaf),
+    ball(0.44, -0.42, 0.34, -0.38, LEAF.leaf),
+  ])!;
+  g.computeBoundingSphere();
+  return g;
+}
+
+function tree(stem: THREE.BufferGeometry, top: THREE.BufferGeometry, leaf: string) {
+  const g = mergeGeometries([painted(stem, LEAF.ink), painted(top, leaf)])!;
+  g.computeBoundingSphere();
+  return g;
+}
+
+const built = new Map<TreeKind, THREE.BufferGeometry>();
+/** The shared geometry for a kind, built once. */
+export function kindGeometry(kind: TreeKind) {
+  let g = built.get(kind);
   if (!g) {
-    const m = TRUNKS[id];
-    g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.Float32BufferAttribute(m.position, 3));
-    g.setAttribute("normal", new THREE.Float32BufferAttribute(m.normal, 3));
-    g.setIndex(m.index);
-    g.computeBoundingSphere();
-    trunkGeos.set(id, g);
+    g = KINDS[kind].build();
+    built.set(kind, g);
   }
   return g;
 }

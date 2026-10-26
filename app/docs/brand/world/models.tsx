@@ -6,6 +6,7 @@
 import { useMemo } from "react";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { kindGeometry, type TreeKind } from "@/components/world/foliage/species";
 
 export const W = {
   concrete: "#d9d6ce",
@@ -38,8 +39,6 @@ export const M = {
   glass: std(W.glass, 0.15, 0.4),
   gravel: std(W.gravel, 1),
   grass: std(W.grass, 1),
-  leaf: new THREE.MeshStandardMaterial({ color: W.leaf, roughness: 0.9, flatShading: true }),
-  leafLight: new THREE.MeshStandardMaterial({ color: W.leafLight, roughness: 0.9, flatShading: true }),
   tyre: std("#101010", 0.9),
 };
 const lampOn = new THREE.MeshStandardMaterial({ color: W.paper, emissive: "#fff3dc", emissiveIntensity: 2.4, toneMapped: false });
@@ -467,38 +466,25 @@ export function Town() {
   );
 }
 
-/* ------------------------------------------------------------------ W09 trees */
+/* ------------------------------------------------------------------ W10 trees */
 
-function Cypress({ x, z, h = 7 }: { x: number; z: number; h?: number }) {
-  return (
-    <group position={[x, 0, z]}>
-      <Box s={[0.25, 1.2, 0.25]} p={[0, 0.6, 0]} m={M.ink} />
-      <mesh position={[0, 1 + h / 2, 0]} material={M.leaf} castShadow>
-        <coneGeometry args={[h * 0.17, h, 6]} />
-      </mesh>
-    </group>
-  );
-}
-function Round({ x, z, r = 2.2 }: { x: number; z: number; r?: number }) {
-  return (
-    <group position={[x, 0, z]}>
-      <Box s={[0.28, 2.2, 0.28]} p={[0, 1.1, 0]} m={M.ink} />
-      <mesh position={[0, 2.2 + r * 0.8, 0]} material={M.leafLight} castShadow>
-        <icosahedronGeometry args={[r, 0]} />
-      </mesh>
-    </group>
-  );
+// The game's own tree geometry (components/world/foliage/species.ts), so this view is what the island draws.
+const treeMat = new THREE.MeshStandardMaterial({ color: "#ffffff", vertexColors: true, roughness: 0.9, flatShading: true });
+function TreeAt({ kind, x, z, s = 1, sy = 1 }: { kind: TreeKind; x: number; z: number; s?: number; sy?: number }) {
+  return <mesh geometry={kindGeometry(kind)} material={treeMat} position={[x, 0, z]} scale={[s, s * sy, s]} rotation={[0, x, 0]} castShadow receiveShadow />;
 }
 
 export function Trees() {
   return (
     <group>
       <Box s={[14, 0.1, 8]} p={[0, 0.05, 0]} m={M.grass} />
-      <Cypress x={-4.5} z={-1} h={7.5} />
-      <Cypress x={-2.6} z={1.5} h={6} />
-      <Round x={1} z={-1.2} r={2.3} />
-      <Round x={4.6} z={1.2} r={1.7} />
-      <Cypress x={5.6} z={-2} h={8} />
+      <TreeAt kind="cypress" x={-4.5} z={-1} s={1.15} sy={1.08} />
+      <TreeAt kind="cypress" x={-2.6} z={1.5} />
+      <TreeAt kind="round" x={1} z={-1.2} s={1.2} />
+      <TreeAt kind="round" x={4.6} z={1.2} s={0.9} />
+      <TreeAt kind="cypress" x={5.6} z={-2} s={1.25} sy={1.1} />
+      <TreeAt kind="bush" x={-0.8} z={2.6} />
+      <TreeAt kind="bush" x={2.8} z={2.9} s={0.8} />
     </group>
   );
 }

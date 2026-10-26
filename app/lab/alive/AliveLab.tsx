@@ -148,9 +148,9 @@ function Props() {
   return (
     <>
       <Tree variant="round" seed={3} position={at(-9, -7)} />
-      <Tree variant="pine" seed={5} position={at(-12, -2)} />
+      <Tree variant="cypress" seed={5} position={at(-12, -2)} />
       <Tree variant="round" seed={8} position={at(10, -9)} scale={1.2} />
-      <Tree variant="palm" position={at(-3, -12)} />
+      <Tree variant="cypress" seed={11} position={at(-3, -12)} />
       <Bush seed={2} position={at(-6, 9)} />
       <Bush seed={4} position={at(8, 8)} />
       <Flag position={at(3, -4)} color={C.red} />

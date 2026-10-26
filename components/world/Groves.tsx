@@ -13,7 +13,7 @@ import { FLOODS } from "./street/layoutStreet";
 import { inSectorScene } from "./street/common";
 import { nearPromenade } from "./waterfront/layout";
 
-type Item = { kind: "round" | "pine" | "bush"; x: number; z: number; s: number; rot: number; seed: number };
+type Item = { kind: "round" | "cypress" | "bush"; x: number; z: number; s: number; rot: number; seed: number };
 
 function rng(seed: number) {
   let s = seed;
@@ -57,7 +57,7 @@ export default function Groves() {
         const z = cz + Math.sin(ang) * d;
         if (!free(x, z, 1.5, out)) continue;
         const roll = r();
-        out.push({ kind: roll < 0.45 ? "round" : roll < 0.75 ? "pine" : "bush", x, z, s: 0.8 + r() * 0.6, rot: r() * Math.PI * 2, seed: Math.floor(r() * 1000) });
+        out.push({ kind: roll < 0.45 ? "round" : roll < 0.75 ? "cypress" : "bush", x, z, s: 0.8 + r() * 0.6, rot: r() * Math.PI * 2, seed: Math.floor(r() * 1000) });
         if (out.filter((o) => Math.hypot(o.x - cx, o.z - cz) < 7).length >= n) break;
       }
     }
