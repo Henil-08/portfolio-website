@@ -213,6 +213,9 @@ Short, declarative, units on everything. The radio keeps its warm F1-engineer vo
 - app/icon.svg: the favicon (the still mark on paper).
 - Reference pages: /docs/brand/system (System.tsx) and /docs/brand/world (World.tsx, models.tsx).
   /docs/brand redirects to the system page.
+- /docs/brand/places (app/docs/brand/places/*): every interactable place (zones, contact medallions,
+  timeline, start) for review. One canvas mounts the real world once and draws it into each card's box
+  (Scene.tsx, views.ts); the catalogue is places.ts, the sheets are the real Panels.tsx `PanelBody`.
 
 ## World (approved 2026-10-26)
 

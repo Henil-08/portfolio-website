@@ -176,7 +176,10 @@ export default function World() {
             <Lockup size={17} name={profile.name} />
           </Link>
           <span className={`font-mono hidden text-[12px] text-[#5d5d58] sm:inline`}>HG-08 · World proposals</span>
-          <Link href="/docs/brand/system" className={`font-mono ml-auto text-[12px] text-[#5d5d58] hover:text-[#111]`}>
+          <Link href="/docs/brand/places" className={`font-mono ml-auto text-[12px] text-[#5d5d58] hover:text-[#111]`}>
+            Places ↗
+          </Link>
+          <Link href="/docs/brand/system" className={`font-mono text-[12px] text-[#5d5d58] hover:text-[#111]`}>
             ← Design system
           </Link>
         </div>
