@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import * as THREE from "three";
 import { heightAt } from "../terrain";
+import { C } from "../palette";
 import { CANALS, canalDist, onBridge } from "../layout";
 import { FRAMES, HALF, N_FRAMES, RUNOFF, barrierOffset, rng } from "./common";
 
@@ -62,10 +63,10 @@ function gravelTexture() {
   const c = document.createElement("canvas");
   c.width = c.height = 128;
   const g = c.getContext("2d")!;
-  g.fillStyle = "#ddd3c3";
+  g.fillStyle = C.gravel;
   g.fillRect(0, 0, 128, 128);
   const r = rng(5);
-  const tones = ["#c9bca8", "#efe7da", "#b9ab96", "#e6dccd"];
+  const tones = ["#bcb29c", "#ddd6c6", "#aea38c", "#d6cdba"];
   for (let i = 0; i < 1400; i++) {
     g.fillStyle = tones[Math.floor(r() * tones.length)];
     const s = 1 + r() * 2;
@@ -77,7 +78,7 @@ function gravelTexture() {
   return t;
 }
 
-const paved = new THREE.MeshStandardMaterial({ color: "#5d6066", roughness: 0.92 });
+const paved = new THREE.MeshStandardMaterial({ color: "#47484b", roughness: 0.92 }); // asphalt, a shade lighter than the road
 
 export function Runoff() {
   const gravel = useMemo(() => new THREE.MeshStandardMaterial({ map: gravelTexture(), roughness: 1 }), []);
