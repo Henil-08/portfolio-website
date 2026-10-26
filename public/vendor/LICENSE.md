@@ -2,10 +2,6 @@
 
 Files in this folder come from https://github.com/brunosimon/folio-2025 (static/):
 
-- foliage/foliageSDF.png (static/foliage/foliageSDF.png)
-- trees/oakTreesVisual.glb, trees/cherryTreesVisual.glb, trees/birchTreesVisual.glb
-  (static/oakTrees, static/cherryTrees, static/birchTrees). Their meshes are also baked
-  into components/world/foliage/brunoTrees.ts.
 - props/benches.glb, props/lanterns.glb, props/fences.glb (static/benches, static/lanterns,
   static/fences). Their meshes, with his palette.png sampled into vertex colours, are baked
   into components/world/models/props/brunoProps.ts by scripts/bake-bruno.mjs.
