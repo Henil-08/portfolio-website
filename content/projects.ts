@@ -14,6 +14,8 @@ export type Project = {
   name: string;
   tagline: string;
   headline: { value: string; label: string };
+  /** Spec table rows for the project card; every figure comes from its points. */
+  specs?: [string, string][];
   stack: string[];
   points: string[];
   links: { label: string; href: string }[];
@@ -27,6 +29,7 @@ export const projects: Project[] = [
     name: "AI in Verification",
     tagline: "Seven agents that write and run chip tests",
     headline: { value: "10/10", label: "planted bugs caught" },
+    specs: [["Agents", "7"], ["Functional coverage", "100%"], ["Cycles to close", "43"], ["Iterations", "3"], ["Planted bugs caught", "10 / 10"]],
     stack: ["LangGraph", "SystemVerilog", "UVM", "Verilator", "RAG", "MCP"],
     points: [
       "Built a 7-agent LangGraph system that plans, writes and runs SystemVerilog/UVM tests for RTL chip designs, end to end, automatically",
@@ -46,6 +49,7 @@ export const projects: Project[] = [
     name: "Verilog Coder",
     tagline: "Small models that write better Verilog than big ones",
     headline: { value: "17.3 → 44.9%", label: "pass@1" },
+    specs: [["pass@1, base", "17.3%"], ["pass@1, tuned", "44.9%"], ["Training runs", "19"], ["Modules cleaned", "131K"], ["Fuzzer rows removed", "54K"], ["4-bit decode", "3.5x faster"]],
     stack: ["LoRA", "QLoRA", "DeepSpeed", "vLLM", "MLX", "W&B"],
     points: [
       "Fine-tuned Qwen2.5-Coder (1.5B-7B) across 19 LoRA/QLoRA/full runs with DeepSpeed ZeRO-2 on H100/H200 GPUs, tracked in W&B",
@@ -65,6 +69,7 @@ export const projects: Project[] = [
     name: "AppSageAI 2.0",
     tagline: "A resume analyzer that keeps your data yours",
     headline: { value: "<1s", label: "p99 TTFT at 600+ DAU" },
+    specs: [["Daily chats", "20K+"], ["p99 TTFT", "<1s"], ["Daily users", "600+"], ["Encryption", "AES-256"]],
     stack: ["Gemini 2.5", "Vertex AI", "FAISS", "FastAPI", "TypeScript", "Cloud Run"],
     points: [
       "Integrated Gemini 2.5 Pro (Vertex AI) with a RAG pipeline (FAISS + HF embeddings) to handle 20K+ daily chats with chat persistence",
@@ -83,6 +88,7 @@ export const projects: Project[] = [
     name: "Freemoji",
     tagline: "Apple's Genmoji, but for WhatsApp",
     headline: { value: "+40%", label: "inference speed" },
+    specs: [["Training emojis", "1,646"], ["GPUs", "2x A100"], ["Final loss", "0.245"], ["Inference speed", "+40%"]],
     stack: ["Flux.1-dev", "LoRA", "DeepSpeed", "vLLM", "MLX", "CUDA"],
     points: [
       "Fine-tuned Flux.1-dev on 1,646 WhatsApp emojis using LoRA with DeepSpeed ZeRO-2 on 2 Nvidia A100 GPUs, cutting model loss to 0.245",
@@ -104,6 +110,7 @@ export const projects: Project[] = [
     name: "Verta",
     tagline: "A personal shopping copilot",
     headline: { value: "250ms", label: "p95 TTFT under 6x load" },
+    specs: [["LLMs", "4"], ["Throughput", "20K queries/s"], ["p95 TTFT", "250ms"], ["p95 end to end", "1.5s"], ["Responses", "3x faster"], ["DeepEval correctness", "0.81"], ["Answer relevancy", "0.87"]],
     stack: ["LangGraph", "FAISS", "BigQuery", "Redis", "DeepEval", "MLflow"],
     points: [
       "Architected a chatbot on an end-to-end multi-agent RAG leveraging 4 LLMs using LangGraph, Guardrails, FAISS and BigQuery",
@@ -120,6 +127,7 @@ export const projects: Project[] = [
     name: "Self-Driving Solar Vehicle",
     tagline: "Where it all started",
     headline: { value: "24 FPS", label: "real-time steering" },
+    specs: [["Cone classes", "2"], ["mAP", "0.93"], ["Steering rate", "24 FPS"], ["Latency", "120ms"], ["Navigation accuracy", "96.7%"]],
     stack: ["TensorFlow", "OpenCV", "Jetson Nano", "STM32", "Embedded C"],
     points: [
       "Built a track-following autonomous solar vehicle by identifying 2 types of cones using OpenCV and a custom CNN model",
@@ -135,6 +143,7 @@ export const projects: Project[] = [
     name: "IPL Fantasy Picker",
     tagline: "I fine-tuned an LLM to pick my fantasy team",
     headline: { value: "85%", label: "team prediction accuracy" },
+    specs: [["ROUGE", "+10%"], ["Team accuracy", "85%"], ["Prompting", "2-shot"]],
     stack: ["Gemma 2", "QLoRA", "NLTK", "Transformers"],
     points: [
       "Fine-tuned Gemma 2 using QLoRA on a cricket dataset, a 10% improvement in ROUGE score for cricket-specific text generation",
@@ -151,6 +160,7 @@ export const projects: Project[] = [
     name: "Kidney Tumor Classification",
     tagline: "End-to-end medical imaging pipeline",
     headline: { value: "0.96", label: "F1 score" },
+    specs: [["F1 score", "0.96"], ["Backbone", "VGG16"]],
     stack: ["PyTorch", "Airflow", "DVC", "SHAP", "Docker", "EC2"],
     points: [
       "Built an end-to-end image classification pipeline on a modified VGG16 CNN in PyTorch, achieving an F1 score of 0.96",
@@ -171,6 +181,7 @@ export const projects: Project[] = [
     name: "Ultimate Frisbee Ratings",
     tagline: "Plus-minus for a sport that never had one",
     headline: { value: "+20%", label: "predictive accuracy" },
+    specs: [["Predictive accuracy", "+20%"], ["Ranking robustness", "+15%"]],
     stack: ["XGBoost", "Bayesian", "Mixed effects", "MLflow"],
     points: [
       "Engineered player rating models combining XGBoost and mixed-effects linear modeling for context-aware performance evaluation",
@@ -186,6 +197,7 @@ export const projects: Project[] = [
     name: "Rent the Runway Recommender",
     tagline: "Hybrid fashion recommendations",
     headline: { value: "-40%", label: "update time" },
+    specs: [["Update time", "-40%"]],
     stack: ["SVD", "Collaborative filtering", "BeautifulSoup"],
     points: [
       "Scraped product data and user reviews via BeautifulSoup into structured datasets with detailed attributes and feedback metrics",
@@ -203,6 +215,7 @@ export const projects: Project[] = [
     name: "Chat with SQL",
     tagline: "Ask your database in plain English",
     headline: { value: "2", label: "databases, one agent" },
+    specs: [["Databases", "2"]],
     stack: ["LangChain", "Gemma 2", "Groq", "SQLAlchemy"],
     points: [
       "Developed an AI agent with LangChain, SQL and Gemma 2 that lets users query databases in natural language",
@@ -321,6 +334,7 @@ export const projects: Project[] = [
     name: "Table Tennis Ball Tracking",
     tagline: "Predicting where the ball lands before it does",
     headline: { value: "95%", label: "bounce prediction accuracy" },
+    specs: [["Bounce prediction", "95%"], ["Shot accuracy", "+20%"]],
     stack: ["Computer vision", "CNN", "TensorFlow"],
     points: [
       "Ball tracking and trajectory prediction for the Helios training device at Hyperlab",
@@ -334,6 +348,7 @@ export const projects: Project[] = [
     name: "Helios Adaptive Timeout",
     tagline: "Personalised rest timing for athletes",
     headline: { value: "-30%", label: "player fatigue" },
+    specs: [["Player fatigue", "-30%"], ["Drill efficiency", "+15%"]],
     stack: ["Machine learning", "Firebase"],
     points: [
       "Timeout mode on the Helios laser device, learned from historical training data",
@@ -347,6 +362,7 @@ export const projects: Project[] = [
     name: "Deep Learning Driving in Simulation",
     tagline: "Steering a virtual car with a custom CNN",
     headline: { value: "-20%", label: "prediction error" },
+    specs: [["Prediction error", "-20%"]],
     stack: ["CNN", "Udacity simulator", "Keras"],
     points: [
       "Custom deep learning model predicting steering and throttle, compared against other architectures",
@@ -360,6 +376,7 @@ export const projects: Project[] = [
     name: "PCM Battery Thermal Management",
     tagline: "Keeping EV battery packs cool with data",
     headline: { value: "-12%", label: "thermal issues" },
+    specs: [["Thermal issues", "-12%"], ["Load bank", "3.5kW"]],
     stack: ["Predictive modelling", "BMS", "Li-ion"],
     points: [
       "Helped build a Li-ion pack and BMS with a composite phase change material cooling system",
