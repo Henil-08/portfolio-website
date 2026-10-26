@@ -1,51 +1,20 @@
 @import "tailwindcss";
 
-/* Racero is a licensed display font. It is not in the public repo: it is
-   served from public/fonts at runtime (mounted on the server). Without it,
-   headings fall back to Bricolage. */
-@font-face {
-  font-family: "Racero";
-  src: url("/fonts/racero.otf") format("opentype");
-  font-display: swap;
-}
-
 @theme {
   /* brand (docs/BRAND.md): paper, ink, graphite, rule, one orange signal */
   --color-ink: #111111;
   --color-graphite: #5d5d58;
   --color-rule: #cfcdc4;
   --color-signal: #ff4f00;
-  --color-ink-soft: #4a4d63;
-  --color-cream: #fff8ec;
   --color-paper: #f3f2ed;
-  --color-line: #ece3d3;
-  --color-red: #ff4b3e;
-  --color-red-dark: #e23a2e;
-  --color-yellow: #ffd23f;
-  --color-teal: #2ec4b6;
-  --color-blue: #3d8bff;
-  --color-purple: #9b6bff;
-  --color-green: #45c46b;
-  --color-night: #0b0b10;
 
-  --font-display: var(--font-plex), system-ui, sans-serif;
-  --font-racing: "Racero", var(--font-plex), system-ui, sans-serif;
   --font-sans: var(--font-plex), system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
-
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-:root {
-  /* old names, still read by the canvas labels (Reveal, InteractivePoints) until they move over */
-  --font-geist: var(--font-plex);
-  --font-geist-mono: var(--font-plex-mono);
 }
 
 html,
 body {
-  background: var(--color-night);
+  background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -53,49 +22,8 @@ body {
 }
 
 ::selection {
-  background: var(--color-red);
+  background: var(--color-signal);
   color: white;
-}
-
-/* Soft toy-like card used for every panel in the world */
-.toy-card {
-  background: rgba(255, 253, 248, 0.92);
-  backdrop-filter: blur(18px) saturate(1.4);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.9) inset,
-    0 24px 60px -20px rgba(31, 33, 51, 0.35),
-    0 8px 20px -10px rgba(31, 33, 51, 0.25);
-}
-
-/* Chunky button with a pressed-in bottom edge */
-.toy-btn {
-  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.18);
-  transition:
-    transform 120ms var(--ease-out-expo),
-    box-shadow 120ms var(--ease-out-expo);
-}
-.toy-btn:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
-}
-
-.caret::after {
-  content: "";
-  display: inline-block;
-  width: 0.08em;
-  height: 1em;
-  margin-left: 0.06em;
-  vertical-align: -0.12em;
-  background: currentColor;
-  animation: blink 1s steps(1) infinite;
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
 }
 
 /* Konami code: temperature 2.0 */
@@ -124,100 +52,6 @@ body {
   }
 }
 
-/* ---------------------------------------------------------------------------
-   HUD design language: option A, "pit wall broadcast" (docs/DESIGN.md).
-   Ink panels with square corners and a cream hairline inset 3 px, red as the
-   one accent, folio-2025's edge tabs and springy curves. No blur, no radius.
-   --------------------------------------------------------------------------- */
-@layer components {
-.hud-panel {
-  position: relative;
-  background: radial-gradient(ellipse at top left, #1f2133, #171928);
-  color: var(--color-cream);
-}
-.hud-panel::after,
-.hud-tab::after,
-.hud-edge::after {
-  content: "";
-  position: absolute;
-  inset: 3px;
-  border: 1px solid #fff8ec;
-  opacity: 0.35;
-  pointer-events: none;
-  transition: opacity 0.15s;
-}
-/* a tab on a panel's top edge: open at the bottom */
-.hud-tab::after {
-  bottom: 0;
-  border-bottom: none;
-  opacity: 0.25;
-}
-/* a tab flush to the screen's right edge: open on the right */
-.hud-edge {
-  position: relative;
-  background: radial-gradient(ellipse at top left, #1f2133, #171928);
-  color: var(--color-cream);
-  transition: transform 0.15s;
-}
-.hud-edge::after {
-  right: 0;
-  border-right: none;
-}
-.hud-edge:hover {
-  transform: translateX(-4px);
-}
-.hud-tab:hover::after,
-.hud-edge:hover::after {
-  opacity: 0.8;
-}
-.hud-red {
-  background: radial-gradient(ellipse at top right, #ff4b3e, #a3241c);
-  color: #fff;
-}
-/* key cap */
-.hud-key {
-  display: inline-grid;
-  place-items: center;
-  min-width: 1.6rem;
-  height: 1.6rem;
-  padding: 0 0.35rem;
-  background: var(--color-cream);
-  color: var(--color-ink);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  box-shadow: 0 2px 0 #0006;
-}
-/* small label chip */
-.hud-chip {
-  background: #171928;
-  color: var(--color-cream);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 2px 6px;
-}
-/* folio-2025's pop: overshoot in, wind-up out */
-.hud-pop-in {
-  transition-timing-function: cubic-bezier(0.49, 2.2, 0.53, 0.75);
-}
-}
-
-/* label pops with the original's springy curves: a wind-up on the way out, an overshoot on the way in */
-.map-pin-name {
-  transform-origin: 50% 80%;
-  transform: scale(0);
-  transition: transform 0.3s cubic-bezier(0.65, -1, 0.45, 1);
-}
-.map-pin:hover .map-pin-name,
-.map-pin:focus-visible .map-pin-name,
-.map-pin.is-active .map-pin-name {
-  transform: scale(1);
-  transition-timing-function: cubic-bezier(0.49, 2.2, 0.53, 0.75);
-}
-
 /* the boot screen lifts away when the world is ready (components/ui/Boot.tsx) */
 .boot {
   transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.6, 0, 0.2, 1);
@@ -225,18 +59,6 @@ body {
 .boot.is-out {
   opacity: 0;
   transform: translateY(-16px);
-}
-
-/* Garage spec sheet (components/ui/Panels.tsx GarageSheet): each project slides in */
-@keyframes sheet-in {
-  from {
-    opacity: 0;
-    transform: translateX(10px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 /* ---------------------------------------------------------------------------
