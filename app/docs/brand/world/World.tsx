@@ -9,28 +9,8 @@ import { OrbitControls, PerspectiveCamera, View } from "@react-three/drei";
 import { profile } from "@/content/profile";
 import { pad } from "@/components/brand/tokens";
 import { Lockup } from "@/components/brand/mark";
-import { Car, Diorama, Floodlight, Gantry, Garage, Grandstand, KerbEdge, TecPro, Town, Trees, W, WallFence } from "./models";
-
-function Lights({ night = false, size = 30 }: { night?: boolean; size?: number }) {
-  return (
-    <>
-      <hemisphereLight args={[night ? "#3a4552" : "#ffffff", night ? "#111" : "#b8b4a9", night ? 0.55 : 1.0]} />
-      <directionalLight
-        position={night ? [-10, 18, 8] : [14, 22, 10]}
-        intensity={night ? 0.5 : 2.4}
-        color={night ? "#9fb4d0" : "#fff6ea"}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-bias={-0.0004}
-        shadow-camera-left={-size}
-        shadow-camera-right={size}
-        shadow-camera-top={size}
-        shadow-camera-bottom={-size}
-        shadow-camera-far={120}
-      />
-    </>
-  );
-}
+import StartSequence from "./StartSequence";
+import { Car, Diorama, Lights, Floodlight, Gantry, Garage, Grandstand, KerbEdge, TecPro, Town, Trees, W, WallFence } from "./models";
 
 /** One turntable: its own camera, lights and a plinth. */
 function Turntable({ cam, target = [0, 1, 0], children, size = 12, night }: { cam: [number, number, number]; target?: [number, number, number]; children: ReactNode; size?: number; night?: boolean }) {
@@ -319,6 +299,38 @@ export default function World() {
                 </div>
               </article>
             ))}
+          </div>
+        </section>
+
+        {/* 04 · start sequence */}
+        <section id="start" className="pt-16">
+          <div className="flex items-baseline gap-4 border-b-[3px] border-[#111] pb-3">
+            <span className={`font-mono text-[15px] text-[#ff4f00]`}>04</span>
+            <h2 className="text-[30px] font-semibold leading-none tracking-tight sm:text-[40px]">Start sequence</h2>
+          </div>
+          <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-[#5d5d58]">
+            A new way into the world, after the boot animation. Instead of a car in a small circle, you pick what to drive on a loadout screen, press Enter, and the island builds itself
+            around you. The vehicle you pick is the one you drive.
+          </p>
+          <ol className="mt-5 grid grid-cols-2 gap-px border-2 border-[#111] bg-[#111] sm:grid-cols-4">
+            {[
+              ["S01", "Boot", "Mark, name, loading bar. Exists today."],
+              ["S01b", "Select vehicle", "Four cards, a turntable, game stats. ← → and Enter."],
+              ["S01c", "World builds in", "Floor, track, barriers, buildings, trees, lights, in about 3 s."],
+              ["S02", "Drive", "The camera settles behind you and the HUD takes over."],
+            ].map(([c, t, b], i) => (
+              <li key={c} className="bg-white p-3">
+                <p className={`font-mono text-[11.5px] ${i === 1 || i === 2 ? "text-[#ff4f00]" : "text-[#5d5d58]"}`}>
+                  {pad(i + 1)} · {c}
+                  {i === 1 || i === 2 ? " · new" : ""}
+                </p>
+                <p className="mt-1 text-[15px] font-semibold">{t}</p>
+                <p className="mt-0.5 text-[13px] leading-snug text-[#5d5d58]">{b}</p>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-6">
+            <StartSequence />
           </div>
         </section>
       </div>

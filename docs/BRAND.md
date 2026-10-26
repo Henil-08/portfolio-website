@@ -8,6 +8,7 @@ disagree, the page is what the owner approved; fix this file.
 
 | Date | Decision |
 |---|---|
+| 2026-10-26 | Start sequence proposal (owner idea), mock in /docs/brand/world section 04: after the boot, a loadout panel to pick a vehicle on a turntable (V01 F1 HG-08, V02 ATV E14 after his SAE e-BAJA car, V03 supercar GT-08, V04 bike R-08), then Enter builds the world in around it (~3.5 s) and drops into the chase cam. Not approved yet. |
 | 2026-10-26 | Owner disliked cursor options A/B/C. New lab options (I09, /docs/brand/system): D Tag (context verb tag beside an orange square), E Magnetic (targets lean ≤5 px to the pointer, the square docks in their corner, press throws logo cells), F Trail (logo-weight trail folding into a 2x2 attention map on hover), G Scan (one orange scan across the target, crosshair with its data-code). Default stays "no change". Preview persists via localStorage `hg:cursor-style`. |
 | 2026-10-26 | Boot: the bar follows the load in legs (→60% while the world loads, →88% while shaders compile, full when ready); the floor grid shows from the first frame as a still (public/img/boot-floor.jpg) that hands over to the live grid. |
 | 2026-10-26 | Boot bar runs on CSS (no jump to 100%), the floor grid waits for the world, cursor 7 px (owner). |

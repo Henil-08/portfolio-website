@@ -26,7 +26,7 @@ export const W = {
 
 type Night = { night?: boolean };
 const std = (color: string, rough = 0.85, metal = 0) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal });
-const M = {
+export const M = {
   concrete: std(W.concrete, 0.95),
   concreteDark: std(W.concreteDark, 0.95),
   asphalt: std(W.asphalt, 0.95),
@@ -47,7 +47,7 @@ const lampOff = new THREE.MeshStandardMaterial({ color: "#d9d6ce", emissive: "#f
 const ledOn = new THREE.MeshStandardMaterial({ color: W.orange, emissive: W.orange, emissiveIntensity: 2, toneMapped: false });
 
 /** A box along z that tapers from (w0, h0) at the back to (w1, h1) at the front, centre heights y0 → y1. */
-function tapered(w0: number, h0: number, w1: number, h1: number, len: number, y0 = 0, y1 = 0) {
+export function tapered(w0: number, h0: number, w1: number, h1: number, len: number, y0 = 0, y1 = 0) {
   const g = new THREE.BoxGeometry(1, 1, 1);
   const p = g.attributes.position;
   for (let i = 0; i < p.count; i++) {
@@ -58,7 +58,7 @@ function tapered(w0: number, h0: number, w1: number, h1: number, len: number, y0
   return g;
 }
 
-function Box({ s, p, m, r }: { s: [number, number, number]; p: [number, number, number]; m: THREE.Material; r?: [number, number, number] }) {
+export function Box({ s, p, m, r }: { s: [number, number, number]; p: [number, number, number]; m: THREE.Material; r?: [number, number, number] }) {
   return (
     <mesh position={p} rotation={r} material={m} castShadow receiveShadow>
       <boxGeometry args={s} />
@@ -67,7 +67,7 @@ function Box({ s, p, m, r }: { s: [number, number, number]; p: [number, number, 
 }
 
 /** Text on a plane (codes, numbers), drawn to a canvas once. */
-function useLabel(text: string, { fg = W.ink, bg = W.paper, w = 256, h = 128, size = 72 } = {}) {
+export function useLabel(text: string, { fg = W.ink, bg = W.paper, w = 256, h = 128, size = 72 } = {}) {
   return useMemo(() => {
     const c = document.createElement("canvas");
     c.width = w;
@@ -86,6 +86,28 @@ function useLabel(text: string, { fg = W.ink, bg = W.paper, w = 256, h = 128, si
     t.anisotropy = 4;
     return new THREE.MeshStandardMaterial({ map: t, roughness: 0.7 });
   }, [text, fg, bg, w, h, size]);
+}
+
+/** Day or night key light with a shadow box of ±size metres. */
+export function Lights({ night = false, size = 30 }: { night?: boolean; size?: number }) {
+  return (
+    <>
+      <hemisphereLight args={[night ? "#3a4552" : "#ffffff", night ? "#111" : "#b8b4a9", night ? 0.55 : 1.0]} />
+      <directionalLight
+        position={night ? [-10, 18, 8] : [14, 22, 10]}
+        intensity={night ? 0.5 : 2.4}
+        color={night ? "#9fb4d0" : "#fff6ea"}
+        castShadow
+        shadow-mapSize={[2048, 2048]}
+        shadow-bias={-0.0004}
+        shadow-camera-left={-size}
+        shadow-camera-right={size}
+        shadow-camera-top={size}
+        shadow-camera-bottom={-size}
+        shadow-camera-far={120}
+      />
+    </>
+  );
 }
 
 /* ------------------------------------------------------------------ W01 car */
