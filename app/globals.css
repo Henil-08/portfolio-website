@@ -60,6 +60,13 @@ body {
   opacity: 0;
   transform: translateY(-16px);
 }
+/* the still of the floor fades without moving, so it hands over to the live grid in place */
+.boot-floor {
+  transition: opacity 0.5s ease 0.15s;
+}
+.boot-floor.is-out {
+  opacity: 0;
+}
 
 /* ---------------------------------------------------------------------------
    /resume (app/resume/Resume.tsx) on paper: plain ink on white. Everything the
@@ -238,6 +245,7 @@ body {
   }
 }
 
+
 /* --- the custom cursor (components/brand/Cursor.tsx, docs/BRAND.md I09) */
 @media (pointer: fine) {
   html.has-cursor,
@@ -245,13 +253,18 @@ body {
     cursor: none !important;
   }
 }
+.cursor-layer,
+.cursor-layer * {
+  pointer-events: none;
+}
 .cursor-layer {
   position: fixed;
   inset: 0;
-  pointer-events: none;
   z-index: 2147483000;
 }
-.cursor-dot {
+.cursor-dot,
+.cursor-trail,
+.cursor-spark {
   position: fixed;
   left: -3.5px;
   top: -3.5px;
@@ -260,58 +273,9 @@ body {
   background: var(--color-ink);
   outline: 1px solid var(--color-paper);
   will-change: transform;
-  transition: opacity 0.12s, width 0.1s, height 0.1s, left 0.1s, top 0.1s, background-color 0.1s, border-width 0.1s;
 }
-/* Over clickable things (mode "hover"): three options, picked by <html data-cursor-style>.
-   No style = no change. Each keeps a paper halo so it reads on paper, ink and the 3D world. */
-/* A · Grow: a 14 px signal square. */
-html[data-cursor-style="a"][data-cursor-mode="hover"] .cursor-dot {
-  left: -7px;
-  top: -7px;
-  width: 14px;
-  height: 14px;
-  background-color: var(--color-signal);
-}
-/* B · Frame: a hollow 18 px ink square (2 px stroke, paper both sides) with a 4 px ink dot. */
-html[data-cursor-style="b"][data-cursor-mode="hover"] .cursor-dot {
-  left: -9px;
-  top: -9px;
-  width: 18px;
-  height: 18px;
-  background-color: transparent;
-  border: 2px solid var(--color-ink);
-  box-shadow: inset 0 0 0 1px var(--color-paper);
-}
-html[data-cursor-style="b"][data-cursor-mode="hover"] .cursor-dot::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 4px;
-  height: 4px;
-  margin: -2px 0 0 -2px;
-  background: var(--color-ink);
-  outline: 1px solid var(--color-paper);
-}
-/* C · Cross: a 12 px ink plus (2 px bars) with a signal centre; the halo is a drop-shadow on the shape. */
-html[data-cursor-style="c"][data-cursor-mode="hover"] .cursor-dot {
-  left: -6px;
-  top: -6px;
-  width: 12px;
-  height: 12px;
-  outline: none;
-  background:
-    linear-gradient(var(--color-signal), var(--color-signal)) center / 4px 4px no-repeat,
-    linear-gradient(var(--color-ink), var(--color-ink)) center / 12px 2px no-repeat,
-    linear-gradient(var(--color-ink), var(--color-ink)) center / 2px 12px no-repeat;
-  filter: drop-shadow(1px 0 0 var(--color-paper)) drop-shadow(-1px 0 0 var(--color-paper)) drop-shadow(0 1px 0 var(--color-paper)) drop-shadow(0 -1px 0 var(--color-paper));
-}
-html[data-cursor-mode="text"] .cursor-dot {
-  left: -1px;
-  top: -10px;
-  width: 2px;
-  height: 20px;
-  outline-width: 1px;
+.cursor-dot {
+  transition: opacity 0.12s, width 0.1s, height 0.1s, left 0.1s, top 0.1s, background-color 0.1s;
 }
 .cursor-tag {
   position: fixed;
@@ -321,14 +285,154 @@ html[data-cursor-mode="text"] .cursor-dot {
   padding: 2px 6px;
   background: var(--color-ink);
   color: var(--color-paper);
+  outline: 1px solid var(--color-paper);
   font-size: 10.5px;
+  line-height: 14px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  white-space: nowrap;
   transition: opacity 0.12s;
 }
-html[data-cursor-mode="drag"] .cursor-tag {
+.cursor-tag[data-kind="drag"],
+.cursor-tag[data-kind="label"],
+.cursor-tag[data-kind="code"] {
   opacity: 1;
 }
-html[data-cursor-mode="hidden"] .cursor-dot {
+html[data-cursor-mode="text"] .cursor-dot {
+  left: -1px;
+  top: -10px;
+  width: 2px;
+  height: 20px;
+}
+html[data-cursor-mode="hidden"] .cursor-layer > * {
   opacity: 0 !important;
+}
+
+/* Hover options, picked by <html data-cursor-style>. No style = no change. Each keeps a paper halo
+   so it reads on paper, ink and the 3D world. */
+
+/* D · Tag: an ink prompt snaps in beside the square with what the click does; the square goes orange. */
+html[data-cursor-style="d"][data-cursor-mode="hover"] .cursor-dot {
+  background-color: var(--color-signal);
+}
+.cursor-tag[data-kind="label"] {
+  margin-top: -9px;
+  animation: cursor-tag-in 0.12s cubic-bezier(0.6, 0, 0.2, 1);
+}
+@keyframes cursor-tag-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* E · Magnetic: the target leans (Cursor.tsx sets --cursor-mx/my on it); the square snaps into its
+   bottom-right corner, small and orange like the logo's cell; a press throws four cells. */
+html[data-cursor-style="e"] [data-cursor-magnet] {
+  translate: var(--cursor-mx, 0) var(--cursor-my, 0);
+}
+html[data-cursor-style="e"][data-cursor-mode="hover"] .cursor-dot {
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-signal);
+}
+.cursor-spark {
+  left: -2px;
+  top: -2px;
+  width: 4px;
+  height: 4px;
+}
+.cursor-spark[data-signal] {
+  background: var(--color-signal);
+}
+
+/* F · Trail: four cells at the logo's weights chase the square; on hover they fold into a 2x2 map
+   (orange bottom right) and pressing fills it. */
+.cursor-trail {
+  display: none;
+  transition: opacity 0.1s, background-color 0.1s, width 0.1s, height 0.1s, left 0.1s, top 0.1s;
+}
+html[data-cursor-style="f"] .cursor-trail {
+  display: block;
+}
+html[data-cursor-style="f"]:is([data-cursor-mode="text"], [data-cursor-mode="hidden"]) .cursor-trail {
+  display: none;
+}
+.cursor-trail[data-i="0"] { opacity: 0.45; }
+.cursor-trail[data-i="1"] { opacity: 0.25; }
+.cursor-trail[data-i="2"] { opacity: 0.2; }
+.cursor-trail[data-i="3"] { opacity: 0.1; }
+html[data-cursor-style="f"][data-cursor-mode="hover"] :is(.cursor-dot, .cursor-trail) {
+  left: -3px;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+}
+html[data-cursor-style="f"][data-cursor-mode="hover"] .cursor-trail[data-i="0"] { opacity: 0.25; }
+html[data-cursor-style="f"][data-cursor-mode="hover"] .cursor-trail[data-i="1"] { opacity: 0.45; }
+html[data-cursor-style="f"][data-cursor-mode="hover"] .cursor-trail[data-i="2"] {
+  opacity: 1;
+  background-color: var(--color-signal);
+}
+html[data-cursor-style="f"][data-cursor-mode="hover"] .cursor-trail[data-i="3"] { opacity: 0; }
+html[data-cursor-style="f"][data-cursor-mode="hover"][data-cursor-down] .cursor-trail:is([data-i="0"], [data-i="1"]) {
+  opacity: 1;
+}
+
+/* G · Scan: one orange line sweeps the target (once, on enter); the square becomes a thin crosshair
+   with the target's code (P01, Z03…) beside it in orange. */
+.cursor-scan {
+  position: fixed;
+  overflow: hidden;
+  display: none;
+}
+html[data-cursor-style="g"] .cursor-scan {
+  display: block;
+}
+.cursor-scan-line {
+  position: absolute;
+  left: -1px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  opacity: 0;
+  background: var(--color-signal);
+  box-shadow: 1px 0 0 var(--color-paper), -1px 0 0 var(--color-paper);
+}
+html[data-cursor-style="g"][data-cursor-mode="hover"] .cursor-dot {
+  left: -7px;
+  top: -7px;
+  width: 15px;
+  height: 15px;
+  outline: none;
+  background:
+    linear-gradient(var(--color-signal), var(--color-signal)) center / 3px 3px no-repeat,
+    linear-gradient(var(--color-ink), var(--color-ink)) left center / 5px 1px no-repeat,
+    linear-gradient(var(--color-ink), var(--color-ink)) right center / 5px 1px no-repeat,
+    linear-gradient(var(--color-ink), var(--color-ink)) center top / 1px 5px no-repeat,
+    linear-gradient(var(--color-ink), var(--color-ink)) center bottom / 1px 5px no-repeat;
+  filter: drop-shadow(1px 0 0 var(--color-paper)) drop-shadow(-1px 0 0 var(--color-paper)) drop-shadow(0 1px 0 var(--color-paper)) drop-shadow(0 -1px 0 var(--color-paper));
+}
+.cursor-tag[data-kind="code"] {
+  padding: 1px 4px;
+  background: var(--color-paper);
+  color: var(--color-signal);
+  outline: 1px solid var(--color-ink);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor-dot,
+  .cursor-trail,
+  .cursor-tag {
+    transition: none;
+    animation: none;
+  }
+  html[data-cursor-style="f"]:not([data-cursor-mode="hover"]) .cursor-trail {
+    display: none;
+  }
 }

@@ -8,7 +8,8 @@ disagree, the page is what the owner approved; fix this file.
 
 | Date | Decision |
 |---|---|
-| 2026-10-26 | Cursor hover options for the owner to pick, live in the I09 lab on /docs/brand/system: A Grow (14 px orange), B Frame (18 px hollow ink square, ink dot), C Cross (ink plus, orange centre). Default stays "no change". The choice previews site-wide from localStorage `hg:cursor-style` until one is chosen. |
+| 2026-10-26 | Owner disliked cursor options A/B/C. New lab options (I09, /docs/brand/system): D Tag (context verb tag beside an orange square), E Magnetic (targets lean ≤5 px to the pointer, the square docks in their corner, press throws logo cells), F Trail (logo-weight trail folding into a 2x2 attention map on hover), G Scan (one orange scan across the target, crosshair with its data-code). Default stays "no change". Preview persists via localStorage `hg:cursor-style`. |
+| 2026-10-26 | Boot: the bar follows the load in legs (→60% while the world loads, →88% while shaders compile, full when ready); the floor grid shows from the first frame as a still (public/img/boot-floor.jpg) that hands over to the live grid. |
 | 2026-10-26 | Boot bar runs on CSS (no jump to 100%), the floor grid waits for the world, cursor 7 px (owner). |
 | 2026-10-26 | Step 10 done: every screen (boot, HUD, sheets, garage, map, overlays, prompt, resume, 404, trackside boards) is in this language; the old UI layer and docs/DESIGN.md are deleted. |
 | 2026-10-26 | Cursor: no corner brackets on hover, just the square (owner). |

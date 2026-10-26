@@ -373,10 +373,11 @@ function Tabs() {
 // I09 lab: the hover options for the cursor. The choice is <html data-cursor-style>, saved in
 // localStorage so Cursor.tsx applies it on every page until one is picked for real.
 const CURSOR_OPTIONS = [
-  { id: "", label: "Current", note: "No change over clickable things; the target's own hover does the work." },
-  { id: "a", label: "A · Grow", note: "The square doubles to 14 px and turns signal orange." },
-  { id: "b", label: "B · Frame", note: "The square opens into an 18 px ink frame with a 4 px dot in the middle." },
-  { id: "c", label: "C · Cross", note: "The square turns into a 12 px ink plus with an orange centre." },
+  { id: "", code: "00", label: "Current", note: "No change over clickable things; the target's own hover does the work." },
+  { id: "d", code: "D", label: "Tag", note: "A mono prompt snaps in beside an orange square and says what the click does: OPEN ↗, EMAIL, SEND." },
+  { id: "e", code: "E", label: "Magnetic", note: "The target leans toward you, the square snaps into its corner as the logo's orange cell, and a click throws four cells." },
+  { id: "f", code: "F", label: "Trail", note: "Four cells at the logo's weights trail the square and fold into a 2x2 map over a target; pressing fills it." },
+  { id: "g", code: "G", label: "Scan", note: "One orange line sweeps the target as you arrive; the square turns into a crosshair that reads its code." },
 ];
 
 function watchCursorStyle(cb: () => void) {
@@ -399,41 +400,44 @@ function CursorLab() {
   const i = Math.max(0, CURSOR_OPTIONS.findIndex((o) => o.id === style));
   return (
     <div className="space-y-5">
-      <div className="relative inline-grid grid-cols-4 border-2 border-[#111] bg-white">
-        <span className="absolute inset-y-0 w-1/4 bg-[#111] transition-transform duration-200 ease-[cubic-bezier(.6,0,.2,1)]" style={{ transform: `translateX(${i * 100}%)` }} />
-        {CURSOR_OPTIONS.map((o, j) => (
-          <button key={o.label} type="button" onClick={() => pickCursorStyle(o.id)} aria-pressed={i === j} className={`font-mono relative px-4 py-2 text-[12px] uppercase tracking-[0.06em] transition-colors ${i === j ? "text-white" : "text-[#111]"}`}>
-            {o.label}
-          </button>
-        ))}
+      <div className="space-y-3">
+        <div className="relative grid grid-cols-5 border-2 border-[#111] bg-white">
+          <span className="absolute inset-y-0 w-1/5 bg-[#111] transition-transform duration-200 ease-[cubic-bezier(.6,0,.2,1)]" style={{ transform: `translateX(${i * 100}%)` }} />
+          {CURSOR_OPTIONS.map((o, j) => (
+            <button key={o.code} type="button" onClick={() => pickCursorStyle(o.id)} aria-pressed={i === j} data-cursor-label={i === j ? "On" : "Try"} className={`font-mono relative flex flex-col items-start px-2.5 py-1.5 text-left text-[12px] uppercase tracking-[0.06em] transition-colors ${i === j ? "text-white" : "text-[#111]"}`}>
+              <span className={`text-[10.5px] ${i === j ? "text-[#ff4f00]" : "text-[#5d5d58]"}`}>{o.code}</span>
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[13.5px] text-[#111]">
+          <span className="font-mono mr-2 text-[12px] text-[#ff4f00]">{CURSOR_OPTIONS[i].code}</span>
+          {CURSOR_OPTIONS[i].note}
+        </p>
       </div>
-      <ul className="space-y-1 text-[13.5px]">
-        {CURSOR_OPTIONS.map((o, j) => (
-          <li key={o.label} className={i === j ? "text-[#111]" : "text-[#5d5d58]"}>
-            <span className="font-mono mr-2 text-[12px] uppercase">{o.label}</span>
-            {o.note}
-          </li>
-        ))}
-      </ul>
       <div className="flex flex-wrap items-center gap-5 text-[14px]">
-        <button type="button" className="x-btn x-primary">
-          Primary
+        <button type="button" className="x-btn x-primary" data-cursor-label="Send">
+          Send <span className="x-arrow">→</span>
         </button>
         <button type="button" className="x-btn x-secondary">
           Secondary
         </button>
-        <a href="#interactions" className="x-link font-medium">
-          A link
+        <a href={profile.links.github} target="_blank" rel="noreferrer" className="x-link font-medium">
+          GitHub
+        </a>
+        <a href={`mailto:${profile.email}`} className="x-link font-medium">
+          Email
         </a>
         <button type="button" className="x-chip">
-          Chip
+          Map
         </button>
         <input placeholder="Text field" className="w-36 border-2 border-[#111] bg-white px-2 py-1.5 outline-none" />
         <span data-cursor="drag" className="font-mono grid h-16 w-28 place-items-center border-2 border-dashed border-[#111] text-[12px] text-[#5d5d58]">
           3D view
         </span>
       </div>
-      <a href="#interactions" className="x-row grid grid-cols-[1fr_18px] items-center gap-3 border-y border-[#cfcdc4] px-2 py-2.5 text-[14px]">
+      <a href="#interactions" data-code="P01" className="x-row grid grid-cols-[38px_1fr_18px] items-center gap-3 border-y border-[#cfcdc4] px-2 py-2.5 text-[14px]">
+        <span className="font-mono text-[12px] text-[#ff4f00]">P01</span>
         <span>A row link, like the project list</span>
         <span className="x-arrow">→</span>
       </a>

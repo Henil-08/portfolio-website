@@ -14,30 +14,37 @@ const STAGE = { world: "Loading the island", shaders: "Warming up", ready: "Read
 
 export default function Boot() {
   const root = useRef<HTMLDivElement>(null);
+  const floor = useRef<HTMLDivElement>(null);
   const label = useRef<HTMLSpanElement>(null);
   const bar = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     // The bar is a CSS transition, so it keeps moving on the compositor while the main thread
-    // is busy building the world and compiling shaders (a rAF-driven bar froze there and then
-    // jumped to full). It eases towards 90% over a typical load and finishes once ready.
+    // is busy building the world and compiling shaders (a rAF-driven bar froze, then jumped).
+    // It follows the real load in legs: towards 60% while the world downloads and builds,
+    // towards 88% once it exists and the shaders compile, then full when it is ready.
     const b = bar.current;
-    if (b) {
-      b.style.transition = "transform 9s cubic-bezier(0.25, 0.45, 0.45, 1)";
-      requestAnimationFrame(() => requestAnimationFrame(() => (b.style.transform = "scaleX(0.9)")));
-    }
+    const leg = (to: number, secs: number, ease = "cubic-bezier(0.25, 0.5, 0.45, 1)") => {
+      if (!b) return;
+      b.style.transition = `transform ${secs}s ${ease}`;
+      b.style.transform = `scaleX(${to})`;
+    };
+    requestAnimationFrame(() => requestAnimationFrame(() => leg(0.6, 4)));
+    let stage = "world";
     let raf = 0;
-    let done = false;
     const tick = () => {
       raf = requestAnimationFrame(tick);
-      if (label.current) label.current.textContent = boot.out || boot.lit >= 1 ? STAGE.ready : boot.stage === "world" ? STAGE.world : STAGE.shaders;
-      if ((boot.out || boot.lit >= 1) && !done && b) {
-        done = true;
-        b.style.transition = "transform 0.35s cubic-bezier(0.6, 0, 0.2, 1)";
-        b.style.transform = "scaleX(1)";
+      const full = boot.out || boot.lit >= 1;
+      const now = full ? "ready" : boot.stage;
+      if (label.current) label.current.textContent = full ? STAGE.ready : now === "world" ? STAGE.world : STAGE.shaders;
+      if (now !== stage) {
+        stage = now;
+        if (now === "shaders") leg(0.88, 2.5);
+        if (now === "ready") leg(1, 0.35, "cubic-bezier(0.6, 0, 0.2, 1)");
       }
       if (boot.out) {
         root.current?.classList.add("is-out");
+        floor.current?.classList.add("is-out");
         cancelAnimationFrame(raf);
       }
     };
@@ -46,6 +53,13 @@ export default function Boot() {
   }, []);
 
   return (
+    <>
+    {/* The floor's dot grid from the very first frame: a still of the 3D floor from the start view
+        (public/img/boot-floor.jpg, 3000x1000). The live grid only exists once the world is ready
+        and takes over underneath, identical, as this fades. Height-fit, because the world camera
+        keeps a fixed vertical field of view, so it lines up at any screen shape. Re-capture it if
+        the start spot, the camera or the floor shader changes. */}
+    <div ref={floor} className="boot-floor pointer-events-none absolute inset-0 bg-paper bg-[url(/img/boot-floor.jpg)] bg-[length:auto_100%] bg-center bg-no-repeat" aria-hidden />
     <div ref={root} className="boot pointer-events-none absolute inset-0" aria-live="polite">
       <Stage motion className="absolute inset-0 flex flex-col items-center justify-center px-6 text-ink">
         {(run) => (
@@ -71,5 +85,6 @@ export default function Boot() {
       <span className="absolute bottom-4 left-5 font-mono text-[12px] text-graphite">{profile.coords}</span>
       <span className="absolute bottom-4 right-5 font-mono text-[12px] text-graphite">Rev 2026.10</span>
     </div>
+    </>
   );
 }
