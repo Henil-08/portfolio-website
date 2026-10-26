@@ -5,8 +5,9 @@
 
 import { LINKS, openLink } from "@/components/world/social";
 import { zoneById } from "@/components/world/layout";
-import { LIVERIES } from "@/components/world/vehicles/liveries";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import { reenterGarage } from "@/components/world/bloom/state";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { closeZone, getState, openZone, setState, useWorld } from "@/components/world/store";
@@ -24,6 +25,9 @@ import AutopilotHud from "./AutopilotHud";
 import FitPanel, { LapChip } from "./FitPanel";
 import RadioMessages from "./RadioMessages";
 import EasterEggs from "./EasterEggs";
+
+// the vehicle section loads the vehicles' data (and their models) with the world, not before
+const VehicleSettings = dynamic(() => import("./garageParts").then((m) => m.VehicleSettings), { ssr: false });
 
 export default function Hud() {
   const phase = useWorld((s) => s.phase);
@@ -67,6 +71,9 @@ function TopBar() {
     >
       <Tab label="Map" k="M" onClick={() => setState((s) => ({ menuOpen: !s.menuOpen }))}>
         <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14" />
+      </Tab>
+      <Tab label="Garage" k="G" onClick={reenterGarage}>
+        <path d="M3 20V9l9-5 9 5v11M7 20v-7h10v7M7 16h10" />
       </Tab>
       <Tab label="Controls" onClick={() => setState((s) => ({ controlsOpen: !s.controlsOpen }))}>
         <path d="M3 7h18v10H3zM7 11h.01M11 11h.01M15 11h.01M7 14h10" />
@@ -153,43 +160,13 @@ const CONTROLS: [string, string][] = [
   ["Esc", "Close a card"],
 ];
 
-// The vehicle's paint, remembered in this browser: square swatches, the chosen one framed in ink.
-function LiveryPicker() {
-  const current = useWorld((s) => s.livery);
-  const vehicle = useWorld((s) => s.vehicle);
-  return (
-    <div className="pt-4">
-      <p className="mb-2 flex items-baseline gap-3 border-b border-ink pb-1.5 text-[12.5px] font-semibold uppercase tracking-[0.06em]">
-        <span className="font-mono text-signal">2</span>Livery
-      </p>
-      <div className="flex flex-wrap gap-2 pt-1">
-        {LIVERIES[vehicle].map((l) => {
-          const on = l.name === current;
-          return (
-            <button
-              key={l.name}
-              title={l.name}
-              aria-label={l.name}
-              aria-pressed={on}
-              onClick={() => setState({ livery: l.name })}
-              className={`h-9 w-9 border-2 transition ${on ? "border-ink outline outline-2 outline-offset-2 outline-ink" : "border-rule hover:border-ink"}`}
-              style={{ background: `linear-gradient(135deg, ${l.body} 0 55%, ${l.trim} 55% 85%, ${l.accent} 85%)` }}
-            />
-          );
-        })}
-      </div>
-      <p className="mt-2 font-mono text-[12px] text-graphite">{current}</p>
-    </div>
-  );
-}
-
 /** A centred modal in the brand frame (Controls, Settings): draws in, bar with Esc close. */
-function Modal({ open, close, title, children }: { open: boolean; close: () => void; title: string; children: React.ReactNode }) {
+function Modal({ open, close, title, wide, children }: { open: boolean; close: () => void; title: string; wide?: boolean; children: React.ReactNode }) {
   return (
     <AnimatePresence>
       {open && (
         <motion.div className="fixed inset-0 z-40 grid place-items-center bg-ink/30 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} onClick={close}>
-          <Stage motion className="w-full max-w-sm">
+          <Stage motion className={`w-full ${wide ? "max-w-md" : "max-w-sm"}`}>
             {(run) => (
               <div className="dsa-frame border-2 border-ink bg-white shadow-[4px_4px_0_var(--color-ink)]" style={d(0)} onClick={(e) => e.stopPropagation()}>
                 <div className="relative flex items-center px-4 py-2 font-mono text-[12px] text-white">
@@ -230,19 +207,19 @@ function Controls() {
   );
 }
 
-// Settings: sound, the engineer's voice, livery.
+// Settings: sound, the engineer's voice, and the vehicle in the garage's own pieces (garageParts.tsx).
 function Settings() {
   const open = useWorld((s) => s.settingsOpen);
   const muted = useWorld((s) => s.muted);
   const voice = useWorld((s) => s.voice);
   return (
-    <Modal open={open} close={() => setState({ settingsOpen: false })} title="Settings">
+    <Modal open={open} close={() => setState({ settingsOpen: false })} title="Settings" wide>
       <p className="mb-1 flex items-baseline gap-3 border-b border-ink pb-1.5 text-[12.5px] font-semibold uppercase tracking-[0.06em]">
         <span className="font-mono text-signal">1</span>Audio
       </p>
       <Toggle label="Sound" on={!muted} set={(v) => setState({ muted: !v })} />
       <Toggle label="Engineer's voice" on={voice} set={(v) => setState({ voice: v })} />
-      <LiveryPicker />
+      <VehicleSettings n={2} />
     </Modal>
   );
 }
