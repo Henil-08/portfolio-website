@@ -2,7 +2,8 @@
 // app/docs/brand/world/island.tsx). Everything arrives by its distance from the car: first a
 // field of square dots in the world's own layout (the track's centreline and edges, the pit lane,
 // the coast, lakes, the river, building and garage footprints, floodlight masts, trees), then the
-// solid world rises out of them and each dot fades as its piece lands.
+// solid world rises out of them and each dot fades as its piece lands. The water comes in last
+// (`water0`): until then the sea and lakes are paper.
 import * as THREE from "three";
 import { GARAGES, LAKES, PIT, RIVER, START_T, TRACK_WIDTH, coastR, pitRoadCurves, trackCurve, trackPoint, trackTangent } from "../layout";
 import { BUILDINGS } from "../street/town";
@@ -21,6 +22,9 @@ export const PLAN = {
   /** things that stand up start this much after the wave and rise over `rise` */
   standOff: 0.08,
   rise: 0.6,
+  /** the water comes in last, everywhere at once: paper (the sea) until here, then its own colour over `waterIn` */
+  water0: 3.2,
+  waterIn: 0.9,
   /** when the camera settles on the game's chase view and driving starts */
   camEnd: 4.7,
 };
@@ -221,7 +225,7 @@ export function buildDots(b: Bloom, trees: [number, number][], car: { yaw: numbe
     ["Garages", first.garage],
     ["Trees", first.tree ?? first.building],
     ["Lights", first.mast],
-    ["Water", first.water],
+    ["Water", PLAN.water0],
     ["Game cam", PLAN.camEnd - 0.2],
   ];
   const log = rows.filter(([, t]) => Number.isFinite(t)).map(([s, t]) => [s, Math.round(t * 20) * 50] as [string, number]).sort((x, y) => x[1] - y[1]);

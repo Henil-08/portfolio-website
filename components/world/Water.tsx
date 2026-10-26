@@ -160,7 +160,7 @@ export default function Water() {
   });
 
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, SEA_Y, 0]} material={material} receiveShadow>
+    <mesh name="water" rotation={[-Math.PI / 2, 0, 0]} position={[0, SEA_Y, 0]} material={material} receiveShadow>
       <planeGeometry args={[SIZE, SIZE, 1, 1]} />
     </mesh>
   );

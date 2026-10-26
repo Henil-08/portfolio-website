@@ -4,7 +4,9 @@
 //  - "flat" materials (anything drawn on a big mesh: terrain, roads, water, merged runs) appear
 //    where the wave front has passed, per fragment;
 //  - "stand" materials (only ever on small meshes or instances: trees, props, buildings, signs)
-//    arrive by their own origin (or their instance's) and rise from it, scaled up in height.
+//    arrive by their own origin (or their instance's) and rise from it, scaled up in height;
+//  - "water" (the mesh named "water", Water.tsx) arrives as flat, but shows the dot floor's paper
+//    until PLAN.water0, then fades into its own colour, last of all, as in the mock.
 //
 // The shadow pass gets the same treatment through a patched depth material, so nothing casts a
 // shadow before it is there.
@@ -15,6 +17,7 @@
 // has used, so switching either way is a lookup, never a compile.
 import * as THREE from "three";
 import { PLAN, RAD_POW } from "./plan";
+import { FLOOR } from "./view";
 
 /** Shared by every patched program; the opening writes them once a frame. */
 export const U = {
@@ -25,7 +28,7 @@ export const U = {
   uBloomInvVP: { value: new THREE.Matrix4() },
 };
 
-type Mode = "flat" | "stand";
+type Mode = "flat" | "stand" | "water";
 type Entry = { mode: Mode; obc: THREE.Material["onBeforeCompile"]; key: () => string };
 const patched = new Map<THREE.Material, Entry>();
 /** Shadow casters we gave a patched depth material, and what they had before. */
@@ -40,6 +43,16 @@ uniform float uBloomT; uniform vec2 uBloomC; uniform float uBloomR;
 float bloomArrive(vec2 p) {
   return ${PLAN.solid.a.toFixed(3)} + ${PLAN.solid.b.toFixed(3)} * pow(min(1.0, distance(p, uBloomC) / uBloomR), ${(1 / RAD_POW).toFixed(5)});
 }`;
+/** The dot floor's paper (bloom/view.ts FLOOR), in linear, as a GLSL vec3. */
+const PAPER = (() => {
+  const c = new THREE.Color(FLOOR.paper);
+  return `vec3(${c.r.toFixed(4)}, ${c.g.toFixed(4)}, ${c.b.toFixed(4)})`;
+})();
+const WATER_MIX = /* glsl */ `
+  {
+    float bwk = clamp((uBloomT - ${PLAN.water0.toFixed(3)}) / ${PLAN.waterIn.toFixed(3)}, 0.0, 1.0);
+    gl_FragColor.rgb = mix(${PAPER}, gl_FragColor.rgb, 1.0 - (1.0 - bwk) * (1.0 - bwk));
+  }`;
 const OFF = (m: Mode) => (m === "stand" ? PLAN.standOff.toFixed(3) : "0.0");
 
 /** Vertex code, after the world position `bw` (vec3) is known. `out` writes the position back. */
@@ -104,6 +117,9 @@ function inject(sh: THREE.WebGLProgramParametersWithUniforms, mode: Mode, glsl3:
   const span = mainSpan(fs);
   if (!span) return false;
   fs = `${fs.slice(0, span.open)}\n  if (bloomArrive(vBloomP) + ${OFF(mode)} > uBloomT) discard;\n${fs.slice(span.open)}`;
+  // the water: paper until it comes in, mixed before tone mapping and the output colour space,
+  // so it matches the floor's paper exactly
+  if (mode === "water") fs = fs.replace("#include <tonemapping_fragment>", `${WATER_MIX}\n#include <tonemapping_fragment>`);
   fs = fs.includes("#include <common>") ? fs.replace("#include <common>", `#include <common>\n${varyF}\n${ARRIVE}`) : `${varyF}\n${ARRIVE}\n${fs}`;
   sh.vertexShader = vs;
   sh.fragmentShader = fs;
@@ -132,8 +148,9 @@ function patch(m: THREE.Material, mode: Mode) {
   m.customProgramCacheKey = () => (on ? `${prevKey()}|bloom-${mode}` : prevKey());
 }
 
-const depthMats: Record<Mode, THREE.MeshDepthMaterial | null> = { flat: null, stand: null };
-function depthFor(mode: Mode) {
+const depthMats: Record<Mode, THREE.MeshDepthMaterial | null> = { flat: null, stand: null, water: null };
+function depthFor(m: Mode) {
+  const mode = m === "water" ? "flat" : m;
   let d = depthMats[mode];
   if (!d) {
     d = depthMats[mode] = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
@@ -156,7 +173,7 @@ const _s = new THREE.Vector3();
  * (userData.bloomSkip, the player's vehicle). Returns how many it patched.
  */
 export function scan(root: THREE.Object3D, skip: (o: THREE.Object3D) => boolean) {
-  const seen = new Map<THREE.Material, { big: boolean; objs: THREE.Mesh[] }>();
+  const seen = new Map<THREE.Material, { big: boolean; water: boolean; objs: THREE.Mesh[] }>();
   const visit = (o: THREE.Object3D) => {
     if (o.userData.bloomSkip || skip(o)) return;
     const mesh = o as THREE.Mesh;
@@ -166,8 +183,9 @@ export function scan(root: THREE.Object3D, skip: (o: THREE.Object3D) => boolean)
       const big = radiusOf(mesh) > BIG;
       for (const m of mats) {
         if ((m as THREE.RawShaderMaterial).isRawShaderMaterial || isSky(mesh, m)) continue;
-        const e = seen.get(m) ?? { big: false, objs: [] };
+        const e = seen.get(m) ?? { big: false, water: false, objs: [] };
         e.big ||= big;
+        e.water ||= o.name === "water";
         e.objs.push(mesh);
         seen.set(m, e);
       }
@@ -179,7 +197,7 @@ export function scan(root: THREE.Object3D, skip: (o: THREE.Object3D) => boolean)
   for (const [m, e] of seen) {
     const was = patched.get(m);
     if (!was) {
-      patch(m, e.big ? "flat" : "stand");
+      patch(m, e.water ? "water" : e.big ? "flat" : "stand");
       n++;
     }
     const mode = patched.get(m)!.mode;
