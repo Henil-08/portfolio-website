@@ -1,6 +1,6 @@
 // Street furniture in Concrete & Ink, drawn to the same footprint and origin as the
 // original props they replace (models/props/propModels.ts), so placement stays put:
-// a ground lantern (concrete foot, ink body and cap, a paper light box), a bench (concrete
+// a lantern (a slim ink light column on a concrete foot, a paper light slot near the top), a bench (concrete
 // legs, ink seat and back, the back toward -z) and a fence bay (ink posts, paper top rail).
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
@@ -23,19 +23,21 @@ function boxes(list: B[]) {
   );
 }
 
-/** Lantern body, vertex coloured. Model units: y -0.51..0.71, like the original. */
+/**
+ * Lantern: a slim light column, vertex coloured. Its foot stays where the original's was
+ * (y -0.51), so placement holds; the column rises to 1.42 (about 1.7 m in the world).
+ */
 export const lanternGeo = () =>
   geo("ci-lantern", () =>
     boxes([
-      [0.9, 0.12, 0.9, 0, -0.45, 0, CI.concreteDark],
-      [0.42, 0.55, 0.42, 0, -0.115, 0, CI.ink],
-      [0.66, 0.1, 0.66, 0, 0.64, 0, CI.ink],
-      ...[-1, 1].flatMap((sx) => [-1, 1].map((sz): B => [0.05, 0.44, 0.05, sx * 0.27, 0.38, sz * 0.27, CI.ink])),
+      [0.46, 0.1, 0.46, 0, -0.46, 0, CI.concreteDark],
+      [0.2, 1.36, 0.2, 0, 0.27, 0, CI.ink],
+      [0.3, 0.06, 0.3, 0, 1.39, 0, CI.ink],
     ]),
   );
 
-/** The lantern's light box (its own glowing material). */
-export const lanternLightGeo = () => geo("ci-lantern-light", () => new THREE.BoxGeometry(0.5, 0.42, 0.5).translate(0, 0.38, 0));
+/** The lantern's light: a paper slot near the top of the column (its own glowing material). */
+export const lanternLightGeo = () => geo("ci-lantern-light", () => new THREE.BoxGeometry(0.24, 0.42, 0.24).translate(0, 1.12, 0));
 
 /** Bench, vertex coloured, x -1.19..1.19, y -0.78..0.78, back toward -z. */
 export const benchGeo = () =>

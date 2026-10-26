@@ -5,9 +5,10 @@
 // them, a code plate over each door, a set-back upper floor with a full-width dark glass band
 // and a thin ink roof on slim ink columns. Merged by material: a handful of draw calls for the
 // whole building. Front faces +z, floor at y = 0, x and z in metres.
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { carState } from "../carState";
 import { dayNight } from "../daynight";
 import { CI, mergeBoxes, plateMaterial, type Part } from "./concrete";
 
@@ -26,12 +27,14 @@ const std = (color: string, roughness: number, metalness = 0) => new THREE.MeshS
 const M = {
   concrete: std(CI.concrete, 0.95),
   apron: std(CI.concreteDark, 0.95),
-  floor: std("#e4e2dc", 0.6),
+  floor: std("#e9e7e1", 0.55),
+  // inside: pale walls and a ceiling that glows a little, so the projects read by day and night
+  inner: new THREE.MeshStandardMaterial({ color: "#e4e2dc", roughness: 0.85, emissive: CI.lamp, emissiveIntensity: 0.12 }),
   ink: std(CI.ink, 0.55, 0.2),
   graphite: std(CI.graphite, 0.8),
   paper: std(CI.paper, 0.6),
   orange: std(CI.orange, 0.55),
-  strip: new THREE.MeshStandardMaterial({ color: CI.paper, emissive: CI.lamp, emissiveIntensity: 1.4, toneMapped: false }),
+  strip: new THREE.MeshStandardMaterial({ color: CI.paper, emissive: CI.lamp, emissiveIntensity: 1.6, toneMapped: false }),
 };
 const glass = (glow = 0) => new THREE.MeshStandardMaterial({ color: CI.glass, roughness: 0.15, metalness: 0.4, emissive: CI.lamp, emissiveIntensity: glow });
 /** Glass by day and lit at night for the docs turntables; the game's pair follows the clock. */
@@ -64,7 +67,7 @@ function parts(bays: Bay[], opts: PitOpts) {
   const { x0, x1, w, cx } = span(bays, opts);
   const zf = D / 2;
   const up = D - 1.6; // upper floor depth: set back to leave a terrace over the doors
-  const p = { concrete: [] as Part[], apron: [] as Part[], floor: [] as Part[], ink: [] as Part[], graphite: [] as Part[], paper: [] as Part[], orange: [] as Part[], strip: [] as Part[], bay: [] as Part[], band: [] as Part[] };
+  const p = { concrete: [] as Part[], apron: [] as Part[], floor: [] as Part[], ink: [] as Part[], graphite: [] as Part[], inner: [] as Part[], paper: [] as Part[], orange: [] as Part[], strip: [] as Part[], bay: [] as Part[], band: [] as Part[] };
   if (apron > 0) p.apron.push([[w + 1, 0.04, apron], [cx, 0.01, zf + apron / 2]]);
 
   // ground floor: back wall, piers, a deep header over each door
@@ -83,8 +86,12 @@ function parts(bays: Bay[], opts: PitOpts) {
     // inside: pale epoxy floor with a paper line at the threshold, graphite back wall, light strips
     p.floor.push([[bay, 0.03, D - WALL], [x, 0.015, WALL / 2]]);
     p.paper.push([[bay - 0.4, 0.035, 0.12], [x, 0.018, zf - 0.25]]);
-    p.graphite.push([[bay, OPEN, 0.02], [x, OPEN / 2, -zf + WALL + 0.01]]);
-    for (const sx of [-0.3, 0, 0.3]) p.strip.push([[0.12, 0.03, D - 1.8], [x + sx * bay, OPEN - 0.02, -0.2]]);
+    p.inner.push([[bay, OPEN, 0.02], [x, OPEN / 2, -zf + WALL + 0.01]]);
+    for (const s of [-1, 1]) p.inner.push([[0.02, OPEN, D - WALL], [x + s * (bay / 2 - 0.01), OPEN / 2, WALL / 2]]);
+    p.inner.push([[bay, 0.02, D - WALL], [x, OPEN - 0.01, WALL / 2]]);
+    // a graphite skirting along the back wall, and paper light panels across the ceiling
+    p.graphite.push([[bay, 0.3, 0.03], [x, 0.15, -zf + WALL + 0.02]]);
+    for (const sz of [-0.28, 0.12]) for (const sx of [-0.25, 0.25]) p.strip.push([[bay * 0.34, 0.03, D * 0.22], [x + sx * bay, OPEN - 0.035, sz * D]]);
     // ink door frame, and the glass door raised into the head with its rails and mullions
     p.ink.push([[bay + 0.32, 0.16, 0.16], [x, OPEN + 0.08, zf + 0.02]]);
     for (const s of [-1, 1]) p.ink.push([[0.16, OPEN + 0.16, 0.16], [x + s * (bay / 2 + 0.08), (OPEN + 0.16) / 2, zf + 0.02]]);
@@ -106,21 +113,33 @@ function parts(bays: Bay[], opts: PitOpts) {
 export function PitBuilding({ bays, opts = NO_OPTS, night }: { bays: Bay[]; opts?: PitOpts; night?: boolean }) {
   const g = useMemo(() => parts(bays, opts), [bays, opts]);
   const glassMats = night === undefined ? GLASS.live : night ? GLASS.night : GLASS.day;
+  const lamp = useRef<THREE.PointLight>(null);
   useFrame(() => {
     if (night !== undefined) return;
     const n = dayNight.night;
     GLASS.live.bay.emissiveIntensity = n * 0.35;
     GLASS.live.band.emissiveIntensity = n * 2.6;
+    // one showroom light, in the bay nearest the car (the one you can look into)
+    const l = lamp.current;
+    if (l?.parent) {
+      l.parent.updateWorldMatrix(true, false);
+      const lx = carState.pos.x - l.parent.matrixWorld.elements[12];
+      let best = bays[0].x;
+      for (const b of bays) if (Math.abs(b.x - lx) < Math.abs(best - lx)) best = b.x;
+      l.position.x = best;
+    }
   });
   const zf = (opts.depth ?? 7) / 2;
   const mesh = (geo: THREE.BufferGeometry, m: THREE.Material, shadow = true) => <mesh geometry={geo} material={m} castShadow={shadow} receiveShadow />;
   return (
     <group>
+      {night === undefined && <pointLight ref={lamp} color={CI.lamp} intensity={14} distance={9} decay={1.6} position={[bays[0].x, OPEN - 0.6, 0.2]} />}
       {mesh(g.concrete, M.concrete)}
       {mesh(g.apron, M.apron, false)}
       {mesh(g.floor, M.floor, false)}
       {mesh(g.ink, M.ink)}
       {mesh(g.graphite, M.graphite, false)}
+      {mesh(g.inner, M.inner, false)}
       {mesh(g.paper, M.paper, false)}
       {mesh(g.orange, M.orange, false)}
       {mesh(g.strip, M.strip, false)}
