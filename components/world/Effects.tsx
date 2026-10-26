@@ -11,15 +11,19 @@ import { heightAt } from "./terrain";
 import { BALL_R, Cone, Football, TYRE_H, TYRE_R, Tyre } from "./models/props";
 import { nightGlow } from "./models/props/shared";
 
-// Lighting keyframes. The day/night cycle blends between them by sun elevation.
-// Night follows folio-2025 (MIT): a strong blue moonlight, a violet
-// bounce from below instead of black shadows, a navy-to-plum sky and fog, and
-// emissives pushed past 1.0 so only they bloom.
+// Lighting keyframes, Concrete & Ink (docs/BRAND.md "World"). The day/night cycle blends
+// between them by sun elevation. Day is the approved proposal's light (app/docs/brand/world
+// models.tsx `Lights`): a white sky fill over a concrete bounce, a paper-white key, neutral
+// paper sky and fog. Dusk warms the key a little and keeps the paper readable. Night is ink:
+// a cool, dim moon over a near-black bounce, so the floodlights, lamps and the orange carry it.
 export const SCENES = {
-  day: { sun: 1.9, sunColor: "#fff1e0", hemi: 0.35, hemiSky: "#f4efe6", hemiGround: "#8f8a80", exposure: 0.82, top: "#b9c9d3", mid: "#e6e4df", bottom: "#d8d2c8", fog: "#e6e4df" },
-  golden: { sun: 1.6, sunColor: "#ffb36b", hemi: 0.32, hemiSky: "#ffe2c4", hemiGround: "#9a6f63", exposure: 0.85, top: "#e9a37a", mid: "#f3d3b2", bottom: "#e7c4a0", fog: "#efcfae" },
-  night: { sun: 0.75, sunColor: "#4a5cff", hemi: 0.6, hemiSky: "#4f5bd6", hemiGround: "#5a1f7a", exposure: 0.95, top: "#10266f", mid: "#2b1f63", bottom: "#490a42", fog: "#22205e" },
+  day: { sun: 2.4, sunColor: "#fff6ea", hemi: 0.7, hemiSky: "#ffffff", hemiGround: "#b8b4a9", env: 0.2, exposure: 0.94, top: "#d3d8da", mid: "#e9e7e1", bottom: "#e2dfd8", fog: "#e9e7e1" },
+  golden: { sun: 1.9, sunColor: "#ffd2a6", hemi: 0.8, hemiSky: "#f3ebe2", hemiGround: "#9a948a", env: 0.24, exposure: 0.98, top: "#c8ccd0", mid: "#e6ddd2", bottom: "#ddd6cc", fog: "#e2dcd3" },
+  night: { sun: 0.8, sunColor: "#a9bdd6", hemi: 0.9, hemiSky: "#4a5664", hemiGround: "#1a1c20", env: 0.1, exposure: 1.0, top: "#0b0d10", mid: "#16191d", bottom: "#0f1114", fog: "#15181b" },
 } as const;
+
+// Rain on top of any of them: the key dims and the sky and fog go concrete grey.
+const RAIN = { sun: 0.45, hemi: 0.85, grey: 0.55, dark: 0.88 };
 
 const WEATHER_N = 2200;
 
@@ -79,7 +83,7 @@ export function Weather() {
   );
 }
 
-type Params = { sun: number; sunColor: THREE.Color; hemi: number; hemiSky: THREE.Color; hemiGround: THREE.Color; exposure: number; top: THREE.Color; mid: THREE.Color; bottom: THREE.Color; fog: THREE.Color };
+type Params = { sun: number; sunColor: THREE.Color; hemi: number; hemiSky: THREE.Color; hemiGround: THREE.Color; env: number; exposure: number; top: THREE.Color; mid: THREE.Color; bottom: THREE.Color; fog: THREE.Color };
 const K = Object.fromEntries(
   Object.entries(SCENES).map(([k, v]) => [
     k,
@@ -91,6 +95,7 @@ const out: Params = { ...K.day, sunColor: new THREE.Color(), hemiSky: new THREE.
 function blend(a: Params, b: Params, k: number) {
   out.sun = THREE.MathUtils.lerp(a.sun, b.sun, k);
   out.hemi = THREE.MathUtils.lerp(a.hemi, b.hemi, k);
+  out.env = THREE.MathUtils.lerp(a.env, b.env, k);
   out.exposure = THREE.MathUtils.lerp(a.exposure, b.exposure, k);
   out.sunColor.lerpColors(a.sunColor, b.sunColor, k);
   out.hemiSky.lerpColors(a.hemiSky, b.hemiSky, k);
@@ -102,35 +107,67 @@ function blend(a: Params, b: Params, k: number) {
   return out;
 }
 
-/** Current lighting, blended from the sun's elevation. */
-export function sceneParams() {
+const wetColor = (c: THREE.Color, w: number) => {
+  const l = (c.r + c.g + c.b) / 3;
+  return c.lerp(grey.setRGB(l, l, l), w * RAIN.grey).multiplyScalar(1 - w * (1 - RAIN.dark));
+};
+const grey = new THREE.Color();
+
+function timeOfDay() {
   const e = dayNight.sunElevation;
-  if (e > 0.35) return blend(K.day, K.day, 0);
-  if (e > 0.06) return blend(K.golden, K.day, (e - 0.06) / 0.29);
-  if (e > -0.22) return blend(K.night, K.golden, (e + 0.22) / 0.28);
+  if (e > 0.3) return blend(K.day, K.day, 0);
+  if (e > 0.1) return blend(K.golden, K.day, (e - 0.1) / 0.2);
+  if (e > -0.15) return blend(K.night, K.golden, (e + 0.15) / 0.25);
   return blend(K.night, K.night, 0);
 }
 
-const CYCLE = 360; // seconds for a full day
-const TIME_OF = { day: 0.22, golden: 0.44, night: 0.72 };
+/** Current lighting, blended from the sun's elevation, then wetted by the rain. */
+export function sceneParams() {
+  const p = timeOfDay();
+  const w = dayNight.rain;
+  if (w > 0) {
+    p.sun *= 1 - w * (1 - RAIN.sun);
+    p.hemi *= 1 - w * (1 - RAIN.hemi);
+    for (const c of [p.top, p.mid, p.bottom, p.fog, p.sunColor]) wetColor(c, w);
+  }
+  return p;
+}
 
-// Drives the clock. The race engineer's set_scene jumps it to a time of day.
+const CYCLE = 360; // seconds for a full day
+// Where a jump lands: noon, the middle of dusk (sun ~6 degrees up), midnight.
+const TIME_OF = { day: 0.24, golden: 0.484, night: 0.74 };
+const labelOf = (e: number): keyof typeof TIME_OF => (e > 0.2 ? "day" : e > -0.05 ? "golden" : "night");
+
+// Drives the clock. The store's scene.time follows it, so set_scene (the race engineer,
+// or `__world.setState({scene: {time}})` in headless checks) always jumps, even when the
+// clock has drifted away from the label it last set. Dev: window.__clockStop = true holds it.
 export function DayNight() {
+  const label = useRef(getState().scene.time);
   useEffect(() => {
-    let last = getState().scene.time;
+    dayNight.t = TIME_OF[label.current];
     return subscribe(() => {
       const t = getState().scene.time;
-      if (t !== last) {
-        last = t;
+      if (t !== label.current) {
+        label.current = t;
         dayNight.t = TIME_OF[t];
       }
     });
   }, []);
   useFrame((_, dt) => {
-    dayNight.t = (dayNight.t + dt / CYCLE) % 1;
+    const stop = process.env.NODE_ENV !== "production" && (window as unknown as { __clockStop?: boolean }).__clockStop;
+    // capped so one long frame (a shader compile, a slow headless capture) can't skip the dusk
+    if (!stop) dayNight.t = (dayNight.t + Math.min(dt, 0.1) / CYCLE) % 1;
     dayNight.sunElevation = Math.sin(dayNight.t * Math.PI * 2);
     dayNight.night = THREE.MathUtils.smoothstep(-dayNight.sunElevation, -0.08, 0.2);
+    const wet = getState().scene.weather === "rain" ? 1 : 0;
+    dayNight.rain += (wet - dayNight.rain) * Math.min(1, dt * 0.8);
     nightGlow(dayNight.night);
+    const now = labelOf(dayNight.sunElevation);
+    if (now !== label.current) {
+      label.current = now;
+      const cur = getState().scene;
+      setState({ scene: { ...cur, time: now } });
+    }
   });
   return null;
 }
@@ -176,8 +213,8 @@ export function Exposure() {
   useFrame(({ gl, scene }, dt) => {
     const want = sceneParams().exposure;
     gl.toneMappingExposure += (want - gl.toneMappingExposure) * Math.min(1, dt * 2);
-    // The studio environment light dims at night too, or nothing would get dark.
-    scene.environmentIntensity = THREE.MathUtils.lerp(0.55, 0.14, dayNight.night);
+    // The studio environment (reflections on paint and glass) dims at night too.
+    scene.environmentIntensity = sceneParams().env;
   });
   return null;
 }

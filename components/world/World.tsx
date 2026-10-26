@@ -1,7 +1,5 @@
 "use client";
 
-import "./tintedShadows"; // patches three's shader chunks before anything compiles
-
 import { IntroLabel, RevealDriver, RevealPass } from "./Reveal";
 import { Suspense, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
@@ -39,19 +37,19 @@ export default function World() {
       shadows
       dpr={[1, fancy ? 1.75 : 1.25]}
       camera={{ fov: 34, near: 0.5, far: 1200, position: [90, 60, 40] }}
-      gl={{ antialias: !fancy, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.82 }}
+      gl={{ antialias: !fancy, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.94 }}
       className={`!fixed inset-0 ${hallucinating ? "hallucinate" : ""}`}
     >
       {/* never swap renderers mid-reveal: that remount is a visible hitch */}
       <PerformanceMonitor onDecline={() => revealed && setFancy(false)} />
-      <fog attach="fog" args={["#e6e4df", 110, 300]} />
+      <fog attach="fog" args={["#e9e7e1", 160, 440]} />
       {fancy && <SoftShadows size={22} samples={10} focus={0.6} />}
       {/* Studio environment for reflections on the car paint and glass. No network HDRs. */}
-      <Environment resolution={256} frames={1} environmentIntensity={0.55}>
+      <Environment resolution={256} frames={1} environmentIntensity={0.2}>
         <Lightformer intensity={2.2} position={[0, 12, 0]} rotation-x={Math.PI / 2} scale={[30, 30, 1]} color="#ffffff" />
-        <Lightformer intensity={1.4} position={[-18, 4, 8]} rotation-y={Math.PI / 2} scale={[20, 6, 1]} color="#fff3e6" />
-        <Lightformer intensity={1.1} position={[18, 4, -8]} rotation-y={-Math.PI / 2} scale={[20, 6, 1]} color="#e8f0ff" />
-        <Lightformer intensity={0.8} position={[0, 3, -20]} scale={[30, 4, 1]} color="#ffd9d2" />
+        <Lightformer intensity={1.4} position={[-18, 4, 8]} rotation-y={Math.PI / 2} scale={[20, 6, 1]} color="#ffffff" />
+        <Lightformer intensity={1.1} position={[18, 4, -8]} rotation-y={-Math.PI / 2} scale={[20, 6, 1]} color="#eef1f3" />
+        <Lightformer intensity={0.8} position={[0, 3, -20]} scale={[30, 4, 1]} color="#f3f2ed" />
       </Environment>
       <Sky />
       <Sun />
@@ -88,7 +86,7 @@ export default function World() {
       )}
       {fancy && (
         <EffectComposer multisampling={0} enableNormalPass={false}>
-          <N8AO halfRes aoRadius={1.6} intensity={1.6} distanceFalloff={0.7} color="#2a2420" />
+          <N8AO halfRes aoRadius={1.6} intensity={1.6} distanceFalloff={0.7} color="#151515" />
           {/* Only emissives pushed past 1.0 bloom (lamps, windows, garage headers, neon). */}
           <RevealPass />
           <Bloom luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0.55} mipmapBlur />

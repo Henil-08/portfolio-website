@@ -162,7 +162,7 @@ export function Sun() {
     const st = getState();
     const c = st.phase === "world" ? carState.pos : new THREE.Vector3(0, 0, 0);
     // The sun arcs across the sky with the clock (it stays above the horizon for
-    // shadows; at night it becomes a dim blue moonlight).
+    // shadows; at night it becomes a dim, cool moonlight).
     const a = dayNight.t * Math.PI * 2;
     const elev = Math.max(0.35, Math.abs(Math.sin(a)));
     l.position.set(c.x + Math.cos(a) * 40, c.y + 40 * elev + 8, c.z + 14 + Math.sin(a) * 10);
@@ -182,11 +182,11 @@ export function Sun() {
 
   return (
     <>
-      <hemisphereLight ref={hemi} args={["#f4efe6", "#8f8a80", 0.35]} />
+      <hemisphereLight ref={hemi} args={["#ffffff", "#b8b4a9", 0.7]} />
       <directionalLight
         ref={light}
-        intensity={1.9}
-        color="#fff1e0"
+        intensity={2.4}
+        color="#fff6ea"
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-34}
@@ -209,9 +209,9 @@ export function Sky() {
         side: THREE.BackSide,
         depthWrite: false,
         uniforms: {
-          top: { value: new THREE.Color("#b9c9d3") },
-          mid: { value: new THREE.Color("#e6e4df") },
-          bottom: { value: new THREE.Color("#d8d2c8") },
+          top: { value: new THREE.Color("#d3d8da") },
+          mid: { value: new THREE.Color("#e9e7e1") },
+          bottom: { value: new THREE.Color("#e2dfd8") },
         },
         vertexShader: `varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
         fragmentShader: `uniform vec3 top; uniform vec3 mid; uniform vec3 bottom; varying vec3 vP;
