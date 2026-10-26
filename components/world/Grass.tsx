@@ -7,7 +7,7 @@ import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { carState } from "./carState";
-import { CANALS, GARAGES, LAKES, MAX_R, PIT, coastR, TIMELINE, PIT_LANE_WIDTH, SCENE_FOOT, SECTORS, TRACK_WIDTH, pitRoadCurves, trackCurve, zones } from "./layout";
+import { CANALS, LAKES, MAX_R, PIT, coastR, TIMELINE, PIT_LANE_WIDTH, SCENE_FOOT, SECTORS, TRACK_WIDTH, pitRoadCurves, trackCurve, zones } from "./layout";
 import { C } from "./palette";
 import { getWindUniforms, terrainShader, updateWind, TERRAIN_GLSL, WIND_GLSL } from "./alive/wind";
 import { perlinTexture, seeded } from "./alive/noise";
@@ -17,6 +17,7 @@ import { paintWaterfront } from "./waterfront/layout";
 import { TYRE_WALLS } from "./street/layoutStreet";
 import { paintPark } from "./park/layout";
 import { paintParkSlabs } from "./districts/park";
+import { START_TREE } from "./start";
 
 // The original grass: one triangle per blade (tip + two base corners), laid out on a
 // jittered grid that loops around the car so the field never runs out. Every
@@ -92,7 +93,8 @@ function makeMask() {
   g.stroke();
   // Pit lane and garages.
   g.fillRect(tx(PIT.from - 6), tx(PIT.z - 4), (PIT.to - PIT.from + 12) * s, 9 * s);
-  for (const gr of GARAGES) g.fillRect(tx(gr.x - 5), tx(PIT.garageZ - 5), 10 * s, 9 * s);
+  // the garage block and its concrete apron, in one piece to the pit lane
+  g.fillRect(tx(-35), tx(PIT.garageZ - 5), 62 * s, (PIT.z - 3 - (PIT.garageZ - 5)) * s);
   // Plaza and the places.
   // (the timeline's planters stand just outside the pad's long sides)
   g.fillRect(tx(TIMELINE.pos[0] - TIMELINE.hx), tx(TIMELINE.pos[1] - TIMELINE.hz - 1.6), TIMELINE.hx * 2 * s, (TIMELINE.hz + 1.6) * 2 * s);
@@ -107,6 +109,8 @@ function makeMask() {
   // Garden paths, beds and the pond.
   paintGarden(g, tx, s);
   paintParkSlabs(g, tx, s);
+  // the start tree's concrete surround (StartGarden.tsx)
+  g.fillRect(tx(START_TREE.x - 0.9), tx(START_TREE.z - 0.9), 1.8 * s, 1.8 * s);
   paintWaterfront(g, tx, s);
   paintStreets(g, tx, s);
   // Tyre walls at the corners.

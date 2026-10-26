@@ -401,7 +401,7 @@ const BAYS: Bay[] = GARAGES.map((g) => ({
   name: garageLabel[g.domain].toUpperCase(),
 }));
 // a concrete apron in front, as far as the grass mask allows (Grass.tsx)
-const PIT_OPTS: PitOpts = { apron: 1.5 };
+const PIT_OPTS: PitOpts = { apron: 4.8 };
 
 // Pit lane: a pit wall between the lane and the main straight, and the pit building
 // with a bay per project domain, that domain's projects on plinths inside.
