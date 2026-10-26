@@ -33,7 +33,7 @@ small, verified with headless screenshots, and committed on its own
 | Waterfront | components/world/waterfront/* (`PROMENADE`, `PIER`, `nearPromenade`) |
 | Contact logos | components/world/social/* (`LINKS`, store `nearLink`) |
 | Trees, bushes (W10 faceted cypresses and round crowns) | components/world/foliage/* (`species.ts` geometry and colours, `registry.ts` one instanced draw per kind), models/props/Tree.tsx, park/bushes.ts |
-| Opening (start lights, circle, label, sweep) | components/ui/StartLights.tsx, components/world/Reveal.tsx (`RevealPass` is a Pass, before Bloom; `FLOOR`, timings at the top), components/ui/Intro.tsx (click/keys), Experience.tsx (boot colour) |
+| Opening (boot, garage select, align, Bloom) | components/ui/Intro.tsx (stages, G reopens the garage), Boot.tsx (mark, decode, CSS bar), GarageSelect.tsx (chrome, keys, build log); components/world/bloom/state.ts (`opening` stage store, `boot`, `ALIGN`, dev `__alignT`/`__buildT`/`__swapT`), Opening.tsx (shader warm-up legs, turntable `Garage`, cameras, dots, paper floor), plan.ts (`PLAN` timings, `buildDots`, build log), patch.ts (central reveal patch on every world material, `bloomOn`/`bloomOff`); Experience.tsx `INTRO_MS` (deferred world mount) |
 | Start spot and the way to the track | components/world/startSpot.ts (`START_SPOT`, `REVEAL_AT`), start.ts, StartGarden.tsx; the sandy path to the pit lane is a garden path (garden/layout.ts `PATHS`) |
 | Park common ground (slab paths, lanterns, benches, fence) | components/world/districts/park.ts |
 | Car parking at rest (no jitter) | components/world/Vehicle.tsx (`parked`, `REPARK_*`, `SUSPENSION`) |
