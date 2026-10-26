@@ -159,7 +159,6 @@ function specOf(def: VehicleDef) {
     chassis: { half: [(fz - rz) / 2, 0.19, bike ? BIKE_TRACK : Math.max(0.3, halfW - 0.1)] as const, x: (fz + rz) / 2 },
     /** the massless bumper round the whole body */
     bumper: { half: [(max[2] - min[2]) / 2, (top - 0.03) / 2, Math.max(max[0], -min[0], bike ? BIKE_TRACK + 0.05 : 0)] as const, x: (max[2] + min[2]) / 2, y: (top + 0.03) / 2 },
-    tips: def.tips.map(([x, y, z]) => new THREE.Vector3(z * S, y * S - RIDE, -x * S)),
     steerAxis: new THREE.Vector3(...def.steerAxis),
     /** the wheels' contact points (chassis frame), for the powers' dust */
     dust: wheels.map((w) => ({ x: w.pos.x, z: w.pos.z })),
@@ -220,8 +219,6 @@ function Drive({ def }: { def: VehicleDef }) {
   const bands = useRef<THREE.Mesh[][]>([]);
   // Tyres: slicks in the dry, wets in the rain. `t` runs 0..1 through a swap.
   const tyres = useRef({ wet: null as boolean | null, to: false, t: 1 });
-  const tipA = useRef<THREE.Group | null>(null);
-  const tipB = useRef<THREE.Group | null>(null);
   const flipped = useRef(0);
   const wet = useRef(0);
   const buried = useRef(0);
@@ -627,8 +624,7 @@ function Drive({ def }: { def: VehicleDef }) {
   const inertia = tune.inertia;
   return (
     <>
-      <PowerTrail anchor={tipA} />
-      <PowerTrail anchor={tipB} />
+      <PowerTrail code={def.code} scale={S} ride={RIDE} />
       <RigidBody
         ref={body}
         colliders={false}
@@ -675,9 +671,6 @@ function Drive({ def }: { def: VehicleDef }) {
             {def.code === "V03" && <Thrusters />}
           </group>
         </group>
-        {spec.tips.map((p, i) => (
-          <group key={i} position={p} ref={i === 0 ? tipA : tipB} />
-        ))}
       </RigidBody>
     </>
   );
