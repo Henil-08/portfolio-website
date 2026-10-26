@@ -434,7 +434,7 @@ to ink on hover, one scan line on a panel's first open. `prefers-reduced-motion`
 - [x] (d0096d3) Favicon app/icon.svg; brand code in components/brand; tokens, motion and interaction
       CSS in globals.css; IBM Plex in app/layout.tsx; custom cursor (I09); old exploration pages deleted.
 - [ ] Remove the old `hud-*`, `r-*`, `map-pin*`, `start-*` CSS, Racero and the `--font-geist*` aliases once nothing uses them.
-- [x] (BOOT) Boot S01: components/ui/Boot.tsx replaces StartLights; paper floor with an ink dot grid, orange reveal ring; the start label is a sticker with the key.
+- [x] (59526e3) Boot S01: components/ui/Boot.tsx replaces StartLights; paper floor with an ink dot grid, orange reveal ring; the start label is a sticker with the key.
 - [ ] HUD edge tabs, toasts, speed readout, hints, controls and settings panels (Hud.tsx).
 - [ ] Zone card and interact prompt (Hud.tsx, ui3d/InteractivePoints.tsx canvas label): the parts sticker.
 - [ ] Garage spec sheet (Panels.tsx `GarageSheet`): the datasheet card with specs, bus diagram, prev/next.
