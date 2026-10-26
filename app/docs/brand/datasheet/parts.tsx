@@ -13,10 +13,10 @@ import { DS, Figures, LINKS, dsMono, pad } from "./shared";
 /* ------------------------------------------------------------------ motion */
 
 /** Animation delay for one element, read by the dsa-* rules below. */
-const d = (ms: number) => ({ "--d": `${ms}ms` }) as CSSProperties;
+export const d = (ms: number) => ({ "--d": `${ms}ms` }) as CSSProperties;
 
 /** Starts once the element scrolls into view (and only when motion is on). */
-function useRun<T extends Element>(on: boolean) {
+export function useRun<T extends Element>(on: boolean) {
   const ref = useRef<T>(null);
   const [seen, setSeen] = useState(false);
   useEffect(() => {
@@ -31,7 +31,7 @@ function useRun<T extends Element>(on: boolean) {
 const GLYPHS = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#/<>";
 
 /** Text that decodes left to right through random glyphs. */
-function Decode({ text, run, delay = 0, dur = 450 }: { text: string; run: boolean; delay?: number; dur?: number }) {
+export function Decode({ text, run, delay = 0, dur = 450 }: { text: string; run: boolean; delay?: number; dur?: number }) {
   const [out, setOut] = useState("");
   useEffect(() => {
     if (!run) return;
@@ -52,7 +52,7 @@ function Decode({ text, run, delay = 0, dur = 450 }: { text: string; run: boolea
 }
 
 /** A figure that counts up to its value ("43", "10 / 10", "20K+", "17.3%"); words decode instead. */
-function Count({ value, run, delay = 0, dur = 700 }: { value: string; run: boolean; delay?: number; dur?: number }) {
+export function Count({ value, run, delay = 0, dur = 700 }: { value: string; run: boolean; delay?: number; dur?: number }) {
   const m = value.match(/^([^\d]*)([\d.,]+)(.*)$/);
   const [out, setOut] = useState("");
   useEffect(() => {
@@ -129,7 +129,7 @@ export function MotionStyles() {
 }
 
 /** Wraps a block: data-anim while motion is on, data-run once it has scrolled into view. */
-function Stage({ motion, className, children }: { motion: boolean; className?: string; children: (run: boolean) => ReactNode }) {
+export function Stage({ motion, className, children }: { motion: boolean; className?: string; children: (run: boolean) => ReactNode }) {
   const [ref, run] = useRun<HTMLDivElement>(motion);
   return (
     <div ref={ref} className={className} data-anim={motion ? "" : undefined} data-run={run ? "" : undefined}>

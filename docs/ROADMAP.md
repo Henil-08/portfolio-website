@@ -429,7 +429,9 @@ Micro-interactions, everywhere: panels draw their frame in, header bars wipe, ti
 figures count up, list rows wipe in staggered, orange corner brackets on hover/focus, buttons invert
 to ink on hover, one scan line on a panel's first open. `prefers-reduced-motion` skips to the end.
 
-- [ ] Logo: owner picks from `/docs/brand/logo` (L1–L6); then favicon (app/icon.svg) and the mark in the boot.
+- [x] Logo picked (owner, 2026-10-25): L10 · A "draw and fill" (app/docs/brand/mark.tsx). Reference for every item
+      below: `/docs/brand/system` (identity, motion M00–M09, interactions I01–I08, screens S01–S06).
+- [ ] Favicon (app/icon.svg, the still mark) and the mark in the header.
 - [ ] Tokens and shared classes: globals.css `hud-*` rewritten as `ds-*` (panel, bar, head, key, chip,
       bracket, btn) plus the motion rules from parts.tsx; Plex loaded in app/layout.tsx; DESIGN.md rewritten.
 - [ ] Boot (StartLights.tsx, Reveal.tsx): the mark assembles, name and part number decode, then the wipe into the world.
