@@ -438,8 +438,8 @@ to ink on hover, one scan line on a panel's first open. `prefers-reduced-motion`
 - [x] (bcf5046) HUD S02 (Hud.tsx): tabs top right, the `Sheet` frame every place opens in, toast, hints, speed, Controls and Settings modals, touch stick and pedals.
 - [ ] Interact prompt in the world (ui3d/InteractivePoints.tsx canvas label): the zone sticker.
 - [x] (bcf5046) Garage S03: GarageSheet shows `DsCard` (container-aware, prev/next within the garage); place bodies in Panels.tsx rewritten (roles as rows, papers and patents as coded rows, compounds as code squares, contact as rows).
-- [x] (OVERLAYS) Overlays: RadioMessages (radio panel), Ask (I06), FitPanel and LapChip, AutopilotHud. EasterEggs only toasts. Deleted dead Section.tsx, ui/Reveal.tsx, RaceHud.tsx.
-- [x] (OVERLAYS) Map S04: components/brand/TacticalMap.tsx, live car, objective = nearest unopened place, pins wipe there; side panel with position, places, achievements. MapCapture (top-down render) deleted.
+- [x] (77cd8be) Overlays: RadioMessages (radio panel), Ask (I06), FitPanel and LapChip, AutopilotHud. EasterEggs only toasts. Deleted dead Section.tsx, ui/Reveal.tsx, RaceHud.tsx.
+- [x] (77cd8be) Map S04: components/brand/TacticalMap.tsx, live car, objective = nearest unopened place, pins wipe there; side panel with position, places, achievements. MapCapture (top-down render) deleted.
 - [ ] /resume (page, Tailored, PrintButton) as the datasheet resume; print stays ink on white.
 - [ ] not-found, /docs/design specimen replaced by the datasheet specimen.
 - [ ] In-world text that carries the brand: trackside "HG RACING" boards (Trackside.tsx) to the new mark.
