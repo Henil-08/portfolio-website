@@ -22,7 +22,6 @@ type State = {
   toast: { id: number; text: string; tone: "red" | "yellow" | "teal" } | null;
   muted: boolean;
   speed: number; // km/h, throttled updates for the HUD
-  boosting: boolean;
   askOpen: boolean;
   menuOpen: boolean;
   teleport: { id: number; zone: ZoneId } | null;
@@ -58,7 +57,6 @@ let state: State = {
   toast: null,
   muted: false,
   speed: 0,
-  boosting: false,
   askOpen: false,
   menuOpen: false,
   teleport: null,

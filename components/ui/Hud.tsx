@@ -11,6 +11,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { closeZone, getState, openZone, setState, useWorld } from "@/components/world/store";
 import { input } from "@/components/world/input";
+import { powerName } from "@/components/world/powers/meter";
+import { powerReading } from "@/components/world/powers/state";
+import PowerMeter from "./PowerMeter";
 import { pop } from "@/components/world/sound";
 import { PanelBody, ProjectItem, zoneCode, zoneMeta } from "./Panels";
 import { Decode, Stage, d } from "@/components/brand/motion";
@@ -38,6 +41,7 @@ export default function Hud() {
       <EasterEggs />
       <Toast />
       <Hints />
+      <Power />
       <Joystick />
       <TouchInteract />
       <Ask />
@@ -135,9 +139,12 @@ function ZoneCard() {
   );
 }
 
+/** The vehicle's power in words: "Skyline". */
+const powerWord = (code: string) => powerName(code).charAt(0) + powerName(code).slice(1).toLowerCase();
+
 const CONTROLS: [string, string][] = [
   ["W A S D / arrows", "Drive"],
-  ["Shift", "Boost, opens DRS"],
+  ["Shift (hold)", "Power"], // the label names the vehicle's power (Controls)
   ["Space", "Brake"],
   ["E", "Look at the place you're parked at"],
   ["V (hold)", "Talk to your race engineer"],
@@ -206,6 +213,7 @@ function Modal({ open, close, title, children }: { open: boolean; close: () => v
 
 function Controls() {
   const open = useWorld((s) => s.controlsOpen);
+  const vehicle = useWorld((s) => s.vehicle);
   return (
     <Modal open={open} close={() => setState({ controlsOpen: false })} title="Controls">
       <p className="mb-2 flex items-baseline gap-3 border-b border-ink pb-1.5 text-[12.5px] font-semibold uppercase tracking-[0.06em]">
@@ -214,7 +222,7 @@ function Controls() {
       {CONTROLS.map(([k, label]) => (
         <div key={k} className="flex items-center justify-between gap-4 border-b border-rule py-2">
           <Key k={k} />
-          <span className="text-right text-[13.5px]">{label}</span>
+          <span className="text-right text-[13.5px]">{k === "Shift (hold)" ? powerWord(vehicle) : label}</span>
         </div>
       ))}
       <p className="mt-3 text-[12.5px] text-graphite">On a phone: thumb stick to steer, gas and brake on the right. A few keys are secret.</p>
@@ -324,6 +332,7 @@ function Toast() {
 function Hints() {
   const [show, setShow] = useState(true);
   const speed = useWorld((s) => s.speed);
+  const vehicle = useWorld((s) => s.vehicle);
   useEffect(() => {
     const t = setTimeout(() => setShow(false), 14000);
     return () => clearTimeout(t);
@@ -340,7 +349,7 @@ function Hints() {
             className="pointer-events-none fixed bottom-5 left-1/2 z-20 hidden -translate-x-1/2 items-center gap-2 border-2 border-ink bg-white px-3 py-2 text-[13px] shadow-[3px_3px_0_var(--color-ink)] [@media(pointer:fine)]:flex"
           >
             <Key k="W A S D" /> <span className="mr-3">Drive</span>
-            <Key k="Shift" /> <span className="mr-3">Boost · DRS</span>
+            <Key k="Shift" /> <span className="mr-3">{powerWord(vehicle)}</span>
             <Key k="Space" /> <span className="mr-3">Brake</span>
             <Key k="R" /> <span className="mr-3">Reset</span>
             <Key k="H" /> Honk
@@ -352,6 +361,17 @@ function Hints() {
         <p className="mt-1 font-mono text-[11px] text-graphite">km/h</p>
       </div>
     </>
+  );
+}
+
+// The power meter (docs/BRAND.md 2026-10-26): top left on a desktop, above the pedals on touch.
+function Power() {
+  const vehicle = useWorld((s) => s.vehicle);
+  const zone = useWorld((s) => s.zone);
+  return (
+    <div className={`pointer-events-none fixed left-5 top-5 z-20 [@media(pointer:coarse)]:bottom-[124px] [@media(pointer:coarse)]:left-auto [@media(pointer:coarse)]:right-6 [@media(pointer:coarse)]:top-auto ${zone ? "[@media(pointer:coarse)]:hidden" : ""}`}>
+      <PowerMeter label={powerName(vehicle)} read={powerReading} />
+    </div>
   );
 }
 
@@ -437,6 +457,24 @@ function Joystick() {
         />
       </div>
       <div className="fixed bottom-6 right-6 z-20 flex touch-none items-end gap-3">
+        <button
+          aria-label="Power"
+          className="grid h-16 w-16 place-items-center border-2 border-ink bg-white font-mono text-[11px] font-semibold shadow-[3px_3px_0_var(--color-signal)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+          onPointerDown={() => {
+            input.power = input.powerPress = true;
+          }}
+          onPointerUp={() => {
+            input.power = false;
+          }}
+          onPointerLeave={() => {
+            input.power = false;
+          }}
+          onPointerCancel={() => {
+            input.power = false;
+          }}
+        >
+          Power
+        </button>
         <button
           className="grid h-16 w-16 place-items-center border-2 border-ink bg-white font-mono text-[12px] font-semibold shadow-[3px_3px_0_var(--color-ink)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
           onPointerDown={pedal("back", 1)}

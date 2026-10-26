@@ -3,15 +3,15 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { getState } from "./store";
+import { power } from "./state";
 
 const N = 36; // points per trail
 const WIDTH = 0.16;
 
-// A glowing ribbon in the brand orange that follows an anchor (a wing tip) while boosting and fades out after.
-export function BoostTrail({ anchor }: { anchor: React.RefObject<THREE.Object3D | null> }) {
+// The light trail of OVERTAKE and SPLIT: a glowing ribbon in the brand orange that follows an
+// anchor (a wing tip, the bike's tail) as `power.trail` rises and fades out after.
+export function PowerTrail({ anchor }: { anchor: React.RefObject<THREE.Object3D | null> }) {
   const pts = useRef(Array.from({ length: N }, () => new THREE.Vector3()));
-  const life = useRef(0);
   const primed = useRef(false);
   const geo = useMemo(() => {
     const g = new THREE.BufferGeometry();
@@ -39,7 +39,7 @@ export function BoostTrail({ anchor }: { anchor: React.RefObject<THREE.Object3D 
   );
   const mesh = useRef<THREE.Mesh<THREE.BufferGeometry, THREE.ShaderMaterial>>(null);
 
-  useFrame((_, dt) => {
+  useFrame(() => {
     const a = anchor.current;
     const m = mesh.current;
     if (!a || !m) return;
@@ -49,9 +49,7 @@ export function BoostTrail({ anchor }: { anchor: React.RefObject<THREE.Object3D 
       pts.current.forEach((p) => p.copy(tmp));
       primed.current = true;
     }
-    const boosting = getState().boosting;
-    life.current += ((boosting ? 1 : 0) - life.current) * Math.min(1, dt * (boosting ? 10 : 3));
-    m.material.uniforms.uLife.value = life.current;
+    m.material.uniforms.uLife.value = power.trail;
     // Shift history and add the newest point at the front.
     const P = pts.current;
     for (let i = N - 1; i > 0; i--) P[i].copy(P[i - 1]);

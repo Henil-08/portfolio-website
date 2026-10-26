@@ -133,11 +133,11 @@ async function startEngine() {
 
 let lastSkid = 0;
 // Called every frame from the world: pitch follows speed, volume follows throttle.
-export function engineUpdate(speedKmh: number, throttle: number, boost: boolean, sliding: boolean) {
+export function engineUpdate(speedKmh: number, throttle: number, powered: boolean, sliding: boolean) {
   const a = ctx;
   if (!a || !engine) return;
   const s = Math.min(speedKmh / 140, 1.3);
-  engine.src.playbackRate.setTargetAtTime(0.7 + s * 0.8 + (boost ? 0.08 : 0), a.currentTime, 0.12);
+  engine.src.playbackRate.setTargetAtTime(0.7 + s * 0.8 + (powered ? 0.08 : 0), a.currentTime, 0.12);
   // Quiet under the music, silent when parked; ENGINE_VOL scales it all (owner: "a bit lower").
   const moving = speedKmh > 3 || throttle > 0;
   engine.gain.gain.setTargetAtTime(moving ? (0.012 + s * 0.035 + throttle * 0.01) * ENGINE_VOL : 0, a.currentTime, 0.25);
@@ -356,6 +356,37 @@ export function paper(open: boolean) {
 
 export function cheer() {
   void play("crowd", { vol: 0.5 });
+}
+
+/**
+ * A power starts: the boost sample, pitched per vehicle (OVERTAKE as it is, SPLIT lighter,
+ * SEND IT punchier, SKYLINE's thrusters lower and longer).
+ */
+export function powerCue(code: string) {
+  const rate = { V01: 1, V02: 1.25, V03: 0.72, V04: 1.4 }[code] ?? 1;
+  void play("boost", { vol: code === "V04" ? 0.35 : 0.5, rate });
+}
+
+/** Shift with too little charge: a short low double blip, no samples. */
+export function powerRefused() {
+  const a = audio();
+  if (!a || !master) return;
+  for (const [dt, f] of [
+    [0, 220],
+    [0.09, 180],
+  ]) {
+    const t = a.currentTime + 0.01 + dt;
+    const o = a.createOscillator();
+    o.type = "square";
+    o.frequency.setValueAtTime(f, t);
+    const g = a.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.04, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+    o.connect(g).connect(master);
+    o.start(t);
+    o.stop(t + 0.08);
+  }
 }
 
 export function bump(strength = 1) {

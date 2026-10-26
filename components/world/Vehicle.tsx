@@ -15,7 +15,10 @@ import { RigContext, liveryOf, vehicleByCode, type VehicleDef, type VehicleRig }
 import { input } from "./input";
 import { carState, ticker } from "./carState";
 import { getState, setState, subscribe, toast, useWorld } from "./store";
-import { BoostTrail } from "./BoostTrail";
+import { PowerTrail } from "./powers/Trail";
+import { Thrusters } from "./powers/Thrusters";
+import { CAR_GROUPS, usePowers } from "./powers/usePowers";
+import { power } from "./powers/state";
 import { dayNight } from "./daynight";
 import { heightAt } from "./terrain";
 import { setWheelLocal } from "./alive/ground";
@@ -33,9 +36,7 @@ type VehicleController = ReturnType<
 
 const STEERING_AMPLITUDE = 0.5;
 const ENGINE_FORCE = 300;
-const BOOST_MULTIPLIER = 2;
 const TOP_SPEED = 5;
-const TOP_SPEED_BOOST = 40;
 const BRAKE_AMPLITUDE = 35; // The original value, used for the idle and reverse brake
 // Space brake: the original full 35 on every wheel stops the car dead. Ours ramps in
 // and is gentler, and the rear lets go a little, so it slides down to a stop.
@@ -160,6 +161,8 @@ function specOf(def: VehicleDef) {
     bumper: { half: [(max[2] - min[2]) / 2, (top - 0.03) / 2, Math.max(max[0], -min[0], bike ? BIKE_TRACK + 0.05 : 0)] as const, x: (max[2] + min[2]) / 2, y: (top + 0.03) / 2 },
     tips: def.tips.map(([x, y, z]) => new THREE.Vector3(z * S, y * S - RIDE, -x * S)),
     steerAxis: new THREE.Vector3(...def.steerAxis),
+    /** the wheels' contact points (chassis frame), for the powers' dust */
+    dust: wheels.map((w) => ({ x: w.pos.x, z: w.pos.z })),
     tune: tuneOf(def),
   };
 }
@@ -204,7 +207,7 @@ export default function Vehicle() {
 
 function Drive({ def }: { def: VehicleDef }) {
   const spec = specFor(def);
-  const { wheels: WHEELS, tune } = spec;
+  const { wheels: WHEELS, tune, chassis, bumper } = spec;
   const liveryName = useWorld((s) => s.livery);
   const livery = liveryOf(def.code, liveryName);
   const body = useRef<RapierRigidBody>(null);
@@ -225,7 +228,6 @@ function Drive({ def }: { def: VehicleDef }) {
   const lastHud = useRef(0);
   const goingForward = useRef(true);
   const speed = useRef(0); // simulation units per second, like the original's
-  const boosting = useRef(false);
   const brakeHeld = useRef(0); // seconds the brake has been held
   // The original stuck test: on the throttle, but under 0.5 m covered in the last 3 s.
   const stuck = useRef({ items: [] as [number, number][], told: false });
@@ -354,7 +356,7 @@ function Drive({ def }: { def: VehicleDef }) {
     const driving = getState().phase === "world";
     const dts = ticker.deltaScaled;
     const b = body.current;
-    const touching = input.forward || input.back || input.steer || input.handbrake;
+    const touching = input.forward || input.back || input.steer || input.handbrake || power.active !== null;
     // Dev and headless checks: window.__stepLog = [] records every physics step
     // [ground speed, yaw rate, sideways speed, roll, throttle] (use with window.__realtime).
     const log = process.env.NODE_ENV !== "production" ? (window as unknown as { __stepLog?: number[][] }).__stepLog : undefined;
@@ -413,15 +415,10 @@ function Drive({ def }: { def: VehicleDef }) {
     let accelerating = driving ? input.forward - input.back : 0;
     const braking = driving && input.handbrake ? 1 : 0;
     if (braking) accelerating = 0;
-    const boost = driving && input.boost && accelerating > 0 ? 1 : 0;
     const steering = driving ? -input.steer : 0;
 
-    const top = THREE.MathUtils.lerp(tune.topSpeed, TOP_SPEED_BOOST, boost);
-    const overflow = Math.max(0, speed.current - top);
-    let engine =
-      ((accelerating * (1 + boost * BOOST_MULTIPLIER) * tune.engine) /
-        (1 + overflow)) *
-      dts;
+    const overflow = Math.max(0, speed.current - tune.topSpeed);
+    let engine = ((accelerating * tune.engine) / (1 + overflow)) * dts;
 
     brakeHeld.current = braking ? brakeHeld.current + dts / 2 : 0; // dts runs at 2x
     let brake = 0;
@@ -436,9 +433,9 @@ function Drive({ def }: { def: VehicleDef }) {
         b = REVERSE_BRAKE;
         engine = 0;
       }
-      // Off the boost and over normal top speed: ease back to it in about a second
-      // (the original lets the car coast down from boost speed, which feels like boost lingers).
-      if (!boost && speed.current > tune.topSpeed * 1.15) b = Math.max(b, Math.min(0.35, ((speed.current - tune.topSpeed) / tune.topSpeed) * 0.12));
+      // No power running and over normal top speed (OVERTAKE, SPLIT just ended): ease back to it in
+      // about a second (the original lets the car coast down, which feels like the surge lingers).
+      if (!power.active && speed.current > tune.topSpeed * 1.15) b = Math.max(b, Math.min(0.35, ((speed.current - tune.topSpeed) / tune.topSpeed) * 0.12));
       brake = b * BRAKE_AMPLITUDE * dts;
     }
 
@@ -453,13 +450,11 @@ function Drive({ def }: { def: VehicleDef }) {
       v.setWheelEngineForce(i, engine);
       v.setWheelSideFrictionStiffness(i, braking && !WHEELS[i].front ? HANDBRAKE_REAR_GRIP * (tune.sideFriction / SIDE_FRICTION) : sideK);
     }
-    v.updateVehicle(1 / 60);
-
-    if (boosting.current !== (boost === 1)) {
-      boosting.current = boost === 1;
-      setState({ boosting: boosting.current });
-    }
+    // SPLIT: the wheels' rays skip the props it's passing through, so it doesn't ride up on them
+    v.updateVehicle(1 / 60, undefined, power.through ? CAR_GROUPS : undefined);
   });
+  // the powers move the body after the controller (this registers its step second)
+  usePowers({ code: def.code, body, model, lean, box: bumper, wheels: spec.dust, grounded: () => WHEELS.some((_, i) => !!controller.current?.wheelIsInContact(i)) });
 
   useFrame((_, dt) => {
     const v = controller.current;
@@ -584,9 +579,9 @@ function Drive({ def }: { def: VehicleDef }) {
     const glow = brakeLight ? 2 : 0.55 + dayNight.night * 0.45;
     for (const l of lamps.current) l.mat.emissiveIntensity = l.base * glow;
 
-    // DRS (TH-18): the flap opens while boosting.
+    // DRS (TH-18): the flap opens with OVERTAKE.
     if (P.drs) {
-      const want = boosting.current ? -0.45 : 0;
+      const want = -0.45 * power.drs;
       P.drs.rotation.x += (want - P.drs.rotation.x) * Math.min(1, dt * 12);
     }
 
@@ -618,7 +613,7 @@ function Drive({ def }: { def: VehicleDef }) {
     }
 
     if (getState().phase === "world") {
-      engineUpdate(Math.abs(carState.speed) * 3.6, Math.abs(input.forward - input.back), boosting.current, input.handbrake);
+      engineUpdate(Math.abs(carState.speed) * 3.6, Math.abs(input.forward - input.back), power.active !== null, input.handbrake);
     } else engineIdle();
 
     lastHud.current += dt;
@@ -629,12 +624,11 @@ function Drive({ def }: { def: VehicleDef }) {
     }
   });
 
-  const { chassis, bumper } = spec;
   const inertia = tune.inertia;
   return (
     <>
-      <BoostTrail anchor={tipA} />
-      <BoostTrail anchor={tipB} />
+      <PowerTrail anchor={tipA} />
+      <PowerTrail anchor={tipB} />
       <RigidBody
         ref={body}
         colliders={false}
@@ -651,6 +645,7 @@ function Drive({ def }: { def: VehicleDef }) {
         <CuboidCollider
           args={[...chassis.half]}
           position={[chassis.x, 0.19, 0]}
+          collisionGroups={CAR_GROUPS}
           friction={0.4}
           massProperties={{
             mass: 2.5,
@@ -667,6 +662,7 @@ function Drive({ def }: { def: VehicleDef }) {
           position={[bumper.x, bumper.y, 0]}
           density={0}
           friction={0}
+          collisionGroups={CAR_GROUPS}
           frictionCombineRule={CoefficientCombineRule.Min}
           restitution={0.05}
         />
@@ -676,6 +672,7 @@ function Drive({ def }: { def: VehicleDef }) {
             <RigContext.Provider value={rig}>
               <def.Model livery={livery} />
             </RigContext.Provider>
+            {def.code === "V03" && <Thrusters />}
           </group>
         </group>
         {spec.tips.map((p, i) => (

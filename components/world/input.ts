@@ -6,7 +6,8 @@ export const input = {
   back: 0, // 0..1
   steer: 0, // -1 (left) .. 1 (right)
   handbrake: false,
-  boost: false,
+  power: false, // Shift (or the touch button) is held: the vehicle's power runs while it is
+  powerPress: false, // it went down since the last physics step (a tap starts the power and lets it go)
   reset: false,
   honk: false,
 };
@@ -20,7 +21,7 @@ function sync() {
   const right = keys.has("KeyD") || keys.has("ArrowRight");
   input.steer = (right ? 1 : 0) - (left ? 1 : 0);
   input.handbrake = keys.has("Space");
-  input.boost = keys.has("ShiftLeft") || keys.has("ShiftRight");
+  input.power = keys.has("ShiftLeft") || keys.has("ShiftRight");
 }
 
 export function bindKeyboard() {
@@ -32,6 +33,7 @@ export function bindKeyboard() {
     if (isTyping(e)) return;
     if (e.code === "KeyR") input.reset = true;
     if (e.code === "KeyH") input.honk = true;
+    if ((e.code === "ShiftLeft" || e.code === "ShiftRight") && !e.repeat) input.powerPress = true;
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) e.preventDefault();
     keys.add(e.code);
     sync();
