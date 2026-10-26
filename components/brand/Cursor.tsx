@@ -1,6 +1,6 @@
 "use client";
 
-// The custom cursor (docs/BRAND.md I09): a small ink square with a paper edge that follows the
+// The custom cursor (docs/BRAND.md I09): a 7 px ink square with a paper edge that follows the
 // pointer and shrinks while pressed. No brackets on hover (owner): the targets show their own
 // hover states. Over text fields it becomes a thin bar; over [data-cursor="drag"] it shows DRAG.
 // Mouse and pen only: touch screens keep their own behaviour. One rAF loop, no React state.

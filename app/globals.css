@@ -253,12 +253,12 @@ body {
 }
 .cursor-dot {
   position: fixed;
-  left: -5px;
-  top: -5px;
-  width: 10px;
-  height: 10px;
+  left: -3.5px;
+  top: -3.5px;
+  width: 7px;
+  height: 7px;
   background: var(--color-ink);
-  outline: 1.5px solid var(--color-paper);
+  outline: 1px solid var(--color-paper);
   will-change: transform;
   transition: opacity 0.12s, width 0.1s, height 0.1s, left 0.1s, top 0.1s;
 }

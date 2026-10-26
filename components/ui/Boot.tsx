@@ -1,8 +1,8 @@
 "use client";
 
 // The boot (docs/BRAND.md S01): on the paper floor the mark builds, the name and the part line
-// decode, and a loading line counts the real progress (world/Reveal.tsx `boot.lit`: the
-// world, then the shader warm-up). When the world is ready (`boot.out`) the block lifts away
+// decode, and a loading bar runs while the world builds and the shaders warm up (world/
+// Reveal.tsx `boot`). When the world is ready (`boot.out`) the block lifts away
 // and the world opens in its circle round the car.
 import { useEffect, useRef } from "react";
 import { boot } from "@/components/world/Reveal";
@@ -15,21 +15,30 @@ const STAGE = { world: "Loading the island", shaders: "Warming up", ready: "Read
 export default function Boot() {
   const root = useRef<HTMLDivElement>(null);
   const label = useRef<HTMLSpanElement>(null);
-  const pct = useRef<HTMLSpanElement>(null);
   const bar = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
+    // The bar is a CSS transition, so it keeps moving on the compositor while the main thread
+    // is busy building the world and compiling shaders (a rAF-driven bar froze there and then
+    // jumped to full). It eases towards 90% over a typical load and finishes once ready.
+    const b = bar.current;
+    if (b) {
+      b.style.transition = "transform 9s cubic-bezier(0.25, 0.45, 0.45, 1)";
+      requestAnimationFrame(() => requestAnimationFrame(() => (b.style.transform = "scaleX(0.9)")));
+    }
     let raf = 0;
-    let out = false;
+    let done = false;
     const tick = () => {
       raf = requestAnimationFrame(tick);
-      // "Ready" only once the bar is full; the stage can finish before the bar catches up
       if (label.current) label.current.textContent = boot.out || boot.lit >= 1 ? STAGE.ready : boot.stage === "world" ? STAGE.world : STAGE.shaders;
-      if (pct.current) pct.current.textContent = `${Math.round(boot.lit * 100)}%`;
-      if (bar.current) bar.current.style.transform = `scaleX(${boot.lit})`;
-      if (boot.out && !out) {
-        out = true;
+      if ((boot.out || boot.lit >= 1) && !done && b) {
+        done = true;
+        b.style.transition = "transform 0.35s cubic-bezier(0.6, 0, 0.2, 1)";
+        b.style.transform = "scaleX(1)";
+      }
+      if (boot.out) {
         root.current?.classList.add("is-out");
+        cancelAnimationFrame(raf);
       }
     };
     tick();
@@ -49,14 +58,11 @@ export default function Boot() {
               <Decode text={`HG-08 · ${profile.role} · ${profile.location}`} run={run} delay={1000} dur={600} />
             </p>
             <div className="dsa-rise mt-10 w-[min(320px,80vw)]" style={d(1100)}>
-              <div className="mb-1.5 flex justify-between font-mono text-[12px]">
+              <p className="mb-1.5 font-mono text-[12px]">
                 <span ref={label}>{STAGE.world}</span>
-                <span ref={pct} className="tabular-nums">
-                  0%
-                </span>
-              </div>
+              </p>
               <div className="h-[6px] border border-ink">
-                <span ref={bar} className="block h-full origin-left bg-ink transition-transform duration-200" style={{ transform: "scaleX(0)" }} />
+                <span ref={bar} className="block h-full origin-left bg-ink will-change-transform" style={{ transform: "scaleX(0)" }} />
               </div>
             </div>
           </>

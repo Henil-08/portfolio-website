@@ -224,7 +224,9 @@ export function RevealDriver() {
       const target = !g.ready ? Math.min(0.6, s.age / 2) : s.compiled ? 1 : 0.8;
       // smoothed like the original (delta * 10), but never faster than a full ring
       // in FILL seconds, so each light is seen coming on, even after a long first frame
-      load.grid = Math.min(1, load.grid + step / 0.35);
+      // the grid waits for the world: before that the camera isn't in its start pose yet, and
+      // the grid would be drawn from a different angle for a few frames, then snap (owner)
+      load.grid = g.ready ? Math.min(1, load.grid + step / 0.35) : 0;
       load.shown = Math.min(load.shown + step / FILL, load.shown + (target - load.shown) * Math.min(1, step * 10));
       boot.lit = load.shown;
       boot.stage = !g.ready ? "world" : s.compiled ? "ready" : "shaders";

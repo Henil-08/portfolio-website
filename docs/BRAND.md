@@ -8,6 +8,7 @@ disagree, the page is what the owner approved; fix this file.
 
 | Date | Decision |
 |---|---|
+| 2026-10-26 | Boot bar runs on CSS (no jump to 100%), the floor grid waits for the world, cursor 7 px (owner). |
 | 2026-10-26 | Step 10 done: every screen (boot, HUD, sheets, garage, map, overlays, prompt, resume, 404, trackside boards) is in this language; the old UI layer and docs/DESIGN.md are deleted. |
 | 2026-10-26 | Cursor: no corner brackets on hover, just the square (owner). |
 | 2026-10-26 | Custom cursor approved (I09). The brand code moved to components/brand; the old exploration pages are deleted, and /docs/brand/system and /docs/brand/world are kept. Step 10 started. |
@@ -115,13 +116,18 @@ panel: frame, bars, text, figures, details.
 | I07 | Toast | Flickers on, an ink countdown bar runs, it leaves. One at a time, top centre. |
 | I08 | Tooltip, status | Tooltip is a white sticker with a hard shadow. Status dots are the only round thing: orange blinking = live, ink = visited, outline = not yet. |
 
-| I09 | Cursor | `components/brand/Cursor.tsx`, mounted once in app/layout.tsx. A 10 px ink square with a paper outline follows the pointer and shrinks to 0.7 while pressed. **No brackets on hover** (owner, 2026-10-26); hover feedback is the target's own. A 2 px bar over text fields; `data-cursor="drag"` shows a DRAG tag (3D views); `data-cursor="none"` hides it. The current mode is on `<html data-cursor-mode>`. Mouse and pen only; touch is unchanged. |
+| I09 | Cursor | `components/brand/Cursor.tsx`, mounted once in app/layout.tsx. A 7 px ink square with a 1 px paper outline follows the pointer and shrinks to 0.7 while pressed. **No brackets on hover** (owner, 2026-10-26); hover feedback is the target's own. A 2 px bar over text fields; `data-cursor="drag"` shows a DRAG tag (3D views); `data-cursor="none"` hides it. The current mode is on `<html data-cursor-mode>`. Mouse and pen only; touch is unchanged. |
 
 Hover and keyboard focus share one signal, the orange corner brackets (`x-sel` + `<Corners/>`). The cursor itself never shows brackets.
 
 ## Screens (S01–S06 in System.tsx; build the real ones from these)
 
-- **S01 Boot:** paper screen.
+- **S01 Boot (built, components/ui/Boot.tsx):** the loading bar is a CSS transition (it eases to
+  90% over 9 s, then finishes in 0.35 s once the world is ready), never rAF-driven: building the
+  world and compiling shaders block the main thread, and a JS bar froze then jumped to 100% (owner,
+  2026-10-26). There is no percent readout for the same reason. The floor's dot grid stays hidden
+  until the world is ready (Reveal.tsx `load.grid`), so it doesn't snap when the camera moves into place.
+- **S01 Boot (mock):** paper screen.
   1. The mark builds.
   2. The name decodes, then `HG-08 · role · city`.
   3. "Loading the island" counts to 100% with a bar.
