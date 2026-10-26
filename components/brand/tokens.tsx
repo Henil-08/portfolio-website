@@ -13,7 +13,7 @@ export const LINKS = [
 // Figures inside a sentence (44.9%, 20K+, <1s, 10) get picked out so a skim finds them.
 // A figure starts a word (not "GPT-4" or "S/4"), keeps inner commas and points only before a
 // digit (so "Llama 3," stays plain), and takes its unit or suffix with it ("20M+", "3.5x").
-const NUM = /((?<![\w./-])<?\d(?:[\d]|[.,](?=\d))*(?:%|x|ms|K|M|B|TB|h)?\+?)/g;
+const NUM = /((?<![\w./-])<?\d(?:[\d]|[.,](?=\d))*(?:%|x|ms|s(?![a-z])|K|M|B|TB|h)?\+?)/g;
 export function Figures({ text, className }: { text: string; className: string }) {
   return text.split(NUM).map((s, i) =>
     i % 2 ? (
