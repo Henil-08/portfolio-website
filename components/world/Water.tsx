@@ -43,12 +43,12 @@ const uniforms = {
   uMaxY: { value: 1 },
   uSeaY: { value: SEA_Y },
   uTime: { value: 0 },
-  uShallow: { value: new THREE.Color("#8fc4bb") },
+  uShallow: { value: new THREE.Color("#7d9396") }, // shallows over concrete
   uMid: { value: new THREE.Color(C.water) },
   uDeep: { value: new THREE.Color(C.waterDeep) },
-  uFoam: { value: new THREE.Color("#f4efe4") },
-  uGlow: { value: new THREE.Color("#6fc7ba") }, // The original #5bc2b9, toned to our palette
-  uSky: { value: new THREE.Color("#cfe3e2") },
+  uFoam: { value: new THREE.Color(C.paper) },
+  uGlow: { value: new THREE.Color("#6b8a8e") }, // a cool grey-teal, Concrete & Ink
+  uSky: { value: new THREE.Color("#d9dcd8") },
   uNight: { value: 0 },
   uLights: { value: Array.from({ length: MAX_LIGHTS }, (_, i) => new THREE.Vector3(...(LIGHTS[i] ?? [0, 0, 0]))) },
   uLightCount: { value: LIGHTS.length },
@@ -100,7 +100,7 @@ function waterMaterial() {
             float wob = sin(uTime * 1.3 + (vWaterW.x + vWaterW.z) * 0.6) * 0.035 + sin(uTime * 0.7 - vWaterW.x * 0.9) * 0.02;
             float foam = 1.0 - smoothstep(0.03, 0.12, depth + wob);
             float foam2 = (1.0 - smoothstep(0.0, 0.03, abs(depth - 0.32 - wob * 2.0))) * 0.35;
-            // The original shoreline glow: teal over the first metre or so of water
+            // The shoreline glow: a lighter tint over the first metre or so of water
             wGlow = (1.0 - smoothstep(0.08, 0.75, depth)) * (1.0 - foam);
             c = mix(c, uGlow, wGlow * 0.55);
             c = mix(c, uFoam, clamp(foam + foam2, 0.0, 1.0));

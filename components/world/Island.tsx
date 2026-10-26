@@ -57,8 +57,8 @@ function ribbon(width: number, y: number, offset = 0) {
   return g;
 }
 
-// Rumble kerbs, the original's style: one continuous strip hugging each bend on both edges,
-// red and white stripes that touch, a low ramp up from the road, a flat top and a
+// Rumble kerbs (W05): one continuous strip hugging each bend on both edges,
+// ink and paper stripes that touch, a low ramp up from the road, a flat top and a
 // bevelled outer edge. Each run fades up out of the road at its ends.
 const KERB_W = 0.7;
 const KERB_H = 0.06;
@@ -103,14 +103,63 @@ function kerbRuns(n: number) {
   return runs.filter(([s, e]) => e - s >= min);
 }
 
+/** True where a pit lane peels off or rejoins the lap: no kerb and no edge line there. */
+function onPitLane() {
+  const lanePts = pitRoadCurves().flatMap((c) => c.getSpacedPoints(80));
+  return (x: number, z: number) => lanePts.some((q) => (q.x - x) ** 2 + (q.z - z) ** 2 < (PIT_LANE_WIDTH / 2 + 0.6) ** 2);
+}
+
+// The paper edge line (W05): a thin painted line just inside each edge of the road,
+// the whole lap, broken where the pit lanes meet it.
+const EDGE_IN = 0.35; // from the road edge to the line's outer side
+const EDGE_W = 0.2;
+
+function edgeLineGeometry() {
+  const n = Math.round(trackCurve.getLength() / KERB_STEP);
+  const onLane = onPitLane();
+  const pos: number[] = [];
+  const idx: number[] = [];
+  for (const side of [-1, 1]) {
+    let prev = -1;
+    for (let i = 0; i <= n; i++) {
+      const u = (i % n) / n;
+      const p = trackCurve.getPointAt(u);
+      const t = trackCurve.getTangentAt(u);
+      const nx = -t.z * side;
+      const nz = t.x * side;
+      const a = TRACK_WIDTH / 2 - EDGE_IN - EDGE_W;
+      const b = TRACK_WIDTH / 2 - EDGE_IN;
+      if (onLane(p.x + nx * b, p.z + nz * b)) {
+        prev = -1;
+        continue;
+      }
+      const k = pos.length / 3;
+      pos.push(p.x + nx * a, p.y + 0.036, p.z + nz * a, p.x + nx * b, p.y + 0.036, p.z + nz * b);
+      if (prev >= 0) idx.push(prev, prev + 1, k, k, prev + 1, k + 1);
+      prev = k;
+    }
+  }
+  // wind every triangle to face up, whichever way its edge runs
+  for (let i = 0; i < idx.length; i += 3) {
+    const [p, q, r] = [idx[i] * 3, idx[i + 1] * 3, idx[i + 2] * 3];
+    const ny = (pos[q + 2] - pos[p + 2]) * (pos[r] - pos[p]) - (pos[q] - pos[p]) * (pos[r + 2] - pos[p + 2]);
+    if (ny < 0) [idx[i + 1], idx[i + 2]] = [idx[i + 2], idx[i + 1]];
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  const nrm = new Float32Array(pos.length);
+  for (let i = 1; i < nrm.length; i += 3) nrm[i] = 1;
+  g.setAttribute("normal", new THREE.BufferAttribute(nrm, 3));
+  g.setIndex(idx);
+  return g;
+}
+
 function kerbGeometry() {
   const n = Math.round(trackCurve.getLength() / KERB_STEP);
-  const red = new THREE.Color(C.red);
-  const white = new THREE.Color(C.white);
+  const ink = new THREE.Color(C.ink);
+  const paper = new THREE.Color(C.paper);
   const parts: THREE.BufferGeometry[] = [];
-  // no kerb where a pit lane peels off or rejoins the lap
-  const lanePts = pitRoadCurves().flatMap((c) => c.getSpacedPoints(80));
-  const onLane = (x: number, z: number) => lanePts.some((q) => (q.x - x) ** 2 + (q.z - z) ** 2 < (PIT_LANE_WIDTH / 2 + 0.6) ** 2);
+  const onLane = onPitLane();
   for (const side of [-1, 1]) {
     const pos: number[] = [];
     const col: number[] = [];
@@ -140,7 +189,7 @@ function kerbGeometry() {
       for (let k = 0; k < stripes; k++) {
         const a = s0 + Math.round(((s1 - s0) * k) / stripes);
         const b = s0 + Math.round(((s1 - s0) * (k + 1)) / stripes);
-        const c = k % 2 ? white : red;
+        const c = k % 2 ? paper : ink;
         const base = pos.length / 3;
         for (let i = a; i <= b; i++) {
           const u = (i % n) / n;
@@ -182,7 +231,7 @@ function kerbGeometry() {
 }
 
 // The land. Where wheel tracks have parted the grass (alive/Tracks.tsx), grassy
-// ground turns to bare earth, like the original terrain losing its grass channel.
+// ground turns to bare earth.
 const LAND = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92 });
 LAND.onBeforeCompile = (shader) => {
   Object.assign(shader.uniforms, tracks.uniforms);
@@ -198,12 +247,12 @@ LAND.onBeforeCompile = (shader) => {
       if (tuv.x > 0.0 && tuv.x < 1.0 && tuv.y > 0.0 && tuv.y < 1.0) {
         float tr = texture2D(uTracks, tuv).r;
         float green = clamp((diffuseColor.g - diffuseColor.b) * 6.0, 0.0, 1.0) * (1.0 - clamp((diffuseColor.r - diffuseColor.g) * 12.0, 0.0, 1.0));
-        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.42, 0.33, 0.22), clamp(tr, 0.0, 1.0) * green * 0.75);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.36, 0.33, 0.27), clamp(tr, 0.0, 1.0) * green * 0.75);
       }`,
     );
 };
 
-/** The original's asphalt: plain dark tarmac with fine light speckles, no painted lines. */
+/** Plain dark tarmac with fine light speckles; the only paint is the edge line and the start line. */
 /**
  * Night-race lighting on the tarmac: the floodlit lap reads evenly lit at night, so the
  * road and kerbs get a warm light added in proportion to their own colour (speckles and
@@ -250,6 +299,7 @@ function speckled(m: THREE.MeshStandardMaterial) {
 const ROAD = {
   asphalt: speckled(new THREE.MeshStandardMaterial({ color: C.asphalt, roughness: 0.9 })),
   kerb: lit(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }), undefined, 0.25),
+  line: lit(new THREE.MeshStandardMaterial({ color: C.paper, roughness: 0.7 }), undefined, 0.25),
 };
 /** The pit lane and its entry and exit: the same speckled, night-lit tarmac, drawn over the track where they meet. */
 export const pitAsphalt = speckled(
@@ -259,6 +309,11 @@ export const pitAsphalt = speckled(
 function Kerbs() {
   const geo = useMemo(() => kerbGeometry(), []);
   return <mesh geometry={geo} receiveShadow material={ROAD.kerb} />;
+}
+
+function EdgeLines() {
+  const geo = useMemo(() => edgeLineGeometry(), []);
+  return <mesh geometry={geo} receiveShadow material={ROAD.line} />;
 }
 
 function StartLine() {
@@ -287,17 +342,18 @@ function StartLine() {
   );
 }
 
-// The ground: the terrain grid as a mesh, grass on the land and sand on the
-// beaches and lake shores (vertex colours), the sea floor dipping under the water.
+// The ground: the terrain grid as a mesh (vertex colours), grass on the land, a concrete
+// band along the coast and the lake and river shores, gravel on the dunes and in the
+// park, the sea floor dipping under the water.
 function terrainGeometry() {
   const h = heightGrid();
   const n = GRID + 1;
   const pos = new Float32Array(n * n * 3);
   const col = new Float32Array(n * n * 3);
   const grass = new THREE.Color(C.grass);
-  const sand = new THREE.Color(C.sand);
-  const wet = new THREE.Color(C.sand).multiplyScalar(0.78);
-  const parkSand = new THREE.Color("#f1b070"); // the original park sand
+  const shore = new THREE.Color(C.concrete);
+  const gravel = new THREE.Color(C.gravel);
+  const wet = new THREE.Color(C.concreteDark).multiplyScalar(0.82);
   const tmp = new THREE.Color();
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {
@@ -306,11 +362,11 @@ function terrainGeometry() {
       const z = (j / GRID - 0.5) * EXTENT;
       const y = h[k];
       pos.set([x, y, z], k * 3);
-      // sand along the shores (by distance to the water), darker where it's wet
+      // concrete along the shores (by distance to the water), darker where it's wet
       const d = Math.min(shoreDist(x, z), ...LAKES.map((l) => -lakeDepthDist(l, x, z)), ...CANALS.map((c) => -canalDist(c, x, z)));
-      tmp.copy(grass).lerp(sand, 1 - THREE.MathUtils.smoothstep(d, 2, 9.5)); // a soft, wide blend from sand into grass
-      tmp.lerp(sand, duneMask(x, z) * 0.85); // the east dunes are sand with a little grass
-      tmp.lerp(parkSand, parkSandAt(x, z)); // the park: grass islands in warm sand
+      tmp.copy(grass).lerp(shore, 1 - THREE.MathUtils.smoothstep(d, 3, 5)); // a crisp edge from concrete into grass
+      tmp.lerp(gravel, duneMask(x, z) * 0.85); // the east dunes are gravel with a little grass
+      tmp.lerp(gravel, parkSandAt(x, z)); // the park: grass islands in gravel
       tmp.lerp(wet, 1 - THREE.MathUtils.smoothstep(y - SEA_Y, 0.02, 0.18));
       col.set([tmp.r, tmp.g, tmp.b], k * 3);
     }
@@ -368,10 +424,9 @@ export default function Island() {
       <Embankments />
 
       <mesh geometry={asphalt} receiveShadow material={ROAD.asphalt} />
+      <EdgeLines />
       <Kerbs />
       <StartLine />
-
-
     </group>
   );
 }

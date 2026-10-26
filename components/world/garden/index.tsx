@@ -21,11 +21,11 @@ import { Movables, kindFromMatrices } from "../Movables";
 import { seeded } from "../alive/noise";
 import { BEDS, BENCHES, HEDGE, HEDGES, LAMPS_GARDEN, PATHS, POND, bedLocal, clearOfRoad, pathDist, pathSamples } from "./layout";
 
-const SAND = "#f4c58f"; // warm paths, with the orange sand
-const SAND_DARK = "#e6ad72";
-const EDGE = "#d29a62";
-const HEDGE_A = "#8d8c31"; // olive, with the grass
-const HEDGE_B = "#737229";
+const SAND = "#cdc4b0"; // gravel paths, with the gravel ground
+const SAND_DARK = "#bfb59f";
+const EDGE = "#b8b4a9"; // concrete dark
+const HEDGE_A = "#5c6a4b"; // leaf, with the grass
+const HEDGE_B = "#4c5840";
 const SOIL = "#8c7461";
 const FLOWERS = ["#d9826b", "#f3e9d8", "#d7a6a0", "#f0d48a", "#a99cc0"];
 

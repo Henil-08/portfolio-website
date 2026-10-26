@@ -54,33 +54,33 @@ function makeMask() {
   g.fillRect(0, 0, MASK_RES, MASK_RES);
   // Outside the island: no grass.
   g.globalCompositeOperation = "destination-in";
-  // the land, a few metres in from the shore (beaches stay bare)
+  // the land, a few metres in from the shore (the concrete coast band stays bare)
   g.beginPath();
   for (let k = 0; k <= 360; k++) {
     const a = (k / 360) * Math.PI * 2;
-    const r = coastR(a) - 4;
+    const r = coastR(a) - 4.5;
     if (k) g.lineTo(tx(Math.cos(a) * r), tx(Math.sin(a) * r));
     else g.moveTo(tx(Math.cos(a) * r), tx(Math.sin(a) * r));
   }
   g.fill();
   g.globalCompositeOperation = "source-over";
-  // The park: sand between its islands (first, so later features cut into the islands).
+  // The park: gravel between its islands (first, so later features cut into the islands).
   paintPark(g, tx);
   g.fillStyle = g.strokeStyle = "#000";
   // The harbour arm and its banks.
   g.lineCap = g.lineJoin = "round";
   for (const cn of CANALS)
     for (let i = 0; i < cn.pts.length - 1; i++) {
-      g.lineWidth = (Math.max(cn.w[i], cn.w[i + 1]) + 4) * s;
+      g.lineWidth = (Math.max(cn.w[i], cn.w[i + 1]) + 8) * s;
       g.beginPath();
       g.moveTo(tx(cn.pts[i][0]), tx(cn.pts[i][1]));
       g.lineTo(tx(cn.pts[i + 1][0]), tx(cn.pts[i + 1][1]));
       g.stroke();
     }
-  // Lakes and their sandy shores.
+  // Lakes and their concrete shores.
   for (const l of LAKES) {
     g.beginPath();
-    g.ellipse(tx(l.x), tx(l.z), (l.rx + 2.5) * s, (l.rz + 2.5) * s, -l.yaw, 0, Math.PI * 2);
+    g.ellipse(tx(l.x), tx(l.z), (l.rx + 4) * s, (l.rz + 4) * s, -l.yaw, 0, Math.PI * 2);
     g.fill();
   }
   // Track plus kerbs and run-off.
@@ -178,8 +178,8 @@ function makeMaterial(mask: THREE.Texture) {
     uBladeHeightRandomness: { value: BLADE_HEIGHT_RANDOMNESS },
     uNoise: { value: perlinTexture() },
     uRoot: { value: new THREE.Color(C.grass).offsetHSL(0, 0.02, -0.07) },
-    uTipA: { value: new THREE.Color(C.grass).offsetHSL(0.01, 0.1, 0.06) },
-    uTipB: { value: new THREE.Color(C.grass).offsetHSL(-0.03, 0.14, 0.1) },
+    uTipA: { value: new THREE.Color(C.grass).offsetHSL(0.01, 0.04, 0.06) },
+    uTipB: { value: new THREE.Color(C.grass).offsetHSL(-0.02, 0.06, 0.1) },
     ...terrain.uniforms,
   };
   const m = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0, side: THREE.DoubleSide });

@@ -159,7 +159,7 @@ function build() {
         if (ld < -8) continue;
         if (ld < 0) h[c] = Math.min(h[c], THREE.MathUtils.lerp(BEACH, h[c], THREE.MathUtils.smoothstep(-ld, 0, 8)));
         else {
-          // a drivable shelf round the edge, then a real basin in the middle (no flat hole in the sand)
+          // a drivable shelf round the edge, then a real basin in the middle (no flat hole in the shore)
           const shelf = THREE.MathUtils.lerp(BEACH, SHALLOW, THREE.MathUtils.smoothstep(ld, 0, 2));
           h[c] = THREE.MathUtils.lerp(shelf, SEA_Y - 1.5, THREE.MathUtils.smoothstep(ld, 2.2, 4.6));
           fixed[c] = 1;
