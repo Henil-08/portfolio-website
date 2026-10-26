@@ -1,13 +1,12 @@
 // Picks the showcase object for a project slug (see content/projects.ts).
 "use client";
 
-import { RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
 import { C } from "../../palette";
 import { Label } from "../props/Label";
-import { M, setGlow, useGlowMat, useLive, type ObjProps } from "./common";
+import { Block, M, setGlow, useGlowMat, useLive, type ObjProps } from "./common";
 import { AppSage, ElderKnowledge, ResumeParser, SqlChat, Verta } from "./Agents";
 import { HeliosTimeout, MaternityEcommerce, PcmBattery, RagDocQa, SimDriving, TableTennis, YoutubeBlog } from "./Extras";
 import { Freemoji, GptFromScratch, IplFantasy } from "./GenAI";
@@ -31,11 +30,11 @@ export function ProjectFallback({ active, ...props }: ObjProps) {
   return (
     <group {...props}>
       <mesh position={[0, 0.02, 0]} material={M.ink()} receiveShadow castShadow>
-        <cylinderGeometry args={[0.2, 0.24, 0.04, 40]} />
+        <cylinderGeometry args={[0.2, 0.24, 0.04, 8]} />
       </mesh>
       <group ref={spin}>
         <group rotation={[Math.atan(Math.SQRT1_2), 0, Math.PI / 4]}>
-          <RoundedBox args={[0.36, 0.36, 0.36]} radius={0.05} smoothness={4} material={M.red()} castShadow />
+          <Block args={[0.36, 0.36, 0.36]} radius={0.05} smoothness={4} material={M.red()} castShadow />
           <mesh scale={[0.37, 0.02, 0.37]} material={seam}>
             <boxGeometry />
           </mesh>

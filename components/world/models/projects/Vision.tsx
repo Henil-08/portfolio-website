@@ -1,14 +1,13 @@
 // Computer vision and robotics showcase objects: solar car, kidney scan, Pi-Car, gesture control.
 "use client";
 
-import { RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { C } from "../../palette";
-import { geo, mat, unitBox, unitCyl, unitSphere } from "../props/shared";
-import { Bars, Bone, M, extruded, setGlow, setOpacity, useGlowMat, useLive, type BarSpec, type ObjProps } from "./common";
+import { geo, mat, unitBox } from "../props/shared";
+import { Block, facet, prism, Bars, Bone, M, extruded, setGlow, setOpacity, useGlowMat, useLive, type BarSpec, type ObjProps } from "./common";
 
 // ---------------------------------------------------------------- Self-driving solar vehicle
 
@@ -29,11 +28,11 @@ export function SelfDriving({ active, ...props }: ObjProps) {
     setOpacity(cone, 0.12 + 0.06 * Math.sin(t * 3) + a * 0.1);
     setGlow(lens, 1.6 + a * 1.8);
   });
-  const panel = mat("#1f2a36", { r: 0.15, m: 0.35 });
+  const panel = mat(C.glass, { r: 0.15, m: 0.4 });
   return (
     <group {...props}>
-      <mesh geometry={unitCyl()} scale={[0.46, 0.024, 0.46]} position={[0, 0.012, 0]} material={M.alu()} castShadow receiveShadow />
-      <mesh geometry={unitCyl()} scale={[0.4, 0.006, 0.4]} position={[0, 0.026, 0]} material={M.white()} receiveShadow />
+      <mesh geometry={prism()} scale={[0.46, 0.024, 0.46]} position={[0, 0.012, 0]} material={M.alu()} castShadow receiveShadow />
+      <mesh geometry={prism()} scale={[0.4, 0.006, 0.4]} position={[0, 0.026, 0]} material={M.white()} receiveShadow />
       <group ref={table} position={[0, 0.029, 0]}>
         <group position={[-0.08, 0, 0]}>
           {/* wheels peeking under fairings */}
@@ -43,12 +42,12 @@ export function SelfDriving({ active, ...props }: ObjProps) {
             [0.27, 0],
           ].map(([x, z]) => (
             <group key={`${x}${z}`}>
-              <mesh geometry={unitCyl()} rotation={[Math.PI / 2, 0, 0]} scale={[0.05, 0.03, 0.05]} position={[x, 0.05, z]} material={M.rubber()} castShadow />
-              <RoundedBox args={[0.16, 0.06, 0.05]} radius={0.024} smoothness={3} position={[x, 0.085, z]} material={M.white()} castShadow />
+              <mesh geometry={prism()} rotation={[Math.PI / 2, 0, 0]} scale={[0.05, 0.03, 0.05]} position={[x, 0.05, z]} material={M.rubber()} castShadow />
+              <Block args={[0.16, 0.06, 0.05]} radius={0.024} smoothness={3} position={[x, 0.085, z]} material={M.white()} castShadow />
             </group>
           ))}
           {/* flat aero body + solar deck */}
-          <RoundedBox args={[0.84, 0.05, 0.44]} radius={0.022} smoothness={3} position={[0, 0.125, 0]} material={M.white()} castShadow receiveShadow />
+          <Block args={[0.84, 0.05, 0.44]} radius={0.022} smoothness={3} position={[0, 0.125, 0]} material={M.white()} castShadow receiveShadow />
           <mesh geometry={unitBox()} scale={[0.74, 0.012, 0.38]} position={[-0.02, 0.153, 0]} material={panel} receiveShadow />
           <group position={[-0.02, 0.16, 0]}>
             <Bars items={CELLS} material={M.alu()} />
@@ -57,11 +56,11 @@ export function SelfDriving({ active, ...props }: ObjProps) {
             <mesh key={z} geometry={unitBox()} scale={[0.6, 0.014, 0.004]} position={[0.05, 0.125, z]} material={M.red()} />
           ))}
           {/* driver canopy */}
-          <mesh geometry={unitSphere()} scale={[0.12, 0.06, 0.075]} position={[0.12, 0.165, 0]} material={mat(C.black, { r: 0.08, m: 0.3 })} castShadow />
+          <mesh geometry={facet()} scale={[0.12, 0.06, 0.075]} position={[0.12, 0.165, 0]} material={mat(C.black, { r: 0.08, m: 0.3 })} castShadow />
           {/* camera mast */}
           <Bone a={[0.26, 0.15, 0]} b={[0.26, 0.31, 0]} r={0.012} material={M.alu()} />
-          <RoundedBox args={[0.07, 0.05, 0.06]} radius={0.012} smoothness={2} position={[0.27, 0.33, 0]} material={M.charcoal()} castShadow />
-          <mesh geometry={unitCyl()} rotation={[0, 0, Math.PI / 2]} scale={[0.02, 0.02, 0.02]} position={[0.31, 0.33, 0]} material={lens} />
+          <Block args={[0.07, 0.05, 0.06]} radius={0.012} smoothness={2} position={[0.27, 0.33, 0]} material={M.charcoal()} castShadow />
+          <mesh geometry={prism()} rotation={[0, 0, Math.PI / 2]} scale={[0.02, 0.02, 0.02]} position={[0.31, 0.33, 0]} material={lens} />
           <mesh position={[0.31 + 0.17, 0.3, 0]} rotation={[0, 0, Math.PI / 2 + 0.18]} material={cone}>
             <coneGeometry args={[0.12, 0.34, 32, 1, true]} />
           </mesh>
@@ -96,7 +95,7 @@ export function Kidney({ active, ...props }: ObjProps) {
   const beam = useRef<THREE.Mesh>(null);
   const beamMat = useGlowMat(C.red, 1.8, 0.75);
   const spot = useGlowMat(C.red, 1.6);
-  const rings = useGlowMat(C.teal, 1.2);
+  const rings = useGlowMat(C.paper, 1.2);
   useFrame(() => {
     const { a, t } = live.current;
     if (organ.current) {
@@ -113,9 +112,9 @@ export function Kidney({ active, ...props }: ObjProps) {
     <group {...props}>
       {/* monitor */}
       <group position={[0, 0, -0.18]}>
-        <mesh geometry={unitCyl()} scale={[0.16, 0.02, 0.12]} position={[0, 0.01, 0]} material={M.alu()} castShadow receiveShadow />
+        <mesh geometry={prism()} scale={[0.16, 0.02, 0.12]} position={[0, 0.01, 0]} material={M.alu()} castShadow receiveShadow />
         <mesh geometry={unitBox()} scale={[0.05, 0.22, 0.03]} position={[0, 0.12, -0.02]} material={M.alu()} castShadow />
-        <RoundedBox args={[0.7, 0.5, 0.04]} radius={0.025} smoothness={3} position={[0, 0.47, 0]} material={M.charcoal()} castShadow receiveShadow />
+        <Block args={[0.7, 0.5, 0.04]} radius={0.025} smoothness={3} position={[0, 0.47, 0]} material={M.charcoal()} castShadow receiveShadow />
         <mesh geometry={unitBox()} scale={[0.64, 0.44, 0.004]} position={[0, 0.47, 0.021]} material={M.screen()} />
         {[0.08, 0.14, 0.2].map((r) => (
           <mesh key={r} position={[0, 0.47, 0.024]} material={rings}>
@@ -134,9 +133,9 @@ export function Kidney({ active, ...props }: ObjProps) {
       </group>
       {/* kidney */}
       <group ref={organ} position={[0, 0.44, 0.08]}>
-        <mesh geometry={g} scale={0.2} rotation={[0, 0, 0.25]} material={mat(C.pink, { r: 0.15, o: 0.72 })} castShadow />
-        <mesh geometry={unitSphere()} scale={0.045} position={[0.04, 0.12, 0.0]} material={spot} />
-        <Bone a={[-0.04, -0.02, 0]} b={[-0.12, -0.2, 0]} r={0.016} material={mat(C.pink, { r: 0.3 })} />
+        <mesh geometry={g} scale={0.2} rotation={[0, 0, 0.25]} material={mat(C.concrete, { r: 0.4, o: 0.72, flat: true })} castShadow />
+        <mesh geometry={facet()} scale={0.045} position={[0.04, 0.12, 0.0]} material={spot} />
+        <Bone a={[-0.04, -0.02, 0]} b={[-0.12, -0.2, 0]} r={0.016} material={mat(C.concreteDark, { r: 0.6 })} />
       </group>
       <mesh ref={beam} geometry={unitBox()} scale={[0.36, 0.006, 0.24]} position={[0, 0.44, 0.08]} material={beamMat} />
     </group>
@@ -177,13 +176,13 @@ export function PiCar({ active, ...props }: ObjProps) {
     });
     setGlow(led, (Math.sin(t * 6) > 0 ? 2 : 0.3) * (1 + a));
   });
-  const pcb = mat("#3f7a55", { r: 0.45 }); // Raspberry Pi green, muted to sit in the palette
+  const pcb = mat(C.leafDark, { r: 0.7 }); // board green, muted to the leaf tone
   return (
     <group {...props}>
-      <mesh geometry={unitCyl()} scale={[0.5, 0.04, 0.5]} position={[0, 0.02, 0]} material={mat(C.asphalt, { r: 0.8 })} castShadow receiveShadow />
+      <mesh geometry={prism()} scale={[0.5, 0.04, 0.5]} position={[0, 0.02, 0]} material={mat(C.asphalt, { r: 0.8 })} castShadow receiveShadow />
       <mesh geometry={laneGeo(0.43)} position={[0, 0.041, 0]} material={M.white()} receiveShadow />
       <mesh geometry={laneGeo(0.1)} position={[0, 0.041, 0]} material={M.white()} receiveShadow />
-      <mesh geometry={dashGeo()} position={[0, 0.041, 0]} material={mat(C.yellow, { r: 0.5 })} receiveShadow />
+      <mesh geometry={dashGeo()} position={[0, 0.041, 0]} material={mat(C.paper, { r: 0.6 })} receiveShadow />
       <group ref={lap}>
         {/* car sits on the lane centre, nose along the direction of travel */}
         <group position={[0.275, 0.04, 0]} rotation={[0, Math.PI / 2 + 0.25, 0]} scale={1.55}>
@@ -198,7 +197,7 @@ export function PiCar({ active, ...props }: ObjProps) {
               ref={(m) => {
                 wheels.current[i] = m;
               }}
-              geometry={unitCyl()}
+              geometry={prism()}
               rotation={[Math.PI / 2, 0, 0]}
               scale={[0.042, 0.04, 0.042]}
               position={[x, 0.042, z]}
@@ -206,9 +205,9 @@ export function PiCar({ active, ...props }: ObjProps) {
               castShadow
             />
           ))}
-          <RoundedBox args={[0.26, 0.025, 0.12]} radius={0.008} smoothness={2} position={[0, 0.05, 0]} material={M.ink()} castShadow />
-          <RoundedBox args={[0.17, 0.035, 0.09]} radius={0.01} smoothness={2} position={[-0.01, 0.08, 0]} material={M.red()} castShadow />
-          <RoundedBox args={[0.19, 0.01, 0.12]} radius={0.003} smoothness={1} position={[-0.01, 0.104, 0]} material={pcb} castShadow receiveShadow />
+          <Block args={[0.26, 0.025, 0.12]} radius={0.008} smoothness={2} position={[0, 0.05, 0]} material={M.ink()} castShadow />
+          <Block args={[0.17, 0.035, 0.09]} radius={0.01} smoothness={2} position={[-0.01, 0.08, 0]} material={M.red()} castShadow />
+          <Block args={[0.19, 0.01, 0.12]} radius={0.003} smoothness={1} position={[-0.01, 0.104, 0]} material={pcb} castShadow receiveShadow />
           <mesh geometry={unitBox()} scale={[0.04, 0.008, 0.04]} position={[0, 0.113, 0]} material={M.ink()} />
           <Bars
             items={[
@@ -217,12 +216,12 @@ export function PiCar({ active, ...props }: ObjProps) {
             ]}
             material={M.chrome()}
           />
-          <mesh geometry={unitBox()} scale={[0.12, 0.012, 0.012]} position={[0, 0.115, -0.05]} material={mat(C.gold, { r: 0.3, m: 0.7 })} />
+          <mesh geometry={unitBox()} scale={[0.12, 0.012, 0.012]} position={[0, 0.115, -0.05]} material={mat(C.concreteDark, { r: 0.5, m: 0.4 })} />
           <mesh geometry={unitBox()} scale={[0.01, 0.01, 0.01]} position={[0.06, 0.114, 0.04]} material={led} />
           {/* camera on a short mast */}
           <Bone a={[0.1, 0.06, 0]} b={[0.11, 0.16, 0]} r={0.008} material={M.alu()} />
-          <RoundedBox args={[0.035, 0.035, 0.04]} radius={0.008} smoothness={2} position={[0.115, 0.17, 0]} material={M.charcoal()} castShadow />
-          <mesh geometry={unitCyl()} rotation={[0, 0, Math.PI / 2]} scale={[0.01, 0.01, 0.01]} position={[0.135, 0.17, 0]} material={M.glowTeal(1.8)} />
+          <Block args={[0.035, 0.035, 0.04]} radius={0.008} smoothness={2} position={[0.115, 0.17, 0]} material={M.charcoal()} castShadow />
+          <mesh geometry={prism()} rotation={[0, 0, Math.PI / 2]} scale={[0.01, 0.01, 0.01]} position={[0.135, 0.17, 0]} material={M.glowTeal(1.8)} />
         </group>
       </group>
     </group>
@@ -271,14 +270,14 @@ export function GestureControl({ active, ...props }: ObjProps) {
   const skin = M.white();
   return (
     <group {...props}>
-      <RoundedBox args={[0.74, 0.05, 0.36]} radius={0.018} smoothness={2} position={[0, 0.025, 0.04]} material={M.cream()} castShadow receiveShadow />
+      <Block args={[0.74, 0.05, 0.36]} radius={0.018} smoothness={2} position={[0, 0.025, 0.04]} material={M.cream()} castShadow receiveShadow />
       {/* slider */}
       <group position={[0, 0.065, 0.12]}>
-        <RoundedBox args={[0.54, 0.024, 0.05]} radius={0.012} smoothness={2} material={M.ink()} castShadow />
+        <Block args={[0.54, 0.024, 0.05]} radius={0.012} smoothness={2} material={M.ink()} castShadow />
         <mesh ref={fill} geometry={unitBox()} scale={[0.25, 0.012, 0.028]} position={[-0.125, 0.009, 0]} material={M.glowRed(1.2)} />
         <group ref={knob}>
-          <mesh geometry={unitCyl()} scale={[0.038, 0.035, 0.038]} position={[0, 0.02, 0]} material={M.white()} castShadow />
-          <mesh geometry={unitCyl()} scale={[0.014, 0.004, 0.014]} position={[0, 0.039, 0]} material={M.glowRed(1.8)} />
+          <mesh geometry={prism()} scale={[0.038, 0.035, 0.038]} position={[0, 0.02, 0]} material={M.white()} castShadow />
+          <mesh geometry={prism()} scale={[0.014, 0.004, 0.014]} position={[0, 0.039, 0]} material={M.glowRed(1.8)} />
         </group>
         {/* speaker + sound arcs */}
         <group position={[0.31, 0.01, 0]}>
@@ -291,16 +290,16 @@ export function GestureControl({ active, ...props }: ObjProps) {
       {/* hand */}
       <group ref={hand} position={[0, 0.42, -0.04]}>
         <group scale={1.45} rotation={[0, -0.55, 0]}>
-          <RoundedBox args={[0.24, 0.26, 0.075]} radius={0.035} smoothness={4} material={skin} castShadow receiveShadow />
+          <Block args={[0.24, 0.26, 0.075]} radius={0.035} smoothness={4} material={skin} castShadow receiveShadow />
           {FINGERS.map((f, i) => (
             <group key={i}>
               <Bone a={f.pts[0]} b={f.pts[1]} r={f.r} material={skin} />
               <Bone a={f.pts[1]} b={f.pts[2]} r={f.r * 0.92} material={skin} />
             </group>
           ))}
-          <mesh geometry={unitCyl()} scale={[0.09, 0.08, 0.05]} position={[0, -0.16, 0]} material={skin} castShadow />
-          <mesh geometry={unitCyl()} scale={[0.095, 0.03, 0.055]} position={[0, -0.2, 0]} material={M.red()} castShadow />
-          <mesh ref={spark} geometry={unitSphere()} scale={0.022} position={PINCH} material={sparkMat} />
+          <mesh geometry={prism()} scale={[0.09, 0.08, 0.05]} position={[0, -0.16, 0]} material={skin} castShadow />
+          <mesh geometry={prism()} scale={[0.095, 0.03, 0.055]} position={[0, -0.2, 0]} material={M.red()} castShadow />
+          <mesh ref={spark} geometry={facet()} scale={0.022} position={PINCH} material={sparkMat} />
         </group>
       </group>
     </group>

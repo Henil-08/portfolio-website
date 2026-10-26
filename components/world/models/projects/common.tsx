@@ -7,6 +7,7 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { C } from "../../palette";
+import type { ThreeElements } from "@react-three/fiber";
 import { geo, mat, unitBox, type GroupProps } from "../props/shared";
 
 export type ObjProps = GroupProps & {
@@ -14,25 +15,46 @@ export type ObjProps = GroupProps & {
   active?: boolean;
 };
 
-/** Studio materials, all cached (shared across every object). */
+/**
+ * Studio materials in Concrete & Ink (docs/BRAND.md, World), all cached and shared:
+ * matte paper, concrete and ink, graphite for metal, glass for screens, one orange
+ * (`red`) for each object's accent. Flat shaded so the faceted forms read. The key
+ * names are the old ones so every object keeps its parts.
+ */
 export const M = {
-  white: () => mat(C.white, { r: 0.24 }),
-  cream: () => mat(C.cream, { r: 0.45 }),
-  stone: () => mat(C.sand, { r: 0.6 }),
-  red: () => mat(C.red, { r: 0.28 }),
-  redDark: () => mat(C.redDark, { r: 0.35 }),
-  ink: () => mat(C.ink, { r: 0.4, m: 0.1 }),
-  charcoal: () => mat(C.charcoal, { r: 0.35, m: 0.1 }),
-  grey: () => mat(C.grey, { r: 0.45 }),
-  greyLight: () => mat(C.greyLight, { r: 0.4 }),
-  alu: () => mat(C.metal, { r: 0.28, m: 0.55 }),
-  chrome: () => mat(C.silver, { r: 0.16, m: 0.85 }),
-  rubber: () => mat(C.black, { r: 0.75 }),
-  screen: () => mat("#1b2128", { glow: 0.9, e: "#202831", r: 0.2 }),
-  glowWhite: (k = 1.2) => mat(C.white, { glow: k, r: 0.4 }),
-  glowRed: (k = 1.6) => mat(C.red, { glow: k, r: 0.4 }),
-  glowTeal: (k = 1.8) => mat(C.teal, { glow: k, r: 0.4 }),
+  white: () => mat(C.paper, { r: 0.6, flat: true }),
+  cream: () => mat(C.concrete, { r: 0.9, flat: true }),
+  stone: () => mat(C.gravel, { r: 0.95, flat: true }),
+  red: () => mat(C.orange, { r: 0.55, flat: true }),
+  redDark: () => mat(C.ink, { r: 0.6, m: 0.2, flat: true }),
+  ink: () => mat(C.ink, { r: 0.6, m: 0.2, flat: true }),
+  charcoal: () => mat(C.charcoal, { r: 0.6, m: 0.2, flat: true }),
+  grey: () => mat(C.concreteDark, { r: 0.85, flat: true }),
+  greyLight: () => mat(C.concrete, { r: 0.85, flat: true }),
+  alu: () => mat(C.charcoal, { r: 0.5, m: 0.4, flat: true }),
+  chrome: () => mat(C.concreteDark, { r: 0.4, m: 0.4, flat: true }),
+  rubber: () => mat(C.black, { r: 0.9, flat: true }),
+  screen: () => mat(C.glass, { glow: 0.9, e: C.glass, r: 0.2 }),
+  glowWhite: (k = 1.2) => mat(C.paper, { glow: k, r: 0.4 }),
+  glowRed: (k = 1.6) => mat(C.orange, { glow: k, r: 0.4 }),
+  glowTeal: (k = 1.8) => mat(C.paper, { glow: k, r: 0.4 }),
 };
+
+/** Faceted unit sphere (radius 1) and eight-sided unit prism (radius 1, height 1): no turned toy shapes. */
+export const facet = () => geo("proj-facet", () => new THREE.IcosahedronGeometry(1, 1));
+export const prism = () => geo("proj-prism", () => new THREE.CylinderGeometry(1, 1, 1, 8));
+
+type BlockProps = Omit<ThreeElements["mesh"], "args"> & { args: [number, number, number]; radius?: number; smoothness?: number };
+/** A hard-edged box with RoundedBox's props (radius and smoothness are ignored). */
+export function Block({ args, radius: _r, smoothness: _s, children, ...props }: BlockProps) {
+  void _r;
+  void _s;
+  return (
+    <mesh geometry={unitBox()} scale={args} {...props}>
+      {children}
+    </mesh>
+  );
+}
 
 export type Live = { a: number; t: number };
 
@@ -67,7 +89,7 @@ export function setOpacity(m: THREE.Material, o: number) {
   m.opacity = o;
 }
 
-/** Capsule between two points (rounded tube segment). */
+/** Six-sided strut between two points. */
 export function Bone({ a, b, r, material, cast = true }: { a: THREE.Vector3Tuple; b: THREE.Vector3Tuple; r: number; material: THREE.Material; cast?: boolean }) {
   const va = new THREE.Vector3(...a);
   const vb = new THREE.Vector3(...b);
@@ -75,7 +97,7 @@ export function Bone({ a, b, r, material, cast = true }: { a: THREE.Vector3Tuple
   const len = dir.length();
   const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
   const pos = va.add(vb).multiplyScalar(0.5);
-  const g = geo(`proj-cap-${r.toFixed(3)}-${len.toFixed(3)}`, () => new THREE.CapsuleGeometry(r, Math.max(0.001, len), 6, 16));
+  const g = geo(`proj-strut-${r.toFixed(3)}-${len.toFixed(3)}`, () => new THREE.CylinderGeometry(r, r, Math.max(0.001, len) + r, 6));
   return <mesh geometry={g} position={pos} quaternion={quat} material={material} castShadow={cast} />;
 }
 
@@ -100,16 +122,16 @@ export function Bars({ items, material, cast = false }: { items: BarSpec[]; mate
   return <instancedMesh ref={ref} args={[unitBox(), material, items.length]} castShadow={cast} receiveShadow />;
 }
 
-/** Extruded, softly bevelled shape, centred on its bounds. Cached by key. */
-export function extruded(key: string, make: () => THREE.Shape, depth: number, bevel: number, segs = 4, center = true) {
+/** Extruded shape with a hard chamfer, centred on its bounds. Cached by key. */
+export function extruded(key: string, make: () => THREE.Shape, depth: number, bevel: number, segs = 1, center = true) {
   return geo(`proj-ext-${key}`, () => {
     const g = new THREE.ExtrudeGeometry(make(), {
       depth,
       bevelEnabled: bevel > 0,
       bevelSize: bevel,
       bevelThickness: bevel,
-      bevelSegments: segs,
-      curveSegments: 24,
+      bevelSegments: Math.min(1, segs),
+      curveSegments: 6,
     });
     if (center) g.center();
     g.computeVertexNormals();
@@ -118,6 +140,6 @@ export function extruded(key: string, make: () => THREE.Shape, depth: number, be
 }
 
 /** Lathe from [radius, y] pairs, cached by key. */
-export function lathe(key: string, pts: [number, number][], segs = 48) {
+export function lathe(key: string, pts: [number, number][], segs = 8) {
   return geo(`proj-lathe-${key}`, () => new THREE.LatheGeometry(pts.map(([x, y]) => new THREE.Vector2(x, y)), segs));
 }

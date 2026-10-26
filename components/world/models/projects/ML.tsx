@@ -1,14 +1,13 @@
 // ML and data showcase objects: Frisbee ratings, Rent the Runway recommender, API anomaly detection.
 "use client";
 
-import { RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
 import { C } from "../../palette";
 import { Label } from "../props/Label";
-import { mat, unitBox, unitCyl, unitSphere } from "../props/shared";
-import { Bars, Bone, M, extruded, lathe, setGlow, setOpacity, useGlowMat, useLive, type BarSpec, type ObjProps } from "./common";
+import { mat, unitBox } from "../props/shared";
+import { Block, facet, prism, Bars, Bone, M, extruded, lathe, setGlow, setOpacity, useGlowMat, useLive, type BarSpec, type ObjProps } from "./common";
 
 const DS = THREE.DoubleSide;
 
@@ -46,9 +45,9 @@ export function Frisbee({ active, ...props }: ObjProps) {
   });
   return (
     <group {...props}>
-      <RoundedBox args={[0.62, 0.04, 0.3]} radius={0.015} smoothness={2} position={[0, 0.02, 0.04]} material={M.white()} castShadow receiveShadow />
+      <Block args={[0.62, 0.04, 0.3]} radius={0.015} smoothness={2} position={[0, 0.02, 0.04]} material={M.white()} castShadow receiveShadow />
       {CHART.map((h, i) => (
-        <RoundedBox
+        <Block
           key={i}
           args={[0.075, h, 0.075]}
           radius={0.012}
@@ -59,17 +58,17 @@ export function Frisbee({ active, ...props }: ObjProps) {
           receiveShadow
         />
       ))}
-      <Label position={[0, 0.02, 0.192]} fontSize={0.028} color={C.greyDark} letterSpacing={0.1}>
+      <Label position={[0, 0.02, 0.192]} fontSize={0.028} color={C.charcoal} letterSpacing={0.1}>
         +/- RATING
       </Label>
       {/* flight trail, dots trailing down to the left */}
       {[0, 1, 2, 3].map((i) => (
-        <mesh key={i} geometry={unitSphere()} scale={0.016 - i * 0.003} position={[-0.24 - i * 0.08, 0.56 - i * 0.05 - i * i * 0.01, 0]} material={trail} />
+        <mesh key={i} geometry={facet()} scale={0.016 - i * 0.003} position={[-0.24 - i * 0.08, 0.56 - i * 0.05 - i * i * 0.01, 0]} material={trail} />
       ))}
       <group ref={disc} position={[0.06, 0.64, 0]}>
         <group rotation={[0.42, 0, -0.28]}>
           <group ref={spin}>
-            <mesh geometry={lathe("frisbee", DISC)} material={mat(C.red, { r: 0.25, side: DS })} castShadow />
+            <mesh geometry={lathe("frisbee", DISC)} material={mat(C.orange, { r: 0.55, side: DS, flat: true })} castShadow />
             <mesh position={[0, 0.0525, 0]} rotation={[-Math.PI / 2, 0, 0]} material={M.white()}>
               <ringGeometry args={[0.2, 0.225, 48]} />
             </mesh>
@@ -125,23 +124,23 @@ export function Runway({ active, ...props }: ObjProps) {
   });
   return (
     <group {...props}>
-      <mesh geometry={unitCyl()} scale={[0.2, 0.03, 0.2]} position={[0, 0.015, 0]} material={M.ink()} castShadow receiveShadow />
-      <mesh geometry={unitCyl()} scale={[0.016, 0.4, 0.016]} position={[0, 0.22, 0]} material={M.chrome()} castShadow />
+      <mesh geometry={prism()} scale={[0.2, 0.03, 0.2]} position={[0, 0.015, 0]} material={M.ink()} castShadow receiveShadow />
+      <mesh geometry={prism()} scale={[0.016, 0.4, 0.016]} position={[0, 0.22, 0]} material={M.chrome()} castShadow />
       <group ref={form} position={[0, 0.4, 0]}>
         <group scale={[1.12, 1, 0.74]}>
-          <mesh geometry={lathe("torso", TORSO)} material={mat(C.cream, { r: 0.75 })} castShadow receiveShadow />
-          <mesh geometry={lathe("dress", DRESS)} material={mat(C.red, { r: 0.35, side: DS })} castShadow receiveShadow />
-          <mesh geometry={unitCyl()} scale={[0.2, 0.012, 0.2]} position={[0, 0.462, 0]} material={M.redDark()} />
+          <mesh geometry={lathe("torso", TORSO)} material={mat(C.concrete, { r: 0.85, flat: true })} castShadow receiveShadow />
+          <mesh geometry={lathe("dress", DRESS)} material={mat(C.ink, { r: 0.6, side: DS, flat: true })} castShadow receiveShadow />
+          <mesh geometry={prism()} scale={[0.2, 0.012, 0.2]} position={[0, 0.462, 0]} material={M.redDark()} />
         </group>
-        <mesh geometry={unitSphere()} scale={[0.06, 0.035, 0.06]} position={[0, 0.68, 0]} material={mat(C.wood, { r: 0.45 })} castShadow />
+        <mesh geometry={facet()} scale={[0.06, 0.035, 0.06]} position={[0, 0.68, 0]} material={mat(C.charcoal, { r: 0.6, flat: true })} castShadow />
         {/* tag on a string from the waist */}
         <group position={[0.17, 0.27, 0.06]}>
           <group ref={tag}>
             <Bone a={[0, 0, 0]} b={[0.02, -0.1, 0.03]} r={0.003} material={M.ink()} cast={false} />
             <group position={[0.025, -0.17, 0.035]} rotation={[0, -0.3, 0.1]}>
-              <RoundedBox args={[0.09, 0.14, 0.008]} radius={0.012} smoothness={2} material={M.white()} castShadow />
+              <Block args={[0.09, 0.14, 0.008]} radius={0.012} smoothness={2} material={M.white()} castShadow />
               <mesh geometry={unitBox()} scale={[0.09, 0.03, 0.004]} position={[0, 0.045, 0.005]} material={M.ink()} />
-              <mesh geometry={unitCyl()} rotation={[Math.PI / 2, 0, 0]} scale={[0.008, 0.01, 0.008]} position={[0, 0.055, 0.005]} material={M.white()} />
+              <mesh geometry={prism()} rotation={[Math.PI / 2, 0, 0]} scale={[0.008, 0.01, 0.008]} position={[0, 0.055, 0.005]} material={M.white()} />
               <mesh geometry={unitBox()} scale={[0.05, 0.05, 0.004]} position={[0, -0.01, 0.005]} rotation={[0, 0, Math.PI / 4]} material={star} />
               <mesh geometry={unitBox()} scale={[0.06, 0.008, 0.004]} position={[0, -0.05, 0.005]} material={M.greyLight()} />
             </group>
@@ -191,26 +190,26 @@ export function ApiAnomaly({ active, ...props }: ObjProps) {
   const [sx, sy] = SERIES[SPIKE];
   return (
     <group {...props}>
-      <RoundedBox args={[0.94, 0.05, 0.3]} radius={0.018} smoothness={2} position={[0, 0.025, 0]} material={M.ink()} castShadow receiveShadow />
+      <Block args={[0.94, 0.05, 0.3]} radius={0.018} smoothness={2} position={[0, 0.025, 0]} material={M.ink()} castShadow receiveShadow />
       {/* back panel with faint grid */}
-      <RoundedBox args={[0.9, 0.66, 0.02]} radius={0.01} smoothness={2} position={[0, 0.05 + 0.33, -0.1]} material={M.white()} castShadow receiveShadow />
+      <Block args={[0.9, 0.66, 0.02]} radius={0.01} smoothness={2} position={[0, 0.05 + 0.33, -0.1]} material={M.white()} castShadow receiveShadow />
       <group position={[0, 0.05, -0.088]}>
         <Bars items={GRID} material={M.greyLight()} />
       </group>
       {/* area + line */}
       <group position={[0, 0.05, -0.04]}>
-        <mesh geometry={area} material={mat(C.sand, { r: 0.5 })} castShadow receiveShadow />
+        <mesh geometry={area} material={mat(C.gravel, { r: 0.9, flat: true })} castShadow receiveShadow />
         {SERIES.slice(1).map(([x, y], i) => {
           const [px, py] = SERIES[i];
           const hot = i === SPIKE - 1 || i === SPIKE;
           return <Bone key={i} a={[px, py, 0.055]} b={[x, y, 0.055]} r={0.012} material={hot ? M.red() : M.charcoal()} />;
         })}
-        <mesh geometry={unitSphere()} scale={0.026} position={[sx, sy, 0.055]} material={dot} />
+        <mesh geometry={facet()} scale={0.026} position={[sx, sy, 0.055]} material={dot} />
         <mesh ref={pulse} position={[sx, sy, 0.056]} material={pulseMat}>
-          <torusGeometry args={[1, 0.08, 8, 40]} />
+          <torusGeometry args={[1, 0.08, 4, 12]} />
         </mesh>
         {/* flag on the spike */}
-        <mesh geometry={unitCyl()} scale={[0.006, 0.12, 0.006]} position={[sx, sy + 0.08, 0.055]} material={M.ink()} castShadow />
+        <mesh geometry={prism()} scale={[0.006, 0.12, 0.006]} position={[sx, sy + 0.08, 0.055]} material={M.ink()} castShadow />
         <group ref={flag} position={[sx, sy + 0.12, 0.055]}>
           <mesh geometry={unitBox()} scale={[0.07, 0.045, 0.004]} position={[0.036, 0, 0]} material={M.red()} castShadow />
         </group>

@@ -1,14 +1,13 @@
 // AI-for-hardware showcase objects: RTL verification agents and the Verilog coder.
 "use client";
 
-import { RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { C } from "../../palette";
 import { Label } from "../props/Label";
-import { mat, unitBox, unitCyl, unitSphere } from "../props/shared";
-import { Bars, Bone, M, setGlow, useGlowMat, useLive, type BarSpec, type ObjProps } from "./common";
+import { mat, unitBox } from "../props/shared";
+import { Block, facet, prism, Bars, Bone, M, setGlow, useGlowMat, useLive, type BarSpec, type ObjProps } from "./common";
 
 /** Silver gull-wing pins around a square package, one instanced mesh. */
 function Pins({ size, n, y }: { size: number; n: number; y: number }) {
@@ -36,7 +35,7 @@ function Pins({ size, n, y }: { size: number; n: number; y: number }) {
     m.instanceMatrix.needsUpdate = true;
     m.computeBoundingSphere();
   }, [size, n, y]);
-  return <instancedMesh ref={ref} args={[unitBox(), mat(C.silver, { r: 0.22, m: 0.7 }), n * 4]} castShadow />;
+  return <instancedMesh ref={ref} args={[unitBox(), mat(C.concreteDark, { r: 0.5, m: 0.4 }), n * 4]} castShadow />;
 }
 
 /** Charcoal QFP package, origin at its bottom centre, top surface at y = size * 0.12. */
@@ -44,9 +43,9 @@ function Package({ size }: { size: number }) {
   const h = size * 0.12;
   return (
     <>
-      <RoundedBox args={[size, h, size]} radius={Math.min(0.03 * size, h / 2 - 0.001)} smoothness={3} position={[0, h / 2, 0]} material={M.charcoal()} castShadow receiveShadow />
+      <Block args={[size, h, size]} radius={Math.min(0.03 * size, h / 2 - 0.001)} smoothness={3} position={[0, h / 2, 0]} material={M.charcoal()} castShadow receiveShadow />
       <Pins size={size} n={7} y={h * 0.3} />
-      <mesh geometry={unitCyl()} scale={[size * 0.03, 0.004, size * 0.03]} position={[-size * 0.4, h, size * 0.4]} material={M.white()} />
+      <mesh geometry={prism()} scale={[size * 0.03, 0.004, size * 0.03]} position={[-size * 0.4, h, size * 0.4]} material={M.white()} />
     </>
   );
 }
@@ -57,7 +56,7 @@ export function RtlCoverageAgents({ active, ...props }: ObjProps) {
   const orbit = useRef<THREE.Group>(null);
   const node = useGlowMat(C.white, 1.3);
   const lead = useGlowMat(C.red, 1.8);
-  const seam = useGlowMat(C.teal, 1.8);
+  const seam = useGlowMat(C.paper, 1.6);
   useFrame(() => {
     const { a, t } = live.current;
     if (orbit.current) orbit.current.rotation.y = t * 0.45;
@@ -70,12 +69,12 @@ export function RtlCoverageAgents({ active, ...props }: ObjProps) {
   return (
     <group {...props}>
       {/* white test fixture with a charcoal socket and a red ZIF lever */}
-      <RoundedBox args={[0.7, 0.13, 0.7]} radius={0.03} smoothness={3} position={[0, 0.065, 0]} material={M.white()} castShadow receiveShadow />
-      <RoundedBox args={[0.54, 0.05, 0.54]} radius={0.015} smoothness={2} position={[0, 0.15, 0]} material={M.ink()} castShadow receiveShadow />
+      <Block args={[0.7, 0.13, 0.7]} radius={0.03} smoothness={3} position={[0, 0.065, 0]} material={M.white()} castShadow receiveShadow />
+      <Block args={[0.54, 0.05, 0.54]} radius={0.015} smoothness={2} position={[0, 0.15, 0]} material={M.ink()} castShadow receiveShadow />
       <mesh geometry={unitBox()} scale={[0.46, 0.006, 0.46]} position={[0, 0.176, 0]} material={M.greyLight()} />
       <Bone a={[0.3, 0.16, 0.24]} b={[0.3, 0.16, -0.22]} r={0.016} material={M.red()} />
-      <mesh geometry={unitSphere()} scale={0.03} position={[0.3, 0.16, 0.26]} material={M.red()} castShadow />
-      <Label position={[-0.18, 0.065, 0.351]} anchorX="left" fontSize={0.042} color={C.greyDark} letterSpacing={0.12}>
+      <mesh geometry={facet()} scale={0.03} position={[0.3, 0.16, 0.26]} material={M.red()} castShadow />
+      <Label position={[-0.18, 0.065, 0.351]} anchorX="left" fontSize={0.042} color={C.charcoal} letterSpacing={0.12}>
         UVM · DUT
       </Label>
       <mesh geometry={unitBox()} scale={[0.08, 0.012, 0.004]} position={[0.22, 0.065, 0.352]} material={seam} />
@@ -83,15 +82,15 @@ export function RtlCoverageAgents({ active, ...props }: ObjProps) {
       <group position={[0, 0.18, 0]}>
         <Package size={S} />
         <mesh geometry={unitBox()} scale={[S * 0.66, 0.006, S * 0.66]} position={[0, S * 0.12 + 0.003, 0]} material={seam} />
-        <RoundedBox args={[S * 0.6, 0.016, S * 0.6]} radius={0.006} smoothness={2} position={[0, S * 0.12 + 0.012, 0]} material={M.alu()} castShadow receiveShadow />
+        <Block args={[S * 0.6, 0.016, S * 0.6]} radius={0.006} smoothness={2} position={[0, S * 0.12 + 0.012, 0]} material={M.alu()} castShadow receiveShadow />
         <Label position={[0, S * 0.12 + 0.021, 0.01]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.06} color={C.ink}>
           100%
         </Label>
       </group>
       {/* agent orbit */}
       <group position={[0, 0.5, 0]} rotation={[0.38, 0, 0.12]}>
-        <mesh rotation={[Math.PI / 2, 0, 0]} material={mat(C.greyLight, { r: 0.3, o: 0.7 })}>
-          <torusGeometry args={[0.44, 0.005, 8, 96]} />
+        <mesh rotation={[Math.PI / 2, 0, 0]} material={mat(C.concrete, { r: 0.6, o: 0.7 })}>
+          <torusGeometry args={[0.44, 0.005, 4, 12]} />
         </mesh>
         <group ref={orbit}>
           {Array.from({ length: 7 }, (_, i) => {
@@ -99,7 +98,7 @@ export function RtlCoverageAgents({ active, ...props }: ObjProps) {
             return (
               <mesh
                 key={i}
-                geometry={unitSphere()}
+                geometry={facet()}
                 scale={i === 0 ? 0.06 : 0.042}
                 position={[Math.cos(th) * 0.44, 0, Math.sin(th) * 0.44]}
                 material={i === 0 ? lead : node}
@@ -155,15 +154,15 @@ export function VerilogCoder({ active, ...props }: ObjProps) {
     <group {...props}>
       {/* chip on a slim aluminium stand, tilted so its code lid faces the viewer */}
       <group position={[-0.16, 0, 0]}>
-        <mesh geometry={unitCyl()} scale={[0.17, 0.02, 0.17]} position={[0, 0.01, 0]} material={M.alu()} castShadow receiveShadow />
-        <mesh geometry={unitCyl()} scale={[0.024, 0.3, 0.024]} position={[0, 0.16, 0]} material={M.alu()} castShadow />
+        <mesh geometry={prism()} scale={[0.17, 0.02, 0.17]} position={[0, 0.01, 0]} material={M.alu()} castShadow receiveShadow />
+        <mesh geometry={prism()} scale={[0.024, 0.3, 0.024]} position={[0, 0.16, 0]} material={M.alu()} castShadow />
         <group position={[0, 0.36, 0.02]} rotation={[0.95, 0, 0]}>
           <group position={[0, -0.03, 0]}>
             <Package size={0.6} />
-            <RoundedBox args={[L + 0.02, 0.014, L + 0.02]} radius={0.005} smoothness={2} position={[0, 0.079, 0]} material={M.ink()} />
+            <Block args={[L + 0.02, 0.014, L + 0.02]} radius={0.005} smoothness={2} position={[0, 0.079, 0]} material={M.ink()} />
             <mesh geometry={unitBox()} scale={[L, 0.004, L]} position={[0, 0.087, 0]} material={M.screen()} />
             {/* gutter */}
-            <mesh geometry={unitBox()} scale={[0.05, 0.004, L * 0.9]} position={[-L / 2 + 0.03, 0.089, 0]} material={mat("#28313b", { glow: 0.9 })} />
+            <mesh geometry={unitBox()} scale={[0.05, 0.004, L * 0.9]} position={[-L / 2 + 0.03, 0.089, 0]} material={mat(C.glass, { glow: 0.9 })} />
             <group position={[0.012, 0.091, 0]}>
               <Bars items={bars.r} material={M.glowRed(1.5)} />
               <Bars items={bars.w} material={M.glowWhite(0.9)} />
@@ -175,8 +174,8 @@ export function VerilogCoder({ active, ...props }: ObjProps) {
       </group>
       {/* pass@1 chart: base, a grey "before" bar and a red "after" bar that climbs */}
       <group position={[0.38, 0, 0.08]}>
-        <RoundedBox args={[0.3, 0.04, 0.2]} radius={0.012} smoothness={2} position={[0, 0.02, 0]} material={M.white()} castShadow receiveShadow />
-        <RoundedBox args={[0.08, 0.17 * 0.9, 0.08]} radius={0.01} smoothness={2} position={[-0.065, 0.04 + 0.0765, 0]} material={M.greyLight()} castShadow />
+        <Block args={[0.3, 0.04, 0.2]} radius={0.012} smoothness={2} position={[0, 0.02, 0]} material={M.white()} castShadow receiveShadow />
+        <Block args={[0.08, 0.17 * 0.9, 0.08]} radius={0.01} smoothness={2} position={[-0.065, 0.04 + 0.0765, 0]} material={M.greyLight()} castShadow />
         <mesh ref={bar} geometry={unitBox()} scale={[0.08, 0.4, 0.08]} position={[0.065, 0.24, 0]} material={M.red()} castShadow />
         <mesh geometry={unitBox()} scale={[0.3, 0.004, 0.004]} position={[0, 0.044 + 0.449 * 0.9, 0]} material={glow} />
         <Label position={[0, 0.02, 0.102]} fontSize={0.03} color={C.ink} letterSpacing={0.08}>
@@ -185,7 +184,7 @@ export function VerilogCoder({ active, ...props }: ObjProps) {
         <Label position={[0.065, 0.044 + 0.449 * 0.9 + 0.04, 0]} fontSize={0.04} color={C.red}>
           44.9
         </Label>
-        <Label position={[-0.065, 0.04 + 0.153 + 0.035, 0]} fontSize={0.032} color={C.grey}>
+        <Label position={[-0.065, 0.04 + 0.153 + 0.035, 0]} fontSize={0.032} color={C.charcoal}>
           17.3
         </Label>
       </group>

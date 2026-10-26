@@ -1,14 +1,13 @@
 // Fine-tuning and generative AI showcase objects: Freemoji, IPL Fantasy Picker, GPT from Scratch.
 "use client";
 
-import { RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { C } from "../../palette";
 import { Label } from "../props/Label";
-import { mat, unitBox, unitCyl, unitSphere } from "../props/shared";
-import { Bars, M, setGlow, useGlowMat, useLive, type BarSpec, type ObjProps } from "./common";
+import { mat, unitBox } from "../props/shared";
+import { Block, facet, prism, Bars, M, setGlow, useGlowMat, useLive, type BarSpec, type ObjProps } from "./common";
 
 // ---------------------------------------------------------------- Freemoji
 
@@ -39,28 +38,28 @@ export function Freemoji({ active, ...props }: ObjProps) {
     }
     setGlow(sparkMat, 1.2 + a * 1.6);
   });
-  const face = mat(C.yellow, { r: 0.2, m: 0.05 });
+  const face = mat(C.paper, { r: 0.6, flat: true });
   return (
     <group {...props}>
       <mesh position={[0, 0.022, 0]} rotation={[Math.PI / 2, 0, 0]} material={M.white()} castShadow receiveShadow>
-        <torusGeometry args={[0.13, 0.022, 12, 40]} />
+        <torusGeometry args={[0.13, 0.022, 4, 12]} />
       </mesh>
       <group ref={body}>
         <group position={[0, R + 0.01, 0]}>
-          <mesh geometry={unitSphere()} scale={R} material={face} castShadow receiveShadow />
+          <mesh geometry={facet()} scale={R} material={face} castShadow receiveShadow />
           <group ref={eyes} position={[0, 0.08, 0]}>
             {[-1, 1].map((s) => (
               <group key={s}>
-                <mesh geometry={unitSphere()} scale={[0.038, 0.062, 0.03]} position={[s * 0.105, 0, 0.312]} material={M.ink()} />
-                <mesh geometry={unitSphere()} scale={0.012} position={[s * 0.105 + 0.01, 0.025, 0.338]} material={M.white()} />
+                <mesh geometry={facet()} scale={[0.038, 0.062, 0.03]} position={[s * 0.105, 0, 0.312]} material={M.ink()} />
+                <mesh geometry={facet()} scale={0.012} position={[s * 0.105 + 0.01, 0.025, 0.338]} material={M.white()} />
               </group>
             ))}
           </group>
           <mesh position={[0, -0.02, 0.298]} rotation={[-0.3, 0, -Math.PI / 2 - Math.PI * 0.36]} material={M.ink()}>
-            <torusGeometry args={[0.13, 0.019, 10, 36, Math.PI * 0.72]} />
+            <torusGeometry args={[0.13, 0.019, 4, 12, Math.PI * 0.72]} />
           </mesh>
           {[-1, 1].map((s) => (
-            <mesh key={s} geometry={unitSphere()} scale={[0.05, 0.028, 0.015]} position={[s * 0.19, -0.04, 0.268]} rotation={[0, s * 0.6, 0]} material={mat(C.pink, { r: 0.4 })} />
+            <mesh key={s} geometry={facet()} scale={[0.05, 0.028, 0.015]} position={[s * 0.19, -0.04, 0.268]} rotation={[0, s * 0.6, 0]} material={mat(C.concreteDark, { r: 0.8 })} />
           ))}
         </group>
       </group>
@@ -85,7 +84,7 @@ const XI_DOTS: BarSpec[] = [0, 1, 2, 3, 4].map((i) => [-0.075, 0.03 - i * 0.034,
 export function IplFantasy({ active, ...props }: ObjProps) {
   const live = useLive(active);
   const ball = useRef<THREE.Group>(null);
-  const star = useGlowMat(C.yellow, 1.0);
+  const star = useGlowMat(C.paper, 1.0);
   useFrame(() => {
     const { a, t } = live.current;
     if (ball.current) {
@@ -94,16 +93,16 @@ export function IplFantasy({ active, ...props }: ObjProps) {
     }
     setGlow(star, 0.8 + a * 1.6 + 0.3 * Math.sin(t * 3));
   });
-  const wood = mat(C.wood, { r: 0.5 });
+  const wood = mat(C.charcoal, { r: 0.6, flat: true });
   return (
     <group {...props}>
-      <RoundedBox args={[0.74, 0.04, 0.44]} radius={0.015} smoothness={2} position={[0, 0.02, 0]} material={M.cream()} castShadow receiveShadow />
+      <Block args={[0.74, 0.04, 0.44]} radius={0.015} smoothness={2} position={[0, 0.02, 0]} material={M.cream()} castShadow receiveShadow />
       {/* team sheet */}
       <group position={[0.17, 0.04, -0.1]} rotation={[-0.18, -0.25, 0]}>
         <mesh geometry={unitBox()} scale={[0.06, 0.04, 0.06]} position={[0, 0.02, -0.03]} material={M.alu()} castShadow />
         <group position={[0, 0.2, 0]}>
-          <RoundedBox args={[0.24, 0.32, 0.012]} radius={0.01} smoothness={2} material={M.white()} castShadow receiveShadow />
-          <RoundedBox args={[0.24, 0.09, 0.014]} radius={0.01} smoothness={2} position={[0, 0.115, 0.001]} material={M.red()} />
+          <Block args={[0.24, 0.32, 0.012]} radius={0.01} smoothness={2} material={M.white()} castShadow receiveShadow />
+          <Block args={[0.24, 0.09, 0.014]} radius={0.01} smoothness={2} position={[0, 0.115, 0.001]} material={M.red()} />
           <Label position={[0, 0.112, 0.01]} fontSize={0.07} color={C.white}>
             XI
           </Label>
@@ -114,18 +113,18 @@ export function IplFantasy({ active, ...props }: ObjProps) {
       </group>
       {/* bat, leaning on its toe */}
       <group position={[-0.2, 0.04, 0.02]} rotation={[0.08, 0.3, -0.5]}>
-        <RoundedBox args={[0.12, 0.46, 0.045]} radius={0.018} smoothness={3} position={[0, 0.23, 0]} material={wood} castShadow receiveShadow />
-        <RoundedBox args={[0.05, 0.3, 0.03]} radius={0.012} smoothness={2} position={[0, 0.2, -0.025]} material={wood} castShadow />
+        <Block args={[0.12, 0.46, 0.045]} radius={0.018} smoothness={3} position={[0, 0.23, 0]} material={wood} castShadow receiveShadow />
+        <Block args={[0.05, 0.3, 0.03]} radius={0.012} smoothness={2} position={[0, 0.2, -0.025]} material={wood} castShadow />
         <mesh geometry={unitBox()} scale={[0.122, 0.03, 0.047]} position={[0, 0.39, 0]} material={M.red()} />
-        <mesh geometry={unitCyl()} scale={[0.02, 0.2, 0.02]} position={[0, 0.56, 0]} material={M.red()} castShadow />
-        <mesh geometry={unitCyl()} scale={[0.024, 0.02, 0.024]} position={[0, 0.665, 0]} material={M.ink()} />
+        <mesh geometry={prism()} scale={[0.02, 0.2, 0.02]} position={[0, 0.56, 0]} material={M.red()} castShadow />
+        <mesh geometry={prism()} scale={[0.024, 0.02, 0.024]} position={[0, 0.665, 0]} material={M.ink()} />
       </group>
       {/* ball */}
       <group ref={ball} position={[0.02, 0.3, 0.14]}>
-        <mesh geometry={unitSphere()} scale={0.07} material={mat(C.red, { r: 0.22 })} castShadow />
+        <mesh geometry={facet()} scale={0.07} material={mat(C.orange, { r: 0.55, flat: true })} castShadow />
         {[-0.012, 0.012].map((x) => (
           <mesh key={x} position={[x, 0, 0]} rotation={[0, Math.PI / 2, 0]} material={M.white()}>
-            <torusGeometry args={[0.0695, 0.004, 6, 40]} />
+            <torusGeometry args={[0.0695, 0.004, 4, 12]} />
           </mesh>
         ))}
       </group>
@@ -186,9 +185,9 @@ export function GptFromScratch({ active, ...props }: ObjProps) {
   return (
     <group {...props}>
       {/* embedding base */}
-      <RoundedBox args={[0.56, 0.06, 0.44]} radius={0.02} smoothness={2} position={[0, 0.03, 0]} material={M.ink()} castShadow receiveShadow />
+      <Block args={[0.56, 0.06, 0.44]} radius={0.02} smoothness={2} position={[0, 0.03, 0]} material={M.ink()} castShadow receiveShadow />
       {Array.from({ length: BLOCKS }, (_, b) => (
-        <RoundedBox
+        <Block
           key={b}
           args={[0.5, 0.12, 0.4]}
           radius={0.025}
@@ -203,10 +202,10 @@ export function GptFromScratch({ active, ...props }: ObjProps) {
       <Bars items={[0, 1, 2].map((b) => [0, 0.06 + 0.14 + b * 0.15 + 0.005, 0, 0.42, 0.03, 0.32] as BarSpec)} material={M.charcoal()} />
       <instancedMesh ref={heads} args={[unitBox(), headMat, BLOCKS * HEADS]} />
       {/* residual stream: a red rod up the side */}
-      <mesh geometry={unitCyl()} scale={[0.014, 0.62, 0.014]} position={[-0.27, 0.37, 0.12]} material={M.glowRed(1.2)} />
+      <mesh geometry={prism()} scale={[0.014, 0.62, 0.014]} position={[-0.27, 0.37, 0.12]} material={M.glowRed(1.2)} />
       {/* next token */}
       <group ref={token} position={[0, 0.76, 0]}>
-        <RoundedBox args={[0.11, 0.11, 0.11]} radius={0.02} smoothness={3} rotation={[0.6, 0, 0.6]} material={M.red()} castShadow />
+        <Block args={[0.11, 0.11, 0.11]} radius={0.02} smoothness={3} rotation={[0.6, 0, 0.6]} material={M.red()} castShadow />
       </group>
     </group>
   );
