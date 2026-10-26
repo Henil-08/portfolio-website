@@ -3,7 +3,9 @@
 import * as THREE from "three";
 import { GANTRY, LEN, FRAMES, N_FRAMES, barrierOffset, farSign, farSpot, inPitSide, inSectorScene, nearCones, nearPlace, nearTree, outSign, RUNOFF, type Spot } from "./common";
 import { STAND_SPOTS } from "./standSpots";
-import { PIT, PIT_LANE_WIDTH, PIT_WALL, STRAIGHT_Z, TRACK_WIDTH, inLand, nearCrossing, nearestT, onBridge, pitWallZ } from "../layout";
+import { nearGarden } from "../garden/layout";
+import { nearPromenade } from "../waterfront/layout";
+import { GARAGES, PIT, PIT_LANE_WIDTH, PIT_WALL, STRAIGHT_Z, TRACK_WIDTH, inLand, nearCrossing, nearestT, onBridge, pitWallZ } from "../layout";
 
 // The original circuit has no walls: open run-off past the kerbs, and a short TecPro
 // barrier (W03) on the outside of the tight corners only.
@@ -124,6 +126,8 @@ export type Flood = { x: number; z: number; yaw: number; px: number; pz: number;
 export const FLOOD_SPACING = 17;
 const FLOOD_STRAIGHT = 9; // m between towers on the pit wall
 const FLOOD_BACK = 2.6; // m past the barrier line, clear of the TecPro walls and the catch fence
+const FLOOD_FAR = 3.2; // m past the straight's far edge, for the towers moved off the pit wall
+const GARAGE_CLEAR = 8; // m past the outer garages' centres that the pit wall stays clear of towers
 
 /**
  * Night-race floodlight towers on the far side, set back outside the run-off, every ~17 m.
@@ -131,6 +135,17 @@ const FLOOD_BACK = 2.6; // m past the barrier line, clear of the TecPro walls an
  */
 export const FLOODS: Flood[] = (() => {
   const out: Flood[] = [];
+  const clear = (x: number, z: number) =>
+    nearestT(x, z).dist >= TRACK_WIDTH / 2 + 0.6 &&
+    !nearCrossing(x, z, 14) &&
+    inLand(x, z, 1.5) &&
+    !inSectorScene(x, z, 2.5) &&
+    !nearPlace(x, z, 2) &&
+    !nearGarden(x, z, 1) &&
+    !nearTree(x, z, 0.8) &&
+    !nearCones(x, z, 3) &&
+    !STAND_SPOTS.some((st) => Math.hypot(st.x - x, st.z - z) < 8) &&
+    !TYRE_WALLS.some((w) => Math.hypot(w.x - x, w.z - z) < 1.6);
   const step = Math.round(N_FRAMES / (LEN / FLOOD_SPACING));
   for (let i = 5; i < N_FRAMES; i += step) {
     const f = FRAMES[i];
@@ -140,16 +155,6 @@ export const FLOODS: Flood[] = (() => {
     let q = f.p.clone().addScaledVector(f.n, s * off);
     if (inPitSide(q.x, q.z)) continue; // the main straight gets its own row on the pit wall, below
     // something in the way: step further back before giving the spot up
-    const clear = (x: number, z: number) =>
-      nearestT(x, z).dist >= TRACK_WIDTH / 2 + 0.6 &&
-      !nearCrossing(x, z, 14) &&
-      inLand(x, z, 1.5) &&
-      !inSectorScene(x, z, 2.5) &&
-      !nearPlace(x, z, 2) &&
-      !nearTree(x, z, 0.8) &&
-      !nearCones(x, z, 3) &&
-      !STAND_SPOTS.some((st) => Math.hypot(st.x - x, st.z - z) < 8) &&
-      !TYRE_WALLS.some((w) => Math.hypot(w.x - x, w.z - z) < 1.6);
     const pit = inPitSide(q.x, q.z);
     let ok = clear(q.x, q.z);
     for (let back = 2; !ok && !pit && back <= 8; back += 2) {
@@ -162,15 +167,26 @@ export const FLOODS: Flood[] = (() => {
     if (nearCrossing(pool.x, pool.z, 14)) continue;
     out.push({ x: q.x, z: q.z, yaw: Math.atan2(-s * f.n.x, -s * f.n.z), px: pool.x, pz: pool.z, py: f.p.y, pyaw: Math.atan2(-f.tan.z, f.tan.x), pitch });
   }
-  // The main straight, lit like a night race's pit straight: a tower on the pit wall every
-  // FLOOD_STRAIGHT m, its bank facing the track (+z).
+  // The main straight, lit like a night race's pit straight: a tower every FLOOD_STRAIGHT m,
+  // its bank facing the track. On the pit wall (facing +z) past the ends of the garage block;
+  // in front of the garages they would stand in the bays' view, so there they move to the
+  // far side of the straight (facing -z).
   const x0 = PIT_WALL[0][0] + 2;
   const x1 = PIT_WALL[PIT_WALL.length - 1][0] - 2;
+  const g0 = GARAGES[0].x - GARAGE_CLEAR;
+  const g1 = GARAGES[GARAGES.length - 1].x + GARAGE_CLEAR;
   const n = Math.round((x1 - x0) / FLOOD_STRAIGHT);
   for (let k = 0; k <= n; k++) {
     const x = x0 + ((x1 - x0) * k) / n;
+    if (Math.abs(x - GANTRY.p.x) < 4) continue;
+    if (x > g0 && x < g1) {
+      // just off the far edge, short of the waterfront promenade
+      const z = [FLOOD_FAR, FLOOD_FAR - 0.8].map((o) => STRAIGHT_Z + TRACK_WIDTH / 2 + o).find((zz) => clear(x, zz) && !nearPromenade(x, zz, 0.5));
+      if (z !== undefined) out.push({ x, z, yaw: Math.PI, px: x, pz: STRAIGHT_Z, py: 0, pyaw: 0, pitch: 0 });
+      continue;
+    }
     const z = pitWallZ(x);
-    if (z === null || Math.abs(x - GANTRY.p.x) < 4) continue;
+    if (z === null) continue;
     out.push({ x, z, yaw: 0, px: x, pz: STRAIGHT_Z, py: 0, pyaw: 0, pitch: 0 });
   }
   return out;
