@@ -473,3 +473,7 @@ grass, orange sand) once approved. Proposals with turntable models: `/docs/brand
         what the proposal lacks). Harbour, waterfront, park islands and slabs, garden (beds, hedges, flowers),
         StartGarden, timeline stones, contact logos, name letters, knock-about props, alive/* (birds, confetti,
         leaves), people, pit road paint.
+  - [ ] k. Road redesign (owner, 2026-10-26: "Road / track should be black"): plain near-black matte asphalt, no speckle
+        (Island.tsx `ASPHALT`, `lit`, `roadPaint`); paper edge line both sides; W05 ink/paper kerbs in the bends; gravel trap
+        behind the kerb (street/Runoff.tsx); pit entry/exit lines only off the track, no dark slivers or notches (PitRoads.tsx);
+        ink/paper start line. Owner to check. Places.tsx pit lane lines still use an unlit material (swap to `roadPaint`).
