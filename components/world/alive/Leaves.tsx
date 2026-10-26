@@ -78,8 +78,8 @@ function makeMaterial() {
     uScale: { value: P.scale },
     uRotationFrequency: { value: P.rotationFrequency },
     uRotationElevationMultiplier: { value: P.rotationElevationMultiplier },
-    uColorA: { value: new THREE.Color("#9a6b47") }, // dry leaf (original: #95513a)
-    uColorB: { value: new THREE.Color("#d9a69c") }, // petal (original: #f56a3a)
+    uColorA: { value: new THREE.Color("#73805c") }, // leaf, with the trees (original: #95513a)
+    uColorB: { value: new THREE.Color("#a9a08c") }, // dry leaf, gravel toned (original: #f56a3a)
   };
   const m = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.8, metalness: 0 });
   m.onBeforeCompile = (shader) => {

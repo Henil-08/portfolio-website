@@ -85,7 +85,7 @@ function makeGeometry() {
 }
 
 function makeMaterial() {
-  const m = new THREE.MeshStandardMaterial({ color: "#3b3836", roughness: 0.7, side: THREE.DoubleSide });
+  const m = new THREE.MeshStandardMaterial({ color: "#2b2c2e", roughness: 0.8, flatShading: true, side: THREE.DoubleSide });
   m.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader
       .replace(

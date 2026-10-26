@@ -24,7 +24,7 @@ import { heightAt } from "./ground";
 const POOL = 4;
 const COUNT = 500;
 const DURATION = 5;
-const COLORS = ["#ffbde7", "#eeff95", "#84ffb5"];
+const COLORS = ["#f3f2ed", "#151515", "#ff4f00"]; // Concrete & Ink: paper, ink and the orange
 
 function makeGeometry() {
   const plane = new THREE.PlaneGeometry(0.1, 0.2);

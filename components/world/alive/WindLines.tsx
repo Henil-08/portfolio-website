@@ -93,7 +93,7 @@ function makeMaterial() {
     fragmentShader: /* glsl */ `
       uniform float uOpacity;
       void main() {
-        gl_FragColor = vec4(vec3(1.0), uOpacity);
+        gl_FragColor = vec4(vec3(0.953, 0.949, 0.929), uOpacity); // paper
         #include <colorspace_fragment>
       }`,
   });

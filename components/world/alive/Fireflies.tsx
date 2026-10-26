@@ -17,7 +17,7 @@ import { hash, seeded } from "./noise";
 import { makePuffGeometry, makePuffMaterial } from "./puffMaterial";
 
 const PER_ANCHOR = 5;
-const COLOR = new THREE.Color("#ffcf6b").multiplyScalar(2.2);
+const COLOR = new THREE.Color("#fff3dc").multiplyScalar(2.2); // the world's lamp white
 
 function anchors() {
   const out: THREE.Vector3[] = [];

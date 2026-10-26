@@ -17,7 +17,7 @@ import { makePuffGeometry, makePuffMaterial } from "./puffMaterial";
 
 const COARSE = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
 const POOL = COARSE ? 90 : 180;
-const COLOR = new THREE.Color("#c7b89a"); // dry earth, a touch warmer than C.sand
+const COLOR = new THREE.Color("#cdc4b0"); // gravel, like the run-off
 
 type P = { x: number; y: number; z: number; vx: number; vy: number; vz: number; age: number; life: number; size: number; grow: number; alpha: number };
 
