@@ -1,7 +1,8 @@
-// Career timeline: a small stone terrace you drive across.
+// Career timeline: a small concrete terrace you drive across (Concrete & Ink:
+// concrete blocks, ink grooves, the part behind the car lit orange, Plex labels).
 // Adapted from folio-2025 (MIT, see public/vendor/LICENSE.md),
 // sources/Game/World/Areas/CareerArea.js: one line per role laid in the ground
-// along a time axis. When the car enters a role's dates its stone rises out of
+// along a time axis. When the car enters a role's dates its block rises out of
 // the ground (the original's activeElevation), floats with a slow bob, travels along the
 // line with the car and its label wipes in (the original's labelReveal 0 -> 1, power2.inOut,
 // 1 s after 0.3 s); past the end it settles back into the ground (a role that is
@@ -16,22 +17,24 @@
 
 import { Suspense, useMemo, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Billboard, RoundedBox, Text } from "@react-three/drei";
+import { Billboard, Text } from "@react-three/drei";
 import * as THREE from "three";
 import { carState } from "./carState";
 import { dayNight } from "./daynight";
+import { C } from "./palette";
 import { LANES, PER_YEAR, PLAZA, T0, T1, YEAR_X, laneX, tOf, zOf, type Lane } from "./timeline/data";
 
-const FONT = "/fonts/racero.otf";
+import { FONT_MONO, FONT_SANS } from "./models/props/Label";
 const TOP = 0.04; // pavement top
 const PAD_IN = 0.25; // The original line padding: how early a stone wakes up (years)
 const ELEVATION = 1.6; // stone height when up
 const SLOT = 0.8; // vertical spacing when several stones are up at once
 const LABEL_W = 7; // widest label, metres: the wipe runs over this
-const MASK = "#1d1826"; // dark outline behind the glowing letters
-const STONE = "#c9c0b1";
-const GROOVE = "#2c2622";
-const EDGE = "#c9b48e";
+const MASK = C.paper; // paper outline round the ink letters
+const STONE = C.concrete;
+const GROOVE = C.ink;
+const EDGE = C.concreteDark;
+const BLOCK: [number, number, number] = [0.72, 0.34, 0.52];
 
 // ---------------------------------------------------------------- terrace
 
@@ -43,12 +46,13 @@ function Terrace() {
   const depth = 0.4; // skirt so small terrain bumps never poke through
   return (
     <group>
-      <RoundedBox args={[w + 0.5, depth, d + 0.5]} radius={0.12} smoothness={3} position={[cx, TOP - depth / 2 - 0.001, cz]} receiveShadow>
-        <meshStandardMaterial color={EDGE} roughness={0.9} />
-      </RoundedBox>
+      <mesh position={[cx, TOP - depth / 2 - 0.001, cz]} receiveShadow>
+        <boxGeometry args={[w + 0.5, depth, d + 0.5]} />
+        <meshStandardMaterial color={EDGE} roughness={0.95} />
+      </mesh>
       <mesh position={[cx, TOP, cz]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[w, d]} />
-        <meshStandardMaterial color="#e6d9bf" roughness={0.92} />
+        <meshStandardMaterial color={STONE} roughness={0.95} />
       </mesh>
     </group>
   );
@@ -56,7 +60,7 @@ function Terrace() {
 
 // ---------------------------------------------------------------- years
 
-/** A small stone marker with its year at every January, and a faint seam across. */
+/** A small concrete marker with its year (Plex Mono) at every January, and a seam across. */
 function Years() {
   const years = useMemo(() => Array.from({ length: T1 - T0 + 1 }, (_, i) => T0 + i), []);
   const w = PLAZA.maxX - PLAZA.minX;
@@ -68,11 +72,12 @@ function Years() {
             <planeGeometry args={[w - 0.4, 0.04]} />
             <meshStandardMaterial color={EDGE} roughness={0.95} />
           </mesh>
-          <RoundedBox args={[0.9, 0.14, 0.42]} radius={0.05} smoothness={2} position={[YEAR_X, TOP + 0.05, 0]} castShadow receiveShadow>
-            <meshStandardMaterial color={STONE} roughness={0.85} />
-          </RoundedBox>
+          <mesh position={[YEAR_X, TOP + 0.05, 0]} castShadow receiveShadow>
+            <boxGeometry args={[0.9, 0.14, 0.42]} />
+            <meshStandardMaterial color={EDGE} roughness={0.95} />
+          </mesh>
           <Suspense fallback={null}>
-            <Text font={FONT} fontSize={0.24} anchorX="center" anchorY="middle" position={[YEAR_X, TOP + 0.125, 0]} rotation={[-Math.PI / 2, 0, -Math.PI / 2]} color="#4d4740">
+            <Text font={FONT_MONO} fontSize={0.22} anchorX="center" anchorY="middle" position={[YEAR_X, TOP + 0.121, 0]} rotation={[-Math.PI / 2, 0, -Math.PI / 2]} color={C.ink}>
               {String(y)}
             </Text>
           </Suspense>
@@ -84,22 +89,13 @@ function Years() {
 
 // ---------------------------------------------------------------- lanes
 
-/** A rough stone: a flattened, flat-shaded icosahedron. */
-const stoneGeo = (() => {
-  const g = new THREE.IcosahedronGeometry(0.42, 1);
-  const pos = g.getAttribute("position");
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i);
-    const y = pos.getY(i);
-    const z = pos.getZ(i);
-    // a little lumpy, seeded by position so it's stable
-    const k = 1 + Math.sin(x * 9.1 + z * 5.3) * 0.08 + Math.cos(y * 7.7 + x * 3.1) * 0.06;
-    pos.setXYZ(i, x * k, y * k * 0.6, z * k);
-  }
-  return g.toNonIndexed();
-})();
-stoneGeo.computeVertexNormals();
-const stoneMat = new THREE.MeshStandardMaterial({ color: STONE, roughness: 0.9, flatShading: true });
+// A cast concrete block per role (replaces the original's rough stones), with an ink cap
+// that carries the lane's number in Plex Mono.
+const blockGeo = new THREE.BoxGeometry(...BLOCK);
+blockGeo.translate(0, BLOCK[1] / 2 - 0.12, 0);
+const capGeo = new THREE.BoxGeometry(BLOCK[0] - 0.1, 0.02, BLOCK[2] - 0.1);
+const blockMat = new THREE.MeshStandardMaterial({ color: STONE, roughness: 0.95 });
+const capMat = new THREE.MeshStandardMaterial({ color: C.ink, roughness: 0.6, metalness: 0.2 });
 
 const strip = (() => {
   // unit strip spanning z in [-1, 0] so scaling z grows it from its anchor
@@ -130,9 +126,10 @@ function LaneView({ lane, probe }: { lane: Lane; probe: RefObject<Probe> }) {
   const z1 = zOf(lane.end);
   const len = z0 - z1;
   const mats = useMemo(() => {
-    const base = new THREE.Color(lane.color);
-    return { base, dim: new THREE.MeshBasicMaterial({ color: base.clone(), toneMapped: false }), lit: new THREE.MeshBasicMaterial({ color: base.clone(), toneMapped: false }), label: new THREE.MeshBasicMaterial({ color: base.clone(), toneMapped: false }) };
-  }, [lane.color]);
+    // one orange for every lane: the lines are told apart by place and label, not colour
+    const base = new THREE.Color(C.orange);
+    return { base, dim: new THREE.MeshBasicMaterial({ color: C.charcoal, toneMapped: false }), lit: new THREE.MeshBasicMaterial({ color: base.clone(), toneMapped: false }), label: new THREE.MeshBasicMaterial({ color: C.ink }), sub: new THREE.MeshBasicMaterial({ color: C.charcoal }) };
+  }, []);
   const stone = useRef<THREE.Group>(null);
   const lit = useRef<THREE.Mesh>(null);
   const texts = useRef<(THREE.Mesh & { clipRect?: number[] } | null)[]>([]);
@@ -166,9 +163,7 @@ function LaneView({ lane, probe }: { lane: Lane; probe: RefObject<Probe> }) {
       lit.current.scale.set(0.07, 1, Math.max(0.0001, s.frac * len));
       lit.current.visible = s.frac > 0.002;
     }
-    mats.dim.color.copy(tmpColor.copy(mats.base).multiplyScalar(0.28 + 0.2 * k));
     mats.lit.color.copy(tmpColor.copy(mats.base).multiplyScalar(1 + 0.45 * k));
-    mats.label.color.copy(tmpColor.copy(mats.base).multiplyScalar(1.05 + 0.4 * k));
 
     const g = stone.current;
     if (g) {
@@ -189,14 +184,20 @@ function LaneView({ lane, probe }: { lane: Lane; probe: RefObject<Probe> }) {
       <mesh geometry={strip} material={mats.dim} position={[x, TOP + 0.006, z0]} scale={[0.07, 1, len]} />
       <mesh ref={lit} geometry={strip} material={mats.lit} position={[x, TOP + 0.008, z0]} scale={[0.07, 1, 0.0001]} visible={false} />
       <group ref={stone} position={[x, TOP, z0]}>
-        <mesh geometry={stoneGeo} material={stoneMat} castShadow receiveShadow />
+        <mesh geometry={blockGeo} material={blockMat} castShadow receiveShadow />
+        <mesh geometry={capGeo} material={capMat} position={[0, BLOCK[1] - 0.11, 0]} />
+        <Suspense fallback={null}>
+          <Text font={FONT_MONO} fontSize={0.16} anchorX="center" anchorY="middle" position={[0, BLOCK[1] - 0.095, 0]} rotation={[-Math.PI / 2, 0, 0]} color={C.paper}>
+            {String(lane.index + 1).padStart(2, "0")}
+          </Text>
+        </Suspense>
         <Billboard position={[0, 0.45, 0]}>
           <Suspense fallback={null}>
             <Text
               ref={(el: THREE.Mesh | null) => {
                 texts.current[0] = el;
               }}
-              font={FONT}
+              font={FONT_SANS}
               fontSize={0.34}
               anchorX="left"
               anchorY="bottom"
@@ -212,12 +213,12 @@ function LaneView({ lane, probe }: { lane: Lane; probe: RefObject<Probe> }) {
               ref={(el: THREE.Mesh | null) => {
                 texts.current[1] = el;
               }}
-              font={FONT}
-              fontSize={0.22}
+              font={FONT_MONO}
+              fontSize={0.2}
               anchorX="left"
               anchorY="bottom"
               position={[0.45, 0, 0]}
-              material={mats.label}
+              material={mats.sub}
               outlineWidth={0.025}
               outlineColor={MASK}
               clipRect={[-0.2, -2, -0.2, 2]}

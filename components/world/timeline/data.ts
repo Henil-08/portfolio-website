@@ -30,24 +30,24 @@ function parseRange(dates: string) {
   return { start, end, ongoing };
 }
 
-type LaneCopy = { title: string; lines: string[]; color: string };
+type LaneCopy = { title: string; lines: string[] };
 
 // Keyed by `${company}|${title}` so a new role in experience.ts still shows up
 // (with a plain label) even before it gets copy here.
 const COPY: Record<string, LaneCopy> = {
-  "Team Stallions|Captain": { title: "TEAM STALLIONS", lines: ["CAPTAIN", "8 OF 11 TROPHIES"], color: "#ffcf4a" },
-  "SAE Nirma Collegiate Club|Team Lead, Electric ATV": { title: "SAE E-BAJA", lines: ["TEAM LEAD, ELECTRIC ATV", "5TH OF 47 TEAMS"], color: "#ff8039" },
-  "Nirma University|Student Researcher": { title: "NIRMA UNIVERSITY", lines: ["STUDENT RESEARCHER", "LI-ION BATTERY HEALTH"], color: "#a2ffab" },
-  "Hyperlab Sportech|Founding ML Engineer": { title: "HYPERLAB", lines: ["FOUNDING ML ENGINEER", "SHARK TANK INDIA"], color: "#b65fff" },
-  "Northeastern University|Teaching Assistant, Khoury College": { title: "NORTHEASTERN", lines: ["TEACHING ASSISTANT", "+400 STUDENTS"], color: "#5390ff" },
-  "Edlight, PBC|Machine Learning Intern": { title: "EDLIGHT", lines: ["ML INTERN", "MULTI-AGENT CHATBOT"], color: "#5ff0ff" },
-  "Impacter AI|AI Developer Intern": { title: "IMPACTER AI", lines: ["AI DEVELOPER INTERN", "SALES AGENTS ON AKS"], color: "#ff6fd8" },
-  "Waters Corporation|GenAI and ML Intern": { title: "WATERS", lines: ["GENAI + ML INTERN", "LLM EVALS FOR AI SEARCH"], color: "#f3f1ec" },
-  "Waters Corporation|AI/ML Software Engineer": { title: "WATERS", lines: ["AI/ML SOFTWARE ENGINEER", "AGENTS FOR S/4HANA"], color: "#ff4b52" },
+  "Team Stallions|Captain": { title: "TEAM STALLIONS", lines: ["CAPTAIN", "8 OF 11 TROPHIES"] },
+  "SAE Nirma Collegiate Club|Team Lead, Electric ATV": { title: "SAE E-BAJA", lines: ["TEAM LEAD, ELECTRIC ATV", "5TH OF 47 TEAMS"] },
+  "Nirma University|Student Researcher": { title: "NIRMA UNIVERSITY", lines: ["STUDENT RESEARCHER", "LI-ION BATTERY HEALTH"] },
+  "Hyperlab Sportech|Founding ML Engineer": { title: "HYPERLAB", lines: ["FOUNDING ML ENGINEER", "SHARK TANK INDIA"] },
+  "Northeastern University|Teaching Assistant, Khoury College": { title: "NORTHEASTERN", lines: ["TEACHING ASSISTANT", "+400 STUDENTS"] },
+  "Edlight, PBC|Machine Learning Intern": { title: "EDLIGHT", lines: ["ML INTERN", "MULTI-AGENT CHATBOT"] },
+  "Impacter AI|AI Developer Intern": { title: "IMPACTER AI", lines: ["AI DEVELOPER INTERN", "SALES AGENTS ON AKS"] },
+  "Waters Corporation|GenAI and ML Intern": { title: "WATERS", lines: ["GENAI + ML INTERN", "LLM EVALS FOR AI SEARCH"] },
+  "Waters Corporation|AI/ML Software Engineer": { title: "WATERS", lines: ["AI/ML SOFTWARE ENGINEER", "AGENTS FOR S/4HANA"] },
   // education (content/experience.ts `education`), keyed by school|degree
-  "Nirma University|B.Tech, Electronics and Communication": { title: "NIRMA UNIVERSITY", lines: ["B.TECH, ELECTRONICS + COMMUNICATION"], color: "#f0d48a" },
-  "Nirma University|Minor, Computer Science and Engineering": { title: "NIRMA UNIVERSITY", lines: ["MINOR, COMPUTER SCIENCE"], color: "#ffb38a" },
-  "Northeastern University|MS, Data Science": { title: "NORTHEASTERN", lines: ["MS, DATA SCIENCE", "4.0 GPA"], color: "#8fb6ff" },
+  "Nirma University|B.Tech, Electronics and Communication": { title: "NIRMA UNIVERSITY", lines: ["B.TECH, ELECTRONICS + COMMUNICATION"] },
+  "Nirma University|Minor, Computer Science and Engineering": { title: "NIRMA UNIVERSITY", lines: ["MINOR, COMPUTER SCIENCE"] },
+  "Northeastern University|MS, Data Science": { title: "NORTHEASTERN", lines: ["MS, DATA SCIENCE", "4.0 GPA"] },
 };
 
 export type Lane = {
@@ -55,7 +55,6 @@ export type Lane = {
   index: number;
   title: string;
   lines: string[];
-  color: string;
   start: number;
   end: number;
   ongoing: boolean;
@@ -65,7 +64,7 @@ type Entry = Pick<Role, "company" | "title" | "dates">;
 
 function laneFor(r: Entry, index: number): Lane {
   const key = `${r.company}|${r.title}`;
-  const c = COPY[key] ?? { title: r.company.toUpperCase(), lines: [r.title.toUpperCase()], color: "#f3f1ec" };
+  const c = COPY[key] ?? { title: r.company.toUpperCase(), lines: [r.title.toUpperCase()] };
   const { start, end, ongoing } = parseRange(r.dates);
   return { key, index, ...c, start: Math.max(T0, start), end: Math.min(T1, end), ongoing };
 }
