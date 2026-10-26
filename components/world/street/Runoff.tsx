@@ -1,18 +1,17 @@
 "use client";
 
-import { useMemo } from "react";
 import * as THREE from "three";
 import { heightAt } from "../terrain";
 import { C } from "../palette";
 import { CANALS, canalDist, onBridge } from "../layout";
-import { FRAMES, HALF, N_FRAMES, RUNOFF, barrierOffset, rng } from "./common";
+import { FRAMES, HALF, N_FRAMES, RUNOFF, barrierOffset } from "./common";
 
-const PAVED = 1.8;
+// W05: a gravel trap straight behind the kerb (Island.tsx `KERB_W` 1 m) out to the barrier.
+const KERB = 1.0;
 
 /** Variable-width flat ribbons on the outside of the tight corners. */
 function build(inner: (i: number) => number, outer: (i: number) => number, y: number) {
   const pos: number[] = [];
-  const uv: number[] = [];
   const idx: number[] = [];
   let prev = -1;
   let side = 0;
@@ -34,13 +33,11 @@ function build(inner: (i: number) => number, outer: (i: number) => number, y: nu
     const pb = f.p.clone().addScaledVector(f.n, s * b);
     const k = pos.length / 3;
     pos.push(pa.x, heightAt(pa.x, pa.z) + y, pa.z, pb.x, heightAt(pb.x, pb.z) + y, pb.z);
-    uv.push(pa.x / 6, pa.z / 6, pb.x / 6, pb.z / 6);
     if (prev >= 0) idx.push(prev, prev + 1, k, k, prev + 1, k + 1);
     prev = k;
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
   const n = new Float32Array(pos.length);
   for (let i = 1; i < n.length; i += 3) n[i] = 1;
   g.setAttribute("normal", new THREE.BufferAttribute(n, 3));
@@ -48,44 +45,14 @@ function build(inner: (i: number) => number, outer: (i: number) => number, y: nu
   return g;
 }
 
-const PAVED_GEO = build(
-  () => HALF + 0.6,
-  (i) => Math.min(HALF + 0.6 + PAVED, Math.abs(barrierOffset(i, (-Math.sign(FRAMES[i].k) || 1) as 1 | -1)) - 0.3),
-  0.07
-);
 const GRAVEL_GEO = build(
-  () => HALF + 0.6 + PAVED,
+  () => HALF + KERB - 0.05,
   (i) => Math.abs(barrierOffset(i, (-Math.sign(FRAMES[i].k) || 1) as 1 | -1)) - 0.3,
-  0.06
+  0.05
 );
 
-function gravelTexture() {
-  const c = document.createElement("canvas");
-  c.width = c.height = 128;
-  const g = c.getContext("2d")!;
-  g.fillStyle = C.gravel;
-  g.fillRect(0, 0, 128, 128);
-  const r = rng(5);
-  const tones = ["#bcb29c", "#ddd6c6", "#aea38c", "#d6cdba"];
-  for (let i = 0; i < 1400; i++) {
-    g.fillStyle = tones[Math.floor(r() * tones.length)];
-    const s = 1 + r() * 2;
-    g.fillRect(r() * 128, r() * 128, s, s);
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
-
-const paved = new THREE.MeshStandardMaterial({ color: "#47484b", roughness: 0.92 }); // asphalt, a shade lighter than the road
+const gravel = new THREE.MeshStandardMaterial({ color: C.gravel, roughness: 1 }); // plain matte gravel, as the proposal
 
 export function Runoff() {
-  const gravel = useMemo(() => new THREE.MeshStandardMaterial({ map: gravelTexture(), roughness: 1 }), []);
-  return (
-    <>
-      <mesh geometry={PAVED_GEO} material={paved} receiveShadow />
-      <mesh geometry={GRAVEL_GEO} material={gravel} receiveShadow />
-    </>
-  );
+  return <mesh geometry={GRAVEL_GEO} material={gravel} receiveShadow />;
 }

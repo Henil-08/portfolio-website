@@ -57,20 +57,20 @@ function ribbon(width: number, y: number, offset = 0) {
   return g;
 }
 
-// Rumble kerbs (W05): one continuous strip hugging each bend on both edges,
-// ink and paper stripes that touch, a low ramp up from the road, a flat top and a
-// bevelled outer edge. Each run fades up out of the road at its ends.
-const KERB_W = 0.7;
-const KERB_H = 0.06;
-const KERB_STRIPE = 1.2; // metres per stripe
+// Kerbs (W05): flat ink and paper stripes just outside the road edge, only in the bends,
+// both edges. A low ramp up from the road, a flat top and a bevelled outer edge down to
+// the gravel; each run fades up out of the road at its ends.
+const KERB_W = 1.0;
+const KERB_H = 0.05;
+const KERB_STRIPE = 0.9; // metres per stripe, as the proposal
 const KERB_STEP = 0.3; // sampling along the lap
 const KERB_RAMP = 0.9; // metres to rise to full height at a run's ends
 // across the kerb from the road edge: [offset, height]
 const KERB_PROFILE: [number, number][] = [
   [0, 0],
-  [0.12, KERB_H],
-  [KERB_W - 0.16, KERB_H],
-  [KERB_W, 0.008],
+  [0.1, KERB_H],
+  [KERB_W - 0.12, KERB_H],
+  [KERB_W, 0.006],
 ];
 
 /** Index ranges [start, end) (end may pass n, wrap with % n) of the bends, in samples. */
@@ -104,14 +104,14 @@ function kerbRuns(n: number) {
 }
 
 /** True where a pit lane peels off or rejoins the lap: no kerb and no edge line there. */
-function onPitLane() {
+function onPitLane(margin = 0.6) {
   const lanePts = pitRoadCurves().flatMap((c) => c.getSpacedPoints(80));
-  return (x: number, z: number) => lanePts.some((q) => (q.x - x) ** 2 + (q.z - z) ** 2 < (PIT_LANE_WIDTH / 2 + 0.6) ** 2);
+  return (x: number, z: number) => lanePts.some((q) => (q.x - x) ** 2 + (q.z - z) ** 2 < (PIT_LANE_WIDTH / 2 + margin) ** 2);
 }
 
 // The paper edge line (W05): a thin painted line just inside each edge of the road,
 // the whole lap, broken where the pit lanes meet it.
-const EDGE_IN = 0.35; // from the road edge to the line's outer side
+const EDGE_IN = 0.3; // from the road edge to the line's outer side
 const EDGE_W = 0.2;
 
 function edgeLineGeometry() {
@@ -159,7 +159,7 @@ function kerbGeometry() {
   const ink = new THREE.Color(C.ink);
   const paper = new THREE.Color(C.paper);
   const parts: THREE.BufferGeometry[] = [];
-  const onLane = onPitLane();
+  const onLane = onPitLane(1.1); // clear of the lanes' paper lines (PitRoads.tsx, 3 m off their centre)
   for (const side of [-1, 1]) {
     const pos: number[] = [];
     const col: number[] = [];
@@ -252,58 +252,49 @@ LAND.onBeforeCompile = (shader) => {
     );
 };
 
-/** Plain dark tarmac with fine light speckles; the only paint is the edge line and the start line. */
+// The road (W05): clean matte asphalt, near black, no texture. The only paint is the
+// paper edge line, the pit lane lines and the start line, all in ink and paper.
+const ASPHALT = "#2b2c2f"; // darker than the proposal's #3a3b3e: the game's brighter sun lifts it to the near-black the proposal renders
+
 /**
  * Night-race lighting on the tarmac: the floodlit lap reads evenly lit at night, so the
- * road and kerbs get a warm light added in proportion to their own colour (speckles and
- * stripes stay), set from `dayNight.night` each frame. The towers are only the look.
+ * road, kerbs and paint get a warm light added in proportion to their own colour, set
+ * from `dayNight.night` each frame. The towers are only the look.
  */
 export const roadLight = { value: 0 };
-const ROAD_LIGHT_GLSL = "uniform float uRoadLight;";
-const roadLightAdd = (k: number) => `#include <emissivemap_fragment>
-  totalEmissiveRadiance += diffuseColor.rgb * vec3(1.0, 0.95, 0.86) * uRoadLight * ${k.toFixed(2)};`;
 
-/** `k` scales the light: bright kerb paint would bloom at the asphalt's level. */
-function lit(m: THREE.MeshStandardMaterial, also?: (shader: THREE.WebGLProgramParametersWithUniforms) => void, k = 1) {
+/** `k` scales the light: bright paint would bloom at the asphalt's level, and the near-black asphalt needs more. */
+function lit(m: THREE.MeshStandardMaterial, k = 1) {
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uRoadLight = roadLight;
     shader.fragmentShader = shader.fragmentShader
-      .replace("#include <common>", `#include <common>\n${ROAD_LIGHT_GLSL}`)
-      .replace("#include <emissivemap_fragment>", roadLightAdd(k));
-    also?.(shader);
+      .replace("#include <common>", "#include <common>\nuniform float uRoadLight;")
+      .replace(
+        "#include <emissivemap_fragment>",
+        `#include <emissivemap_fragment>
+        totalEmissiveRadiance += diffuseColor.rgb * vec3(1.0, 0.95, 0.86) * uRoadLight * ${k.toFixed(2)};`
+      );
   };
-  m.customProgramCacheKey = () => "road-lit-" + (also ? "speck" : "plain");
+  m.customProgramCacheKey = () => "road-lit-" + k.toFixed(2);
   return m;
 }
 
-function speckled(m: THREE.MeshStandardMaterial) {
-  return lit(m, (shader) => {
-    shader.vertexShader = shader.vertexShader
-      .replace("#include <common>", "#include <common>\nvarying vec2 vSpeckXZ;")
-      .replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvSpeckXZ = (modelMatrix * vec4(transformed, 1.0)).xz;");
-    shader.fragmentShader = shader.fragmentShader
-      .replace("#include <common>", "#include <common>\nvarying vec2 vSpeckXZ;\nfloat speckHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }")
-      .replace(
-        "#include <color_fragment>",
-        `#include <color_fragment>
-        vec2 cell = floor(vSpeckXZ * 9.0);
-        float h = speckHash(cell);
-        vec2 f = fract(vSpeckXZ * 9.0) - (0.25 + 0.5 * vec2(speckHash(cell + 7.1), speckHash(cell + 3.3)));
-        float dot1 = step(0.93, h) * (1.0 - smoothstep(0.06, 0.12, length(f)));
-        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.55, 0.53, 0.58), dot1 * 0.8);
-        diffuseColor.rgb *= 0.94 + 0.06 * speckHash(floor(vSpeckXZ * 2.0));`,
-      );
-  });
-}
+// keeps the night tarmac as bright as it was at the old #3a3b3e
+const ASPHALT_NIGHT = new THREE.Color(C.asphalt).r / new THREE.Color(ASPHALT).r;
 
 const ROAD = {
-  asphalt: speckled(new THREE.MeshStandardMaterial({ color: C.asphalt, roughness: 0.9 })),
-  kerb: lit(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }), undefined, 0.25),
-  line: lit(new THREE.MeshStandardMaterial({ color: C.paper, roughness: 0.7 }), undefined, 0.25),
+  asphalt: lit(new THREE.MeshStandardMaterial({ color: ASPHALT, roughness: 0.95 }), ASPHALT_NIGHT),
+  kerb: lit(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7 }), 0.25),
 };
-/** The pit lane and its entry and exit: the same speckled, night-lit tarmac, drawn over the track where they meet. */
-export const pitAsphalt = speckled(
-  new THREE.MeshStandardMaterial({ color: C.asphalt, roughness: 0.9, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 })
+/** Paper paint on the asphalt: edge lines, the pit lanes' lines, the start line's paper squares. */
+export const roadPaint = lit(
+  new THREE.MeshStandardMaterial({ color: C.paper, roughness: 0.7, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }),
+  0.25
+);
+/** The pit lane and its entry and exit: the same night-lit asphalt, drawn over the track where they meet. */
+export const pitAsphalt = lit(
+  new THREE.MeshStandardMaterial({ color: ASPHALT, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }),
+  ASPHALT_NIGHT
 );
 
 function Kerbs() {
@@ -313,31 +304,31 @@ function Kerbs() {
 
 function EdgeLines() {
   const geo = useMemo(() => edgeLineGeometry(), []);
-  return <mesh geometry={geo} receiveShadow material={ROAD.line} />;
+  return <mesh geometry={geo} receiveShadow material={roadPaint} />;
 }
 
+// The start line: one row of ink and paper squares across the road.
 function StartLine() {
-  const tex = useMemo(() => {
+  const mat = useMemo(() => {
     const c = document.createElement("canvas");
     c.width = 64;
     c.height = 16;
     const g = c.getContext("2d")!;
     for (let x = 0; x < 8; x++)
       for (let y = 0; y < 2; y++) {
-        g.fillStyle = (x + y) % 2 ? "#1f2133" : "#ffffff";
+        g.fillStyle = (x + y) % 2 ? C.ink : C.paper;
         g.fillRect(x * 8, y * 8, 8, 8);
       }
     const t = new THREE.CanvasTexture(c);
     t.magFilter = THREE.NearestFilter;
     t.colorSpace = THREE.SRGBColorSpace;
-    return t;
+    return lit(new THREE.MeshStandardMaterial({ map: t, roughness: 0.7, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), 0.25);
   }, []);
   const p = trackCurve.getPointAt(START_T);
   const tan = trackCurve.getTangentAt(START_T);
   return (
-    <mesh position={[p.x, p.y + 0.045, p.z]} rotation={[-Math.PI / 2, 0, Math.atan2(tan.z, tan.x) + Math.PI / 2]} receiveShadow>
+    <mesh position={[p.x, p.y + 0.04, p.z]} rotation={[-Math.PI / 2, 0, Math.atan2(tan.z, tan.x) + Math.PI / 2]} receiveShadow material={mat}>
       <planeGeometry args={[TRACK_WIDTH, 1.6]} />
-      <meshStandardMaterial map={tex} roughness={0.8} />
     </mesh>
   );
 }
