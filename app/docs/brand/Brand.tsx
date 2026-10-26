@@ -5,7 +5,8 @@ import Link from "next/link";
 import { profile } from "@/content/profile";
 import { experience } from "@/content/experience";
 import { DOMAINS, projects } from "@/content/projects";
-import { ChipMark, DS, DsCard, DsLabel, DsResume, Figures, LINKS, dsMono, pad } from "./datasheet/parts";
+import { ChipMark, DsCard, DsLabel, DsResume } from "./datasheet/parts";
+import { DS, Figures, LINKS, dsMono, pad } from "./datasheet/shared";
 
 const P = projects.find((p) => p.slug === "rtl-coverage-agents")!;
 const PI = projects.indexOf(P);

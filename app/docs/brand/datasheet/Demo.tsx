@@ -5,7 +5,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { projects } from "@/content/projects";
-import { ChipMark, DsCard, DsLabel, DsResume, MotionStyles, dsMono } from "./parts";
+import { ChipMark, DsCard, DsLabel, DsResume, MotionStyles } from "./parts";
+import { dsMono } from "./shared";
 
 const START = Math.max(0, projects.findIndex((p) => p.slug === "rtl-coverage-agents"));
 
