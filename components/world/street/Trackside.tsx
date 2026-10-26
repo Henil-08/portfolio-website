@@ -13,19 +13,21 @@ import { BOARDS, FENCES, FENCE_H, MARSHALS } from "./layoutStreet";
 import { STAND_SPOTS } from "./standSpots";
 import { lensMat } from "./Floodlights";
 import { boardTexture, loadBoardFonts } from "./boardArt";
+import { K, debrisFenceMat, km } from "./ink";
 
 // ------------------------------------------------------------ painted parts (one draw call)
 
 const col = (c: string) => new THREE.Color(c);
 const WHITE = col(C.white);
-const INK = col(C.ink);
-const RED = col(C.red);
-const GREY = col(C.greyDark);
-const LIGHT = col(C.greyLight);
-const CHAR = col(C.charcoal);
-const ORANGE = col(C.orange);
+const ORANGE = col(K.orange);
+const CONCRETE = col(K.concrete);
+const CONCRETE_DARK = col(K.concreteDark);
+const PAPER = col(K.paper);
+const GRAPHITE = col(K.graphite);
+const KINK = col(K.ink);
 
-const SHIRTS = [C.red, C.red, C.white, C.white, C.white, C.charcoal, C.charcoal, C.greyLight, C.grey, C.redDark].map(col);
+// a restrained crowd: paper, ink and greys (the marshals wear the orange)
+const SHIRTS = [K.paper, K.paper, K.paper, K.ink, K.ink, K.graphite, K.concrete, K.concreteDark, "#4d5a61"].map(col);
 const SKINS = [C.skin, C.skinShade, "#e3b48f", "#a8714f", "#7c5038"].map(col);
 
 // grandstand dimensions, matched to props/Grandstand
@@ -54,48 +56,47 @@ const PAINT = (() => {
   const heads = { m: [] as THREE.Matrix4[], c: [] as THREE.Color[] };
   const r = rng(91);
 
-  // ---- grandstands
+  // ---- grandstands (W06): concrete tiers, graphite seats with one paper row, an ink frame
+  // and cantilever roof with a paper fascia, a darker concrete back wall
   for (const s of STAND_SPOTS) {
     const put = placer(paint, s.x, s.z, s.yaw);
     const pst = placer(steel, s.x, s.z, s.yaw);
     const R = s.raise;
     const backZ = Z0 - ROWS * STEP_D;
     const roofY = R + ROWS * STEP_H + 2.7;
+    const ROOF_TILT = 0.12;
     if (R > 0) {
-      // podium: charcoal plinth with a glazed concourse band and a white lip
-      put(0, R / 2, Z0 - (ROWS * STEP_D) / 2 - 0.1, W + 0.8, R, ROWS * STEP_D + 0.9, CHAR);
-      put(0, R * 0.45, Z0 + 0.36, W - 0.6, R * 0.5, 0.02, INK);
-      put(0, R - 0.06, Z0 + 0.38, W + 0.82, 0.14, 0.06, WHITE);
+      // podium: a darker concrete plinth with a glazed concourse band
+      put(0, R / 2, Z0 - (ROWS * STEP_D) / 2 - 0.1, W + 0.8, R, ROWS * STEP_D + 0.9, CONCRETE_DARK);
+      put(0, R * 0.45, Z0 + 0.36, W - 0.6, R * 0.5, 0.02, col(K.glass));
     }
     for (let row = 0; row < ROWS; row++) {
       const h = (row + 1) * STEP_H;
-      put(0, R + h / 2, Z0 - row * STEP_D - STEP_D / 2, W, h, STEP_D + 0.02, WHITE);
-      put(0, R + h + 0.04, Z0 - row * STEP_D - STEP_D * 0.62, W - 0.3, 0.1, 0.36, row === ROWS - 1 ? RED : GREY);
+      put(0, R + h / 2, Z0 - row * STEP_D - STEP_D / 2, W, h, STEP_D + 0.02, CONCRETE);
+      put(0, R + h + 0.16, Z0 - row * STEP_D - STEP_D * 0.62, W - 0.6, 0.32, 0.4, row === 2 ? PAPER : GRAPHITE);
     }
     if (s.open) {
-      // back to the camera: the back wall stops at the top tier, steel posts carry the roof
+      // back to the camera: the back wall stops at the top tier, the frame posts carry the roof
       const top = R + ROWS * STEP_H + 0.3;
-      put(0, top / 2, backZ - 0.12, W + 0.4, top, 0.25, WHITE);
-      put(0, top - 0.09, backZ - 0.12, W + 0.42, 0.18, 0.26, RED);
-      const postH = roofY - 0.25 - top; // stops under the tilted roof
-      for (const sx of [-W / 6, W / 6]) pst(sx, top + postH / 2, backZ + 0.1, 0.1, postH, 0.1, LIGHT);
+      put(0, top / 2, backZ - 0.12, W + 0.4, top, 0.25, CONCRETE_DARK);
     } else {
-      put(0, roofY / 2, backZ - 0.12, W + 0.4, roofY, 0.25, INK);
-      put(0, roofY - 0.6, backZ - 0.12, W + 0.42, 0.18, 0.26, RED);
+      put(0, roofY / 2, backZ - 0.12, W + 0.4, roofY, 0.25, CONCRETE_DARK);
     }
-    for (const sx of [-1, 1]) put(sx * (W / 2 + 0.06), R + (ROWS * STEP_H + 0.4) / 2, Z0 - (ROWS * STEP_D) / 2 + 0.1, 0.12, ROWS * STEP_H + 0.4, ROWS * STEP_D + 0.4, WHITE);
-    put(0, R + 0.25, Z0 + 0.1, W, 0.5, 0.08, WHITE);
-    if (!s.label) {
-      // named stands carry a printed board here instead (Boards below)
-      put(-W / 2 + 0.6, R + 0.25, Z0 + 0.105, 1.2, 0.5, 0.08, RED);
-      put(0, R + 0.03, Z0 + 0.105, W, 0.03, 0.09, RED);
+    // side walls in concrete
+    for (const sx of [-1, 1]) put(sx * (W / 2 + 0.06), R + (ROWS * STEP_H + 0.4) / 2, Z0 - (ROWS * STEP_D) / 2 + 0.1, 0.12, ROWS * STEP_H + 0.4, ROWS * STEP_D + 0.4, CONCRETE);
+    put(0, R + 0.25, Z0 + 0.1, W, 0.5, 0.08, CONCRETE);
+    // named stands carry a printed board on the front (Boards below); the rest an ink line
+    if (!s.label) put(0, R + 0.47, Z0 + 0.145, W, 0.05, 0.01, KINK);
+    // the ink frame: three posts at the back, a beam over each, the roof slab and a paper fascia
+    const span = roofY - R;
+    for (const sx of [-W / 2 + 0.3, 0, W / 2 - 0.3]) {
+      pst(sx, R + span / 2, backZ - 0.2, 0.25, span, 0.25, KINK);
+      pst(sx, roofY - 0.12, backZ + 1.3, 0.2, 0.25, 3.2, KINK, -ROOF_TILT);
     }
-    // cantilever roof
-    for (const sx of [-1, 1]) pst(sx * (W / 2 + 0.1), (roofY - R) / 2 + R, backZ + 0.1, 0.14, roofY - R, 0.14, LIGHT);
-    put(0, roofY, backZ + 1.2, W + 1, 0.14, 2.8, WHITE, -0.1);
-    put(0, roofY - 0.13, backZ + 2.58, W + 1.02, 0.2, 0.06, RED, -0.1);
+    pst(0, roofY + 0.05, backZ + 1.3, W + 0.6, 0.18, 3.4, KINK, -ROOF_TILT);
+    put(0, roofY + 0.06, backZ + 3.0, W + 0.6, 0.5, 0.1, PAPER, -ROOF_TILT);
     const g = placer({ m: glow.m, c: [] }, s.x, s.z, s.yaw);
-    g(0, roofY - 0.1, backZ + 2.1, W, 0.02, 0.1, WHITE);
+    g(0, roofY - 0.1, backZ + 2.4, W, 0.02, 0.1, WHITE);
     // crowd
     const pb = placer(bodies, s.x, s.z, s.yaw);
     const ph = placer(heads, s.x, s.z, s.yaw);
@@ -114,19 +115,19 @@ const PAINT = (() => {
   // ---- sponsor boards on two legs at the edge of the run-off (local +Z faces the road)
   for (const b of BOARDS) {
     const put = placer(paint, b.x, b.z, b.yaw);
-    put(0, BARRIER_H + 0.42, -0.05, 4.2, 0.84, 0.1, CHAR);
-    put(0, BARRIER_H + 0.44, 0.005, 4.04, 0.66, 0.02, WHITE);
-    for (const sx of [-1.7, 1.7]) put(sx, (BARRIER_H + 0.1) / 2, -0.08, 0.1, BARRIER_H + 0.1, 0.1, CHAR);
+    put(0, BARRIER_H + 0.42, -0.05, 4.2, 0.84, 0.1, KINK);
+    put(0, BARRIER_H + 0.44, 0.005, 4.04, 0.66, 0.02, PAPER);
+    for (const sx of [-1.7, 1.7]) put(sx, (BARRIER_H + 0.1) / 2, -0.08, 0.1, BARRIER_H + 0.1, 0.1, KINK);
   }
 
-  // ---- marshal posts: white booth, red roof, glazed front, two marshals in orange
+  // ---- marshal posts: concrete booth, thin ink roof, glazed front, two marshals in orange
   for (const m of MARSHALS) {
     const put = placer(paint, m.x, m.z, m.yaw);
-    put(0, 1.1, 0, 1.9, 2.2, 1.5, WHITE);
-    put(0, 1.55, 0.755, 1.6, 0.62, 0.02, INK);
-    put(0, 2.3, 0.05, 2.2, 0.18, 1.8, RED);
-    put(0, 0.05, 1.3, 2.6, 0.1, 1.2, LIGHT);
-    put(0.95, 2.6, 0.6, 0.05, 0.6, 0.05, CHAR);
+    put(0, 1.1, 0, 1.9, 2.2, 1.5, CONCRETE);
+    put(0, 1.55, 0.755, 1.6, 0.62, 0.02, col(K.glass));
+    put(0, 2.28, 0.05, 2.2, 0.14, 1.8, KINK);
+    put(0, 0.05, 1.3, 2.6, 0.1, 1.2, CONCRETE_DARK);
+    put(0.95, 2.6, 0.6, 0.05, 0.6, 0.05, KINK);
     put(1.25, 2.75, 0.6, 0.55, 0.36, 0.02, col(C.yellow));
     const pb = placer(bodies, m.x, m.z, m.yaw);
     const ph = placer(heads, m.x, m.z, m.yaw);
@@ -151,32 +152,7 @@ const headGeo = () =>
     return g;
   });
 
-// ------------------------------------------------------------ catch fence
-
-function meshTexture() {
-  const c = document.createElement("canvas");
-  c.width = 64;
-  c.height = 64;
-  const g = c.getContext("2d")!;
-  g.fillStyle = "#000";
-  g.fillRect(0, 0, 64, 64);
-  g.strokeStyle = "#fff";
-  g.lineWidth = 3;
-  for (let k = -64; k <= 64; k += 32) {
-    g.beginPath();
-    g.moveTo(k, 0);
-    g.lineTo(k + 64, 64);
-    g.stroke();
-    g.beginPath();
-    g.moveTo(k + 64, 0);
-    g.lineTo(k, 64);
-    g.stroke();
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.anisotropy = 4;
-  return t;
-}
+// ------------------------------------------------------------ catch fence (the W04 debris fence: ink wire on ink posts)
 
 /** A catch fence in front of each stand, between the crowd and the road. */
 const STAND_FENCES = STAND_SPOTS.map((s) => {
@@ -203,16 +179,16 @@ const FENCE = (() => {
     run.pts.forEach((p, i) => {
       if (i > 0) acc += p.distanceTo(run.pts[i - 1]);
       pos.push(p.x, y0, p.z, p.x, FENCE_H, p.z);
-      uv.push(acc / 0.9, 0, acc / 0.9, (FENCE_H - y0) / 0.9);
+      uv.push(acc / 0.5, 0, acc / 0.5, (FENCE_H - y0) / 0.5);
       if (i > 0) {
         const k = base + (i - 1) * 2;
         idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3);
         const q = run.pts[i - 1];
         const len = p.distanceTo(q);
         const yaw = Math.atan2(-(p.z - q.z), p.x - q.x);
-        for (const y of [FENCE_H, 1.2]) rails.m.push(compose((p.x + q.x) / 2, heightAt((p.x + q.x) / 2, (p.z + q.z) / 2) + y, (p.z + q.z) / 2, yaw, len + 0.04, 0.06, 0.06));
+        for (const y of [FENCE_H]) rails.m.push(compose((p.x + q.x) / 2, heightAt((p.x + q.x) / 2, (p.z + q.z) / 2) + y, (p.z + q.z) / 2, yaw, len + 0.04, 0.06, 0.06));
       }
-      if (i % 2 === 0 || i === run.pts.length - 1) posts.m.push(compose(p.x, heightAt(p.x, p.z) + (FENCE_H + 0.3) / 2, p.z, 0, 0.06, FENCE_H + 0.3, 0.06));
+      if (i % 2 === 0 || i === run.pts.length - 1) posts.m.push(compose(p.x, heightAt(p.x, p.z) + (FENCE_H + 0.3) / 2, p.z, 0, 0.08, FENCE_H + 0.3, 0.08));
     });
   }
   const g = new THREE.BufferGeometry();
@@ -222,19 +198,6 @@ const FENCE = (() => {
   g.computeVertexNormals();
   return { g, posts, rails };
 })();
-
-export function makeFenceMat() {
-  return new THREE.MeshStandardMaterial({
-    color: C.greyDark,
-    alphaMap: meshTexture(),
-    transparent: true,
-    opacity: 0.85,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-    roughness: 0.5,
-    metalness: 0.4,
-  });
-}
 
 // ------------------------------------------------------------ flags
 
@@ -273,7 +236,7 @@ const flagMat = (() => {
 
 const FLAG_SPOTS = (() => {
   const out: { x: number; z: number; c: THREE.Color }[] = [];
-  const cols = [RED, WHITE, CHAR, WHITE, RED, WHITE];
+  const cols = [ORANGE, PAPER, KINK, PAPER, KINK, PAPER];
   // along the far side of the tunnel straight, the loop and the west
   for (const u of [0.45, 0.47, 0.56, 0.6, 0.81, 0.836, 0.335]) {
     const s = farSpot(u, 6.6);
@@ -357,22 +320,22 @@ function Boards() {
 // ------------------------------------------------------------ component
 
 export function Trackside() {
-  const fenceMat = useMemo(() => makeFenceMat(), []);
+  const fenceMat = useMemo(() => debrisFenceMat(), []);
   useFrame(({ clock }) => {
     flagUniforms.uTime.value = clock.elapsedTime;
   });
   return (
     <>
-      <Instances geometry={unitBox()} material={mat(C.white, { r: 0.36 })} batch={PAINT.paint} />
-      <Instances geometry={unitBox()} material={mat(C.white, { r: 0.3, m: 0.5 })} batch={PAINT.steel} />
+      <Instances geometry={unitBox()} material={km.painted()} batch={PAINT.paint} />
+      <Instances geometry={unitBox()} material={mat("#ffffff", { r: 0.55, m: 0.2 })} batch={PAINT.steel} />
       <Instances geometry={unitBox()} material={lensMat} batch={PAINT.glow} shadow={false} />
       <Instances geometry={bodyGeo()} material={mat(C.white, { r: 0.45 })} batch={PAINT.bodies} />
       <Instances geometry={headGeo()} material={mat(C.white, { r: 0.45 })} batch={PAINT.heads} shadow={false} />
 
       {/* catch fence */}
-      <mesh geometry={FENCE.g} material={fenceMat} renderOrder={1} />
-      <Instances geometry={unitCyl()} material={mat(C.charcoal, { r: 0.4, m: 0.4 })} batch={FENCE.posts} />
-      <Instances geometry={unitBox()} material={mat(C.charcoal, { r: 0.4, m: 0.4 })} batch={FENCE.rails} shadow={false} />
+      <mesh geometry={FENCE.g} material={fenceMat} />
+      <Instances geometry={unitBox()} material={km.ink()} batch={FENCE.posts} />
+      <Instances geometry={unitBox()} material={km.ink()} batch={FENCE.rails} shadow={false} />
 
       {/* flags */}
       <Instances geometry={unitCyl()} material={mat(C.metal, { r: 0.3, m: 0.5 })} batch={FLAGS.poles} />
