@@ -15,7 +15,7 @@ import { getState, setState, useWorld } from "../store";
 import { carState } from "../carState";
 import { SPAWN } from "../layout";
 import { heightAt } from "../terrain";
-import { VEHICLE_SCALE } from "../Vehicle";
+import { PLAYER_MODEL, VEHICLE_SCALE } from "../Vehicle";
 import { liveryOf, vehicleByCode, type Livery, type VehicleCode } from "../vehicles";
 import { revealSound } from "../sound";
 import { ALIGN, boot, opening, setStage, skipping, stageTime, useOpening } from "./state";
@@ -77,31 +77,14 @@ function endPose(portrait: boolean): Pose {
 
 /* ------------------------------------------------------------------ the player's vehicle in the scene */
 
-/**
- * The player's model group (Vehicle.tsx): turned a quarter round, scaled to game size, and where
- * the car's body is (other copies of a vehicle model, like the autopilot's, stand elsewhere).
- */
-const isModel = (o: THREE.Object3D) => o.type === "Group" && Math.abs(o.scale.x - S) < 1e-6 && Math.abs(o.rotation.y - Math.PI / 2) < 1e-6 && o.children.length > 0;
-const _p = new THREE.Vector3();
-const nearCar = (o: THREE.Object3D) => o.getWorldPosition(_p).distanceTo(carState.pos) < 2.5;
+/** The player's model group (Vehicle.tsx `PLAYER_MODEL`), cached while it stays in the scene. */
 let player: THREE.Object3D | null = null;
 function findPlayer(scene: THREE.Scene) {
   let p: THREE.Object3D | null = player;
   while (p && p !== scene) p = p.parent;
-  if (player && p === scene && nearCar(player)) return player;
-  player = null;
-  scene.traverse((o) => {
-    if (!player && isModel(o) && nearCar(o)) player = o;
-  });
+  if (player && p === scene) return player;
+  player = scene.getObjectByName(PLAYER_MODEL) ?? null;
   return player;
-}
-
-// The car's pose before its first frame is the spawn. Vehicle.tsx re-places a remounted vehicle
-// where carState says the last one stood; in dev, StrictMode remounts it before any frame has run,
-// and with carState still at the origin the car started on the career terrace.
-if (carState.pos.lengthSq() === 0) {
-  carState.pos.set(SPAWN[0], heightAt(SPAWN[0], SPAWN[1]) + 0.45, SPAWN[1]);
-  carState.forward.set(Math.cos(SPAWN[2]), 0, -Math.sin(SPAWN[2]));
 }
 
 /** Where the vehicle stands: its ground point and heading (rotation about y turning +z forward). */

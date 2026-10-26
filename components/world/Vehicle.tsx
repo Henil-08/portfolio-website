@@ -180,6 +180,11 @@ const tmpP = new THREE.Vector3();
 const tmpF = new THREE.Vector3();
 const prevPos = new THREE.Vector3();
 let snapWheels = true; // set by place(): put the wheel visuals straight at rest
+// carState.pos holds a real pose once a vehicle has run a frame. Before that (StrictMode's dev
+// remount runs the mount effect twice before any frame) it is still the origin.
+let posLive = false;
+/** The player's model group, by name (bloom/Opening.tsx finds it this way). */
+export const PLAYER_MODEL = "player-vehicle";
 // Parked: after a spawn or teleport the car is held in place (only its height
 // settles, damped) until the first drive input, so it never bobs on its springs while the page
 // loads (the intro camera copies the car, so any bob shook the whole picture).
@@ -270,7 +275,7 @@ function Drive({ def }: { def: VehicleDef }) {
     // the skid marks, dust and tracks follow this vehicle's wheels
     setWheelLocal(spec.bike ? WHEELS.map((w) => ({ x: w.pos.x, z: Math.sign(w.pos.z) * 0.04, rear: !w.front })) : WHEELS.map((w) => ({ x: w.pos.x, z: w.pos.z, rear: !w.front })));
     // A new vehicle picks up where the last one stood; the first one starts at the spawn.
-    if (getState().ready) {
+    if (posLive) {
       const f = carState.forward;
       place(b, carState.pos.x, carState.pos.z, Math.atan2(-f.z, f.x));
     } else place(b, SPAWN[0], SPAWN[1], SPAWN[2]);
@@ -471,6 +476,7 @@ function Drive({ def }: { def: VehicleDef }) {
       moved.clone().normalize().dot(carState.forward) > 0.5;
     carState.vel.copy(moved).divideScalar(Math.max(dt, 1e-4));
     carState.pos.copy(tmpP);
+    posLive = true;
     prevPos.copy(tmpP);
     carState.speed = speed.current * 2 * (goingForward.current ? 1 : -1); // real m/s at 2x time
     carState.grounded = WHEELS.some((_, i) => v.wheelIsInContact(i));
@@ -664,7 +670,7 @@ function Drive({ def }: { def: VehicleDef }) {
         />
         {/* the model stands on the ground line (and the bike leans about it); nose +z turned to +X */}
         <group ref={lean} position={[0, -RIDE, 0]}>
-          <group ref={model} rotation={[0, Math.PI / 2, 0]} scale={S}>
+          <group ref={model} name={PLAYER_MODEL} rotation={[0, Math.PI / 2, 0]} scale={S}>
             <RigContext.Provider value={rig}>
               <def.Model livery={livery} />
             </RigContext.Provider>
