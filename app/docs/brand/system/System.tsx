@@ -4,7 +4,7 @@
 // timing, the micro-interactions as live components, and the real screens (boot, driving
 // HUD, garage, map, resume, 404) built from them. All copy comes from content/*.
 import Link from "next/link";
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { profile, story } from "@/content/profile";
 import { projects, DOMAINS } from "@/content/projects";
 import { ACHIEVEMENTS } from "@/content/achievements";
@@ -16,6 +16,7 @@ import { DsCard, DsResume } from "@/components/brand/sheets";
 import { DS, pad } from "@/components/brand/tokens";
 import { ATTENTION, Lockup, Mark } from "@/components/brand/mark";
 import Corners from "@/components/brand/Corners";
+import { CURSOR_STYLES, setCursorStyle } from "@/components/brand/Cursor";
 
 /* ------------------------------------------------------------------ page frame */
 
@@ -369,24 +370,29 @@ function Tabs() {
   );
 }
 
-// I09: the cursor is Magnetic (owner's pick). Targets to try it on: boxed ones dock the orange
-// square outside their corner, unboxed links get corner brackets, wide rows keep it on the pointer.
+// I09: five cursor styles to live with. The page never moves; only the cursor changes form over
+// clickable things. Picking one sets <html data-cursor-style> and saves it in this browser.
+const subscribeStyle = (fn: () => void) => {
+  const mo = new MutationObserver(fn);
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-cursor-style"] });
+  return () => mo.disconnect();
+};
+const readStyle = () => document.documentElement.dataset.cursorStyle ?? "1";
+
 function CursorLab() {
+  const style = useSyncExternalStore(subscribeStyle, readStyle, () => "1");
+  const i = Math.max(0, CURSOR_STYLES.findIndex((s) => s.id === style));
   return (
     <div className="space-y-5">
-      <ul className="space-y-1.5 text-[13.5px]">
-        {[
-          ["Boxed", "Buttons, chips, tabs lean toward you; the square docks just outside their bottom-right corner in orange."],
-          ["Links", "A link with only an underline gets orange corner brackets round it instead."],
-          ["Rows", "Wide rows keep the square on the pointer; the row inverts as usual."],
-          ["Press", "A click throws four little cells, the logo's weights and its orange one."],
-        ].map(([k, v]) => (
-          <li key={k} className="grid grid-cols-[64px_1fr] gap-2">
-            <span className="font-mono text-[12px] text-[#ff4f00]">{k}</span>
-            {v}
-          </li>
+      <div className="relative grid grid-cols-5 border-2 border-[#111] bg-white">
+        <span className="absolute inset-y-0 left-0 w-1/5 bg-[#111] transition-transform duration-200 ease-[cubic-bezier(.6,0,.2,1)]" style={{ transform: `translateX(${i * 100}%)` }} />
+        {CURSOR_STYLES.map((s, j) => (
+          <button key={s.id} type="button" aria-pressed={i === j} onClick={() => setCursorStyle(s.id)} className={`font-mono relative px-2 py-2 text-[12px] uppercase tracking-[0.06em] transition-colors ${i === j ? "text-white" : "text-[#111]"}`}>
+            <span className={i === j ? "text-[#ff4f00]" : "text-[#5d5d58]"}>{s.code}</span> {s.name}
+          </button>
         ))}
-      </ul>
+      </div>
+      <p className="text-[13.5px]">{CURSOR_STYLES[i].line}</p>
       <div className="flex flex-wrap items-center gap-5 text-[14px]">
         <button type="button" className="x-btn x-primary">
           Send <span className="x-arrow">→</span>
@@ -406,6 +412,12 @@ function CursorLab() {
         <input placeholder="Text field" className="w-36 border-2 border-[#111] bg-white px-2 py-1.5 outline-none" />
         <span data-cursor="drag" className="font-mono grid h-16 w-28 place-items-center border-2 border-dashed border-[#111] text-[12px] text-[#5d5d58]">
           3D view
+        </span>
+        <span data-lab="ink" className="font-mono flex h-16 items-center gap-3 bg-[#111] px-4 text-[12px] text-[#cfcdc4]">
+          On ink
+          <a href="#interactions" className="text-[14px] text-white underline underline-offset-4">
+            A white link
+          </a>
         </span>
       </div>
       <a href="#interactions" data-code="P01" className="x-row grid grid-cols-[38px_1fr_18px] items-center gap-3 border-y border-[#cfcdc4] px-2 py-2.5 text-[14px]">
@@ -589,7 +601,7 @@ function Interactions() {
             </span>
           </div>
         </Panel>
-        <Panel code="I09" title="Cursor" note="Live on every page. A small ink square follows you and shrinks while you press. A bar over text, DRAG over 3D views. Pick what it does over clickable things; the choice is saved in this browser so you can carry it around the site. Mouse and pen only; touch keeps its own.">
+        <Panel code="I09" title="Cursor" note="Live on every page. Nothing on the page moves; the cursor itself changes form over anything clickable. An I-beam over text, DRAG over 3D views. Pick one of five; it is saved in this browser so you can carry it around the site. Mouse and pen only; touch keeps its own.">
           <CursorLab />
         </Panel>
       </div>
