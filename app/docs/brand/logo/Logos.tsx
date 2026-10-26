@@ -136,7 +136,9 @@ export default function Logos() {
         <Link href="/docs/brand/datasheet" className="text-[#f3f2ed]/70 transition hover:text-white">
           ← Datasheet
         </Link>
-        <span>Logo options · {OPTIONS.length}</span>
+        <Link href="/docs/brand/logo/motion" className="text-[#ff4f00] transition hover:text-white">
+          L9, L10, L12 in motion →
+        </Link>
       </div>
       <div className="mx-auto max-w-[1180px] px-4 pt-10 sm:px-8 sm:pt-14">
         <div className="border-b-[3px] border-[#111] pb-4">
