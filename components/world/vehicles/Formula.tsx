@@ -244,7 +244,7 @@ export function Formula({ livery = LIVERIES.V01[0] }: { livery?: Livery }) {
       ))}
       {/* rear wing: main plane, paper flap, beam wing, endplates, pylon, diffuser */}
       <mesh geometry={geo.rMain} position={[0, 0.8, -2.3]} rotation={[0.12, 0, 0]} material={mt.body} castShadow />
-      {/* the flap is the DRS: the game opens it on boost */}
+      {/* the flap is the DRS: the game opens it with OVERTAKE */}
       <group ref={rig?.drs} position={[0, 0.9, -2.46]}>
         <mesh geometry={geo.rFlap} rotation={[0.5, 0, 0]} material={mt.trim} castShadow />
       </group>

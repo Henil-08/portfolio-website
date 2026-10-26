@@ -7,13 +7,12 @@ import type { ZoneId } from "./layout";
 // Tiny external store so the canvas and the DOM overlay share state
 // without re-rendering the whole scene.
 
-export type Phase = "boot" | "intro" | "world";
+export type Phase = "boot" | "world";
 
 type State = {
   phase: Phase;
   ready: boolean; // physics and scene mounted
-  revealed: boolean; // the opening reveal has finished (Reveal.tsx)
-  opened: boolean; // the loader ring is done and the small circle is open: the start prompt may show
+  revealed: boolean; // the opening has landed on the chase camera (bloom/Opening.tsx)
   zone: ZoneId | null; // the card that is open
   garageSel: number; // the project on show in an open garage (garageShots.ts)
   near: ZoneId | null; // the place the car is parked at, if any
@@ -48,7 +47,6 @@ let state: State = {
   phase: "boot",
   ready: false,
   revealed: false,
-  opened: false,
   zone: null,
   garageSel: 0,
   near: null,

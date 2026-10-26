@@ -60,13 +60,6 @@ body {
   opacity: 0;
   transform: translateY(-16px);
 }
-/* the still of the floor fades without moving, so it hands over to the live grid in place */
-.boot-floor {
-  transition: opacity 0.5s ease 0.15s;
-}
-.boot-floor.is-out {
-  opacity: 0;
-}
 
 /* ---------------------------------------------------------------------------
    /resume (app/resume/Resume.tsx) on paper: plain ink on white. Everything the
