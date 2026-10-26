@@ -78,7 +78,7 @@ import { PitBuilding, Plinth, pitSolids, type Bay, type PitOpts } from "./buildi
 import { CI } from "./buildings/concrete";
 import type { Domain } from "@/content/projects";
 import { heightAt } from "./terrain";
-import { pitAsphalt } from "./Island";
+import { pitAsphalt, roadPaint } from "./Island";
 import Park from "./park";
 
 type V3 = [number, number, number];
@@ -414,9 +414,8 @@ function PitLane() {
         <primitive object={pitAsphalt} attach="material" />
       </mesh>
       {[-1, 1].map((side) => (
-        <mesh key={side} rotation={[-Math.PI / 2, 0, 0]} position={[(PIT.from + PIT.to) / 2, pitY + 0.03, PIT.z + side * 3]}>
+        <mesh key={side} rotation={[-Math.PI / 2, 0, 0]} position={[(PIT.from + PIT.to) / 2, pitY + 0.03, PIT.z + side * 3]} material={roadPaint}>
           <planeGeometry args={[PIT.to - PIT.from + 10, 0.18]} />
-          <meshStandardMaterial color={C.asphaltLine} />
         </mesh>
       ))}
       {/* strategy stands on the lane side of the wall */}
