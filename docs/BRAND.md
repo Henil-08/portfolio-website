@@ -8,6 +8,7 @@ disagree, the page is what the owner approved; fix this file.
 
 | Date | Decision |
 |---|---|
+| 2026-10-26 | Select to build is one continuous shot, no black wipe. On Enter (0.9 s) the garage chrome slides off (header up, spec column right, cards down), the turntable turns the vehicle to its grid heading, the camera glides onto the bloom's first frame and the dotted paper floor fades in. The build scene starts on that exact frame with the same plinth under the car, which sinks into the ground as the world blooms. In the select view the 3D spans the whole mock under the chrome; a camera view offset keeps the vehicle framed in its cell. |
 | 2026-10-26 | Tyres must read solid from the front and back, never hollow: every tyre closes its bore (inner wall at the rim radius plus a web across the middle). |
 | 2026-10-26 | True proportion made E14 and Apollo too small. Turntable sizes now sit between true proportion and all-the-same: swept radius TH-18 1.42, Atlas 1.25, E14 1.0, Apollo 0.95. Hover cursor cell 10 px. |
 | 2026-10-26 | Vehicles stay in true proportion on the turntable: one scale for all, set so TH-18 (the biggest) fits the plinth's inner circle; E14 and Apollo read small next to it. Replaces "all the same visual size". Hover cursor cell 13 px to 11 px (1.5x the 7 px square). Silver Arrows tail lamps stay orange. Flicker back to the grid slot after a power is for the /docs/brand/world demo only; in the real game the vehicle keeps going from where the power left it. |

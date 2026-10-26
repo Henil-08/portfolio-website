@@ -114,6 +114,8 @@ declare global {
     __buildT?: number;
     /** Dev only: freeze the loadout swap at this many seconds (for stills). */
     __swapT?: number;
+    /** Dev only: freeze the Enter alignment at this many seconds (for stills). */
+    __alignT?: number;
   }
 }
 
@@ -157,8 +159,9 @@ const over = (k: number, az: number, el: number): Pose => ({ tx: ISLAND.x, ty: 0
 
 /** The bloom's camera keyframes: [seconds, pose], eased between. Close on the car, rising with
  * the bloom, then back down onto the game view. */
+const START: Pose = { ...END, ty: 0.5, r: 12, el: 0.42, az: END.az + 0.9 };
 const PATH: [number, Pose][] = [
-  [0, { ...END, ty: 0.5, r: 12, el: 0.42, az: END.az + 0.9 }],
+  [0, START],
   [2.4, over(2.2, END.az + 0.3, 1.05)],
   [PLAN.camEnd, END],
 ];
@@ -224,6 +227,24 @@ function IslandLights() {
   );
 }
 
+/**
+ * The garage plinth, handed over from the select scene at the same size and heading, so the cut
+ * is invisible. It sinks into the ground as the world blooms round it.
+ */
+function GridPlinth({ v, clock }: { v: Vehicle; clock: BuildClock }) {
+  const g = useRef<THREE.Group>(null!);
+  useFrame((s) => {
+    const k = power2InOut(clamp01((clock(s.clock.elapsedTime) - 0.15) / 0.7));
+    g.current.position.y = lerp(GRID.y, -0.08, k);
+    g.current.visible = k < 1;
+  });
+  return (
+    <group ref={g} position={[GRID.x, GRID.y, GRID.z]} rotation={[0, GRID.yaw, 0]} scale={1 / v.scale}>
+      <Plinth code={v.code} />
+    </group>
+  );
+}
+
 function BuildScene({ v, powerRef }: { v: Vehicle; powerRef: RefObject<PowerState | null> }) {
   const t0 = useRef(-1);
   const followRef = useRef<Follow>({ x: 0, y: 0, z: 0, fov: 0, shake: 0 });
@@ -242,6 +263,7 @@ function BuildScene({ v, powerRef }: { v: Vehicle; powerRef: RefObject<PowerStat
       <PaperFloor map={dotFloor} />
       {/* 2 · the whole island: first as dots in its own layout, then rising out of them */}
       <Island clock={clock} />
+      <GridPlinth v={v} clock={clock} />
       {/* the chosen vehicle on its grid slot; Shift fires its power once the world has landed */}
       <Powers code={v.code} clock={clock} powerRef={powerRef} followRef={followRef}>
         {v.model()}
@@ -262,6 +284,12 @@ const SPIN = Math.PI * 0.8;
 const power2In = (k: number) => k * k;
 const power3Out = (k: number) => 1 - Math.pow(1 - k, 3);
 const UP_Y = new THREE.Vector3(0, 1, 0);
+/** Enter to build (s): the chrome slides off while the table turns the vehicle to its grid heading
+ * and the camera glides onto the bloom's first frame. */
+const ALIGN = 0.9;
+const SELECT_FOV = 30;
+const BUILD_FLOOR = new THREE.Color("#ebe9e3");
+const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 
 /** The plinth's top: a paper disc with a dial of ticks round the rim, one orange, and the code. */
 function plinthTop(code: string) {
@@ -368,7 +396,7 @@ const eachMesh = (o: THREE.Object3D, f: (m: THREE.Mesh, mat: THREE.Material) => 
  * table spins round, and an orange scan line sweeps up the new one, revealing it as it rises.
  * A new livery runs the scan line alone. All tweens mutate refs in useFrame.
  */
-function SelectScene({ v, livery }: { v: Vehicle; livery: Livery }) {
+function SelectScene({ v, livery, align, frame, cell }: { v: Vehicle; livery: Livery; align: boolean; frame: RefObject<HTMLDivElement | null>; cell: HTMLDivElement | null }) {
   const [st, setSt] = useState<Slots>(() => ({ a: { v, l: livery, n: 0 }, b: null, cur: "a", n: 0 }));
   const live = st[st.cur]!;
   if (live.v !== v) {
@@ -382,6 +410,12 @@ function SelectScene({ v, livery }: { v: Vehicle; livery: Livery }) {
   const table = useRef<THREE.Group>(null!);
   const scan = useRef<THREE.Group>(null!);
   const scanMat = useRef<THREE.MeshBasicMaterial>(null!);
+  const floor = useRef<THREE.Mesh>(null!);
+  const floorMat = useRef<THREE.MeshStandardMaterial>(null!);
+  const dots = useRef<THREE.Group>(null!);
+  const dotsMat = useRef<THREE.MeshBasicMaterial>(null!);
+  const look = useRef(new THREE.Vector3(...SELECT_TARGET));
+  const al = useRef<{ t0: number; yaw0: number; yaw1: number; az: number; r: number; el: number; ox: number; oy: number; fov: number; c0: THREE.Color } | null>(null);
   const anim = useRef<SwapAnim>({ n: -1, l: null, t0: -10, ts: -10, a0: 0, a1: 0, h: 1, dir: new THREE.Vector3(), plane: new THREE.Plane(new THREE.Vector3(0, -1, 0), 0), clips: [], fades: [] });
 
   useFrame((s) => {
@@ -448,6 +482,54 @@ function SelectScene({ v, livery }: { v: Vehicle; livery: Livery }) {
     scanMat.current.opacity = 1 - clamp01((k - 1) / 0.25);
     if (k >= 1 && A.clips.length) unclip(A);
   });
+  // The view spans the whole mock behind the chrome; the camera's view offset and fov keep the
+  // vehicle framed in its cell. On Enter both ease off, onto the bloom's first frame.
+  useFrame((s) => {
+    const c = s.camera as THREE.PerspectiveCamera;
+    const F = frame.current?.getBoundingClientRect();
+    const C = cell?.getBoundingClientRect();
+    if (!F || !C || !F.width || !C.height) return;
+    const ox = F.width / 2 - (C.left - F.left + C.width / 2);
+    const oy = F.height / 2 - (C.top - F.top + C.height / 2);
+    const fov = (2 * Math.atan((Math.tan(THREE.MathUtils.degToRad(SELECT_FOV / 2)) * F.height) / C.height) * 180) / Math.PI;
+    const cur = (st.cur === "a" ? slotA : slotB).current;
+    let k = 0;
+    if (align) {
+      const now = s.clock.elapsedTime;
+      if (!al.current) {
+        const off = c.position.clone().sub(look.current);
+        const az = Math.atan2(off.z, off.x);
+        // heading + camera bearing is what a turn about y keeps, so match the bloom's
+        const yaw0 = table.current.rotation.y;
+        al.current = { t0: now, yaw0, yaw1: yaw0 + wrap(GRID.yaw + START.az - az - yaw0), az, r: off.length(), el: Math.asin(off.y / off.length()), ox, oy, fov, c0: floorMat.current.color.clone() };
+      }
+      const A = al.current;
+      const at = process.env.NODE_ENV !== "production" && typeof window.__alignT === "number" ? window.__alignT : now - A.t0;
+      k = power2InOut(clamp01(at / ALIGN));
+      const sc = v.scale;
+      table.current.rotation.y = cur.rotation.y = lerp(A.yaw0, A.yaw1, k);
+      // in the select frame the grid slot is the origin, scaled by the vehicle's turntable scale
+      look.current.set(0, lerp(SELECT_TARGET[1], (START.ty - GRID.y) * sc, k), 0);
+      const r = Math.exp(lerp(Math.log(A.r), Math.log(START.r * sc), k));
+      const el = lerp(A.el, START.el, k);
+      c.position.set(Math.cos(el) * Math.cos(A.az) * r, look.current.y + Math.sin(el) * r, Math.cos(el) * Math.sin(A.az) * r);
+      c.lookAt(look.current);
+      floor.current.position.y = lerp(-0.15, -(GRID.y + 0.05) * sc, k);
+      floorMat.current.color.lerpColors(A.c0, BUILD_FLOOR, k);
+      // the bloom's dotted paper floor fades in, laid exactly as the build scene lays it
+      dots.current.visible = k > 0;
+      dots.current.rotation.y = START.az - A.az;
+      dots.current.scale.setScalar(sc);
+      dotsMat.current.opacity = k;
+      c.fov = lerp(A.fov, GAME_FOV, k);
+      c.setViewOffset(F.width, F.height, A.ox * (1 - k), A.oy * (1 - k), F.width, F.height);
+      return;
+    }
+    al.current = null;
+    dots.current.visible = false;
+    c.fov = fov;
+    c.setViewOffset(F.width, F.height, ox, oy, F.width, F.height);
+  });
   // dev only: pin the camera for stills (window.__selCam = [x, y, z])
   useFrame((s) => {
     if (process.env.NODE_ENV === "production") return;
@@ -463,13 +545,19 @@ function SelectScene({ v, livery }: { v: Vehicle; livery: Livery }) {
   return (
     <>
       <color attach="background" args={["#ebe9e3"]} />
-      <PerspectiveCamera makeDefault position={SELECT_CAM} fov={30} />
-      <OrbitControls makeDefault target={SELECT_TARGET} autoRotate autoRotateSpeed={1.4} enableZoom={false} enablePan={false} minPolarAngle={0.9} maxPolarAngle={1.45} />
+      <PerspectiveCamera makeDefault position={SELECT_CAM} fov={SELECT_FOV} />
+      {cell && <OrbitControls makeDefault domElement={cell} enabled={!align} target={SELECT_TARGET} autoRotate={!align} autoRotateSpeed={1.4} enableZoom={false} enablePan={false} minPolarAngle={0.9} maxPolarAngle={1.45} />}
       <Lights size={6} />
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.15, 0]} receiveShadow>
+      <mesh ref={floor} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.15, 0]} receiveShadow>
         <circleGeometry args={[40, 32]} />
-        <meshStandardMaterial color="#e1ded6" roughness={1} />
+        <meshStandardMaterial ref={floorMat} color="#e1ded6" roughness={1} />
       </mesh>
+      <group ref={dots} visible={false}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-GRID.x, -GRID.y - 0.02, -GRID.z]}>
+          <planeGeometry args={[900, 900]} />
+          <meshBasicMaterial ref={dotsMat} map={dotFloor} transparent depthWrite={false} />
+        </mesh>
+      </group>
       <group ref={table}>
         <Plinth code={live.v.code} />
       </group>
@@ -494,16 +582,18 @@ function SelectScene({ v, livery }: { v: Vehicle; livery: Livery }) {
 
 /* ------------------------------------------------------------------ the mock */
 
-type Phase = "select" | "cover" | "build";
+type Phase = "select" | "align" | "build";
 
 const CSS = `
-.ss-cover{transform-origin:left;animation:ss-in .38s cubic-bezier(.6,0,.2,1) both}
-.ss-uncover{transform-origin:right;animation:ss-out .45s cubic-bezier(.6,0,.2,1) both}
-@keyframes ss-in{from{transform:scaleX(0)}to{transform:none}}
-@keyframes ss-out{from{transform:none}to{transform:scaleX(0)}}
+.ss-up,.ss-right,.ss-down,.ss-gone{animation:.45s cubic-bezier(.6,0,.2,1) both}
+.ss-up{animation-name:ss-up}.ss-right{animation-name:ss-right}.ss-down{animation-name:ss-down}.ss-gone{animation-name:ss-gone;animation-duration:.2s}
+@keyframes ss-up{to{transform:translateY(-100%)}}
+@keyframes ss-right{to{transform:translateX(100%)}}
+@keyframes ss-down{to{transform:translateY(100%)}}
+@keyframes ss-gone{to{opacity:0}}
 .ss-fadeout{animation:ss-fade .6s ease-in var(--d,0ms) both}
 @keyframes ss-fade{to{opacity:0;transform:translateY(6px)}}
-@media (prefers-reduced-motion:reduce){.ss-cover,.ss-uncover,.ss-fadeout{animation-duration:1ms}}
+@media (prefers-reduced-motion:reduce){.ss-up,.ss-right,.ss-down,.ss-gone,.ss-fadeout{animation-duration:1ms}}
 `;
 
 /** What arrives when (ms), read from the island's own timeline so the log ticks with it. */
@@ -512,6 +602,8 @@ const DONE_MS = BUILD_STEPS[BUILD_STEPS.length - 1][1];
 
 export default function StartSequence() {
   const box = useRef<HTMLDivElement>(null);
+  const frame = useRef<HTMLDivElement>(null);
+  const [cell, setCell] = useState<HTMLDivElement | null>(null);
   const [sel, setSel] = useState(0);
   const [phase, setPhase] = useState<Phase>("select");
   const [run, setRun] = useState(0); // bumps to replay
@@ -529,9 +621,10 @@ export default function StartSequence() {
 
   const go = () => {
     if (phase !== "select") return;
-    setPhase("cover");
+    setPhase("align");
     clearTimeout(timer.current);
-    timer.current = setTimeout(() => setPhase("build"), 420);
+    if (process.env.NODE_ENV !== "production" && typeof window.__alignT === "number") return; // held for stills
+    timer.current = setTimeout(() => setPhase("build"), ALIGN * 1000);
   };
   const back = () => {
     clearTimeout(timer.current);
@@ -582,14 +675,22 @@ export default function StartSequence() {
 
   const key = (k: string, label: string) => <kbd className={`x-key text-[#111] ${down === k ? "is-down" : ""}`}>{label}</kbd>;
   const selecting = phase !== "build";
+  const out = (c: string) => (phase === "align" ? c : "");
 
   return (
     <div>
       <style>{CSS}</style>
-      <div ref={box} className="relative h-[640px] w-full border-2 border-[#111] bg-white">
+      <div ref={box} className="relative h-[640px] w-full overflow-hidden border-2 border-[#111] bg-white">
         {selecting ? (
           <div key={`a${run}`} data-anim="" data-run="" className="dsa-frame absolute inset-0 grid grid-rows-[auto_1fr_auto]">
+            {/* the view spans the whole mock, under the chrome, so Enter can slide the chrome away */}
+            <div ref={frame} className="absolute inset-0">
+              <View className="absolute inset-0">
+                <SelectScene v={base} livery={livery} align={phase === "align"} frame={frame} cell={cell} />
+              </View>
+            </div>
             {/* ink header bar */}
+            <div className={`relative z-[25] ${out("ss-up")}`}>
             <div className="dsa-x flex items-center gap-3 bg-[#111] px-3 py-2 text-white" style={d(150)}>
               <span className="font-mono text-[12px]">
                 HG-08 / GARAGE · <span className="text-[#ff4f00]">Select vehicle</span>
@@ -600,19 +701,17 @@ export default function StartSequence() {
                 <span className="ml-2 border border-white/40 px-1.5">Enter</span> Drive
               </span>
             </div>
+            </div>
 
             <div className="grid min-h-0 grid-cols-1 md:grid-cols-[1fr_300px]">
-              <div data-cursor="drag" className="relative min-h-0 border-b-2 border-[#111] md:border-b-0 md:border-r-2">
-                <View className="absolute inset-0">
-                  <SelectScene v={base} livery={livery} />
-                </View>
-                <span className="font-mono pointer-events-none absolute left-3 top-3 z-[25] bg-white px-1.5 py-0.5 text-[11.5px] shadow-[3px_3px_0_#111] ring-2 ring-[#111]">
+              <div ref={setCell} data-cursor="drag" className={`relative min-h-0 border-b-2 border-[#111] transition-colors duration-200 md:border-b-0 md:border-r-2 ${phase === "align" ? "!border-transparent" : ""}`}>
+                <span className={`font-mono pointer-events-none absolute left-3 top-3 z-[25] bg-white px-1.5 py-0.5 text-[11.5px] shadow-[3px_3px_0_#111] ring-2 ring-[#111] ${out("ss-gone")}`}>
                   {v.code} · Drag to turn
                 </span>
               </div>
 
               {/* spec column: decodes and counts on every switch */}
-              <div key={v.code} data-anim="" data-run="" className="flex flex-col gap-4 p-4">
+              <div key={v.code} data-anim="" data-run="" className={`relative z-[25] flex flex-col gap-4 bg-white p-4 ${out("ss-right")}`}>
                 <div>
                   {/* timed with the swap: the code as the old one leaves, the name with the scan line */}
                   <p className="font-mono text-[12px] text-[#ff4f00]">
@@ -677,7 +776,7 @@ export default function StartSequence() {
             </div>
 
             {/* the four cards and the Enter prompt */}
-            <div className="grid grid-cols-2 border-t-2 border-[#111] sm:grid-cols-[repeat(4,1fr)_auto]">
+            <div className={`relative z-[25] grid grid-cols-2 border-t-2 border-[#111] bg-white sm:grid-cols-[repeat(4,1fr)_auto] ${out("ss-down")}`}>
               {VEHICLES.map((o, i) => {
                 const on = i === sel;
                 return (
@@ -746,8 +845,6 @@ export default function StartSequence() {
             </div>
           </div>
         )}
-        {phase === "cover" && <div className="ss-cover absolute inset-0 z-[26] bg-[#111]" />}
-        {phase === "build" && <div key={`u${run}`} className="ss-uncover pointer-events-none absolute inset-0 z-[26] bg-[#111]" />}
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
