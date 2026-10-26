@@ -6,6 +6,8 @@
 import { useMemo } from "react";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { PitBuilding, type Bay, type PitOpts } from "@/components/world/buildings/PitBuilding";
+import { TONES, blockHeight, facadeMaterial, townParts, type TownBlock } from "@/components/world/buildings/townBlocks";
 import { kindGeometry, type TreeKind } from "@/components/world/foliage/species";
 
 export const W = {
@@ -193,44 +195,12 @@ export function Car() {
 
 /* ------------------------------------------------------------------ W02 garage */
 
-export function Garage({ night }: Night) {
-  const codes = ["Z05", "Z06", "Z07", "Z08", "Z09"];
-  return (
-    <group>
-      <Box s={[32, 0.15, 16]} p={[0, 0.075, 1]} m={M.concreteDark} />
-      {/* ground floor block with five bays */}
-      <Box s={[30, 4.4, 10]} p={[0, 2.35, -1]} m={M.concrete} />
-      {codes.map((c, i) => (
-        <Bay key={c} x={-12 + i * 6} code={c} night={night} />
-      ))}
-      {/* upper floor, set back, with a full-width dark glass band */}
-      <Box s={[30, 2.6, 8.5]} p={[0, 5.85, -1.75]} m={M.concrete} />
-      <Box s={[29.6, 1.5, 0.08]} p={[0, 5.9, 2.52]} m={night ? lampOn : M.glass} />
-      {/* thin cantilevered roof, ink */}
-      <Box s={[32, 0.32, 13]} p={[0, 7.32, -0.3]} m={M.ink} />
-      {/* columns under the overhang */}
-      {[-15, -9, -3, 3, 9, 15].map((x) => (
-        <Box key={x} s={[0.22, 3, 0.22]} p={[x, 5.65, 5.8]} m={M.ink} />
-      ))}
-    </group>
-  );
-}
+// The game's pit building (components/world/buildings), at the proposal's size: 5 m bays.
+const GARAGE_BAYS: Bay[] = ["Z05", "Z06", "Z07", "Z08", "Z09"].map((code, i) => ({ x: -12 + i * 6, code }));
+const GARAGE_OPTS: PitOpts = { bay: 5, depth: 10, end: 0.5, apron: 5 };
 
-function Bay({ x, code, night }: { x: number; code: string; night?: boolean }) {
-  const plate = useLabel(code, { fg: W.paper, bg: W.ink, w: 256, h: 96, size: 64 });
-  return (
-    <group position={[x, 0, 4.02]}>
-      <Box s={[5, 3.5, 0.1]} p={[0, 1.9, 0]} m={night ? lampOff : M.glass} />
-      <Box s={[5.3, 0.16, 0.16]} p={[0, 3.72, 0.02]} m={M.ink} />
-      {[-1, 1].map((s) => (
-        <Box key={s} s={[0.16, 3.6, 0.16]} p={[s * 2.62, 1.95, 0.02]} m={M.ink} />
-      ))}
-      <mesh position={[0, 4.15, 0.1]} material={plate}>
-        <planeGeometry args={[1.6, 0.6]} />
-      </mesh>
-      <Box s={[0.18, 0.18, 0.05]} p={[1, 4.15, 0.12]} m={M.orange} />
-    </group>
-  );
+export function Garage({ night }: Night) {
+  return <PitBuilding bays={GARAGE_BAYS} opts={GARAGE_OPTS} night={!!night} />;
 }
 
 /* ------------------------------------------------------------------ W03 barriers */
@@ -433,35 +403,21 @@ export function Gantry({ night }: Night) {
 
 /* ------------------------------------------------------------------ W08 town */
 
-function Block({ w, d, floors, x = 0, z = 0, accent }: { w: number; d: number; floors: number; x?: number; z?: number; accent?: boolean }) {
-  const fh = 3.2;
-  const h = floors * fh;
-  const cols = Math.max(2, Math.round(w / 2.4));
-  return (
-    <group position={[x, 0, z]}>
-      <Box s={[w, h, d]} p={[0, h / 2, 0]} m={M.concrete} />
-      {/* ground floor glazing, then a grid of recessed windows on the street face */}
-      <Box s={[w - 0.8, 2.4, 0.06]} p={[0, 1.4, d / 2 + 0.01]} m={M.glass} />
-      {Array.from({ length: floors - 1 }, (_, f) =>
-        Array.from({ length: cols }, (_, c) => (
-          <Box key={`${f}${c}`} s={[1.3, 1.7, 0.06]} p={[-w / 2 + (w / cols) * (c + 0.5), fh * (f + 1) + 1.5, d / 2 + 0.01]} m={M.glass} />
-        )),
-      )}
-      {/* parapet and an ink roof line */}
-      <Box s={[w + 0.2, 0.5, d + 0.2]} p={[0, h + 0.25, 0]} m={M.concreteDark} />
-      <Box s={[w + 0.22, 0.08, d + 0.22]} p={[0, h + 0.5, 0]} m={M.ink} />
-      {accent && <Box s={[1.1, 2.4, 0.08]} p={[w / 2 - 1.2, 1.4, d / 2 + 0.03]} m={M.orange} />}
-    </group>
-  );
-}
+// Three of the game's town blocks (components/world/buildings/townBlocks.ts) on a slab.
+const TOWN = (() => {
+  const block = (x: number, z: number, w: number, d: number, floors: number, color: string, accent = false): TownBlock => ({
+    x, z, w, d, floors, color, accent, h: blockHeight(floors), yaw: 0, front: 1, seed: x + 20, style: 0, roof: 0, rh: 0, floor: 0.12, low: 0.12,
+  });
+  const parts = townParts([block(-8, 0, 8, 8, 5, TONES[0]), block(0, 1, 7, 8, 3, TONES[2], true), block(8, -0.5, 8, 9, 7, TONES[3])]);
+  return { ...parts, facade: facadeMaterial(), trim: new THREE.MeshStandardMaterial({ roughness: 0.8, vertexColors: true }) };
+})();
 
 export function Town() {
   return (
     <group>
       <Box s={[26, 0.12, 14]} p={[0, 0.06, 0]} m={M.concreteDark} />
-      <Block w={8} d={8} floors={5} x={-8} />
-      <Block w={7} d={8} floors={3} x={0} z={1} accent />
-      <Block w={8} d={9} floors={7} x={8} z={-0.5} />
+      <mesh geometry={TOWN.bodies} material={TOWN.facade} castShadow receiveShadow />
+      <mesh geometry={TOWN.trims} material={TOWN.trim} castShadow receiveShadow />
     </group>
   );
 }

@@ -6,34 +6,19 @@ import { AWAY, FRAMES, RUNOFF, barrierOffset, distToTrack, farSign, inSectorScen
 import { FLOODS } from "./layoutStreet";
 import { nearPromenade } from "../waterfront/layout";
 import { STAND_SPOTS } from "./standSpots";
+import { FH, G0, TONES, blockHeight } from "../buildings/townBlocks";
 
-// ------------------------------------------------------------ palette
-
-export const CREAM = "#f3e9d8";
-export const TERRACOTTA = "#d9826b";
-export const SAGE = "#9fb79a";
-export const DUSTY_BLUE = "#8fa9c4";
-export const BUTTER = "#f0d48a";
-export const WARM_WHITE = "#faf5ec";
-
-const WALLS = [CREAM, CREAM, CREAM, WARM_WHITE, WARM_WHITE, TERRACOTTA, TERRACOTTA, SAGE, SAGE, DUSTY_BLUE, DUSTY_BLUE, BUTTER, BUTTER];
-export const ROOF_TILE = "#c4694f";
-export const ROOF_SLATE = "#66707d";
-export const ROOF_SAGE = "#7d9879";
-export const AWNINGS = [TERRACOTTA, SAGE, DUSTY_BLUE, BUTTER, "#c4694f", "#6f8f5a"];
-
-// Storeys: a taller ground floor (shops), then even floors, then a parapet.
-// Kept low so buildings read only a little taller than the car, like the original (4b-b).
-export const G0 = 3.0;
-export const FH = 2.6;
-const bodyH = (floors: number) => G0 + (floors - 1) * FH + 0.7;
+// Concrete town blocks (W09, ../buildings/townBlocks.ts). Kept low so buildings read only
+// a little taller than the car, like the original (4b-b).
+const WALLS = TONES;
+const bodyH = blockHeight;
 const MAX_TOP = 12;
 // Buildings this close to the track (m) stay at one or two storeys.
 const NEAR_TRACK = 30;
 
 // ------------------------------------------------------------ placement
 
-/** 0 flat, 1 pitched, 2 flat with a roof garden, 3 vaulted. */
+/** All flat: 0 and 2 plain, 1 with rooftop plant, 3 with a set-back top floor. */
 export type Roof = 0 | 1 | 2 | 3;
 export type Bld = {
   x: number;
@@ -50,14 +35,16 @@ export type Bld = {
   front: 1 | -1;
   floors: number;
   roof: Roof;
-  /** pitched/vaulted roof height */
+  /** height of the plant or top floor on the roof */
   rh: number;
+  /** an orange door on the street face (one now and then) */
+  accent?: boolean;
   /** one of the old town's buildings round the crossover */
   old?: boolean;
 };
 
 // Buildings may stand on slopes. The walls stay vertical: the floor sits at the
-// highest ground under the footprint and a stone plinth reaches down to the
+// highest ground under the footprint and a concrete plinth reaches down to the
 // lowest, so the low side shows more stone and no edge ever floats. On steeper
 // ground (an embankment) the plinth stops at PLINTH m and the building sits into
 // the high side instead.
@@ -180,9 +167,9 @@ function dress(r: () => number, b: Omit<Bld, "roof" | "rh" | "style" | "front">,
   const roll = r();
   const roof: Roof = roll < 0.45 ? 1 : roll < 0.75 ? 2 : roll < 0.85 ? 3 : 0;
   const short = Math.min(b.w, b.d);
-  const rh = roof === 1 ? Math.min(Math.max(1.4, short * 0.3), 2.6, MAX_TOP - b.h) : roof === 3 ? Math.min(short * 0.3, MAX_TOP - b.h) : 0;
+  const rh = roof === 1 ? Math.min(1.2, MAX_TOP - b.h) : roof === 3 ? Math.min(short > 6 ? FH : 0, MAX_TOP - b.h) : 0;
   const style = r() < 0.22 + styleBias ? 1 : 0;
-  return { ...b, roof, rh, style, front: frontOf(b.x, b.z, b.yaw) };
+  return { ...b, roof, rh, style, front: frontOf(b.x, b.z, b.yaw), accent: b.seed % 9 < 1 };
 }
 
 /** A continuous street wall on the far side, close enough to frame the chase camera. */
@@ -309,7 +296,7 @@ export const BUILDINGS: Bld[] = (() => {
     if (blocksCamera(b)) continue;
     out.push(b);
   }
-  // A few landmarks on the far side: slim towers with tall windows and a steep roof.
+  // A few landmarks on the far side: slim towers with tall windows and a glass crown.
   let marks = 0;
   for (const b of out) {
     if (marks >= 4) break;
