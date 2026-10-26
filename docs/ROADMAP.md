@@ -80,11 +80,12 @@ small, verified with headless screenshots, and committed on its own
 
 ## Art direction (applies to every step)
 
-Polished toy diorama in folio-2025's world colours (owner, 2026-10-23): olive-yellow grass
-(`C.grass` #a5a33e), warm orange sand (#eeaa68), olive foliage, plain speckled asphalt with NO
-painted lines or words (start line only), chunky red/white kerbs, soft rounded forms, very little
-text in the world. The UI and the opening follow docs/BRAND.md (Datasheet, since 2026-10-26), not folio-2025's.
-This world art direction is under review: ROADMAP step 11 (Concrete & Ink proposal).
+The world follows Concrete & Ink (docs/BRAND.md, "World (approved 2026-10-26)"): a modern circuit,
+not a toy town. Concrete (#d9d6ce), muted grass (`C.grass` #7a8462), gravel (#cdc4b0) where the
+old sand was, dark asphalt (#3a3b3e) with a thin paper edge line and the start line as its only paint,
+ink/paper kerbs, ink and paper objects with one orange (#ff4f00) accent each, very little text in the
+world. Palette: components/world/palette.ts `C` (keys kept from the old palette, `red` is the orange
+accent). The UI and the opening follow docs/BRAND.md (Datasheet). The model swap runs as step 11 a–i.
 
 ## Where it stands (2026-10-23, late night)
 
