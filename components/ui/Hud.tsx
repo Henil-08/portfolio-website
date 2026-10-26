@@ -75,7 +75,8 @@ function TopBar() {
       <Tab label="Garage" k="G" onClick={reenterGarage}>
         <path d="M3 20V9l9-5 9 5v11M7 20v-7h10v7M7 16h10" />
       </Tab>
-      <Tab label="Controls" onClick={() => setState((s) => ({ controlsOpen: !s.controlsOpen }))}>
+      {/* the keys sheet is for keyboards; on touch the bar keeps room for the garage */}
+      <Tab label="Controls" className="pointer-coarse:hidden" onClick={() => setState((s) => ({ controlsOpen: !s.controlsOpen }))}>
         <path d="M3 7h18v10H3zM7 11h.01M11 11h.01M15 11h.01M7 14h10" />
       </Tab>
       <Tab label="Settings" onClick={() => setState((s) => ({ settingsOpen: !s.settingsOpen }))}>
@@ -91,9 +92,9 @@ function TopBar() {
   );
 }
 
-function Tab({ label, k, onClick, children }: { label: string; k?: string; onClick: () => void; children: React.ReactNode }) {
+function Tab({ label, k, onClick, className = "", children }: { label: string; k?: string; onClick: () => void; className?: string; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} aria-label={label} title={label} className="ds-tab">
+    <button onClick={onClick} aria-label={label} title={label} className={`ds-tab ${className}`}>
       {k && <span className="hidden bg-ink px-1.5 font-mono text-[11px] text-white sm:inline">{k}</span>}
       <svg viewBox="0 0 24 24" className="h-4 w-4 sm:hidden" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
         {children}

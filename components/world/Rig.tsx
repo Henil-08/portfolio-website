@@ -221,7 +221,9 @@ export function Sky() {
         vertexShader: `varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
         fragmentShader: `uniform vec3 top; uniform vec3 mid; uniform vec3 bottom; varying vec3 vP;
           void main(){ float h = vP.y; vec3 c = h > 0.0 ? mix(mid, top, smoothstep(0.0, 0.6, h)) : mix(mid, bottom, smoothstep(0.0, -0.3, h));
-          gl_FragColor = vec4(c, 1.0); }`,
+          gl_FragColor = vec4(c, 1.0);
+          #include <colorspace_fragment>
+          }`,
       }),
     []
   );

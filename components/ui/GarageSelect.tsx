@@ -143,7 +143,9 @@ function Select({ aligning, back }: { aligning: boolean; back: boolean }) {
           onPointerDown={(e) => {
             drag.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
             opening.drag.held = true;
-            e.currentTarget.setPointerCapture(e.pointerId);
+            try {
+              e.currentTarget.setPointerCapture(e.pointerId);
+            } catch {}
           }}
           onPointerMove={(e) => {
             const g = drag.current;
