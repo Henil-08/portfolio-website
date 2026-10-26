@@ -452,7 +452,7 @@ body {
 .x-sel:hover>.x-corner,.x-sel:focus-visible>.x-corner,.x-sel.is-on>.x-corner{opacity:1;transform:translate(var(--cx),var(--cy))}
 .x-sel:focus-visible{outline:none}
 
-.x-btn{display:inline-flex;align-items:center;gap:10px;border:2px solid var(--color-ink);padding:8px 14px;font-family:var(--b-plex-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;box-shadow:3px 3px 0 var(--color-ink);transition:transform .08s,box-shadow .08s,background .15s,color .15s}
+.x-btn{display:inline-flex;align-items:center;gap:10px;border:2px solid var(--color-ink);padding:8px 14px;font-family:var(--font-plex-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;box-shadow:3px 3px 0 var(--color-ink);transition:transform .08s,box-shadow .08s,background .15s,color .15s}
 .x-btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--color-ink)}
 .x-btn .x-arrow{transition:transform .18s cubic-bezier(.3,1.6,.5,1)}
 .x-btn:hover .x-arrow{transform:translateX(4px)}
@@ -465,10 +465,10 @@ body {
 .x-link{background:linear-gradient(var(--color-ink),var(--color-ink)) left bottom/0% 2px no-repeat;padding-bottom:2px;transition:background-size .25s cubic-bezier(.6,0,.2,1)}
 .x-link:hover,.x-link:focus-visible{background-size:100% 2px}
 
-.x-key{display:inline-grid;place-items:center;min-width:28px;height:28px;padding:0 7px;border:2px solid var(--color-ink);background:#fff;font-family:var(--b-plex-mono);font-size:12px;font-weight:600;box-shadow:0 3px 0 var(--color-ink);transition:transform .06s,box-shadow .06s,background .06s,color .06s}
+.x-key{display:inline-grid;place-items:center;min-width:28px;height:28px;padding:0 7px;border:2px solid var(--color-ink);background:#fff;font-family:var(--font-plex-mono);font-size:12px;font-weight:600;box-shadow:0 3px 0 var(--color-ink);transition:transform .06s,box-shadow .06s,background .06s,color .06s}
 .x-key.is-down{transform:translateY(3px);box-shadow:0 0 0 var(--color-ink);background:var(--color-ink);color:#fff}
 
-.x-chip{border:1px solid var(--color-ink);padding:3px 8px;font-family:var(--b-plex-mono);font-size:12px;transition:background .12s,color .12s}
+.x-chip{border:1px solid var(--color-ink);padding:3px 8px;font-family:var(--font-plex-mono);font-size:12px;transition:background .12s,color .12s}
 .x-chip:hover{background:var(--color-ink);color:#fff}
 
 .x-row{transition:background .12s,color .12s}
