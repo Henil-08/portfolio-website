@@ -240,167 +240,64 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
-   /resume (app/resume/page.tsx) in the HUD language, with hover states, and a
-   plain ink-on-white version for print.
+   /resume (app/resume/Resume.tsx) on paper: plain ink on white. Everything the
+   motion hides starts visible, colour prints exactly so the ink rules survive,
+   orange drops to ink, and links read as plain text.
    --------------------------------------------------------------------------- */
-@layer components {
-  .r-btn {
-    display: inline-flex;
-    align-items: center;
-    height: 2.25rem;
-    padding: 0 0.9rem;
-    border: 1px solid rgb(255 248 236 / 0.3);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--color-cream);
-    transition:
-      border-color 0.15s,
-      background 0.15s,
-      color 0.15s;
-  }
-  .r-btn:hover {
-    border-color: var(--color-cream);
-    background: var(--color-cream);
-    color: var(--color-ink);
-  }
-  .r-btn-red {
-    border-color: var(--color-red);
-    background: var(--color-red);
-    color: #fff;
-  }
-  .r-btn-red:hover {
-    border-color: #fff;
-    background: #fff;
-    color: var(--color-red);
-  }
-  .r-link {
-    position: relative;
-    padding: 0.3rem 0.65rem;
-    background: #171928;
-    font-family: var(--font-mono);
-    font-size: 11.5px;
-    letter-spacing: 0.06em;
-    color: rgb(255 248 236 / 0.85);
-    transition:
-      color 0.15s,
-      background 0.15s;
-  }
-  .r-link::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 2px;
-    background: var(--color-red);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .r-link:hover {
-    color: #fff;
-  }
-  .r-link:hover::after {
-    transform: scaleX(1);
-  }
-  .r-row {
-    transition: background 0.2s;
-  }
-  .r-row:hover {
-    background: rgb(255 248 236 / 0.04);
-  }
-  .r-card {
-    position: relative;
-    background: rgb(255 248 236 / 0.035);
-    border: 1px solid rgb(255 248 236 / 0.1);
-    transition:
-      border-color 0.2s,
-      transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-      background 0.2s;
-  }
-  .r-card:hover {
-    border-color: rgb(255 75 62 / 0.7);
-    background: rgb(255 248 236 / 0.06);
-    transform: translateY(-2px);
-  }
-  .r-chip {
-    transition:
-      background 0.15s,
-      color 0.15s;
-  }
-  .r-chip:hover {
-    background: var(--color-cream);
-    color: var(--color-ink);
-  }
-  .r-skill {
-    padding: 0.2rem 0.55rem;
-    border: 1px solid rgb(255 248 236 / 0.15);
-    font-size: 13px;
-    color: rgb(255 248 236 / 0.8);
-    transition:
-      border-color 0.15s,
-      background 0.15s,
-      color 0.15s;
-  }
-  .r-skill:hover {
-    border-color: var(--color-red);
-    background: var(--color-red);
-    color: #fff;
-  }
-  .r-rise {
-    animation: r-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-}
-@keyframes r-rise {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .r-rise {
-    animation: none;
-  }
-}
-/* print: plain ink on white, no panels, glows or hairlines */
 @media print {
+  @page {
+    margin: 14mm 12mm;
+  }
   .resume {
     background: #fff !important;
-    color: #1f2133 !important;
+    color: #111 !important;
     padding: 0 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
   .resume *,
   .resume *::before,
   .resume *::after {
-    color: #1f2133 !important;
-    background: transparent !important;
-    box-shadow: none !important;
     animation: none !important;
+    transition: none !important;
+    box-shadow: none !important;
+  }
+  .resume [data-anim] .dsa-wipe,
+  .resume [data-anim] .dsa-frame {
+    clip-path: none !important;
+  }
+  .resume [data-anim] .dsa-rise,
+  .resume [data-anim] .dsa-flicker {
+    opacity: 1 !important;
+  }
+  .resume [data-anim] .dsa-x,
+  .resume [data-anim] .dsa-y,
+  .resume [data-anim] .dsa-pop {
     transform: none !important;
   }
-  .resume .hud-panel::after {
-    display: none;
+  .resume .bg-paper,
+  .resume .bg-white {
+    background: #fff !important;
   }
-  .resume .hud-panel {
-    padding: 0.6rem 0 !important;
+  /* the ink bars become a rule with ink text */
+  .resume .ds-bar {
+    background: #fff !important;
+    border-bottom: 2px solid #111;
   }
-  .resume .text-red,
-  .resume .r-link,
-  .resume .font-racing {
-    color: #c8261b !important;
+  .resume :has(> .ds-bar),
+  .resume :has(> .ds-bar) * {
+    color: #111 !important;
   }
-  .resume .r-card,
-  .resume .r-skill {
-    border-color: #ddd !important;
+  .resume .text-signal {
+    color: #111 !important;
   }
-  .resume li::before {
-    background: #c8261b !important;
+  .resume .bg-signal {
+    background: #111 !important;
+  }
+  .resume a {
+    color: inherit !important;
+    background-image: none !important;
+    text-decoration: none !important;
   }
 }
 
