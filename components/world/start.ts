@@ -1,12 +1,15 @@
 // The start: in front of the name, the car is parked on the garden path that
-// leads to the pit lane (garden/layout.ts PATHS), under a shade tree with bushes,
-// a bench and flowers round it, inside the opening circle (Reveal.tsx). Pure data,
+// leads to the pit lane (garden/layout.ts PATHS), between two low concrete planters,
+// with bushes, a bench and grasses round it, inside the opening circle (Reveal.tsx). Pure data,
 // drawn by ./StartGarden.tsx.
 export { REVEAL_AT, START_SPOT } from "./startSpot";
 
-export const START_TREE = { x: 9.4, z: 1.3, seed: 11, s: 1.15 };
+/** Two low square concrete planters of grasses either side of the path behind the car (nothing tall, so the car reads at spawn). */
+export const START_PLANTERS: [number, number][] = [
+  [9.4, 1.15],
+  [9.4, 5.5],
+];
 export const START_BUSHES: [number, number, number][] = [
-  [9.2, 5.6, 0.95],
   [7.2, 1.2, 0.8],
   [19.6, -0.4, 0.7],
 ];
