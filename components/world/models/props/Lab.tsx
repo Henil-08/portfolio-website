@@ -137,7 +137,7 @@ export function Lab(props: GroupProps) {
         {/* small red brand tick bottom left */}
         <mesh geometry={unitBox()} scale={[0.5, 0.06, 0.02]} position={[1.0, 0.9, 0.0]} material={mat(C.red, { r: 0.35 })} />
         <Label position={[1.0, 0.72, 0.012]} fontSize={0.1} color={C.greyDark} letterSpacing={0.2}>
-          HG RACING
+          HG-08
         </Label>
       </group>
 

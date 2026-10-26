@@ -95,7 +95,7 @@ export function Billboard({ title = "TITLE", subtitle = "", accent = C.red, inde
         ) : null}
         {/* small brand mark in the red bar */}
         <Label position={[W / 2 - 0.32, -BH / 2 + 0.11, FZ + 0.016]} fontSize={0.09} color={C.white} letterSpacing={0.12}>
-          HG RACING
+          HG-08
         </Label>
       </group>
     </group>

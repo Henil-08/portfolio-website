@@ -95,7 +95,7 @@ export function Garage({ title, ...props }: GroupProps & { title?: string }) {
       <mesh geometry={unitBox()} scale={[W - 2 * T, H - 0.6, 0.02]} position={[0, (H - 0.6) / 2 + 0.02, -D / 2 + T + 0.01]} material={ink} receiveShadow />
       <mesh geometry={unitBox()} scale={[W - 2 * T, 0.12, 0.03]} position={[0, 1.55, -D / 2 + T + 0.025]} material={red} />
       <Label position={[0, 2.45, -D / 2 + T + 0.03]} fontSize={0.5} color={C.white} letterSpacing={0.06}>
-        HG RACING
+        HG-08
       </Label>
       <Label position={[0, 2.05, -D / 2 + T + 0.03]} fontSize={0.12} color={C.grey} letterSpacing={0.3}>
         PROJECTS · BUILT TO RACE
@@ -132,7 +132,7 @@ export function Garage({ title, ...props }: GroupProps & { title?: string }) {
         <Header title={title} />
       ) : (
         <Label position={[-W / 2 + 1.8, OPEN_H + 0.53, ZF - 0.04]} anchorX="left" fontSize={0.56} color={C.white} letterSpacing={0.04}>
-          HG RACING
+          HG-08
         </Label>
       )}
 
@@ -160,7 +160,7 @@ export function Garage({ title, ...props }: GroupProps & { title?: string }) {
         <mesh key={x} geometry={unitBox()} scale={[0.28, 0.01, D + 0.38]} position={[x - 2.6, H + 0.005, 0.1]} material={red} />
       ))}
       <Label position={[0.9, H + 0.012, 0.3]} rotation={[-Math.PI / 2, 0, 0]} fontSize={1.0} color={C.ink} letterSpacing={0.04}>
-        HG RACING
+        HG-08
       </Label>
       <Label position={[0.9, H + 0.012, 1.25]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.22} color={C.grey} letterSpacing={0.35}>
         GARAGE 08

@@ -50,7 +50,7 @@ export function PitWall(props: GroupProps) {
         PIT WALL
       </Label>
       <Label position={[2.25, 0.62, 0.52]} anchorX="right" fontSize={0.09} color={C.greyDark} letterSpacing={0.22}>
-        HG RACING · STRATEGY & TIMING
+        HG-08 · STRATEGY & TIMING
       </Label>
       {/* screens on a steel rail, tilted toward the camera */}
       <mesh geometry={unitBox()} scale={[4.6, 0.05, 0.05]} position={[0, 1.22, -0.18]} material={steel} castShadow />
@@ -79,7 +79,7 @@ export function PitWall(props: GroupProps) {
         <mesh geometry={unitBox()} scale={[5.2, 0.02, 2.2]} position={[0, -0.06, 0]} material={mat(C.white, { glow: 0.5 })} />
         <RoundedBox args={[5.42, 0.34, 0.08]} radius={0.02} smoothness={2} position={[0, -0.08, 1.2]} material={red} castShadow />
         <Label position={[0, -0.07, 1.245]} fontSize={0.2} color={C.white} letterSpacing={0.25}>
-          HG RACING
+          HG-08
         </Label>
       </group>
       {/* mailbox: charcoal post box, steel post, red flag up */}

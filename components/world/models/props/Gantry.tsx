@@ -83,10 +83,10 @@ export function Gantry({ lights = 0, ...props }: GroupProps & { lights?: number 
       {/* main beam: charcoal box section, banners front and back */}
       <RoundedBox args={[SPAN + 1.5, 0.95, 0.7]} radius={0.04} smoothness={2} position={[0, BEAM_Y + 0.05, 0]} material={ink} castShadow receiveShadow />
       <group position={[0, BEAM_Y + 0.05, 0.36]}>
-        <Banner text="START · FINISH" sub="HG RACING · GRAND PRIX" />
+        <Banner text="START · FINISH" sub="HG-08 · GRAND PRIX" />
       </group>
       <group position={[0, BEAM_Y + 0.05, -0.36]} rotation={[0, Math.PI, 0]}>
-        <Banner text="HG RACING" sub="LIGHTS OUT AND AWAY WE GO" />
+        <Banner text="HG-08" sub="LIGHTS OUT AND AWAY WE GO" />
       </group>
 
       {/* start light panel hanging under the beam: 5 columns x 2 lights */}

@@ -74,7 +74,7 @@ export function Phone(props: GroupProps) {
           08:00
         </Label>
         <Label position={[0, 0.15, 0.037]} fontSize={0.032} color={C.greyLight} letterSpacing={0.1}>
-          HG RACING · LIGHTS OUT
+          HG-08 · LIGHTS OUT
         </Label>
         <RoundedBox args={[0.38, 0.12, 0.006]} radius={0.02} smoothness={2} position={[0, -0.05, 0.037]} material={mat(C.white, { o: 0.9, glow: 0.25, r: 0.4 })} />
         <mesh geometry={unitBox()} scale={[0.04, 0.04, 0.004]} position={[-0.14, -0.05, 0.041]} material={mat(C.red, { glow: 1.2 })} />
