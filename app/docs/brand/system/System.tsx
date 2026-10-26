@@ -12,77 +12,11 @@ import { radioLines, radioText } from "@/content/radio";
 import { GARAGES, LAKES, PIT, PIT_LANE_WIDTH, RIVER, START_T, TRACK_WIDTH, coastR, sectorT, trackPoint, trackTangent, zones } from "@/components/world/layout";
 import { MAP } from "@/components/world/MapCapture";
 import { BUILDINGS } from "@/components/world/street/town";
-import { Count, Decode, DsCard, DsResume, MotionStyles, Stage, d } from "../datasheet/parts";
-import { DS, dsMono, pad } from "../datasheet/shared";
-import { ATTENTION, Lockup, MARK_CSS, Mark } from "../mark";
-
-/* ------------------------------------------------------------------ styles */
-
-// Interaction rules, shared by every component below. Orange only ever marks focus
-// (the brackets), a status dot, a section number or the one figure that matters.
-const CSS = `
-.x-sel{position:relative}
-.x-corner{position:absolute;width:10px;height:10px;border-color:${DS.orange};opacity:0;transition:opacity .12s,transform .18s cubic-bezier(.3,1.6,.5,1);pointer-events:none}
-.x-sel:hover>.x-corner,.x-sel:focus-visible>.x-corner,.x-sel.is-on>.x-corner{opacity:1;transform:translate(var(--cx),var(--cy))}
-.x-sel:focus-visible{outline:none}
-
-.x-btn{display:inline-flex;align-items:center;gap:10px;border:2px solid ${DS.ink};padding:8px 14px;font-family:var(--b-plex-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;box-shadow:3px 3px 0 ${DS.ink};transition:transform .08s,box-shadow .08s,background .15s,color .15s}
-.x-btn:active{transform:translate(3px,3px);box-shadow:0 0 0 ${DS.ink}}
-.x-btn .x-arrow{transition:transform .18s cubic-bezier(.3,1.6,.5,1)}
-.x-btn:hover .x-arrow{transform:translateX(4px)}
-.x-primary{background:${DS.ink};color:${DS.paper}}
-.x-secondary{background:#fff;color:${DS.ink};position:relative;isolation:isolate}
-.x-secondary::before{content:"";position:absolute;inset:0;background:${DS.ink};transform:scaleX(0);transform-origin:left;transition:transform .22s cubic-bezier(.6,0,.2,1);z-index:-1}
-.x-secondary:hover{color:${DS.paper}}
-.x-secondary:hover::before{transform:none}
-
-.x-link{background:linear-gradient(${DS.ink},${DS.ink}) left bottom/0% 2px no-repeat;padding-bottom:2px;transition:background-size .25s cubic-bezier(.6,0,.2,1)}
-.x-link:hover,.x-link:focus-visible{background-size:100% 2px}
-
-.x-key{display:inline-grid;place-items:center;min-width:28px;height:28px;padding:0 7px;border:2px solid ${DS.ink};background:#fff;font-family:var(--b-plex-mono);font-size:12px;font-weight:600;box-shadow:0 3px 0 ${DS.ink};transition:transform .06s,box-shadow .06s,background .06s,color .06s}
-.x-key.is-down{transform:translateY(3px);box-shadow:0 0 0 ${DS.ink};background:${DS.ink};color:#fff}
-
-.x-chip{border:1px solid ${DS.ink};padding:3px 8px;font-family:var(--b-plex-mono);font-size:12px;transition:background .12s,color .12s}
-.x-chip:hover{background:${DS.ink};color:#fff}
-
-.x-row{transition:background .12s,color .12s}
-.x-row:hover{background:${DS.ink};color:#fff}
-.x-row:hover .x-mute{color:rgba(255,255,255,.6)}
-.x-row .x-arrow{opacity:0;transform:translateX(-6px);transition:opacity .15s,transform .18s cubic-bezier(.3,1.6,.5,1)}
-.x-row:hover .x-arrow{opacity:1;transform:none}
-
-.x-countdown{animation:x-countdown var(--t,4s) linear both;transform-origin:left}
-@keyframes x-countdown{from{transform:none}to{transform:scaleX(0)}}
-.x-load{animation:x-load 1.2s ease-in-out infinite alternate}
-@keyframes x-load{from{opacity:var(--lo)}to{opacity:1}}
-.x-blink{animation:x-blink 1.06s steps(1,end) infinite}
-@keyframes x-blink{50%{opacity:0}}
-.x-wave{transform-origin:bottom;animation:x-wave .5s ease-in-out infinite alternate}
-@keyframes x-wave{from{transform:scaleY(.25)}to{transform:none}}
-.map-draw{animation:map-draw 1.1s cubic-bezier(.6,0,.2,1) var(--d,0ms) both}
-@keyframes map-draw{from{stroke-dasharray:1;stroke-dashoffset:1}99%{stroke-dasharray:1;stroke-dashoffset:0}to{stroke-dasharray:none}}
-.map-ping{transform-box:fill-box;transform-origin:center;animation:map-ping 1.8s cubic-bezier(.2,.6,.3,1) infinite}
-@keyframes map-ping{from{transform:scale(.4);opacity:1}to{transform:scale(2.2);opacity:0}}
-@media (prefers-reduced-motion:reduce){.x-load,.x-wave,.x-blink,.map-ping,.map-draw{animation:none}}
-`;
-
-/** Orange corner brackets for any .x-sel element (hover, focus, or .is-on). */
-function Corners({ inset = -6 }: { inset?: number }) {
-  return (
-    <>
-      {(
-        [
-          ["border-l-2 border-t-2", { left: inset, top: inset }, "-3px", "-3px"],
-          ["border-r-2 border-t-2", { right: inset, top: inset }, "3px", "-3px"],
-          ["border-b-2 border-l-2", { left: inset, bottom: inset }, "-3px", "3px"],
-          ["border-b-2 border-r-2", { right: inset, bottom: inset }, "3px", "3px"],
-        ] as const
-      ).map(([c, pos, cx, cy]) => (
-        <span key={c} className={`x-corner ${c}`} style={{ ...pos, ...({ "--cx": cx, "--cy": cy } as CSSProperties) }} />
-      ))}
-    </>
-  );
-}
+import { Count, Decode, Stage, d } from "@/components/brand/motion";
+import { DsCard, DsResume } from "@/components/brand/sheets";
+import { DS, pad } from "@/components/brand/tokens";
+import { ATTENTION, Lockup, Mark } from "@/components/brand/mark";
+import Corners from "@/components/brand/Corners";
 
 /* ------------------------------------------------------------------ page frame */
 
@@ -93,7 +27,7 @@ function useTake() {
 
 function Replay({ onClick, light }: { onClick: () => void; light?: boolean }) {
   return (
-    <button type="button" onClick={onClick} className={`${dsMono} border px-2 py-0.5 text-[11px] transition ${light ? "border-white/30 text-white/70 hover:border-white hover:text-white" : "border-[#111]/30 text-[#5d5d58] hover:border-[#111] hover:text-[#111]"}`}>
+    <button type="button" onClick={onClick} className={`font-mono border px-2 py-0.5 text-[11px] transition ${light ? "border-white/30 text-white/70 hover:border-white hover:text-white" : "border-[#111]/30 text-[#5d5d58] hover:border-[#111] hover:text-[#111]"}`}>
       ↻ Replay
     </button>
   );
@@ -103,7 +37,7 @@ function Section({ id, n, title, intro, children }: { id: string; n: string; tit
   return (
     <section id={id} className="scroll-mt-16 pt-16 sm:pt-24">
       <div className="flex items-baseline gap-4 border-b-[3px] border-[#111] pb-3">
-        <span className={`${dsMono} text-[15px] text-[#ff4f00]`}>{n}</span>
+        <span className={`font-mono text-[15px] text-[#ff4f00]`}>{n}</span>
         <h2 className="text-[30px] font-semibold leading-none tracking-tight sm:text-[40px]">{title}</h2>
       </div>
       <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-[#5d5d58]">{intro}</p>
@@ -115,7 +49,7 @@ function Section({ id, n, title, intro, children }: { id: string; n: string; tit
 function Sub({ n, children }: { n: string; children: ReactNode }) {
   return (
     <h3 className="mb-4 mt-12 flex items-baseline gap-3 border-b border-[#111] pb-1.5 text-[13px] font-semibold uppercase tracking-[0.06em] first:mt-0">
-      <span className={`${dsMono} text-[#ff4f00]`}>{n}</span>
+      <span className={`font-mono text-[#ff4f00]`}>{n}</span>
       {children}
     </h3>
   );
@@ -129,7 +63,7 @@ function Identity() {
     <Section id="identity" n="01" title="Identity" intro="One mark, one paper, one ink, one orange. Everything else is structure: numbered sections, hard rules, tables, units on every claim.">
       <div className="grid gap-px border-2 border-[#111] bg-[#111] lg:grid-cols-[1.1fr_1fr]">
         <div className="relative grid min-h-[340px] place-items-center bg-white p-8">
-          <span className={`${dsMono} absolute left-4 top-3 text-[11px] uppercase tracking-[0.1em] text-[#5d5d58]`}>The mark · L10 · A</span>
+          <span className={`font-mono absolute left-4 top-3 text-[11px] uppercase tracking-[0.1em] text-[#5d5d58]`}>The mark · L10 · A</span>
           <span className="absolute right-3 top-2">
             <Replay onClick={replay} />
           </span>
@@ -137,7 +71,7 @@ function Identity() {
             <Mark key={take} size={180} motion />
             <div className="text-center">
               <p className="text-[28px] font-semibold leading-none tracking-tight">{profile.name}</p>
-              <p className={`${dsMono} mt-2 text-[12px] text-[#5d5d58]`}>HG-08 · AI/ML engineer</p>
+              <p className={`font-mono mt-2 text-[12px] text-[#5d5d58]`}>HG-08 · AI/ML engineer</p>
             </div>
           </div>
         </div>
@@ -151,10 +85,10 @@ function Identity() {
                 <Mark size={32} />
                 <Mark size={16} />
               </div>
-              <span className={`${dsMono} text-[11px] text-[#5d5d58]`}>32 · 16 px, favicon</span>
+              <span className={`font-mono text-[11px] text-[#5d5d58]`}>32 · 16 px, favicon</span>
             </div>
             <div className="col-span-2 flex flex-col items-start gap-4 border-b border-[#cfcdc4] p-6">
-              <span className={`${dsMono} text-[11px] text-[#5d5d58]`}>Lockup · square = name size · gap 0.4×</span>
+              <span className={`font-mono text-[11px] text-[#5d5d58]`}>Lockup · square = name size · gap 0.4×</span>
               <Lockup size={36} name={profile.name} />
               <div className="flex flex-wrap items-center gap-6">
                 <Lockup size={20} name={profile.name} />
@@ -194,7 +128,7 @@ function Identity() {
             <div className="h-20 border-b border-[#cfcdc4]" style={{ background: c }} />
             <div className="p-3">
               <p className="text-[14px] font-semibold">{n}</p>
-              <p className={`${dsMono} text-[12px] text-[#5d5d58]`}>{c}</p>
+              <p className={`font-mono text-[12px] text-[#5d5d58]`}>{c}</p>
               <p className="mt-1 text-[12.5px] leading-snug text-[#5d5d58]">{u}</p>
             </div>
           </div>
@@ -209,14 +143,14 @@ function Identity() {
             ["Title", "IBM Plex Sans 600 · 22 / 1.2", <span key="b" className="text-[22px] font-semibold">Seven agents that write and run chip tests</span>],
             ["Body", "IBM Plex Sans 400 · 15 / 1.6", <span key="c" className="text-[15px] leading-relaxed">{projects[0].points[2]}</span>],
             ["Label", "IBM Plex Sans 600 · 13 · caps · 0.06em", <span key="d" className="text-[13px] font-semibold uppercase tracking-[0.06em]">Key specifications</span>],
-            ["Code", "IBM Plex Mono 400 · 12", <span key="e" className={`${dsMono} text-[12px]`}>HG-08 / P01 · Z03 · Garage</span>],
-            ["Figure", "IBM Plex Mono 600 · 16–48 · tabular", <span key="f" className={`${dsMono} text-[32px] font-semibold`}>17.3% → 44.9%</span>],
+            ["Code", "IBM Plex Mono 400 · 12", <span key="e" className={`font-mono text-[12px]`}>HG-08 / P01 · Z03 · Garage</span>],
+            ["Figure", "IBM Plex Mono 600 · 16–48 · tabular", <span key="f" className={`font-mono text-[32px] font-semibold`}>17.3% → 44.9%</span>],
           ] as const
         ).map(([n, spec, ex]) => (
           <div key={n} className="grid items-baseline gap-2 border-b border-[#cfcdc4] px-5 py-4 last:border-b-0 sm:grid-cols-[150px_1fr]">
             <div>
               <p className="text-[13px] font-semibold">{n}</p>
-              <p className={`${dsMono} text-[11px] text-[#5d5d58]`}>{spec}</p>
+              <p className={`font-mono text-[11px] text-[#5d5d58]`}>{spec}</p>
             </div>
             <div className="min-w-0">{ex}</div>
           </div>
@@ -234,7 +168,7 @@ function Identity() {
           ["Readable first", "Body copy is plain sentence case at 15 px or more. Caps only for short labels."],
         ].map(([t, b], i) => (
           <li key={t} className="bg-white p-5">
-            <p className={`${dsMono} text-[12px] text-[#ff4f00]`}>R{pad(i + 1)}</p>
+            <p className={`font-mono text-[12px] text-[#ff4f00]`}>R{pad(i + 1)}</p>
             <p className="mt-1 text-[16px] font-semibold">{t}</p>
             <p className="mt-1 text-[14px] leading-relaxed text-[#5d5d58]">{b}</p>
           </li>
@@ -252,7 +186,7 @@ function Prim({ code, name, spec, use, children }: { code: string; name: string;
     <div className="flex flex-col border-2 border-[#111] bg-white">
       <div className="flex items-center justify-between border-b-2 border-[#111] px-3 py-1.5">
         <span className="text-[13px] font-semibold uppercase tracking-[0.06em]">
-          <span className={`${dsMono} mr-2 text-[#ff4f00]`}>{code}</span>
+          <span className={`font-mono mr-2 text-[#ff4f00]`}>{code}</span>
           {name}
         </span>
         <Replay onClick={replay} />
@@ -263,7 +197,7 @@ function Prim({ code, name, spec, use, children }: { code: string; name: string;
         </Stage>
       </div>
       <div className="mt-auto border-t border-[#cfcdc4] px-3 py-2">
-        <p className={`${dsMono} text-[11.5px]`}>{spec}</p>
+        <p className={`font-mono text-[11.5px]`}>{spec}</p>
         <p className="text-[12.5px] text-[#5d5d58]">{use}</p>
       </div>
     </div>
@@ -304,7 +238,7 @@ function MotionSection() {
         <div className="flex flex-col border-2 border-[#111] bg-white sm:col-span-2 lg:col-span-1">
           <div className="flex items-center justify-between border-b-2 border-[#111] px-3 py-1.5">
             <span className="text-[13px] font-semibold uppercase tracking-[0.06em]">
-              <span className={`${dsMono} mr-2 text-[#ff4f00]`}>M00</span>The mark
+              <span className={`font-mono mr-2 text-[#ff4f00]`}>M00</span>The mark
             </span>
             <Replay onClick={replay} />
           </div>
@@ -312,7 +246,7 @@ function MotionSection() {
             <Mark key={take} size={92} motion />
           </div>
           <div className="mt-auto border-t border-[#cfcdc4] px-3 py-2">
-            <p className={`${dsMono} text-[11.5px]`}>trace .5s · fill .35s · 45ms per diagonal · ≈ .8s</p>
+            <p className={`font-mono text-[11.5px]`}>trace .5s · fill .35s · 45ms per diagonal · ≈ .8s</p>
             <p className="text-[12.5px] text-[#5d5d58]">Boot, and once on first load in the header.</p>
           </div>
         </div>
@@ -323,7 +257,7 @@ function MotionSection() {
           {() => (
             <div className="relative mx-auto w-full max-w-[240px] px-3 py-2">
               <span className="dsa-x absolute inset-0 bg-[#111]" style={d(0)} />
-              <span className={`${dsMono} dsa-rise relative text-[12px] text-white`} style={d(250)}>
+              <span className={`font-mono dsa-rise relative text-[12px] text-white`} style={d(250)}>
                 HG-08 / P01 · Project datasheet
               </span>
             </div>
@@ -338,7 +272,7 @@ function MotionSection() {
         </Prim>
         <Prim code="M04" name="Count" spec="0 → value · .7s · ease-out cubic" use="Every figure in a spec table or HUD.">
           {(run) => (
-            <p className={`${dsMono} text-center text-[40px] font-semibold`}>
+            <p className={`font-mono text-center text-[40px] font-semibold`}>
               <Count value="44.9%" run={run} dur={900} />
             </p>
           )}
@@ -381,7 +315,7 @@ function MotionSection() {
         <Prim code="M08" name="Flicker" spec="on / off steps · .55s" use="Labels that appear in the world, toasts.">
           {() => (
             <div className="flex justify-center"><div className="dsa-flicker inline-flex items-stretch border-2 border-[#111] bg-white shadow-[3px_3px_0_#111]" style={d(0)}>
-              <span className={`${dsMono} grid place-items-center bg-[#111] px-2.5 text-[13px] font-semibold text-white`}>E</span>
+              <span className={`font-mono grid place-items-center bg-[#111] px-2.5 text-[13px] font-semibold text-white`}>E</span>
               <span className="px-3 py-1.5 text-[14px] font-semibold">Podium</span>
             </div></div>
           )}
@@ -389,14 +323,14 @@ function MotionSection() {
         <div className="flex flex-col border-2 border-[#111] bg-white">
           <div className="border-b-2 border-[#111] px-3 py-1.5">
             <span className="text-[13px] font-semibold uppercase tracking-[0.06em]">
-              <span className={`${dsMono} mr-2 text-[#ff4f00]`}>M09</span>Loading
+              <span className={`font-mono mr-2 text-[#ff4f00]`}>M09</span>Loading
             </span>
           </div>
           <div className="grid min-h-[150px] place-items-center p-5">
             <Loader />
           </div>
           <div className="mt-auto border-t border-[#cfcdc4] px-3 py-2">
-            <p className={`${dsMono} text-[11.5px]`}>the mark, cells pulsing on the diagonal · loops</p>
+            <p className={`font-mono text-[11.5px]`}>the mark, cells pulsing on the diagonal · loops</p>
             <p className="text-[12.5px] text-[#5d5d58]">While the world or an answer loads. The only loop.</p>
           </div>
         </div>
@@ -428,7 +362,7 @@ function Tabs() {
     <div className="relative inline-grid grid-cols-3 border-2 border-[#111] bg-white">
       <span className="absolute inset-y-0 w-1/3 bg-[#111] transition-transform duration-200 ease-[cubic-bezier(.6,0,.2,1)]" style={{ transform: `translateX(${i * 100}%)` }} />
       {items.map((t, j) => (
-        <button key={t} type="button" onClick={() => setI(j)} className={`${dsMono} relative px-4 py-2 text-[12px] uppercase tracking-[0.06em] transition-colors ${i === j ? "text-white" : "text-[#111]"}`}>
+        <button key={t} type="button" onClick={() => setI(j)} className={`font-mono relative px-4 py-2 text-[12px] uppercase tracking-[0.06em] transition-colors ${i === j ? "text-white" : "text-[#111]"}`}>
           {t}
         </button>
       ))}
@@ -445,7 +379,7 @@ function Toggle({ label }: { label: string }) {
         <span className={`absolute top-[2px] h-4 w-4 transition-all duration-200 ease-[cubic-bezier(.3,1.6,.5,1)] ${on ? "left-[26px] bg-[#111]" : "left-[2px] bg-[#cfcdc4]"}`} />
       </span>
       <span className="text-[14px]">{label}</span>
-      <span className={`${dsMono} w-7 text-[12px] ${on ? "text-[#111]" : "text-[#5d5d58]"}`}>{on ? "ON" : "OFF"}</span>
+      <span className={`font-mono w-7 text-[12px] ${on ? "text-[#111]" : "text-[#5d5d58]"}`}>{on ? "ON" : "OFF"}</span>
     </button>
   );
 }
@@ -455,7 +389,7 @@ function AskBox() {
   const [asked, setAsked] = useState(0);
   return (
     <div className="border-2 border-[#111] bg-white">
-      <div className={`${dsMono} flex items-center justify-between bg-[#111] px-3 py-1.5 text-[11.5px] text-white`}>
+      <div className={`font-mono flex items-center justify-between bg-[#111] px-3 py-1.5 text-[11.5px] text-white`}>
         <span>ASK · Race engineer</span>
         <span className="flex items-center gap-1.5">
           <span className="x-blink h-1.5 w-1.5 rounded-full bg-[#ff4f00]" /> live
@@ -470,7 +404,7 @@ function AskBox() {
       >
         <Corners inset={-6} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="What does he work on?" className="min-w-0 flex-1 bg-transparent px-3 py-2 text-[15px] caret-[#ff4f00] outline-none" />
-        <button type="submit" className={`${dsMono} border-l-2 border-[#111] bg-[#111] px-3 text-[12px] text-white`}>
+        <button type="submit" className={`font-mono border-l-2 border-[#111] bg-[#111] px-3 text-[12px] text-white`}>
           ↵
         </button>
       </form>
@@ -492,7 +426,7 @@ function Toast({ take }: { take: number }) {
               ✓
             </span>
             <div>
-              <p className={`${dsMono} text-[11px] text-[#5d5d58]`}>Achievement A01</p>
+              <p className={`font-mono text-[11px] text-[#5d5d58]`}>Achievement A01</p>
               <p className="text-[15px] font-semibold">
                 <Decode text={a.name} run={run} delay={200} />
               </p>
@@ -570,9 +504,9 @@ function Interactions() {
           <div className="border-t-2 border-[#111]">
             {list.map((p) => (
               <a key={p.slug} href="#screens" className="x-row grid grid-cols-[38px_1fr_auto_18px] items-center gap-3 border-b border-[#cfcdc4] px-2 py-2.5">
-                <span className={`${dsMono} x-mute text-[12px] text-[#5d5d58]`}>P{pad(projects.indexOf(p) + 1)}</span>
+                <span className={`font-mono x-mute text-[12px] text-[#5d5d58]`}>P{pad(projects.indexOf(p) + 1)}</span>
                 <span className="truncate text-[15px] font-medium">{p.name}</span>
-                <span className={`${dsMono} text-[13px] font-semibold`}>{p.headline.value}</span>
+                <span className={`font-mono text-[13px] font-semibold`}>{p.headline.value}</span>
                 <span className="x-arrow">→</span>
               </a>
             ))}
@@ -592,7 +526,7 @@ function Interactions() {
         <Panel code="I08" title="Tooltip and status" note="Hover the code for its tooltip. Status dots are the only round thing, and blink only while live.">
           <div className="flex flex-wrap items-center gap-6 text-[14px]">
             <span className="group relative">
-              <span className={`${dsMono} cursor-help border-b border-dashed border-[#111]`}>TTFT</span>
+              <span className={`font-mono cursor-help border-b border-dashed border-[#111]`}>TTFT</span>
               <span className="pointer-events-none absolute bottom-full left-0 mb-2 w-max max-w-[220px] border-2 border-[#111] bg-white px-2.5 py-1.5 text-[13px] opacity-0 shadow-[3px_3px_0_#111] transition-opacity duration-100 group-hover:opacity-100">
                 Time to first token: how long until the first word of an answer appears.
               </span>
@@ -608,6 +542,18 @@ function Interactions() {
             </span>
           </div>
         </Panel>
+        <Panel code="I09" title="Cursor" note="Live on every page. The ink square follows you; over anything clickable it hides and the orange brackets lock onto the target, tightening when you press. A bar over text, DRAG over 3D views. Mouse and pen only; touch keeps its own.">
+          <div className="flex flex-wrap items-center gap-5 text-[14px]">
+            <button type="button" className="x-btn x-secondary">
+              Hover me
+            </button>
+            <span className="x-chip">Chip</span>
+            <input placeholder="Text field" className="w-36 border-2 border-[#111] bg-white px-2 py-1.5 outline-none" />
+            <span data-cursor="drag" className="font-mono grid h-16 w-28 place-items-center border-2 border-dashed border-[#111] text-[12px] text-[#5d5d58]">
+              3D view
+            </span>
+          </div>
+        </Panel>
       </div>
     </Section>
   );
@@ -617,7 +563,7 @@ function Panel({ code, title, note, children }: { code: string; title: string; n
   return (
     <div className="border-2 border-[#111] bg-white">
       <div className="border-b-2 border-[#111] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.06em]">
-        <span className={`${dsMono} mr-2 text-[#ff4f00]`}>{code}</span>
+        <span className={`font-mono mr-2 text-[#ff4f00]`}>{code}</span>
         {title}
       </div>
       <div className="p-5">{children}</div>
@@ -632,7 +578,7 @@ function Screen({ code, title, note, onReplay, children, bg }: { code: string; t
   return (
     <figure className="mb-10">
       <figcaption className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className={`${dsMono} text-[13px] text-[#ff4f00]`}>{code}</span>
+        <span className={`font-mono text-[13px] text-[#ff4f00]`}>{code}</span>
         <span className="text-[13px] font-semibold uppercase tracking-[0.06em]">{title}</span>
         <span className="text-[13px] text-[#5d5d58]">{note}</span>
         {onReplay && (
@@ -662,11 +608,11 @@ function BootScreen() {
             <p className="mt-8 text-[40px] font-semibold leading-none tracking-tight">
               <Decode text={profile.name} run={run} delay={750} dur={500} />
             </p>
-            <p className={`${dsMono} mt-3 text-[13px] text-[#5d5d58]`}>
+            <p className={`font-mono mt-3 text-[13px] text-[#5d5d58]`}>
               <Decode text={`HG-08 · ${profile.role} · ${profile.location}`} run={run} delay={1000} dur={600} />
             </p>
             <div className="mt-10 w-[320px]">
-              <div className={`${dsMono} mb-1.5 flex justify-between text-[12px]`}>
+              <div className={`font-mono mb-1.5 flex justify-between text-[12px]`}>
                 <span className="dsa-rise" style={d(1100)}>
                   Loading the island
                 </span>
@@ -679,10 +625,10 @@ function BootScreen() {
             <p className="dsa-flicker mt-8 flex items-center gap-2.5 text-[15px]" style={d(2750)}>
               Press <span className="x-key">Enter</span> to drive
             </p>
-            <span className={`${dsMono} dsa-rise absolute bottom-4 left-5 text-[12px] text-[#5d5d58]`} style={d(1200)}>
+            <span className={`font-mono dsa-rise absolute bottom-4 left-5 text-[12px] text-[#5d5d58]`} style={d(1200)}>
               {profile.coords}
             </span>
-            <span className={`${dsMono} dsa-rise absolute bottom-4 right-5 text-[12px] text-[#5d5d58]`} style={d(1200)}>
+            <span className={`font-mono dsa-rise absolute bottom-4 right-5 text-[12px] text-[#5d5d58]`} style={d(1200)}>
               Rev 2026.10
             </span>
           </div>
@@ -709,7 +655,7 @@ function HudScreen() {
           <>
             {/* radio, top left */}
             <div className="dsa-frame absolute left-5 top-5 w-[340px] border-2 border-[#111] bg-white" style={d(300)}>
-              <div className={`${dsMono} flex items-center justify-between bg-[#111] px-3 py-1.5 text-[11.5px] text-white`}>
+              <div className={`font-mono flex items-center justify-between bg-[#111] px-3 py-1.5 text-[11.5px] text-white`}>
                 <span>RADIO · Race engineer</span>
                 <span className="flex h-3 items-end gap-[2px]">
                   {[0, 1, 2, 3, 4].map((i) => (
@@ -725,7 +671,7 @@ function HudScreen() {
             <div className="absolute right-5 top-5 flex gap-2">
               {tabs.map(([k, t], i) => (
                 <span key={t} className="dsa-rise flex items-center gap-2 border-2 border-[#111] bg-white px-2.5 py-1.5 text-[13px] font-medium shadow-[3px_3px_0_#111]" style={d(100 + i * 60)}>
-                  {k && <span className={`${dsMono} bg-[#111] px-1.5 text-[11px] text-white`}>{k}</span>}
+                  {k && <span className={`font-mono bg-[#111] px-1.5 text-[11px] text-white`}>{k}</span>}
                   {t}
                 </span>
               ))}
@@ -746,9 +692,9 @@ function HudScreen() {
             {/* zone label, bottom centre */}
             <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
               <div className="dsa-flicker inline-flex items-stretch border-2 border-[#111] bg-white shadow-[4px_4px_0_#111]" style={d(900)}>
-                <span className={`${dsMono} grid place-items-center bg-[#111] px-3.5 text-[16px] font-semibold text-white`}>E</span>
+                <span className={`font-mono grid place-items-center bg-[#111] px-3.5 text-[16px] font-semibold text-white`}>E</span>
                 <div className="px-4 py-2">
-                  <p className={`${dsMono} flex items-center gap-1.5 text-[11.5px] text-[#5d5d58]`}>
+                  <p className={`font-mono flex items-center gap-1.5 text-[11.5px] text-[#5d5d58]`}>
                     <span className="h-1.5 w-1.5 rounded-full bg-[#ff4f00]" /> <Decode text={`Z${pad(2)} · ${z.label}`} run={run} delay={1050} />
                   </p>
                   <p className="text-[17px] font-semibold">{story[1].title}</p>
@@ -757,10 +703,10 @@ function HudScreen() {
             </div>
             {/* speed, bottom left */}
             <div className="dsa-rise absolute bottom-6 left-6 border-2 border-[#111] bg-white px-3 py-2 shadow-[3px_3px_0_#111]" style={d(200)}>
-              <p className={`${dsMono} text-[40px] font-semibold leading-none`}>
+              <p className={`font-mono text-[40px] font-semibold leading-none`}>
                 <Count value="42" run={run} delay={200} dur={900} />
               </p>
-              <p className={`${dsMono} mt-1 text-[11px] text-[#5d5d58]`}>km/h · Sector {story[1].lap}</p>
+              <p className={`font-mono mt-1 text-[11px] text-[#5d5d58]`}>km/h · Sector {story[1].lap}</p>
             </div>
           </>
         )}
@@ -778,9 +724,9 @@ function GarageScreen() {
       <div className="absolute inset-0 bg-[#111]/35" />
       <div className="absolute left-6 top-6">
         <div className="inline-flex items-stretch border-2 border-[#111] bg-white shadow-[4px_4px_0_#111]">
-          <span className={`${dsMono} grid place-items-center bg-[#111] px-3 text-[13px] text-white`}>Esc</span>
+          <span className={`font-mono grid place-items-center bg-[#111] px-3 text-[13px] text-white`}>Esc</span>
           <div className="px-3 py-1.5">
-            <p className={`${dsMono} text-[11px] text-[#5d5d58]`}>Garage</p>
+            <p className={`font-mono text-[11px] text-[#5d5d58]`}>Garage</p>
             <p className="text-[14px] font-semibold">{domain}</p>
           </div>
         </div>
@@ -852,7 +798,7 @@ function MapScreen() {
       <Stage key={take} motion className="absolute inset-5">
         {(run) => (
           <div className="dsa-frame flex h-full flex-col border-2 border-[#111] bg-[#f3f2ed]" style={d(0)}>
-            <div className={`${dsMono} relative flex items-center gap-4 px-4 py-2 text-[12px] text-white`}>
+            <div className={`font-mono relative flex items-center gap-4 px-4 py-2 text-[12px] text-white`}>
               <span className="dsa-x absolute inset-0 bg-[#111]" style={d(120)} />
               <span className="relative">
                 <Decode text="HG-08 / MAP · The island" run={run} delay={250} />
@@ -886,7 +832,7 @@ function MapScreen() {
                     </g>
                   ))}
                   {Array.from({ length: GRID_N }, (_, k) => (
-                    <g key={k} fontFamily="var(--b-plex-mono)" fontSize="3.6" fill="#5d5d58">
+                    <g key={k} fontFamily="var(--font-plex-mono)" fontSize="3.6" fill="#5d5d58">
                       <text x={x0 + k * cell + cell / 2} y={z0 + 4.5} textAnchor="middle">
                         {COLS[k]}
                       </text>
@@ -911,7 +857,7 @@ function MapScreen() {
                   ))}
                   {/* sector labels */}
                   {zones.slice(0, 4).map((z, k) => (
-                    <text key={z.id} x={z.pos[0]} y={z.pos[1] - 9} textAnchor="middle" fontFamily="var(--b-plex-mono)" fontSize="4.2" fontWeight="600" fill="#5d5d58" className="dsa-rise" style={d(1100 + k * 60)}>
+                    <text key={z.id} x={z.pos[0]} y={z.pos[1] - 9} textAnchor="middle" fontFamily="var(--font-plex-mono)" fontSize="4.2" fontWeight="600" fill="#5d5d58" className="dsa-rise" style={d(1100 + k * 60)}>
                       S{k + 1}
                     </text>
                   ))}
@@ -934,13 +880,13 @@ function MapScreen() {
                     return (
                       <g key={z.id} transform={`translate(${z.pos[0]} ${z.pos[1]})`} onMouseEnter={() => setHover(k)} onMouseLeave={() => setHover(null)} className="cursor-pointer">
                         <rect className="dsa-pop" style={d(1150 + k * 35)} x="-5.2" y="-3.1" width="10.4" height="6.2" fill={on || obj ? "#111" : "#fff"} stroke={obj ? DS.orange : "#111"} strokeWidth={obj ? 0.9 : 0.6} />
-                        <text y="1.25" textAnchor="middle" fontFamily="var(--b-plex-mono)" fontSize="3.3" fontWeight="600" fill={on || obj ? "#fff" : "#111"} className="dsa-rise" style={d(1200 + k * 35)}>
+                        <text y="1.25" textAnchor="middle" fontFamily="var(--font-plex-mono)" fontSize="3.3" fontWeight="600" fill={on || obj ? "#fff" : "#111"} className="dsa-rise" style={d(1200 + k * 35)}>
                           Z{pad(k + 1)}
                         </text>
                         {on && (
                           <g transform="translate(0 -6)">
                             <rect x={-(z.label.length * 1.15 + 3)} y="-6" width={z.label.length * 2.3 + 6} height="6.4" fill="#fff" stroke="#111" strokeWidth="0.6" />
-                            <text y="-1.6" textAnchor="middle" fontFamily="var(--b-plex)" fontSize="3.6" fontWeight="600" fill="#111">
+                            <text y="-1.6" textAnchor="middle" fontFamily="var(--font-plex)" fontSize="3.6" fontWeight="600" fill="#111">
                               {z.label}
                             </text>
                           </g>
@@ -949,7 +895,7 @@ function MapScreen() {
                     );
                   })}
                   {/* scale bar, 25 m */}
-                  <g transform={`translate(${x0 + 6} ${z0 + size - 7})`} fontFamily="var(--b-plex-mono)" fontSize="3.2" fill="#111">
+                  <g transform={`translate(${x0 + 6} ${z0 + size - 7})`} fontFamily="var(--font-plex-mono)" fontSize="3.2" fill="#111">
                     <rect width="25" height="1.6" fill="#111" />
                     <rect x="12.5" width="12.5" height="1.6" fill="#fff" stroke="#111" strokeWidth="0.3" />
                     <text y="-1.6">0</text>
@@ -960,7 +906,7 @@ function MapScreen() {
                 </svg>
                 <span className="dsa-scan pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-[#ff4f00]" style={d(150)} />
                 {/* compass */}
-                <div className={`${dsMono} absolute right-3 top-3 grid h-11 w-11 place-items-center border-2 border-[#111] bg-white text-[11px] font-semibold`}>
+                <div className={`font-mono absolute right-3 top-3 grid h-11 w-11 place-items-center border-2 border-[#111] bg-white text-[11px] font-semibold`}>
                   <span className="absolute top-0.5">N</span>
                   <span className="mt-2 block h-0 w-0 border-x-[5px] border-b-[10px] border-x-transparent border-b-[#111]" />
                 </div>
@@ -968,7 +914,7 @@ function MapScreen() {
 
               <div className="min-h-0 overflow-y-auto bg-white p-4 text-[13px]">
                 <h4 className="mb-2 flex items-baseline gap-3 border-b border-[#111] pb-1.5 text-[12px] font-semibold uppercase tracking-[0.06em]">
-                  <span className={`${dsMono} text-[#ff4f00]`}>1</span> Position
+                  <span className={`font-mono text-[#ff4f00]`}>1</span> Position
                 </h4>
                 {(
                   [
@@ -979,20 +925,20 @@ function MapScreen() {
                 ).map(([k, v], i) => (
                   <div key={k} className="dsa-wipe flex justify-between gap-3 border-b border-[#cfcdc4] py-1.5" style={d(500 + i * 70)}>
                     <span className="text-[#5d5d58]">{k}</span>
-                    <span className={`${dsMono} font-semibold`}>
+                    <span className={`font-mono font-semibold`}>
                       {k === "Distance" ? <Count value={v} run={run} delay={600} /> : v}
                     </span>
                   </div>
                 ))}
                 <h4 className="mb-2 mt-5 flex items-baseline gap-3 border-b border-[#111] pb-1.5 text-[12px] font-semibold uppercase tracking-[0.06em]">
-                  <span className={`${dsMono} text-[#ff4f00]`}>2</span> Legend
+                  <span className={`font-mono text-[#ff4f00]`}>2</span> Legend
                 </h4>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12.5px]">
                   {(
                     [
                       [<span key="t" className="h-2.5 w-5 border border-[#111] bg-[#c9c6bd]" />, "Track, pit lane"],
                       [<span key="b" className="h-3 w-3 bg-[#111]/80" />, "Building"],
-                      [<span key="z" className={`${dsMono} border border-[#111] px-0.5 text-[9px] font-semibold`}>Z</span>, "Zone"],
+                      [<span key="z" className={`font-mono border border-[#111] px-0.5 text-[9px] font-semibold`}>Z</span>, "Zone"],
                       [<span key="o" className="h-3 w-3 rounded-full border-2 border-[#ff4f00]" />, "Objective"],
                       [<span key="y" className="h-0 w-0 border-y-[5px] border-l-[9px] border-y-transparent border-l-[#ff4f00]" />, "You"],
                       [<span key="s" className="h-3 w-1 bg-[#ff4f00]" />, "Start line"],
@@ -1005,8 +951,8 @@ function MapScreen() {
                   ))}
                 </div>
                 <h4 className="mb-1 mt-5 flex items-baseline gap-3 border-b border-[#111] pb-1.5 text-[12px] font-semibold uppercase tracking-[0.06em]">
-                  <span className={`${dsMono} text-[#ff4f00]`}>3</span> Achievements
-                  <span className={`${dsMono} ml-auto text-[11.5px] font-normal normal-case text-[#5d5d58]`}>
+                  <span className={`font-mono text-[#ff4f00]`}>3</span> Achievements
+                  <span className={`font-mono ml-auto text-[11.5px] font-normal normal-case text-[#5d5d58]`}>
                     <Count value="3" run={run} delay={500} /> / {ACHIEVEMENTS.length}
                   </span>
                 </h4>
@@ -1014,7 +960,7 @@ function MapScreen() {
                   const got = k < 3; // example state for the mock-up
                   return (
                     <div key={a.id} className="dsa-wipe grid grid-cols-[30px_1fr_10px] items-center gap-2 border-b border-[#cfcdc4] py-1" style={d(700 + k * 60)}>
-                      <span className={`${dsMono} text-[11px] text-[#5d5d58]`}>A{pad(k + 1)}</span>
+                      <span className={`font-mono text-[11px] text-[#5d5d58]`}>A{pad(k + 1)}</span>
                       <span className="min-w-0">
                         <span className={`block truncate font-medium ${got ? "" : "text-[#5d5d58]"}`}>{got ? a.name : "• • • • •"}</span>
                         <span className="block truncate text-[11.5px] text-[#5d5d58]">{a.how}</span>
@@ -1040,7 +986,7 @@ function NotFoundScreen() {
         {(run) => (
           <div className="absolute inset-0 grid place-items-center">
             <div className="dsa-frame w-[520px] border-2 border-[#111] bg-white" style={d(0)}>
-              <div className={`${dsMono} relative flex justify-between px-4 py-2 text-[12px] text-white`}>
+              <div className={`font-mono relative flex justify-between px-4 py-2 text-[12px] text-white`}>
                 <span className="dsa-x absolute inset-0 bg-[#111]" style={d(100)} />
                 <span className="relative">
                   <Decode text="E404 · Off track" run={run} delay={250} />
@@ -1080,7 +1026,7 @@ function Screens() {
       <MapScreen />
       <figure className="mb-10">
         <figcaption className="mb-2 flex flex-wrap items-baseline gap-x-3">
-          <span className={`${dsMono} text-[13px] text-[#ff4f00]`}>S05</span>
+          <span className={`font-mono text-[13px] text-[#ff4f00]`}>S05</span>
           <span className="text-[13px] font-semibold uppercase tracking-[0.06em]">Resume</span>
           <span className="text-[13px] text-[#5d5d58]">/resume, first page. Prints as plain ink on white.</span>
           <span className="ml-auto">
@@ -1101,15 +1047,13 @@ function Screens() {
 export default function System() {
   const [take, replay] = useTake();
   return (
-    <main className="min-h-screen bg-[#f3f2ed] pb-24 text-[#111]" style={{ fontFamily: "var(--b-plex)" }}>
-      <style>{CSS + MARK_CSS}</style>
-      <MotionStyles />
+    <main className="min-h-screen bg-[#f3f2ed] pb-24 text-[#111]">
       <header className="sticky top-0 z-30 border-b-2 border-[#111] bg-[#f3f2ed]">
         <div className="mx-auto flex max-w-[1180px] items-center gap-4 px-4 py-2.5 sm:px-8">
           <button type="button" onClick={replay} title="Replay the mark">
             <Lockup key={take} size={17} name={profile.name} motion />
           </button>
-          <span className={`${dsMono} hidden text-[12px] text-[#5d5d58] sm:inline`}>HG-08 · Design system</span>
+          <span className={`font-mono hidden text-[12px] text-[#5d5d58] sm:inline`}>HG-08 · Design system</span>
           <nav className="ml-auto hidden items-center gap-5 text-[14px] md:flex">
             {[
               ["01", "Identity", "#identity"],
@@ -1118,19 +1062,19 @@ export default function System() {
               ["04", "Portfolio", "#screens"],
             ].map(([n, t, h]) => (
               <a key={h} href={h} className="x-link">
-                <span className={`${dsMono} mr-1 text-[11px] text-[#ff4f00]`}>{n}</span>
+                <span className={`font-mono mr-1 text-[11px] text-[#ff4f00]`}>{n}</span>
                 {t}
               </a>
             ))}
           </nav>
-          <Link href="/docs/brand/logo/motion" className={`${dsMono} ml-auto text-[12px] text-[#5d5d58] hover:text-[#111] md:ml-0`}>
+          <Link href="/docs/brand/logo/motion" className={`font-mono ml-auto text-[12px] text-[#5d5d58] hover:text-[#111] md:ml-0`}>
             Logo ↗
           </Link>
         </div>
       </header>
       <div className="mx-auto max-w-[1180px] px-4 sm:px-8">
         <div className="pt-12 sm:pt-16">
-          <p className={`${dsMono} text-[12px] text-[#5d5d58]`}>HG-08 · Rev 2026.10 · Approved 2026-10-25</p>
+          <p className={`font-mono text-[12px] text-[#5d5d58]`}>HG-08 · Rev 2026.10 · Approved 2026-10-25</p>
           <h1 className="mt-2 max-w-3xl text-[40px] font-semibold leading-[1.02] tracking-tight sm:text-[64px]">
             The portfolio, in its own language<span className="text-[#ff4f00]">.</span>
           </h1>

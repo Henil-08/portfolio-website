@@ -1,8 +1,7 @@
-// Plain helpers for the Datasheet direction, usable from server and client components.
+// Brand tokens and server-safe helpers (docs/BRAND.md). Colours mirror the @theme tokens in globals.css.
 import { profile } from "@/content/profile";
 
 export const DS = { paper: "#f3f2ed", ink: "#111111", grey: "#5d5d58", rule: "#cfcdc4", orange: "#ff4f00" };
-export const dsMono = "[font-family:var(--b-plex-mono)]";
 export const pad = (n: number) => String(n).padStart(2, "0");
 export const LINKS = [
   ["Email", profile.email, `mailto:${profile.email}`],

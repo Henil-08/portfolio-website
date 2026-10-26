@@ -76,7 +76,7 @@ function useLabel(text: string, { fg = W.ink, bg = W.paper, w = 256, h = 128, si
     g.fillStyle = bg;
     g.fillRect(0, 0, w, h);
     g.fillStyle = fg;
-    const fam = getComputedStyle(document.body).getPropertyValue("--b-plex-mono").trim() || "monospace";
+    const fam = getComputedStyle(document.body).getPropertyValue("--font-plex-mono").trim() || "monospace";
     g.font = `600 ${size}px ${fam}, monospace`;
     g.textAlign = "center";
     g.textBaseline = "middle";

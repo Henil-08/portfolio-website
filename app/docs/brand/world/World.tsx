@@ -7,8 +7,8 @@ import { useRef, useState, type ReactNode } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera, View } from "@react-three/drei";
 import { profile } from "@/content/profile";
-import { dsMono, pad } from "../datasheet/shared";
-import { Lockup, MARK_CSS } from "../mark";
+import { pad } from "@/components/brand/tokens";
+import { Lockup } from "@/components/brand/mark";
 import { Car, Diorama, Floodlight, Gantry, Garage, Grandstand, KerbEdge, TecPro, Town, Trees, W, WallFence } from "./models";
 
 function Lights({ night = false, size = 30 }: { night?: boolean; size?: number }) {
@@ -189,15 +189,14 @@ export default function World() {
   const main = useRef<HTMLDivElement>(null!);
   const [night, setNight] = useState(false);
   return (
-    <div ref={main} className="relative min-h-screen bg-[#f3f2ed] pb-24 text-[#111]" style={{ fontFamily: "var(--b-plex)" }}>
-      <style>{MARK_CSS}</style>
+    <div ref={main} className="relative min-h-screen bg-[#f3f2ed] pb-24 text-[#111]">
       <header className="sticky top-0 z-30 border-b-2 border-[#111] bg-[#f3f2ed]">
         <div className="mx-auto flex max-w-[1180px] items-center gap-4 px-4 py-2.5 sm:px-8">
           <Link href="/docs/brand/system">
             <Lockup size={17} name={profile.name} />
           </Link>
-          <span className={`${dsMono} hidden text-[12px] text-[#5d5d58] sm:inline`}>HG-08 · World proposals</span>
-          <Link href="/docs/brand/system" className={`${dsMono} ml-auto text-[12px] text-[#5d5d58] hover:text-[#111]`}>
+          <span className={`font-mono hidden text-[12px] text-[#5d5d58] sm:inline`}>HG-08 · World proposals</span>
+          <Link href="/docs/brand/system" className={`font-mono ml-auto text-[12px] text-[#5d5d58] hover:text-[#111]`}>
             ← Design system
           </Link>
         </div>
@@ -205,7 +204,7 @@ export default function World() {
 
       <div className="mx-auto max-w-[1180px] px-4 sm:px-8">
         <div className="pt-12 sm:pt-16">
-          <p className={`${dsMono} text-[12px] text-[#5d5d58]`}>HG-08 · World · For approval</p>
+          <p className={`font-mono text-[12px] text-[#5d5d58]`}>HG-08 · World · For approval</p>
           <h1 className="mt-2 max-w-3xl text-[40px] font-semibold leading-[1.02] tracking-tight sm:text-[64px]">
             Concrete and ink<span className="text-[#ff4f00]">.</span>
           </h1>
@@ -218,11 +217,11 @@ export default function World() {
         {/* 01 · diorama */}
         <section className="pt-14">
           <div className="flex flex-wrap items-baseline gap-4 border-b-[3px] border-[#111] pb-3">
-            <span className={`${dsMono} text-[15px] text-[#ff4f00]`}>01</span>
+            <span className={`font-mono text-[15px] text-[#ff4f00]`}>01</span>
             <h2 className="text-[30px] font-semibold leading-none tracking-tight sm:text-[40px]">The main straight</h2>
             <div className="ml-auto flex border-2 border-[#111] bg-white">
               {(["Day", "Night"] as const).map((t) => (
-                <button key={t} type="button" onClick={() => setNight(t === "Night")} className={`${dsMono} px-3 py-1 text-[12px] uppercase ${night === (t === "Night") ? "bg-[#111] text-white" : ""}`}>
+                <button key={t} type="button" onClick={() => setNight(t === "Night")} className={`font-mono px-3 py-1 text-[12px] uppercase ${night === (t === "Night") ? "bg-[#111] text-white" : ""}`}>
                   {t}
                 </button>
               ))}
@@ -230,6 +229,7 @@ export default function World() {
           </div>
           <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-[#5d5d58]">Every model below, together: the garages behind the pit wall, TecPro and a grandstand opposite, floodlights, the start gantry, the car, town and trees beyond.</p>
           <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_300px]">
+            <div data-cursor="drag">
             <View className="aspect-[16/10] w-full border-2 border-[#111]">
               <color attach="background" args={[night ? "#0d0f12" : "#e7e5de"]} />
               <fog attach="fog" args={[night ? "#0d0f12" : "#e7e5de", 70, 170]} />
@@ -238,16 +238,17 @@ export default function World() {
               <Lights night={night} size={60} />
               <Diorama night={night} />
             </View>
+            </div>
             <div className="border-2 border-[#111] bg-white">
               <div className="border-b-2 border-[#111] px-3 py-2 text-[13px] font-semibold uppercase tracking-[0.06em]">
-                <span className={`${dsMono} mr-2 text-[#ff4f00]`}>A</span>Before
+                <span className={`font-mono mr-2 text-[#ff4f00]`}>A</span>Before
               </div>
               {/* the world as it is today, for comparison */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/img/design/day.jpg" alt="The world as it looks today" className="aspect-[16/10] w-full object-cover" />
               <p className="px-3 py-2 text-[13px] leading-relaxed text-[#5d5d58]">Today: toy car, red caps, saturated grass, warm sand. Fun, but it fights the new UI.</p>
               <div className="border-y-2 border-[#111] px-3 py-2 text-[13px] font-semibold uppercase tracking-[0.06em]">
-                <span className={`${dsMono} mr-2 text-[#ff4f00]`}>B</span>Kept
+                <span className={`font-mono mr-2 text-[#ff4f00]`}>B</span>Kept
               </div>
               <ul className="space-y-1 px-3 py-2 text-[13px] leading-relaxed">
                 {["The island, the track and every place on it", "Driving, physics, knock-about props", "Day and night, rain and the radio", "Soft low-poly forms, just calmer"].map((t) => (
@@ -264,7 +265,7 @@ export default function World() {
         {/* 02 · palette */}
         <section className="pt-16">
           <div className="flex items-baseline gap-4 border-b-[3px] border-[#111] pb-3">
-            <span className={`${dsMono} text-[15px] text-[#ff4f00]`}>02</span>
+            <span className={`font-mono text-[15px] text-[#ff4f00]`}>02</span>
             <h2 className="text-[30px] font-semibold leading-none tracking-tight sm:text-[40px]">World palette</h2>
           </div>
           <div className="mt-6 grid grid-cols-2 gap-px border-2 border-[#111] bg-[#111] sm:grid-cols-5">
@@ -273,7 +274,7 @@ export default function World() {
                 <div className="h-14" style={{ background: c }} />
                 <div className="p-2.5">
                   <p className="text-[13.5px] font-semibold">{n}</p>
-                  <p className={`${dsMono} text-[11.5px] text-[#5d5d58]`}>{c}</p>
+                  <p className={`font-mono text-[11.5px] text-[#5d5d58]`}>{c}</p>
                   <p className="text-[12px] leading-snug text-[#5d5d58]">{u}</p>
                 </div>
               </div>
@@ -284,30 +285,32 @@ export default function World() {
         {/* 03 · models */}
         <section className="pt-16">
           <div className="flex items-baseline gap-4 border-b-[3px] border-[#111] pb-3">
-            <span className={`${dsMono} text-[15px] text-[#ff4f00]`}>03</span>
+            <span className={`font-mono text-[15px] text-[#ff4f00]`}>03</span>
             <h2 className="text-[30px] font-semibold leading-none tracking-tight sm:text-[40px]">Models</h2>
           </div>
           <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-[#5d5d58]">Each one replaces something in the world today. Approve them one by one or as a set.</p>
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             {MODELS.map((m, i) => (
               <article key={m.code} className="flex flex-col border-2 border-[#111] bg-white">
-                <div className={`${dsMono} flex justify-between gap-4 bg-[#111] px-3 py-1.5 text-[12px] text-white`}>
+                <div className={`font-mono flex justify-between gap-4 bg-[#111] px-3 py-1.5 text-[12px] text-white`}>
                   <span>
                     HG-08 / {m.code} · {pad(i + 1)}
                   </span>
                   <span className="truncate text-white/60">Replaces {m.replaces}</span>
                 </div>
+                <div data-cursor="drag">
                 <View className="aspect-[4/3] w-full border-b-2 border-[#111]">
                   <Turntable cam={m.cam} target={m.target} size={m.size} night={night}>
                     {m.model(night)}
                   </Turntable>
                 </View>
+                </div>
                 <div className="flex flex-1 flex-col p-4">
                   <h3 className="text-[20px] font-semibold tracking-tight">{m.name}</h3>
                   <p className="mt-1.5 text-[14px] leading-relaxed">{m.notes}</p>
                   <div className="mt-auto flex flex-wrap gap-1.5 pt-3">
                     {m.materials.map(([n, c]) => (
-                      <span key={n} className={`${dsMono} flex items-center gap-1.5 border border-[#111] px-1.5 py-0.5 text-[11.5px]`}>
+                      <span key={n} className={`font-mono flex items-center gap-1.5 border border-[#111] px-1.5 py-0.5 text-[11.5px]`}>
                         <span className="h-2.5 w-2.5 border border-[#111]/30" style={{ background: c }} />
                         {n}
                       </span>

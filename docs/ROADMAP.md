@@ -106,7 +106,7 @@ Next, in order (the first unticked box in the steps below is the one to do):
 1. **4e owner check** items left open below (only if the owner reports them again).
 2. 4b h-k are done (floodlights, pit wall, grandstands, rain + tyre swap).
 3. Steps 5-9 are done except brake/boost feel (needs the owner on a real GPU). Garage experience and the
-   /resume redesign are in (2026-10-25). Open: README credit to folio-2025 (owner: later).
+   /resume redesign are in (2026-10-25).
 4. Owner said "later": credit folio-2025 / Bruno Simon in the main README (only there).
 
 ## Steps (do them in order; first unticked one is next)
@@ -408,7 +408,6 @@ Owns new components/world/ui3d/** and Race.tsx (`InteractionPoint`, the current 
       commit public/sfx. Voice Library voices return 402 on the free plan.
 - [x] (a342ec7) Palms still use the old per-tree meshes; port them to the foliage registry (foliage/palm.ts).
 - [x] (e1895eb) Tree colours are a first pass (foliage/species.ts); shade side reads dark. Now the original's oak/bush colours.
-- [ ] Brake and boost feel: tune `HANDBRAKE_*` and the overspeed brake in Vehicle.tsx on a real GPU.
 - [x] (2fde5fd) Engine a bit quieter (owner, 2026-10-25: `ENGINE_VOL` 0.65 in sound.ts).
 - [x] (5d3c9c1) Car shook left-right while slowing (owner, 2026-10-25): measured yaw flipping every step at a
       crawl with the wheels turned; low-speed side grip (`LOW_SPEED`, `LOW_SIDE`) and the front idle brake fading
@@ -432,9 +431,9 @@ to ink on hover, one scan line on a panel's first open. `prefers-reduced-motion`
 
 - [x] Logo picked (owner, 2026-10-25): L10 · A "draw and fill" (app/docs/brand/mark.tsx). Reference for every item
       below: `/docs/brand/system` (identity, motion M00–M09, interactions I01–I08, screens S01–S06).
-- [ ] Favicon (app/icon.svg, the still mark) and the mark in the header.
-- [ ] Tokens and shared classes: globals.css `hud-*` rewritten as `ds-*` (panel, bar, head, key, chip,
-      bracket, btn) plus the motion rules from parts.tsx; Plex loaded in app/layout.tsx; DESIGN.md rewritten.
+- [x] (FOUNDATION) Favicon app/icon.svg; brand code in components/brand; tokens, motion and interaction
+      CSS in globals.css; IBM Plex in app/layout.tsx; custom cursor (I09); old exploration pages deleted.
+- [ ] Remove the old `hud-*`, `r-*`, `map-pin*`, `start-*` CSS, Racero and the `--font-geist*` aliases once nothing uses them.
 - [ ] Boot (StartLights.tsx, Reveal.tsx): the mark assembles, name and part number decode, then the wipe into the world.
 - [ ] HUD edge tabs, toasts, speed readout, hints, controls and settings panels (Hud.tsx).
 - [ ] Zone card and interact prompt (Hud.tsx, ui3d/InteractivePoints.tsx canvas label): the parts sticker.

@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import Cursor from "@/components/brand/Cursor";
 import "./globals.css";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
-const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
+// The brand type (docs/BRAND.md): IBM Plex Sans for everything, Plex Mono for codes and figures.
+const plex = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-plex" });
+const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-plex-mono" });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -28,8 +30,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
-      <body className="min-h-screen">{children}</body>
+    <html lang="en" className={`${plex.variable} ${plexMono.variable}`}>
+      <body className="min-h-screen">
+        {children}
+        <Cursor />
+      </body>
     </html>
   );
 }

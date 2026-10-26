@@ -14,17 +14,6 @@ export const ATTENTION = [
   [0.1, 0.2, 0.5, -1],
 ];
 
-export const MARK_CSS = `
-.hgm{transform-box:fill-box}
-.hgm-trace{animation:hgm-trace .5s cubic-bezier(.6,0,.2,1) var(--d,0ms) both}
-.hgm-fill{transform-origin:left;animation:hgm-fill .35s cubic-bezier(.6,0,.2,1) var(--d,0ms) both}
-.hgm-flick{animation:hgm-flick .4s steps(1,end) var(--d,0ms) both}
-@keyframes hgm-trace{0%{stroke-dasharray:1;stroke-dashoffset:1;opacity:1}55%{stroke-dasharray:1;stroke-dashoffset:0;opacity:1}100%{stroke-dasharray:1;stroke-dashoffset:0;opacity:0}}
-@keyframes hgm-fill{from{transform:scaleX(0)}to{transform:none}}
-@keyframes hgm-flick{0%{opacity:0}25%{opacity:1}45%{opacity:.2}65%,100%{opacity:1}}
-@media (prefers-reduced-motion:reduce){.hgm{animation:none!important}}
-`;
-
 const cell = (r: number, c: number) => ({ x: 4 + c * 14.5, y: 4 + r * 14.5, width: 12.5, height: 12.5 });
 const at = (ms: number) => ({ "--d": `${ms}ms` }) as CSSProperties;
 

@@ -10,10 +10,14 @@
 }
 
 @theme {
-  --color-ink: #1f2133;
+  /* brand (docs/BRAND.md): paper, ink, graphite, rule, one orange signal */
+  --color-ink: #111111;
+  --color-graphite: #5d5d58;
+  --color-rule: #cfcdc4;
+  --color-signal: #ff4f00;
   --color-ink-soft: #4a4d63;
   --color-cream: #fff8ec;
-  --color-paper: #fffdf8;
+  --color-paper: #f3f2ed;
   --color-line: #ece3d3;
   --color-red: #ff4b3e;
   --color-red-dark: #e23a2e;
@@ -24,13 +28,19 @@
   --color-green: #45c46b;
   --color-night: #0b0b10;
 
-  --font-display: var(--font-geist), system-ui, sans-serif;
-  --font-racing: "Racero", var(--font-geist), system-ui, sans-serif;
-  --font-sans: var(--font-geist), system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: var(--font-plex), system-ui, sans-serif;
+  --font-racing: "Racero", var(--font-plex), system-ui, sans-serif;
+  --font-sans: var(--font-plex), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root {
+  /* old names, still read by the canvas labels (Reveal, InteractivePoints) until they move over */
+  --font-geist: var(--font-plex);
+  --font-geist-mono: var(--font-plex-mono);
 }
 
 html,
@@ -421,4 +431,158 @@ body {
   .resume li::before {
     background: #c8261b !important;
   }
+}
+
+/* ================================================================== brand (docs/BRAND.md) */
+@layer components {
+/* --- motion: Stage, dsa-* (components/brand/motion.tsx) */
+[data-anim] .dsa-wipe{clip-path:inset(0 100% 0 0)}
+[data-anim] .dsa-rise,[data-anim] .dsa-flicker,[data-anim] .dsa-scan{opacity:0}
+[data-anim] .dsa-x{transform:scaleX(0);transform-origin:left}
+[data-anim] .dsa-y{transform:scaleY(0);transform-origin:top}
+[data-anim] .dsa-pop{transform:scale(0)}
+[data-anim] .dsa-frame{clip-path:inset(0 0 100% 0)}
+.dsa-pop{transform-box:fill-box;transform-origin:center}
+[data-run] .dsa-wipe{animation:dsa-wipe .45s cubic-bezier(.2,.7,.2,1) var(--d,0ms) both}
+[data-run] .dsa-rise{animation:dsa-rise .4s ease-out var(--d,0ms) both}
+[data-run] .dsa-x{animation:dsa-x .5s cubic-bezier(.6,0,.2,1) var(--d,0ms) both}
+[data-run] .dsa-y{animation:dsa-y .22s ease-out var(--d,0ms) both}
+[data-run] .dsa-pop{animation:dsa-pop .28s cubic-bezier(.3,1.7,.5,1) var(--d,0ms) both}
+[data-run] .dsa-frame{animation:dsa-frame .6s cubic-bezier(.6,0,.2,1) var(--d,0ms) both}
+[data-run] .dsa-flicker{animation:dsa-flicker .55s steps(1,end) var(--d,0ms) both}
+[data-run] .dsa-scan{animation:dsa-scan 1.2s cubic-bezier(.5,0,.5,1) var(--d,0ms) both}
+[data-run] .dsa-blink{animation:dsa-blink 1.2s steps(1,end) 1.5s infinite}
+@keyframes dsa-wipe{to{clip-path:inset(0 0 0 0)}}
+@keyframes dsa-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes dsa-x{to{transform:scaleX(1)}}
+@keyframes dsa-y{to{transform:scaleY(1)}}
+@keyframes dsa-pop{to{transform:scale(1)}}
+@keyframes dsa-frame{to{clip-path:inset(0 0 0 0)}}
+@keyframes dsa-flicker{0%{opacity:0}15%{opacity:1}30%{opacity:.15}45%{opacity:1}60%{opacity:.4}75%,100%{opacity:1}}
+@keyframes dsa-scan{0%{top:0;opacity:0}10%,85%{opacity:1}100%{top:100%;opacity:0}}
+@keyframes dsa-blink{50%{opacity:0}}
+[data-anim] .dsa-corner{position:absolute;width:14px;height:14px;border-color:var(--color-signal);opacity:0;transition:opacity .15s,transform .2s;pointer-events:none}
+[data-anim] .dsa-card:hover .dsa-corner{opacity:1;transform:translate(var(--cx),var(--cy))}
+@media (prefers-reduced-motion:reduce){[data-run] *{animation-duration:1ms!important;animation-delay:0ms!important}}
+
+/* --- the mark (components/brand/mark.tsx) */
+.hgm{transform-box:fill-box}
+.hgm-trace{animation:hgm-trace .5s cubic-bezier(.6,0,.2,1) var(--d,0ms) both}
+.hgm-fill{transform-origin:left;animation:hgm-fill .35s cubic-bezier(.6,0,.2,1) var(--d,0ms) both}
+.hgm-flick{animation:hgm-flick .4s steps(1,end) var(--d,0ms) both}
+@keyframes hgm-trace{0%{stroke-dasharray:1;stroke-dashoffset:1;opacity:1}55%{stroke-dasharray:1;stroke-dashoffset:0;opacity:1}100%{stroke-dasharray:1;stroke-dashoffset:0;opacity:0}}
+@keyframes hgm-fill{from{transform:scaleX(0)}to{transform:none}}
+@keyframes hgm-flick{0%{opacity:0}25%{opacity:1}45%{opacity:.2}65%,100%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.hgm{animation:none!important}}
+
+/* --- interactions: x-*, map-* (docs/BRAND.md I01–I08) */
+.x-sel{position:relative}
+.x-corner{position:absolute;width:10px;height:10px;border-color:var(--color-signal);opacity:0;transition:opacity .12s,transform .18s cubic-bezier(.3,1.6,.5,1);pointer-events:none}
+.x-sel:hover>.x-corner,.x-sel:focus-visible>.x-corner,.x-sel.is-on>.x-corner{opacity:1;transform:translate(var(--cx),var(--cy))}
+.x-sel:focus-visible{outline:none}
+
+.x-btn{display:inline-flex;align-items:center;gap:10px;border:2px solid var(--color-ink);padding:8px 14px;font-family:var(--b-plex-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;box-shadow:3px 3px 0 var(--color-ink);transition:transform .08s,box-shadow .08s,background .15s,color .15s}
+.x-btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--color-ink)}
+.x-btn .x-arrow{transition:transform .18s cubic-bezier(.3,1.6,.5,1)}
+.x-btn:hover .x-arrow{transform:translateX(4px)}
+.x-primary{background:var(--color-ink);color:var(--color-paper)}
+.x-secondary{background:#fff;color:var(--color-ink);position:relative;isolation:isolate}
+.x-secondary::before{content:"";position:absolute;inset:0;background:var(--color-ink);transform:scaleX(0);transform-origin:left;transition:transform .22s cubic-bezier(.6,0,.2,1);z-index:-1}
+.x-secondary:hover{color:var(--color-paper)}
+.x-secondary:hover::before{transform:none}
+
+.x-link{background:linear-gradient(var(--color-ink),var(--color-ink)) left bottom/0% 2px no-repeat;padding-bottom:2px;transition:background-size .25s cubic-bezier(.6,0,.2,1)}
+.x-link:hover,.x-link:focus-visible{background-size:100% 2px}
+
+.x-key{display:inline-grid;place-items:center;min-width:28px;height:28px;padding:0 7px;border:2px solid var(--color-ink);background:#fff;font-family:var(--b-plex-mono);font-size:12px;font-weight:600;box-shadow:0 3px 0 var(--color-ink);transition:transform .06s,box-shadow .06s,background .06s,color .06s}
+.x-key.is-down{transform:translateY(3px);box-shadow:0 0 0 var(--color-ink);background:var(--color-ink);color:#fff}
+
+.x-chip{border:1px solid var(--color-ink);padding:3px 8px;font-family:var(--b-plex-mono);font-size:12px;transition:background .12s,color .12s}
+.x-chip:hover{background:var(--color-ink);color:#fff}
+
+.x-row{transition:background .12s,color .12s}
+.x-row:hover{background:var(--color-ink);color:#fff}
+.x-row:hover .x-mute{color:rgba(255,255,255,.6)}
+.x-row .x-arrow{opacity:0;transform:translateX(-6px);transition:opacity .15s,transform .18s cubic-bezier(.3,1.6,.5,1)}
+.x-row:hover .x-arrow{opacity:1;transform:none}
+
+.x-countdown{animation:x-countdown var(--t,4s) linear both;transform-origin:left}
+@keyframes x-countdown{from{transform:none}to{transform:scaleX(0)}}
+.x-load{animation:x-load 1.2s ease-in-out infinite alternate}
+@keyframes x-load{from{opacity:var(--lo)}to{opacity:1}}
+.x-blink{animation:x-blink 1.06s steps(1,end) infinite}
+@keyframes x-blink{50%{opacity:0}}
+.x-wave{transform-origin:bottom;animation:x-wave .5s ease-in-out infinite alternate}
+@keyframes x-wave{from{transform:scaleY(.25)}to{transform:none}}
+.map-draw{animation:map-draw 1.1s cubic-bezier(.6,0,.2,1) var(--d,0ms) both}
+@keyframes map-draw{from{stroke-dasharray:1;stroke-dashoffset:1}99%{stroke-dasharray:1;stroke-dashoffset:0}to{stroke-dasharray:none}}
+.map-ping{transform-box:fill-box;transform-origin:center;animation:map-ping 1.8s cubic-bezier(.2,.6,.3,1) infinite}
+@keyframes map-ping{from{transform:scale(.4);opacity:1}to{transform:scale(2.2);opacity:0}}
+@media (prefers-reduced-motion:reduce){.x-load,.x-wave,.x-blink,.map-ping,.map-draw{animation:none}}
+
+}
+
+/* --- the custom cursor (components/brand/Cursor.tsx, docs/BRAND.md I09) */
+@media (pointer: fine) {
+  html.has-cursor,
+  html.has-cursor * {
+    cursor: none !important;
+  }
+}
+.cursor-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2147483000;
+}
+.cursor-dot {
+  position: fixed;
+  left: -5px;
+  top: -5px;
+  width: 10px;
+  height: 10px;
+  background: var(--color-ink);
+  outline: 1.5px solid var(--color-paper);
+  will-change: transform;
+  transition: opacity 0.12s, width 0.1s, height 0.1s, left 0.1s, top 0.1s;
+}
+html[data-cursor-mode="text"] .cursor-dot {
+  left: -1px;
+  top: -10px;
+  width: 2px;
+  height: 20px;
+  outline-width: 1px;
+}
+.cursor-box {
+  position: fixed;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  will-change: transform, width, height;
+}
+.cursor-corner {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: var(--color-signal);
+}
+.cursor-tag {
+  position: fixed;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  padding: 2px 6px;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: opacity 0.12s;
+}
+html[data-cursor-mode="drag"] .cursor-tag {
+  opacity: 1;
+}
+html[data-cursor-mode="hidden"] .cursor-dot,
+html[data-cursor-mode="hidden"] .cursor-box {
+  opacity: 0 !important;
 }
