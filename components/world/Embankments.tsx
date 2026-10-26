@@ -4,16 +4,15 @@
 // about a metre just past the shoulder (the crossover ramps, the bridge
 // approaches), a wall runs along the road edge and its outer face reaches down to
 // the ground, so the low side shows more wall. It stops the car going over the
-// edge into a pit it can't climb out of. Next to the crossover it carries on the
-// deck's white parapet and red cap; elsewhere it is the harbour bridge's stone with
-// a sand coping. Spans that already have parapets (the crossover deck, the harbour
-// and river bridges) are left alone.
+// edge into a pit it can't climb out of. All of it is the W04 concrete wall with a
+// paper stripe on top (docs/BRAND.md); next to the crossover it takes the deck
+// parapet's size, elsewhere the harbour bridge's. Spans that already have parapets
+// (the crossover deck, the harbour and river bridges) are left alone.
 import { useMemo } from "react";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { CANALS, TRACK_WIDTH, canalDist, nearestT, onBridge, trackCurve, trackPoint, trackTangent } from "./layout";
-import { C } from "./palette";
-import { mat } from "./models/props/shared";
+import { km } from "./street/ink";
 import { heightAt } from "./terrain";
 
 // [inner face, outer face, height above the road, cap height] per style
@@ -167,13 +166,9 @@ function loft(rings: [number, number, number][][], side: number) {
 
 export default function Embankments() {
   const parts = useMemo(() => build(), []);
-  const stone = mat(C.rock, { r: 0.9 });
-  const coping = mat(C.sand, { r: 0.85 });
-  const white = mat(C.white, { r: 0.6 });
-  const red = mat(C.red, { r: 0.45 });
   const sets = [
-    [parts.stone, stone, coping],
-    [parts.deck, white, red],
+    [parts.stone, km.concrete(), km.paper()],
+    [parts.deck, km.concrete(), km.paper()],
   ] as const;
   return (
     <>
