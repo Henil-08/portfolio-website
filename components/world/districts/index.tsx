@@ -74,7 +74,7 @@ export default function Districts() {
       <Instances geometry={props.tuft} material={withWind(mat("#ffffff", { r: 0.9, flat: true }), { amount: 0.3, maxHeight: 0.7 })} batch={DUNES.tufts} shadow={false} />
       <Instances geometry={props.reed} material={withWind(mat("#ffffff", { r: 0.85, vc: true, flat: true }), { amount: 0.22, maxHeight: 1.4 })} batch={WATERSIDE.reeds} shadow={false} />
       <Instances geometry={props.pad} material={mat("#ffffff", { r: 0.6, side: THREE.DoubleSide })} batch={WATERSIDE.pads} shadow={false} />
-      <Instances geometry={lowSphere()} material={mat(C.pink, { r: 0.5 })} batch={lilies} shadow={false} />
+      <Instances geometry={lowSphere()} material={mat(C.paper, { r: 0.5 })} batch={lilies} shadow={false} />
       <Instances geometry={unitCyl()} material={mat("#ffffff", { r: 0.95, flat: true })} batch={BEACHES.wood} />
     </group>
   );
