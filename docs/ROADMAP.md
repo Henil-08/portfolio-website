@@ -23,7 +23,7 @@ small, verified with headless screenshots, and committed on its own
 | Living world (wind, grass, leaves, confetti, birds) | components/world/alive/*, components/world/Grass.tsx |
 | Car | components/world/models/Car.tsx (`LIVERIES`, `DEFAULT_LIVERY`), Vehicle.tsx (physics) |
 | Lighting, day/night, weather | components/world/Effects.tsx (`SCENES`), Rig.tsx (camera, sun, sky), World.tsx (canvas, post) |
-| HUD and panels | components/ui/* (Hud.tsx, Panels.tsx, Intro.tsx, RadioMessages.tsx, MapMenu.tsx); design language in docs/DESIGN.md |
+| HUD and panels | components/ui/* (Hud.tsx, Panels.tsx, Intro.tsx, RadioMessages.tsx, MapMenu.tsx); design language in docs/BRAND.md |
 | Store | components/world/store.ts (`near`, `zone`, `menuOpen`, `teleport`, `achievements`) |
 | Audio | components/world/sound.ts, scripts/gen-audio.mjs, app/api/voice, content/radio.ts |
 | Timeline (career plaza) | components/world/Timeline.tsx, components/world/timeline/* |
@@ -83,9 +83,8 @@ small, verified with headless screenshots, and committed on its own
 Polished toy diorama in folio-2025's world colours (owner, 2026-10-23): olive-yellow grass
 (`C.grass` #a5a33e), warm orange sand (#eeaa68), olive foliage, plain speckled asphalt with NO
 painted lines or words (start line only), chunky red/white kerbs, soft rounded forms, very little
-text in the world. The UI and the opening use the site's own language, not folio-2025's: ink
-#1f2133 / #171928, cream #fff8ec, racing red #ff4b3e, Geist Mono labels, quiet broadcast graphics.
-Fonts are fixed: Racero (display, `font-racing`), Geist (sans), Geist Mono (labels).
+text in the world. The UI and the opening follow docs/BRAND.md (Datasheet, since 2026-10-26), not folio-2025's.
+This world art direction is under review: ROADMAP step 11 (Concrete & Ink proposal).
 
 ## Where it stands (2026-10-23, late night)
 
@@ -343,13 +342,13 @@ place spots "your choice"; Team Stallions "give a nice spot".
       the inside of T1 (owner's sketch), one solid white line on each lane's track side, kerbs cut there.
 - [x] (da603ed) Night: tarmac lit evenly (Island.tsx `roadLight`), light pools gone; 13 towers on the pit wall.
 - [x] (0f90330) Garden hedge blocks are knock-about props.
-- [x] Design language: docs/DESIGN.md, option A (pit wall broadcast) approved with the fonts unchanged (owner,
+- [x] Design language (superseded by docs/BRAND.md, the old DESIGN.md is deleted): option A (pit wall broadcast) approved with the fonts unchanged (owner,
       2026-10-24); specimen at /docs/design (22d1916). Shared classes 2d94c41; moved over one commit each:
       edge tabs b680f08, team radio 9c45faa, toast 5c6d9f4, place panel + picks 4c77845, controls / hints / speed /
       pedals badbcf7, radio subtitle 0dc6e44, fit check + lap chip 61bb491, autopilot bd0237f, E prompt (interim).
       Garage teleports now land inside the garage zone (7370750).
 - [x] Opening ("boot") in the new language: F1 start lights replace the loader ring (StartLights.tsx, Reveal.tsx
-      `boot`), lights out opens the circle. docs/DESIGN.md "The boot". Commit: see git log "Boot".
+      `boot`), lights out opens the circle. The boot. Commit: see git log "Boot".
 
 ### 5. Map menu like Bruno's (M)
 Owns components/ui/** (MapMenu in Hud.tsx) and a new components/world/MapCapture.tsx.
@@ -419,8 +418,7 @@ Owns new components/world/ui3d/** and Race.tsx (`InteractionPoint`, the current 
 ### 10. Brand: Datasheet (owner, 2026-10-25)
 Spec: docs/BRAND.md (source of truth). Part number HG-08.
 Owner picked the Datasheet direction (`/docs/brand/datasheet`), with motion. It replaces design A
-(pit wall broadcast) on every screen; the 3D world's art direction stays as it is. Reference parts:
-app/docs/brand/datasheet/{parts,shared}.tsx. Tokens: paper #f3f2ed, ink #111111, graphite #5d5d58,
+(pit wall broadcast) on every screen; the 3D world is step 11. Code: components/brand/*. Tokens: paper #f3f2ed, ink #111111, graphite #5d5d58,
 rule #cfcdc4, signal orange #ff4f00 (section numbers, status dots, focus brackets only). Type: IBM Plex
 Sans, IBM Plex Mono for part numbers, values and keys. Hard edges, no rounded corners, no blur, no glow.
 Voice: short, declarative, units on every claim.
@@ -433,16 +431,16 @@ to ink on hover, one scan line on a panel's first open. `prefers-reduced-motion`
       below: `/docs/brand/system` (identity, motion M00–M09, interactions I01–I08, screens S01–S06).
 - [x] (d0096d3) Favicon app/icon.svg; brand code in components/brand; tokens, motion and interaction
       CSS in globals.css; IBM Plex in app/layout.tsx; custom cursor (I09); old exploration pages deleted.
-- [ ] Remove the old `hud-*`, `r-*`, `map-pin*`, `start-*` CSS, Racero and the `--font-geist*` aliases once nothing uses them.
+- [x] (8e84b86) Old UI layer removed: hud-*, r-*, toy-*, map pins, start lights, old colour tokens, the Racero @font-face, Geist aliases; docs/DESIGN.md deleted. The 3D world still loads racero.otf directly (step 11).
 - [x] (59526e3) Boot S01: components/ui/Boot.tsx replaces StartLights; paper floor with an ink dot grid, orange reveal ring; the start label is a sticker with the key.
 - [x] (bcf5046) HUD S02 (Hud.tsx): tabs top right, the `Sheet` frame every place opens in, toast, hints, speed, Controls and Settings modals, touch stick and pedals.
 - [x] (9e8abb0) Interact prompt in the world (ui3d/InteractivePoints.tsx): an ink square marker (no diamond) with the E key, the label ink Plex on white.
 - [x] (bcf5046) Garage S03: GarageSheet shows `DsCard` (container-aware, prev/next within the garage); place bodies in Panels.tsx rewritten (roles as rows, papers and patents as coded rows, compounds as code squares, contact as rows).
 - [x] (77cd8be) Overlays: RadioMessages (radio panel), Ask (I06), FitPanel and LapChip, AutopilotHud. EasterEggs only toasts. Deleted dead Section.tsx, ui/Reveal.tsx, RaceHud.tsx.
 - [x] (77cd8be) Map S04: components/brand/TacticalMap.tsx, live car, objective = nearest unopened place, pins wipe there; side panel with position, places, achievements. MapCapture (top-down render) deleted.
-- [ ] /resume (page, Tailored, PrintButton) as the datasheet resume; print stays ink on white.
-- [ ] not-found, /docs/design specimen replaced by the datasheet specimen.
-- [ ] In-world text that carries the brand: trackside "HG RACING" boards (Trackside.tsx) to the new mark.
+- [x] (ba28252) /resume S05 (app/resume/Resume.tsx): the whole resume as a datasheet, tailored block, plain ink print.
+- [x] (dd6fb40) 404 S06 (app/not-found.tsx). /docs/design is gone; /docs/brand/system is the specimen.
+- [x] (dd6fb40, db56d8f) Trackside boards drawn on canvas with the mark and HG-08 (street/boardArt.ts); props say HG-08.
 
 ### 11. World redesign (owner, 2026-10-25)
 Owner: next to the new UI "the world feels childish (car, building, fence, colors, etc)" and asked

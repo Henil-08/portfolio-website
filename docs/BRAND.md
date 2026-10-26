@@ -8,6 +8,7 @@ disagree, the page is what the owner approved; fix this file.
 
 | Date | Decision |
 |---|---|
+| 2026-10-26 | Step 10 done: every screen (boot, HUD, sheets, garage, map, overlays, prompt, resume, 404, trackside boards) is in this language; the old UI layer and docs/DESIGN.md are deleted. |
 | 2026-10-26 | Cursor: no corner brackets on hover, just the square (owner). |
 | 2026-10-26 | Custom cursor approved (I09). The brand code moved to components/brand; the old exploration pages are deleted, and /docs/brand/system and /docs/brand/world are kept. Step 10 started. |
 | 2026-10-26 | Lockup: next to the name, the visible square is as tall as the name's font size, 0.4× apart (`<Lockup size name />` in mark.tsx). The old 36 px mark beside 20 px text looked too heavy. |
@@ -156,7 +157,9 @@ Hover and keyboard focus share one signal, the orange corner brackets (`x-sel` +
   place not opened yet; clicking a pin wipes there. The old top-down render (MapCapture) is gone.
 - **Stage trigger:** `useRun` starts on the first visible pixel (rootMargin −8% at the bottom). A
   20% threshold never fired for tall fixed panels.
-- **S05 Resume:** the datasheet resume (`DsResume`). Print stays plain ink on white.
+- **S05 Resume (built):** app/resume/Resume.tsx, the whole resume as a datasheet (DsResume is its
+  first-page preview). The print rules in globals.css force every animated element visible and print
+  in plain ink.
 - **S06 404:** `E404 · Off track`, "Track limits", "You went off the island. Lap time deleted.",
   and a primary button.
 
