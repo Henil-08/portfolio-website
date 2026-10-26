@@ -14,7 +14,7 @@ import { MAP } from "@/components/world/MapCapture";
 import { BUILDINGS } from "@/components/world/street/town";
 import { Count, Decode, DsCard, DsResume, MotionStyles, Stage, d } from "../datasheet/parts";
 import { DS, dsMono, pad } from "../datasheet/shared";
-import { ATTENTION, MARK_CSS, Mark } from "../mark";
+import { ATTENTION, Lockup, MARK_CSS, Mark } from "../mark";
 
 /* ------------------------------------------------------------------ styles */
 
@@ -153,15 +153,19 @@ function Identity() {
               </div>
               <span className={`${dsMono} text-[11px] text-[#5d5d58]`}>32 · 16 px, favicon</span>
             </div>
-            <div className="col-span-2 flex items-center justify-center gap-3 border-b border-[#cfcdc4] p-6">
-              <Mark size={36} />
-              <span className="text-[20px] font-semibold tracking-tight">{profile.name}</span>
-              <span className={`${dsMono} ml-2 border-l border-[#cfcdc4] pl-3 text-[12px] text-[#5d5d58]`}>lockup</span>
+            <div className="col-span-2 flex flex-col items-start gap-4 border-b border-[#cfcdc4] p-6">
+              <span className={`${dsMono} text-[11px] text-[#5d5d58]`}>Lockup · square = name size · gap 0.4×</span>
+              <Lockup size={36} name={profile.name} />
+              <div className="flex flex-wrap items-center gap-6">
+                <Lockup size={20} name={profile.name} />
+                <Lockup size={14} name={profile.name} />
+              </div>
             </div>
           </div>
           <ul className="space-y-1.5 p-5 text-[14px] leading-relaxed">
             {[
               "Clear space around the mark: one cell on every side.",
+              "Next to the name, the square is as tall as the name's font size, 0.4 of that apart.",
               "Smallest size 16 px. Never recolour the cells; on ink, they turn paper.",
               "It animates once, on the boot. Everywhere else it sits still.",
               "The orange cell is the only orange in the mark. Nothing else gets added to it.",
@@ -1102,9 +1106,8 @@ export default function System() {
       <MotionStyles />
       <header className="sticky top-0 z-30 border-b-2 border-[#111] bg-[#f3f2ed]">
         <div className="mx-auto flex max-w-[1180px] items-center gap-4 px-4 py-2.5 sm:px-8">
-          <button type="button" onClick={replay} className="flex items-center gap-2.5" title="Replay the mark">
-            <Mark key={take} size={26} motion />
-            <span className="text-[15px] font-semibold tracking-tight">{profile.name}</span>
+          <button type="button" onClick={replay} title="Replay the mark">
+            <Lockup key={take} size={17} name={profile.name} motion />
           </button>
           <span className={`${dsMono} hidden text-[12px] text-[#5d5d58] sm:inline`}>HG-08 · Design system</span>
           <nav className="ml-auto hidden items-center gap-5 text-[14px] md:flex">

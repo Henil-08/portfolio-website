@@ -8,7 +8,7 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera, View } from "@react-three/drei";
 import { profile } from "@/content/profile";
 import { dsMono, pad } from "../datasheet/shared";
-import { MARK_CSS, Mark } from "../mark";
+import { Lockup, MARK_CSS } from "../mark";
 import { Car, Diorama, Floodlight, Gantry, Garage, Grandstand, KerbEdge, TecPro, Town, Trees, W, WallFence } from "./models";
 
 function Lights({ night = false, size = 30 }: { night?: boolean; size?: number }) {
@@ -193,9 +193,8 @@ export default function World() {
       <style>{MARK_CSS}</style>
       <header className="sticky top-0 z-30 border-b-2 border-[#111] bg-[#f3f2ed]">
         <div className="mx-auto flex max-w-[1180px] items-center gap-4 px-4 py-2.5 sm:px-8">
-          <Link href="/docs/brand/system" className="flex items-center gap-2.5">
-            <Mark size={26} />
-            <span className="text-[15px] font-semibold tracking-tight">{profile.name}</span>
+          <Link href="/docs/brand/system">
+            <Lockup size={17} name={profile.name} />
           </Link>
           <span className={`${dsMono} hidden text-[12px] text-[#5d5d58] sm:inline`}>HG-08 · World proposals</span>
           <Link href="/docs/brand/system" className={`${dsMono} ml-auto text-[12px] text-[#5d5d58] hover:text-[#111]`}>

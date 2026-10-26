@@ -8,6 +8,8 @@ disagree, the page is what the owner approved; fix this file.
 
 | Date | Decision |
 |---|---|
+| 2026-10-26 | Lockup: next to the name, the visible square is as tall as the name's font size, 0.4× apart (`<Lockup size name />` in mark.tsx). The old 36 px mark beside 20 px text looked too heavy. |
+| 2026-10-26 | World proposal "Concrete & Ink" liked ("All of this is nice"). Night lighting needs more work later. The owner expects it to be lighter on memory too: share materials and instance repeated models when it's built. |
 | 2026-10-25 | Part number is **HG-08** (08 is the car's number), never HG-26. |
 | 2026-10-25 | `/docs/brand/system` approved as the language for every screen ("I loved all the things"). |
 | 2026-10-25 | Map must read like a tactical game map (CoD-style), not a plain outline. Done in S04. |
@@ -38,6 +40,9 @@ Rejected, so don't bring them back:
   - The bottom-right cell ● is solid orange.
   - On a dark background, the ink cells turn paper. Never recolour the cells and never add anything to the mark.
   - Smallest size 16 px. Clear space is one cell on every side.
+  - **Lockup:** the mark beside the name. The visible square equals the name's font size, with a gap of
+    0.4 × that size (`<Lockup>`). Stacked (mark above the name, as on the boot screen), the name is set
+    about as wide as the mark.
   - **Logo animation:**
     1. Each cell's outline traces itself (0.5 s), stepping 45 ms per diagonal.
     2. 170 ms later, the cell fills from the left (0.35 s, `cubic-bezier(.6,0,.2,1)`).
@@ -167,7 +172,7 @@ The owner says the 3D world now feels childish next to this UI: the car, buildin
 Proposals are at `/docs/brand/world`. Nothing in the world changes until the owner approves there;
 then record the approved palette and models here and in ROADMAP step 11.
 
-**Proposal (not approved yet): "Concrete & Ink"**, a modern circuit instead of a toy town.
+**Proposal: "Concrete & Ink"** (owner liked it 2026-10-26; implementation not started; night lighting to be reworked), a modern circuit instead of a toy town.
 Code in app/docs/brand/world/models.tsx; the page draws every view through one WebGL canvas
 using drei `<View>`.
 - **Palette:**

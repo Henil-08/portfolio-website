@@ -46,3 +46,17 @@ export function Mark({ size = 32, fg = INK, motion = false, delay = 0 }: { size?
     </svg>
   );
 }
+
+/**
+ * The mark beside the name. Rule: the visible square is as tall as the name's font size, and
+ * the gap is 0.4 of it. The cells fill 56 of the mark's 64 units, so the svg is drawn a little
+ * larger than the font size to make the square itself match.
+ */
+export function Lockup({ size, name, motion = false, fg = INK }: { size: number; name: string; motion?: boolean; fg?: string }) {
+  return (
+    <span className="inline-flex items-center" style={{ gap: size * 0.4, fontSize: size, lineHeight: 1, color: fg }}>
+      <Mark size={Math.round((size * 64) / 56)} motion={motion} fg={fg} />
+      <span className="font-semibold tracking-[-0.02em]">{name}</span>
+    </span>
+  );
+}
