@@ -8,6 +8,7 @@ disagree, the page is what the owner approved; fix this file.
 
 | Date | Decision |
 |---|---|
+| 2026-10-26 | Vehicle touch-ups: TH-18 gets more accent lines (nose strip, accent wing endplates) and an orange rain light low on the diffuser. E14 side and front panels go plain body colour (graphics removed, number plates kept), the yellow TSAL beacon is removed, the HV cables follow the livery accent (no longer always orange). E14 firewall brake light kept. |
 | 2026-10-26 | Start sequence mock reworked (owner feedback): vehicles rebuilt (V01 F1 HG-08, V02 E14 Baja space frame, V03 Roadster after the new roadster references with no logo, V04 R-08 sport bike) with new side-profile icons; the world now builds in all around from the real island data (an orange ring expands from the car, the camera arcs over the island and swoops into the chase cam). Special powers on F proposed, owner to pick. |
 | 2026-10-26 | **Build-in locked: 03 Bloom** ("I absolutely love it"). Trace and Scan are dropped. |
 | 2026-10-26 | Vehicle names: **TH-18** (F1, V01), **E14** (ATV, V02), **Atlas** (roadster, V03), **Apollo** (bike, V04). Liveries, the same five in the same order for every vehicle: Paper, Ink, Graphite, Orange, Silver Arrows (silver with teal). Every vehicle fits inside the plinth's inner circle, all the same visual size. Atlas's rear must be filled in. |

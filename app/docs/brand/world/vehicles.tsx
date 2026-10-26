@@ -110,7 +110,6 @@ const K = {
   paperLine: std(W.paper, 0.7),
   lampWhite: std("#ffffff", 0.3, 0, { emissive: "#ffffff", emissiveIntensity: 2.2, toneMapped: false }),
   lampOrange: std(W.orange, 0.3, 0, { emissive: W.orange, emissiveIntensity: 2.4, toneMapped: false }),
-  beacon: std("#ff7a10", 0.3, 0, { emissive: "#ff6a00", emissiveIntensity: 2.2, toneMapped: false }),
 };
 
 const unitTube = new THREE.CylinderGeometry(1, 1, 1, 10);
@@ -124,6 +123,13 @@ function Tube({ a, b, r = 0.022, m = M.ink }: { a: V3; b: V3; r?: number; m?: TH
   const q = new THREE.Quaternion().setFromUnitVectors(UP, dir.clone().normalize());
   const mid = va.addScaledVector(dir, 0.5);
   return <mesh geometry={unitTube} position={mid.toArray()} quaternion={q} scale={[r, len, r]} material={m} castShadow />;
+}
+
+/** A flat strip of width w lying on a line from a to b in the centre plane (nose stripes). */
+function Strip({ a, b, w, m }: { a: V3; b: V3; w: number; m: THREE.Material }) {
+  const dy = b[1] - a[1];
+  const dz = b[2] - a[2];
+  return <Box s={[w, 0.012, Math.hypot(dy, dz) + 0.01]} p={[0, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2]} r={[-Math.atan2(dy, dz), 0, 0]} m={m} />;
 }
 
 const mx = (p: V3, s: number): V3 => [p[0] * s, p[1], p[2]];
@@ -254,6 +260,14 @@ function tyreGeo(r: number, w: number, rim: number, round = 0.25) {
 /* ------------------------------------------------------------------ V01 Formula (TH-18) */
 
 const F = { fz: 1.78, rz: -1.82, r: 0.36 };
+// The nose ridge (the tub's top centre line), a touch proud, tip to cockpit.
+const NOSE_RIDGE: V3[] = [
+  [0, 0.296, 2.62],
+  [0, 0.362, 2.4],
+  [0, 0.498, 1.9],
+  [0, 0.617, 1.35],
+  [0, 0.684, 0.8],
+];
 
 function FormulaWheel({ x, z, w }: { x: number; z: number; w: number }) {
   const geo = useMemo(() => tyreGeo(F.r, w, 0.24, 0.3), [w]);
@@ -441,9 +455,10 @@ export function Formula({ livery = LIVERIES.V01[0] }: { livery?: Livery }) {
           <planeGeometry args={[0.4, 0.2]} />
         </mesh>
       ))}
-      {/* the one orange line, along the top of the nose */}
-      <Tube a={[0, 0.296, 2.6]} b={[0, 0.54, 1.62]} r={0.012} m={mt.accent} />
-      <Tube a={[0, 0.54, 1.62]} b={[0, 0.66, 0.85]} r={0.012} m={mt.accent} />
+      {/* the accent: a broad stripe down the nose ridge to the cockpit */}
+      {NOSE_RIDGE.slice(1).map((b, i) => (
+        <Strip key={i} a={NOSE_RIDGE[i]} b={b} w={0.085} m={mt.accent} />
+      ))}
       {/* cockpit opening, headrest, airbox mouth, halo */}
       <Box s={[0.46, 0.03, 0.95]} p={[0, 0.655, 0.0]} m={K.canopy} />
       <Box s={[0.5, 0.08, 0.22]} p={[0, 0.69, -0.42]} m={M.graphite} />
@@ -466,18 +481,20 @@ export function Formula({ livery = LIVERIES.V01[0] }: { livery?: Livery }) {
       <mesh geometry={geo.el2} position={[0, 0.15, 2.4]} rotation={[-0.32, 0, 0]} material={mt.body} castShadow />
       <mesh geometry={geo.el3} position={[0, 0.22, 2.3]} rotation={[-0.55, 0, 0]} material={mt.trim} castShadow />
       {SIDES.map((s) => (
-        <mesh key={s} geometry={geo.fEnd} position={[s * 0.95, 0, 0]} material={mt.body} castShadow />
+        <mesh key={s} geometry={geo.fEnd} position={[s * 0.95, 0, 0]} material={mt.accent} castShadow />
       ))}
       {/* rear wing: main plane, paper flap, beam wing, endplates, pylon, diffuser */}
       <mesh geometry={geo.rMain} position={[0, 0.8, -2.3]} rotation={[0.12, 0, 0]} material={mt.body} castShadow />
       <mesh geometry={geo.rFlap} position={[0, 0.9, -2.46]} rotation={[0.5, 0, 0]} material={mt.trim} castShadow />
       <mesh geometry={geo.beam} position={[0, 0.46, -2.3]} rotation={[0.2, 0, 0]} material={mt.body} castShadow />
       {SIDES.map((s) => (
-        <mesh key={s} geometry={geo.rEnd} position={[s * 0.52, 0, 0]} material={mt.body} castShadow />
+        <mesh key={s} geometry={geo.rEnd} position={[s * 0.52, 0, 0]} material={mt.accent} castShadow />
       ))}
       <mesh geometry={geo.pylon} material={mt.body} castShadow />
       <Box s={[0.96, 0.03, 0.5]} p={[0, 0.16, -2.02]} r={[-0.3, 0, 0]} m={M.inkMatte} />
       <Box s={[0.14, 0.14, 0.3]} p={[0, 0.36, -2.24]} m={M.graphite} />
+      {/* the rain light, square in the back of the crash structure */}
+      <Box s={[0.075, 0.075, 0.02]} p={[0, 0.36, -2.395]} m={livery.lamp ? mt.lamp : K.lampOrange} />
       {/* suspension: wishbones and pushrods to the uprights */}
       {SIDES.map((s) => (
         <group key={s}>
@@ -506,22 +523,6 @@ function faceQuat(n: THREE.Vector3) {
   const up = new THREE.Vector3(0, 1, 0).addScaledVector(n, -n.y).normalize();
   const right = new THREE.Vector3().crossVectors(up, n);
   return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, up, n));
-}
-
-/** A canvas texture drawn once; flip mirrors it left to right (for the other side of a car). */
-function canvasTex(w: number, h: number, draw: (g: CanvasRenderingContext2D) => void, flip = false) {
-  const c = document.createElement("canvas");
-  c.width = w;
-  c.height = h;
-  draw(c.getContext("2d")!);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 4;
-  if (flip) {
-    t.repeat.x = -1;
-    t.offset.x = 1;
-  }
-  return t;
 }
 
 /* ------------------------------------------------------------------ V02 ATV (E14) */
@@ -678,69 +679,6 @@ const tentN = {
   })(),
 };
 
-/** Side graphics: diagonal accent and trim stripes falling toward the nose, a band low at the front. */
-function drawSide(l: Livery) {
-  return (g: CanvasRenderingContext2D) => {
-    const w = 512;
-    const h = 218;
-    g.fillStyle = l.body;
-    g.fillRect(0, 0, w, h);
-    const band = (y0: number, y1: number, th: number, c: string, x0 = 0) => {
-      g.fillStyle = c;
-      g.beginPath();
-      g.moveTo(x0 * w, y0 * h);
-      g.lineTo(w, y1 * h);
-      g.lineTo(w, (y1 + th) * h);
-      g.lineTo(x0 * w, (y0 + th) * h);
-      g.closePath();
-      g.fill();
-    };
-    band(0.06, 0.3, 0.12, l.accent, 0.08);
-    band(0.24, 0.46, 0.035, l.trim, 0.02);
-    band(0.33, 0.55, 0.08, l.accent, 0.18);
-    band(0.47, 0.66, 0.03, l.trim, 0.3);
-    // the low band with a jagged leading edge
-    g.fillStyle = l.accent;
-    g.beginPath();
-    g.moveTo(0.36 * w, 0.82 * h);
-    g.lineTo(0.42 * w, 0.72 * h);
-    g.lineTo(w, 0.68 * h);
-    g.lineTo(w, 0.94 * h);
-    g.lineTo(0.3 * w, 0.98 * h);
-    g.lineTo(0.4 * w, 0.88 * h);
-    g.closePath();
-    g.fill();
-    // a thin edge line top and bottom
-    g.fillStyle = l.trim;
-    g.fillRect(0, 0, w, 3);
-  };
-}
-
-/** Hood graphics: two accent chevrons pointing forward. */
-function drawHood(l: Livery) {
-  return (g: CanvasRenderingContext2D) => {
-    const w = 256;
-    const h = 256;
-    g.fillStyle = l.body;
-    g.fillRect(0, 0, w, h);
-    const chev = (y: number, th: number, c: string) => {
-      g.fillStyle = c;
-      g.beginPath();
-      g.moveTo(0, y + 70);
-      g.lineTo(w / 2, y);
-      g.lineTo(w, y + 70);
-      g.lineTo(w, y + 70 + th);
-      g.lineTo(w / 2, y + th);
-      g.lineTo(0, y + 70 + th);
-      g.closePath();
-      g.fill();
-    };
-    chev(70, 46, l.accent);
-    chev(132, 12, l.trim);
-    chev(160, 28, l.accent);
-  };
-}
-
 export function Atv({ livery = LIVERIES.V02[0] }: { livery?: Livery }) {
   const { fz, rz, r, fx, rx } = E;
   const mt = useMats(livery, [0.62, 0.15]);
@@ -748,23 +686,13 @@ export function Atv({ livery = LIVERIES.V02[0] }: { livery?: Livery }) {
   const tyreR = useMemo(() => knobbyGeo(r, 0.27), [r]);
   const num = useLabel("E14", { fg: livery.trim, bg: livery.body, w: 256, h: 128, size: 98 });
   const plate = useLabel("E14", { fg: livery.trim, bg: livery.body, w: 256, h: 300, size: 118 });
-  const paint = useMemo(() => {
-    const side = drawSide(livery);
-    const mk = (t: THREE.Texture) => new THREE.MeshStandardMaterial({ map: t, roughness: 0.6, side: THREE.DoubleSide });
-    return {
-      left: mk(canvasTex(512, 218, side)),
-      right: mk(canvasTex(512, 218, side, true)),
-      hood: mk(canvasTex(256, 256, drawHood(livery))),
-    };
-  }, [livery]);
-  useEffect(
-    () => () =>
-      Object.values(paint).forEach((m) => {
-        m.map?.dispose();
-        m.dispose();
-      }),
-    [paint],
-  );
+  // plain panels in the body colour, seen from both sides
+  const panel = useMemo(() => {
+    const m = mt.body.clone();
+    m.side = THREE.DoubleSide;
+    return m;
+  }, [mt]);
+  useEffect(() => () => panel.dispose(), [panel]);
   const tent = useMemo(() => new ConvexGeometry(TENT.flatMap((p) => SIDES.map((s) => new THREE.Vector3(...mx(p, s))))), []);
   const q = useMemo(() => ({ rear: faceQuat(tentN.rear), side: faceQuat(tentN.side), sideL: faceQuat(tentN.side.clone().setX(-tentN.side.x)) }), []);
   const sideC = new THREE.Vector3(...TENT.reduce((a, p) => [a[0] + p[0] / 3, a[1] + p[1] / 3, a[2] + p[2] / 3], [0, 0, 0] as V3));
@@ -779,10 +707,10 @@ export function Atv({ livery = LIVERIES.V02[0] }: { livery?: Livery }) {
       {/* front bumper bar, proud of the body */}
       <Tube a={[-0.38, 0.8, 0.9]} b={[0.38, 0.8, 0.9]} r={0.02} m={mt.frame} />
 
-      {/* body: side panels with the stripes, the angled corners with the plate, the nose, the hood */}
+      {/* body: plain side panels, the angled corners with the plate, the nose, the hood */}
       {SIDES.map((s) => (
         <group key={s}>
-          <mesh position={[s * 0.405, 0.575, 0.045]} rotation={[0, (s * Math.PI) / 2, 0]} material={s > 0 ? paint.right : paint.left} castShadow>
+          <mesh position={[s * 0.405, 0.575, 0.045]} rotation={[0, (s * Math.PI) / 2, 0]} material={panel} castShadow>
             <planeGeometry args={[1.01, 0.43]} />
           </mesh>
           <mesh position={[s * 0.352, 0.575, 0.715]} quaternion={faceQuat(cornerN.clone().setX(s * cornerN.x))} material={plate} castShadow>
@@ -790,17 +718,17 @@ export function Atv({ livery = LIVERIES.V02[0] }: { livery?: Livery }) {
           </mesh>
         </group>
       ))}
-      <mesh position={[0, 0.58, 0.885]} material={mt.body} castShadow>
+      <mesh position={[0, 0.58, 0.885]} material={panel} castShadow>
         <planeGeometry args={[0.6, 0.44]} />
       </mesh>
-      <mesh position={[0, 0.885, 0.65]} rotation={[hoodTilt, 0, 0]} material={paint.hood} castShadow>
+      <mesh position={[0, 0.885, 0.65]} rotation={[hoodTilt, 0, 0]} material={panel} castShadow>
         <planeGeometry args={[0.62, 0.49]} />
       </mesh>
       {/* floor pan */}
       <Box s={[0.8, 0.02, 1.0]} p={[0, 0.34, 0.02]} m={M.graphite} />
       <Box s={[0.5, 0.02, 0.36]} p={[0, 0.35, 0.68]} m={M.graphite} />
 
-      {/* the firewall tent: E14 on the back and both flanks, the brake light and the beacon */}
+      {/* the firewall tent: E14 on the back and both flanks, the brake light */}
       <mesh geometry={tent} material={mt.body} castShadow />
       <mesh position={rearAt(0.42)} quaternion={q.rear} material={num}>
         <planeGeometry args={[0.4, 0.2]} />
@@ -813,12 +741,6 @@ export function Atv({ livery = LIVERIES.V02[0] }: { livery?: Livery }) {
           <planeGeometry args={[0.24, 0.12]} />
         </mesh>
       ))}
-      <mesh position={[0, 1.52, -0.5]} material={M.ink}>
-        <boxGeometry args={[0.12, 0.03, 0.08]} />
-      </mesh>
-      <mesh position={[0, 1.565, -0.5]} material={K.beacon}>
-        <cylinderGeometry args={[0.04, 0.045, 0.07, 14]} />
-      </mesh>
 
       {/* cockpit: seat, steering, fire extinguisher */}
       <Box s={[0.4, 0.08, 0.42]} p={[0, 0.4, -0.18]} m={mt.accent} />
@@ -834,7 +756,7 @@ export function Atv({ livery = LIVERIES.V02[0] }: { livery?: Livery }) {
         <cylinderGeometry args={[0.02, 0.03, 0.05, 10]} />
       </mesh>
 
-      {/* the bay: motor, gearbox, battery, the orange HV runs, half shafts */}
+      {/* the bay: motor, gearbox, battery, the HV runs in the accent, half shafts */}
       <mesh position={[0, 0.5, -0.8]} rotation={[0, 0, Math.PI / 2]} material={K.silver} castShadow>
         <cylinderGeometry args={[0.12, 0.12, 0.28, 18]} />
       </mesh>
@@ -842,8 +764,8 @@ export function Atv({ livery = LIVERIES.V02[0] }: { livery?: Livery }) {
       <Box s={[0.5, 0.2, 0.28]} p={[0, 0.7, -0.66]} m={M.inkMatte} />
       {SIDES.map((s) => (
         <group key={s}>
-          <Tube a={[s * 0.06, 0.62, -0.84]} b={[s * 0.16, 0.72, -0.9]} r={0.012} m={M.orange} />
-          <Tube a={[s * 0.16, 0.72, -0.9]} b={[s * 0.22, 0.66, -0.56]} r={0.012} m={M.orange} />
+          <Tube a={[s * 0.06, 0.62, -0.84]} b={[s * 0.16, 0.72, -0.9]} r={0.012} m={mt.accent} />
+          <Tube a={[s * 0.16, 0.72, -0.9]} b={[s * 0.22, 0.66, -0.56]} r={0.012} m={mt.accent} />
           <Tube a={[s * 0.14, 0.42, -0.72]} b={[s * (rx - 0.1), r, rz]} r={0.018} m={K.steel} />
         </group>
       ))}
