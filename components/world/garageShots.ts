@@ -21,13 +21,14 @@ export function garagePlinths(domain: Domain) {
 }
 
 /**
- * The dolly-in shot for plinth `i`: camera outside the door, low, looking past the project
+ * The dolly-in shot of the centre plinth: camera outside the door, low, looking past the project
  * so it sits left of centre (the spec sheet takes the right), or, on a tall phone screen,
  * in the upper half (the sheet takes the bottom).
  */
-export function garageShot(domain: Domain, i: number, portrait = false) {
+export function garageShot(domain: Domain, portrait = false) {
+  // the project on show always stands on the centre plinth (Places.tsx GarageCarousel)
   const pl = garagePlinths(domain);
-  const p = pl[Math.max(0, Math.min(pl.length - 1, i))].pos;
+  const p = pl[Math.floor((pl.length - 1) / 2)].pos;
   if (portrait)
     return {
       position: new THREE.Vector3(p.x + 1.2, p.y + 3.6, PIT.garageZ + 7.4),

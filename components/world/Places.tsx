@@ -73,7 +73,7 @@ import {
   type ZoneId,
 } from "./layout";
 import { cheer, pop } from "./sound";
-import { achieve, toast, useWorld } from "./store";
+import { achieve, getState as getWorld, toast } from "./store";
 import { garagePlinths } from "./garageShots";
 import type { Domain } from "@/content/projects";
 import { heightAt } from "./terrain";
@@ -420,7 +420,6 @@ function PitLane() {
         </RigidBody>
       ))}
 
-      <GarageSpot />
       {GARAGES.map((g) => {
         const plinths = garagePlinths(g.domain);
         return (
@@ -431,19 +430,7 @@ function PitLane() {
               <CuboidCollider args={[0.15, 2.25, 3.5]} position={[-4.35, 2.25, 0]} />
               <CuboidCollider args={[0.15, 2.25, 3.5]} position={[4.35, 2.25, 0]} />
             </RigidBody>
-            {plinths.map(({ project: p, lx: x }) => {
-              return (
-                <group key={p.slug} position={[x, 0, -1.4]}>
-                  <RigidBody type="fixed" colliders={false}>
-                    <CylinderCollider args={[0.5, 0.5]} position={[0, 0.5, 0]} />
-                  </RigidBody>
-                  <Pedestal />
-                  <group position={[0, 1.02, 0]} scale={0.8}>
-                    <ProjectObject slug={p.slug} />
-                  </group>
-                </group>
-              );
-            })}
+            <GarageCarousel domain={g.domain} plinths={plinths} />
           </group>
         );
       })}
@@ -451,24 +438,107 @@ function PitLane() {
   );
 }
 
-// Garage experience: a red ring glows on the floor round the project on show while
-// its garage is open (the camera dollies in to it, Rig.tsx; the HUD shows its spec sheet).
-const spotMat = new THREE.MeshStandardMaterial({ color: C.red, emissive: new THREE.Color(C.red), emissiveIntensity: 2, toneMapped: false });
-function GarageSpot() {
-  const zone = useWorld((s) => s.zone);
-  const sel = useWorld((s) => s.garageSel);
-  const ring = useRef<THREE.Mesh>(null);
-  useFrame(({ clock }) => {
-    spotMat.emissiveIntensity = 1.6 + Math.sin(clock.elapsedTime * 3) * 0.6;
-    if (ring.current) ring.current.rotation.z = clock.elapsedTime * 0.4;
+// Garage experience: the plinths stay put and the projects move. While a garage is open
+// the project on show (store garageSel) always stands on the centre plinth, scaled up and
+// glowing, with the others in order either side; switching slides them along, and the one
+// that wraps round from the far end shrinks out and grows back in. Closed, they stand in order.
+const haloMat = new THREE.ShaderMaterial({
+  transparent: true,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+  uniforms: { uK: { value: 0 } },
+  vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+  fragmentShader:
+    "uniform float uK; varying vec2 vUv; void main(){ float d = length(vUv - 0.5) * 2.0; float a = pow(max(0.0, 1.0 - d), 2.2) * uK; gl_FragColor = vec4(vec3(1.0, 0.86, 0.72) * a * 1.6, 1.0); }",
+});
+
+const rimMat = new THREE.MeshStandardMaterial({ color: C.red, emissive: new THREE.Color(C.red), emissiveIntensity: 0, toneMapped: false });
+const beamMat = new THREE.ShaderMaterial({
+  transparent: true,
+  depthWrite: false,
+  side: THREE.DoubleSide,
+  blending: THREE.AdditiveBlending,
+  uniforms: { uK: { value: 0 } },
+  vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+  // brightest near the plinth, fading up into the roof
+  fragmentShader: "uniform float uK; varying vec2 vUv; void main(){ float a = pow(1.0 - vUv.y, 1.5) * 0.35 * uK; gl_FragColor = vec4(vec3(1.0, 0.93, 0.82) * a, 1.0); }",
+});
+
+function GarageCarousel({ domain, plinths }: { domain: Domain; plinths: ReturnType<typeof garagePlinths> }) {
+  const n = plinths.length;
+  const centre = Math.floor((n - 1) / 2);
+  const items = useRef<(THREE.Group | null)[]>([]);
+  const halo = useRef<THREE.Mesh>(null);
+  const beam = useRef<THREE.Mesh>(null);
+  const rim = useRef<THREE.Mesh>(null);
+  const state = useRef(plinths.map((_, i) => ({ x: plinths[i].lx, s: 1 })));
+  useFrame(({ camera, clock }, dt) => {
+    const st = getWorld();
+    const open = st.zone === `garage-${domain}`;
+    const sel = Math.min(st.garageSel, n - 1);
+    const k = Math.min(1, dt * 6);
+    for (let i = 0; i < n; i++) {
+      const g = items.current[i];
+      if (!g) continue;
+      const slot = open ? (((centre + i - sel) % n) + n) % n : i;
+      const tx = plinths[slot].lx;
+      const it = state.current[i];
+      // wrapping across the garage: shrink out, jump, grow back in
+      if (Math.abs(tx - it.x) > 3.2) it.s = 0;
+      it.x += (tx - it.x) * k;
+      const star = open && i === sel;
+      it.s += ((star ? 1.6 : 1) - it.s) * k;
+      g.position.set(it.x, 1.02 + (star ? 0.3 : 0), -1.4);
+      g.scale.setScalar(0.8 * it.s);
+      g.rotation.y = star ? Math.sin(clock.elapsedTime * 0.8) * 0.35 : g.rotation.y * (1 - k);
+    }
+    // a soft warm glow behind the project on show, facing the camera
+    const h = halo.current;
+    if (h) {
+      const u = haloMat.uniforms.uK;
+      u.value += ((open ? 1 : 0) - u.value) * k;
+      h.visible = u.value > 0.01;
+      h.quaternion.copy(camera.quaternion);
+      beamMat.uniforms.uK.value = u.value;
+      if (beam.current) beam.current.visible = h.visible;
+      if (rim.current) rim.current.visible = h.visible;
+      rimMat.emissiveIntensity = u.value * (2.2 + Math.sin(clock.elapsedTime * 2.5) * 0.5);
+    }
   });
-  if (!zone?.startsWith("garage-")) return null;
-  const pl = garagePlinths(zone.slice(7) as Domain);
-  const p = pl[Math.min(sel, pl.length - 1)].pos;
   return (
-    <mesh ref={ring} position={[p.x, p.y + 0.04, p.z]} rotation={[-Math.PI / 2, 0, 0]} material={spotMat}>
-      <ringGeometry args={[0.72, 0.82, 48, 1, 0, Math.PI * 1.7]} />
-    </mesh>
+    <>
+      {plinths.map(({ project: p, lx: x }) => (
+        <group key={p.slug} position={[x, 0, -1.4]}>
+          <RigidBody type="fixed" colliders={false}>
+            <CylinderCollider args={[0.5, 0.5]} position={[0, 0.5, 0]} />
+          </RigidBody>
+          <Pedestal />
+        </group>
+      ))}
+      <mesh ref={halo} position={[plinths[centre].lx, 1.8, -1.7]} material={haloMat} visible={false} renderOrder={3}>
+        <planeGeometry args={[4, 4]} />
+      </mesh>
+      {/* a glowing rim round the top of the centre plinth */}
+      <mesh ref={rim} position={[plinths[centre].lx, 1.01, -1.4]} rotation={[-Math.PI / 2, 0, 0]} material={rimMat} visible={false}>
+        <ringGeometry args={[0.47, 0.56, 64]} />
+      </mesh>
+      {/* a showroom light falling on the centre plinth */}
+      <mesh ref={beam} position={[plinths[centre].lx, 2.6, -1.4]} material={beamMat} visible={false} renderOrder={3}>
+        <cylinderGeometry args={[0.35, 0.95, 3.2, 32, 1, true]} />
+      </mesh>
+      {plinths.map(({ project: p }, i) => (
+        <group
+          key={p.slug}
+          ref={(el) => {
+            items.current[i] = el;
+          }}
+          position={[plinths[i].lx, 1.02, -1.4]}
+          scale={0.8}
+        >
+          <ProjectObject slug={p.slug} />
+        </group>
+      ))}
+    </>
   );
 }
 

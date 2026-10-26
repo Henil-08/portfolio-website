@@ -86,8 +86,8 @@ export function CameraRig() {
       const dom = z && z.startsWith("garage-") ? (z.slice(7) as Domain) : null;
       g.t = THREE.MathUtils.clamp(g.t + (dom ? dt : -dt) / DOLLY, 0, 1);
       if (dom) {
-        const want = garageShot(dom, getState().garageSel, portrait);
-        const kk = g.has ? Math.min(1, dt * 3) : 1; // pan between plinths, snap on first open
+        const want = garageShot(dom, portrait);
+        const kk = g.has ? Math.min(1, dt * 3) : 1; // snap on first open
         g.pos.lerp(want.position, kk);
         g.look.lerp(want.target, kk);
         g.has = true;

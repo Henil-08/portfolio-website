@@ -230,9 +230,9 @@ function GarageSheet({ domain }: { domain: Domain }) {
             <p className="text-[19px] font-semibold leading-tight">{p.name}</p>
             <p className="mt-1 text-[13.5px] text-cream/70">{p.tagline}</p>
           </div>
-          <div className="shrink-0 text-right">
-            <p className="font-racing text-[34px] leading-none text-red">{p.headline.value}</p>
-            <p className="mt-1 max-w-[9rem] font-mono text-[9.5px] uppercase leading-tight tracking-[0.1em] text-cream/55">{p.headline.label}</p>
+          <div className="shrink-0 border-l-2 border-red pl-3 text-left">
+            <p className="text-[26px] font-semibold leading-none tabular-nums">{p.headline.value}</p>
+            <p className="mt-1.5 max-w-[10rem] text-[12px] leading-snug text-cream/65">{p.headline.label}</p>
           </div>
         </div>
         <div>
