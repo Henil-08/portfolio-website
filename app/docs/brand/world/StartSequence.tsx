@@ -25,17 +25,20 @@ type Vehicle = {
   len: number;
   cam: V3;
   target: V3;
+  /** turntable display scale, see fit() */
+  scale: number;
   liveries: Livery[];
   model: (l?: Livery) => ReactNode;
   icon: ReactNode;
 };
 
 /**
- * Turntable scale: one for every vehicle, so they stay in proportion to each other (owner,
- * 2026-10-26). Set by the biggest, TH-18: its swept radius (front wing tips, 3.02 m from the spin
- * axis) lands at 1.42, just inside the dial ring's inner edge (0.86 × the 1.75 plinth = 1.505).
+ * Turntable size: each vehicle is scaled so its swept radius (the farthest point from the spin
+ * axis, measured off the model's vertices) lands at a set radius. TH-18 is biggest at 1.42, just
+ * inside the dial ring's inner edge (0.86 × the 1.75 plinth = 1.505). The others sit between
+ * true proportion (too small) and all the same size (too big): owner, 2026-10-26.
  */
-const FIT = 1.42 / 3.02;
+const fit = (r: number, swept: number) => r / swept;
 
 // Game stats only: how each one drives in the world, not facts about anything real.
 const VEHICLES: Vehicle[] = [
@@ -48,6 +51,7 @@ const VEHICLES: Vehicle[] = [
     len: 5.6,
     cam: [5.3, 2.0, 6.0],
     target: [0, 0.45, 0],
+    scale: fit(1.42, 3.02), // front wing tips
     liveries: LIVERIES.V01,
     model: (l) => <Formula livery={l} />,
     icon: VEHICLE_ICONS.V01,
@@ -61,6 +65,7 @@ const VEHICLES: Vehicle[] = [
     len: 2.4,
     cam: [3.3, 1.75, 3.9],
     target: [0, 0.62, 0],
+    scale: fit(1.0, 1.33), // tyre shoulders
     liveries: LIVERIES.V02,
     model: (l) => <Atv livery={l} />,
     icon: VEHICLE_ICONS.V02,
@@ -74,6 +79,7 @@ const VEHICLES: Vehicle[] = [
     len: 4.6,
     cam: [5.1, 2.0, 5.8],
     target: [0, 0.5, 0],
+    scale: fit(1.25, 2.55), // wing endplates
     liveries: LIVERIES.V03,
     model: (l) => <Roadster livery={l} />,
     icon: VEHICLE_ICONS.V03,
@@ -87,6 +93,7 @@ const VEHICLES: Vehicle[] = [
     len: 2.1,
     cam: [2.9, 1.45, 3.4],
     target: [0, 0.62, 0],
+    scale: fit(0.95, 1.03), // tyres, nose to tail
     liveries: LIVERIES.V04,
     model: (l) => <Bike livery={l} />,
     icon: VEHICLE_ICONS.V04,
@@ -452,7 +459,7 @@ function SelectScene({ v, livery }: { v: Vehicle; livery: Livery }) {
     s.camera.lookAt(0, w.__selCam[1] > 6 ? 0 : SELECT_TARGET[1], 0);
   });
 
-  const slot = (o: Slot | null) => o && <group key={o.n} scale={FIT}>{o.v.model(o.l)}</group>;
+  const slot = (o: Slot | null) => o && <group key={o.n} scale={o.v.scale}>{o.v.model(o.l)}</group>;
   return (
     <>
       <color attach="background" args={["#ebe9e3"]} />
