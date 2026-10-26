@@ -91,12 +91,12 @@ export function mBox(w: number, h: number, d: number) {
 
 const textMats = new Map<string, THREE.MeshStandardMaterial>();
 /**
- * Plain sans-serif wordmark on a transparent canvas (system font, no network).
+ * Wordmark on a transparent canvas in the page's IBM Plex (Sans, or Mono with `mono`).
  * Returns a material for a plane of aspect `w / h`.
  */
-export function plainTextMat(text: string, color: string, opts: { weight?: number; spacing?: number; glow?: number; w?: number; h?: number } = {}) {
-  const { weight = 500, spacing = 0.18, glow = 0, w = 1024, h = 192 } = opts;
-  const key = [text, color, weight, spacing, glow, w, h].join("|");
+export function plainTextMat(text: string, color: string, opts: { weight?: number; spacing?: number; glow?: number; w?: number; h?: number; mono?: boolean } = {}) {
+  const { weight = 500, spacing = 0.18, glow = 0, w = 1024, h = 192, mono = false } = opts;
+  const key = [text, color, weight, spacing, glow, w, h, mono].join("|");
   let m = textMats.get(key);
   if (!m) {
     const c = document.createElement("canvas");
@@ -104,7 +104,8 @@ export function plainTextMat(text: string, color: string, opts: { weight?: numbe
     c.height = h;
     const g = c.getContext("2d")!;
     const size = h * 0.62;
-    g.font = `${weight} ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+    const fam = getComputedStyle(document.body).getPropertyValue(mono ? "--font-plex-mono" : "--font-plex").trim();
+    g.font = `${weight} ${size}px ${fam ? fam + ", " : ""}${mono ? "monospace" : "sans-serif"}`;
     g.fillStyle = "#ffffff";
     g.textBaseline = "middle";
     g.textAlign = "center";

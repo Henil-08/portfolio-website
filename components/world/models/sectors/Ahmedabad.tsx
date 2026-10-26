@@ -17,8 +17,8 @@ import { C } from "../../palette";
 import { CI } from "../../buildings/concrete";
 import { Cone } from "../props/Cone";
 import { Label } from "../props/Label";
-import { geo, mat, unitBox, unitCyl, unitSphere, type GroupProps } from "../props/shared";
-import { Inst, dome, halfCyl, mix, type T9 } from "./kit";
+import { geo, mat, unitBox, unitCyl, type GroupProps } from "../props/shared";
+import { Inst, dome, halfCyl, type T9 } from "./kit";
 
 // ---- palette (derived only from the world palette) ----
 // Concrete & Ink: the arcades and jharokhas keep it Ahmedabad, in concrete and paper
@@ -127,6 +127,7 @@ const MERLONS: T9[] = Array.from({ length: 22 }, (_, i) => [BX - BW / 2 + 0.55 +
 const DOORS: T9[] = [0, 2, 4, 6].map((i) => [BX - BW / 2 + (i + 0.5) * BAY, 1.1, ZF - 2.18, 1.0, 2.2, 0.06]);
 
 // ---- courtyard + neem ----
+const facetGeo = () => geo("ahd-facet", () => new THREE.IcosahedronGeometry(1, 0));
 const TX = 7.8;
 const TZ = -6.0;
 const CANOPY: T9[] = [
@@ -165,7 +166,7 @@ function mercuryBodyGeo() {
     s.quadraticCurveTo(-2.05, 0.6, -2.05, 0.42);
     s.quadraticCurveTo(-2.05, 0.24, -1.95, 0.22);
     const W = 0.96;
-    const g = new THREE.ExtrudeGeometry(s, { depth: W, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.05, bevelSegments: 3, curveSegments: 10 });
+    const g = new THREE.ExtrudeGeometry(s, { depth: W, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.03, bevelSegments: 1, curveSegments: 4 });
     g.translate(0, 0, -W / 2);
     return g;
   });
@@ -203,46 +204,46 @@ const CELL_LINES: T9[] = [
   [-1.62, DECK_Y + 0.031, 0.42, 0.82, 0.004, 0.012],
 ];
 
+/** Mercury, the 2021 solar car, in Concrete & Ink: paper body, ink belt, glass cells, the orange roll hoop. */
 function Mercury(props: GroupProps) {
-  const white = mat(C.white, { r: 0.22 });
-  const teal = mat(C.teal, { r: 0.35 });
-  const panel = mat(mix(C.blue, C.ink, 0.62), { r: 0.14, m: 0.35 });
-  const frame = mat(C.metal, { r: 0.3, m: 0.6 });
-  const rubber = mat(C.black, { r: 0.65 });
-  const ink = mat(C.charcoal, { r: 0.45 });
-  const hoopGeo = geo("mercury-hoop", () => new THREE.TorusGeometry(0.34, 0.035, 10, 28, Math.PI));
+  const body = mat(C.paper, { r: 0.6, flat: true });
+  const ink = mat(C.ink, { r: 0.6, m: 0.2 });
+  const cells = mat(C.glass, { r: 0.15, m: 0.4 });
+  const frame = mat(C.charcoal, { r: 0.6, m: 0.3 });
+  const rubber = mat(C.black, { r: 0.9 });
+  const hoopGeo = geo("mercury-hoop", () => new THREE.TorusGeometry(0.34, 0.035, 4, 8, Math.PI));
   return (
     <group {...props}>
-      <mesh geometry={mercuryBodyGeo()} material={white} castShadow receiveShadow />
-      {/* teal belt line and nose tip */}
-      <mesh geometry={unitBox()} scale={[3.5, 0.06, 1.07]} position={[-0.2, 0.3, 0]} material={teal} castShadow />
-      <RoundedBox args={[2.5, 0.2, 1.1]} radius={0.05} smoothness={2} position={[-0.55, 0.5, 0]} material={teal} castShadow />
-      <mesh geometry={unitBox()} scale={[0.5, 0.05, 0.6]} position={[1.75, 0.47, 0]} rotation={[0, 0, -0.14]} material={teal} castShadow />
+      <mesh geometry={mercuryBodyGeo()} material={body} castShadow receiveShadow />
+      {/* ink belt line and nose tip */}
+      <mesh geometry={unitBox()} scale={[3.5, 0.06, 1.07]} position={[-0.2, 0.3, 0]} material={ink} castShadow />
+      <mesh geometry={unitBox()} scale={[2.5, 0.2, 1.1]} position={[-0.55, 0.5, 0]} material={ink} castShadow />
+      <mesh geometry={unitBox()} scale={[0.5, 0.05, 0.6]} position={[1.75, 0.47, 0]} rotation={[0, 0, -0.14]} material={ink} castShadow />
       <Inst geometry={unitCyl()} material={frame} items={STRUTS} />
-      {/* solar array: dark blue cells in a silver frame */}
+      {/* solar array: glass cells in a graphite frame */}
       {DECKS.map(({ x, l }) => (
         <group key={x} position={[x, DECK_Y, 0]}>
-          <RoundedBox args={[l + 0.06, 0.04, 1.8]} radius={0.015} smoothness={2} position={[0, -0.012, 0]} material={frame} castShadow receiveShadow />
-          <mesh geometry={unitBox()} scale={[l, 0.05, 1.72]} material={panel} castShadow receiveShadow />
+          <mesh geometry={unitBox()} scale={[l + 0.06, 0.04, 1.8]} position={[0, -0.012, 0]} material={frame} castShadow receiveShadow />
+          <mesh geometry={unitBox()} scale={[l, 0.05, 1.72]} material={cells} castShadow receiveShadow />
         </group>
       ))}
-      <Inst geometry={unitBox()} material={mat(C.silver, { r: 0.4, m: 0.4 })} items={CELL_LINES} cast={false} />
+      <Inst geometry={unitBox()} material={mat(C.concreteDark, { r: 0.6 })} items={CELL_LINES} cast={false} />
       {/* cockpit: seat, wheel, screen, roll hoop */}
-      <RoundedBox args={[0.42, 0.5, 0.5]} radius={0.06} smoothness={2} position={[-1.0, 0.78, 0]} rotation={[0, 0, 0.35]} material={ink} castShadow />
-      <mesh geometry={geo("mercury-wheel", () => new THREE.TorusGeometry(0.11, 0.018, 8, 20))} position={[-0.4, 0.86, 0]} rotation={[0, Math.PI / 2, -0.3]} material={ink} />
-      <mesh geometry={unitBox()} scale={[0.04, 0.22, 0.6]} position={[-0.47, 1.05, 0]} rotation={[0, 0, -0.45]} material={mat("#a9c4cc", { r: 0.05, m: 0.2, o: 0.45 })} />
-      <mesh geometry={hoopGeo} position={[-1.2, 0.95, 0]} rotation={[0, Math.PI / 2, 0]} material={mat(C.red, { r: 0.3 })} castShadow />
+      <mesh geometry={unitBox()} scale={[0.42, 0.5, 0.5]} position={[-1.0, 0.78, 0]} rotation={[0, 0, 0.35]} material={frame} castShadow />
+      <mesh geometry={geo("mercury-wheel", () => new THREE.TorusGeometry(0.11, 0.018, 4, 8))} position={[-0.4, 0.86, 0]} rotation={[0, Math.PI / 2, -0.3]} material={ink} />
+      <mesh geometry={unitBox()} scale={[0.04, 0.22, 0.6]} position={[-0.47, 1.05, 0]} rotation={[0, 0, -0.45]} material={mat(C.glass, { r: 0.1, m: 0.3, o: 0.5 })} />
+      <mesh geometry={hoopGeo} position={[-1.2, 0.95, 0]} rotation={[0, Math.PI / 2, 0]} material={mat(C.orange, { r: 0.55 })} castShadow />
       <Inst geometry={unitCyl()} material={frame} items={ARMS} />
-      <Inst geometry={unitCyl()} material={rubber} items={TYRES} />
-      <Inst geometry={unitCyl()} material={white} items={HUBS} cast={false} />
-      {/* livery */}
-      <Label position={[-0.55, 0.5, 0.56]} fontSize={0.15} color={C.white} letterSpacing={0.1}>
+      <Inst geometry={geo("mercury-tyre", () => new THREE.CylinderGeometry(1, 1, 1, 10))} material={rubber} items={TYRES} />
+      <Inst geometry={geo("mercury-hub", () => new THREE.CylinderGeometry(1, 1, 1, 6))} material={body} items={HUBS} cast={false} />
+      {/* livery: the name in Plex Sans, the number in Plex Mono */}
+      <Label position={[-0.55, 0.5, 0.56]} fontSize={0.15} color={C.paper} letterSpacing={0.1}>
         MERCURY
       </Label>
-      <Label position={[1.2, 0.36, 0.54]} fontSize={0.18} color={C.ink}>
+      <Label mono position={[1.2, 0.36, 0.54]} fontSize={0.18} color={C.ink}>
         21
       </Label>
-      <Label position={[-0.55, 0.5, -0.56]} rotation={[0, Math.PI, 0]} fontSize={0.15} color={C.white} letterSpacing={0.1}>
+      <Label position={[-0.55, 0.5, -0.56]} rotation={[0, Math.PI, 0]} fontSize={0.15} color={C.paper} letterSpacing={0.1}>
         MERCURY
       </Label>
     </group>
@@ -291,7 +292,7 @@ export function AhmedabadSector(props: GroupProps) {
         ))}
         {/* sign plate on the parapet */}
         <RoundedBox args={[6.4, 0.56, 0.06]} radius={0.02} smoothness={2} position={[0, HT + 0.52, ZF + 0.02]} material={trim} />
-        <Label position={[0, HT + 0.52, ZF + 0.06]} fontSize={0.34} color={C.ink} letterSpacing={0.1}>
+        <Label position={[0, HT + 0.52, ZF + 0.06]} fontSize={0.34} color={C.ink} letterSpacing={0.04}>
           SCHOOL OF ENGINEERING
         </Label>
         {/* roof: water tank and a small solar rig, readable from above */}
@@ -328,30 +329,32 @@ export function AhmedabadSector(props: GroupProps) {
         <mesh geometry={geo("otla-top", () => new THREE.CylinderGeometry(1.66, 1.66, 0.07, 8))} position={[0, 0.55, 0]} material={trim} castShadow receiveShadow />
         <group position={[0, 0.55, 0]}>
           <Inst geometry={unitCyl()} material={wood} items={TRUNK} />
-          <Inst geometry={unitSphere()} material={mat(C.leaf, { r: 0.6 })} items={CANOPY} />
-          <Inst geometry={unitSphere()} material={mat(C.leafDark, { r: 0.6 })} items={CANOPY_DARK} />
+          {/* faceted crowns like the W10 round trees */}
+          <Inst geometry={facetGeo()} material={mat(C.leaf, { r: 0.9, flat: true })} items={CANOPY} />
+          <Inst geometry={facetGeo()} material={mat(C.leafDark, { r: 0.9, flat: true })} items={CANOPY_DARK} />
         </group>
       </group>
       {/* TEAM STALLIONS banner on two poles */}
       {[4.3, 11.3].map((x) => (
         <group key={x}>
           <mesh geometry={unitCyl()} scale={[0.06, 3.4, 0.06]} position={[x, 1.7, -3.1]} material={mat(C.charcoal, { r: 0.4, m: 0.3 })} castShadow />
-          <mesh geometry={unitSphere()} scale={0.1} position={[x, 3.42, -3.1]} material={mat(C.charcoal, { r: 0.4, m: 0.3 })} />
+          <mesh geometry={unitBox()} scale={[0.16, 0.06, 0.16]} position={[x, 3.42, -3.1]} material={mat(C.charcoal, { r: 0.4, m: 0.3 })} />
         </group>
       ))}
-      <RoundedBox args={[6.7, 1.05, 0.05]} radius={0.02} smoothness={2} position={[7.8, 2.7, -3.1]} material={mat(C.red, { r: 0.55 })} castShadow />
-      <mesh geometry={unitBox()} scale={[6.7, 0.06, 0.06]} position={[7.8, 2.17, -3.08]} material={mat(C.ink, { r: 0.5 })} />
-      <Label position={[7.8, 2.75, -3.07]} fontSize={0.5} color={C.white} letterSpacing={0.08}>
+      {/* ink banner, paper type, an orange rule along the foot */}
+      <mesh geometry={unitBox()} scale={[6.7, 1.05, 0.05]} position={[7.8, 2.7, -3.1]} material={mat(C.ink, { r: 0.7 })} castShadow />
+      <mesh geometry={unitBox()} scale={[6.7, 0.08, 0.07]} position={[7.8, 2.2, -3.1]} material={mat(C.orange, { r: 0.55 })} />
+      <Label position={[7.8, 2.78, -3.07]} fontSize={0.46} color={C.paper} letterSpacing={0.04}>
         TEAM STALLIONS
       </Label>
-      <Label position={[7.8, 2.75, -3.13]} rotation={[0, Math.PI, 0]} fontSize={0.5} color={C.white} letterSpacing={0.08}>
+      <Label position={[7.8, 2.78, -3.13]} rotation={[0, Math.PI, 0]} fontSize={0.46} color={C.paper} letterSpacing={0.04}>
         TEAM STALLIONS
       </Label>
 
       {/* ===== solar car + slalom ===== */}
-      <RoundedBox args={[5.4, 0.05, 2.7]} radius={0.02} smoothness={2} position={[-6.0, 0.075, -1.9]} material={mat(C.charcoal, { r: 0.5 })} receiveShadow />
-      <mesh geometry={unitBox()} scale={[5.0, 0.012, 0.05]} position={[-6.0, 0.105, -0.75]} material={mat(C.teal, { r: 0.4 })} />
-      <Label position={[-8.0, 0.106, -0.95]} rotation={[-Math.PI / 2, 0, 0]} anchorX="left" fontSize={0.16} color={C.white} letterSpacing={0.18}>
+      <mesh geometry={unitBox()} scale={[5.4, 0.05, 2.7]} position={[-6.0, 0.075, -1.9]} material={mat(C.charcoal, { r: 0.7 })} receiveShadow />
+      <mesh geometry={unitBox()} scale={[5.0, 0.012, 0.05]} position={[-6.0, 0.105, -0.75]} material={mat(C.paper, { r: 0.6 })} />
+      <Label mono position={[-8.0, 0.106, -0.95]} rotation={[-Math.PI / 2, 0, 0]} anchorX="left" fontSize={0.15} color={C.paper} letterSpacing={0.1}>
         MERCURY · SOLAR EV · 2021
       </Label>
       <Mercury position={[-6.0, 0.1, -1.95]} />

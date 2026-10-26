@@ -15,8 +15,8 @@ import * as THREE from "three";
 import { C } from "../../palette";
 import { CI } from "../../buildings/concrete";
 import { Label } from "../props/Label";
-import { geo, mat, unitBox, unitCyl, unitSphere, type GroupProps } from "../props/shared";
-import { Inst, at, mBox, mix, type T9 } from "./kit";
+import { geo, mat, unitBox, unitCyl, type GroupProps } from "../props/shared";
+import { Inst, at, mBox, type T9 } from "./kit";
 
 // Concrete & Ink: a concrete sawtooth works shed with ink roofs and one orange neon
 const GLASS = CI.glass;
@@ -117,7 +117,7 @@ const TT_LINES: T9[] = [
   [-1.355, 0.765, 0, 0.03, 0.006, 1.5],
   [0, 0.765, 0, 2.74, 0.006, 0.015],
 ];
-// tracked ball trail: a glowing teal arc across the net
+// tracked ball trail: a glowing arc across the net
 const TRAIL: T9[] = Array.from({ length: 11 }, (_, i) => {
   const t = i / 10;
   const x = -1.0 + 2.1 * t;
@@ -125,6 +125,8 @@ const TRAIL: T9[] = Array.from({ length: 11 }, (_, i) => {
   const s = 0.025 + 0.025 * t;
   return [x, y, 0.15 - 0.3 * t, s, s, s];
 });
+
+const octGeo = () => geo("hyper-oct", () => new THREE.CylinderGeometry(1, 1, 1, 8));
 
 // ---- phone UI rows ----
 const UI_ROWS: T9[] = [0, 1, 2].map((i) => [0, -0.55 - i * 0.28, 0.005, 1.1, 0.16, 0.01]);
@@ -136,10 +138,11 @@ export function HyperlabSector(props: GroupProps) {
   const steel = mat(CI.ink, { r: 0.45, m: 0.3 });
   const glass = mat(GLASS, { r: 0.08, m: 0.4 });
   const ink = mat(C.ink, { r: 0.4, m: 0.1 });
-  const gloss = mat(mix(C.charcoal, C.greyDark, 0.35), { r: 0.22, m: 0.15 });
-  const white = mat(C.white, { r: 0.25 });
+  const gloss = mat(CI.graphite, { r: 0.6, m: 0.2 });
+  const white = mat(CI.paper, { r: 0.6 });
   const cream = mat(CI.paper, { r: 0.6 });
-  const metal = mat(C.metal, { r: 0.3, m: 0.6 });
+  const metal = mat(CI.graphite, { r: 0.5, m: 0.4 });
+  const concrete = mat(CI.concrete, { r: 0.95 });
   const neon = mat(C.red, { glow: 3.2 });
   const warm = mat("#fff2dc", { glow: 2.4 });
   return (
@@ -165,38 +168,38 @@ export function HyperlabSector(props: GroupProps) {
         <mesh key={s} geometry={unitCyl()} scale={[0.015, 1.3, 0.015]} position={[WX + s * 1.3, 3.15, ZF + 0.5]} rotation={[-0.75, 0, 0]} material={steel} />
       ))}
       {/* neon HYPERLAB sign on a charcoal backer */}
-      <RoundedBox args={[5.6, 0.95, 0.1]} radius={0.03} smoothness={2} position={[WX, 4.2, ZF + 0.06]} material={ink} castShadow />
-      <Label position={[WX, 4.24, ZF + 0.13]} fontSize={0.62} color={C.red} material={neon} letterSpacing={0.1}>
+      <mesh geometry={unitBox()} scale={[5.6, 0.95, 0.1]} position={[WX, 4.2, ZF + 0.06]} material={ink} castShadow />
+      <Label position={[WX, 4.24, ZF + 0.13]} fontSize={0.62} color={C.red} material={neon} letterSpacing={0.04}>
         HYPERLAB
       </Label>
       <mesh geometry={unitBox()} scale={[5.2, 0.03, 0.03]} position={[WX, 3.84, ZF + 0.12]} material={neon} />
-      <Label position={[WX + TW, 5.25, ZF + 0.03]} fontSize={0.16} color={CI.paper} letterSpacing={0.3}>
+      <Label mono position={[WX + TW, 5.25, ZF + 0.03]} fontSize={0.16} color={CI.ink} letterSpacing={0.1}>
         STARTUP HQ · 2022
       </Label>
 
       {/* ===== pitch-show studio set ===== */}
-      <RoundedBox args={[SW, SH, SD]} radius={0.05} smoothness={2} position={[SX, SH / 2, SZ]} material={gloss} castShadow receiveShadow />
+      <mesh geometry={unitBox()} scale={[SW, SH, SD]} position={[SX, SH / 2, SZ]} material={gloss} castShadow receiveShadow />
       <mesh geometry={unitBox()} scale={[SW - 0.1, 0.04, 0.05]} position={[SX, SH - 0.06, SZ + SD / 2 + 0.005]} material={warm} />
       {/* floor medallion where the pitcher stands */}
-      <mesh geometry={geo("hyper-ring", () => new THREE.RingGeometry(0.85, 0.95, 48))} rotation={[-Math.PI / 2, 0, 0]} position={[POD[0], SH + 0.005, POD[1] - 0.6]} material={mat(C.red, { r: 0.4 })} />
-      <mesh geometry={geo("hyper-disc", () => new THREE.CircleGeometry(0.85, 48))} rotation={[-Math.PI / 2, 0, 0]} position={[POD[0], SH + 0.004, POD[1] - 0.6]} material={mat(C.greyDark, { r: 0.3 })} receiveShadow />
+      <mesh geometry={geo("hyper-ring", () => new THREE.RingGeometry(0.85, 0.95, 8))} rotation={[-Math.PI / 2, 0, 0]} position={[POD[0], SH + 0.005, POD[1] - 0.6]} material={mat(C.red, { r: 0.4 })} />
+      <mesh geometry={geo("hyper-disc", () => new THREE.CircleGeometry(0.85, 8))} rotation={[-Math.PI / 2, 0, 0]} position={[POD[0], SH + 0.004, POD[1] - 0.6]} material={mat(CI.ink, { r: 0.6 })} receiveShadow />
       {/* big screen on a truss */}
       <group position={[SX, SH, -8.45]}>
         {[-1, 1].map((s) => (
           <mesh key={s} geometry={unitBox()} scale={[0.3, 5.4, 0.3]} position={[s * 3.95, 2.7, 0]} material={metal} castShadow />
         ))}
         <mesh geometry={unitBox()} scale={[8.2, 0.3, 0.3]} position={[0, 5.4, 0]} material={metal} castShadow />
-        <RoundedBox args={[7.4, 4.0, 0.22]} radius={0.04} smoothness={2} position={[0, 3.15, 0.05]} material={ink} castShadow />
-        <mesh geometry={unitBox()} scale={[7.1, 3.7, 0.02]} position={[0, 3.15, 0.17]} material={mat("#1a2230", { glow: 0.35, e: "#1c2a3c" })} />
+        <mesh geometry={unitBox()} scale={[7.4, 4.0, 0.22]} position={[0, 3.15, 0.05]} material={ink} castShadow />
+        <mesh geometry={unitBox()} scale={[7.1, 3.7, 0.02]} position={[0, 3.15, 0.17]} material={mat(CI.glass, { glow: 0.35, e: CI.glass })} />
         <group position={[0, 0, 0.19]}>
-          <Label position={[-1.2, 3.9, 0]} fontSize={0.78} color={C.white} material={mat(C.white, { glow: 1.6 })} letterSpacing={0.06}>
+          <Label position={[-1.2, 3.9, 0]} fontSize={0.78} color={CI.paper} material={mat(CI.paper, { glow: 1.6 })} letterSpacing={0.02}>
             THE PITCH
           </Label>
           <mesh geometry={unitBox()} scale={[2.6, 0.06, 0.01]} position={[-1.2, 3.35, 0]} material={neon} />
-          <Label position={[-1.2, 3.05, 0]} fontSize={0.2} color={C.greyLight} material={mat(C.greyLight, { glow: 1.0 })} letterSpacing={0.3}>
+          <Label mono position={[-1.2, 3.05, 0]} fontSize={0.2} color={CI.concrete} material={mat(CI.concrete, { glow: 1.0 })} letterSpacing={0.1}>
             SEASON 01 · LIVE
           </Label>
-          <Inst geometry={unitBox()} material={mat(C.white, { glow: 1.3 })} items={BARS.slice(0, 4)} cast={false} />
+          <Inst geometry={unitBox()} material={mat(CI.paper, { glow: 1.3 })} items={BARS.slice(0, 4)} cast={false} />
           <Inst geometry={unitBox()} material={neon} items={BARS.slice(4)} cast={false} />
         </group>
       </group>
@@ -208,7 +211,7 @@ export function HyperlabSector(props: GroupProps) {
       <Inst geometry={unitBox()} material={mat(CI.ink, { r: 0.5 })} items={CH_ARM} at={CHAIR_AT} />
       {/* pitch podium, facing the panel */}
       <group position={[POD[0], SH, POD[1]]} rotation={[0, Math.PI, 0]}>
-        <RoundedBox args={[0.8, 1.05, 0.5]} radius={0.04} smoothness={2} position={[0, 0.52, 0]} material={white} castShadow receiveShadow />
+        <mesh geometry={unitBox()} scale={[0.8, 1.05, 0.5]} position={[0, 0.52, 0]} material={white} castShadow receiveShadow />
         <mesh geometry={unitBox()} scale={[0.92, 0.06, 0.62]} position={[0, 1.08, -0.02]} rotation={[-0.2, 0, 0]} material={ink} castShadow />
         <mesh geometry={unitBox()} scale={[0.81, 0.1, 0.51]} position={[0, 0.62, 0]} material={mat(C.red, { r: 0.35 })} />
       </group>
@@ -222,49 +225,50 @@ export function HyperlabSector(props: GroupProps) {
       {/* ===== table tennis with ball tracking ===== */}
       <group position={[TT[0], 0.06, TT[1]]}>
         <mesh geometry={unitBox()} scale={[2.74, 0.05, 1.525]} position={[0, 0.74, 0]} material={mat(CI.graphite, { r: 0.5 })} castShadow receiveShadow />
-        <Inst geometry={unitBox()} material={mat(C.white, { r: 0.5 })} items={TT_LINES} cast={false} />
+        <Inst geometry={unitBox()} material={mat(CI.paper, { r: 0.6 })} items={TT_LINES} cast={false} />
         <Inst geometry={unitBox()} material={ink} items={TT_LEGS} />
-        <mesh geometry={unitBox()} scale={[0.02, 0.16, 1.7]} position={[0, 0.85, 0]} material={mat(C.white, { r: 0.6, o: 0.75 })} />
+        <mesh geometry={unitBox()} scale={[0.02, 0.16, 1.7]} position={[0, 0.85, 0]} material={mat(CI.ink, { r: 0.6, o: 0.75 })} />
         <mesh geometry={unitBox()} scale={[0.03, 0.03, 1.72]} position={[0, 0.93, 0]} material={white} />
-        <Inst geometry={unitSphere()} material={mat(C.teal, { glow: 2.0 })} items={TRAIL.slice(0, 10)} cast={false} />
-        <mesh geometry={unitSphere()} scale={0.07} position={TRAIL[10].slice(0, 3) as [number, number, number]} material={mat(C.orange, { r: 0.4 })} castShadow />
+        {/* the tracked path as glowing paper cubes (a data trace), the ball the one orange */}
+        <Inst geometry={unitBox()} material={mat(CI.paper, { glow: 1.6 })} items={TRAIL.slice(0, 10)} cast={false} />
+        <mesh geometry={geo("hyper-ball", () => new THREE.IcosahedronGeometry(1, 0))} scale={0.07} position={TRAIL[10].slice(0, 3) as [number, number, number]} material={mat(C.orange, { r: 0.55, flat: true })} castShadow />
         {/* paddles */}
-        <mesh geometry={unitCyl()} scale={[0.14, 0.02, 0.14]} position={[-0.9, 0.785, 0.45]} material={mat(C.red, { r: 0.5 })} castShadow />
-        <mesh geometry={unitCyl()} scale={[0.14, 0.02, 0.14]} position={[0.95, 0.785, -0.4]} material={mat(C.black, { r: 0.5 })} castShadow />
+        <mesh geometry={octGeo()} scale={[0.14, 0.02, 0.14]} position={[-0.9, 0.785, 0.45]} material={mat(CI.ink, { r: 0.6 })} castShadow />
+        <mesh geometry={octGeo()} scale={[0.14, 0.02, 0.14]} position={[0.95, 0.785, -0.4]} material={mat(CI.paper, { r: 0.6 })} castShadow />
         {/* tracking camera on a tripod */}
         <group position={[0.2, 0, 1.45]}>
           {[0, 1, 2].map((k) => {
             const a = (k * Math.PI * 2) / 3;
             return <mesh key={k} geometry={unitCyl()} scale={[0.02, 1.3, 0.02]} position={[Math.sin(a) * 0.18, 0.62, Math.cos(a) * 0.18]} rotation={[-Math.cos(a) * 0.28, 0, Math.sin(a) * 0.28]} material={steel} castShadow />;
           })}
-          <RoundedBox args={[0.3, 0.22, 0.36]} radius={0.04} smoothness={2} position={[0, 1.36, 0]} rotation={[-0.35, 0, 0]} material={ink} castShadow />
-          <mesh geometry={unitCyl()} scale={[0.08, 0.1, 0.08]} position={[0, 1.31, -0.22]} rotation={[Math.PI / 2 - 0.35, 0, 0]} material={mat(C.teal, { glow: 1.4 })} />
+          <mesh geometry={unitBox()} scale={[0.3, 0.22, 0.36]} position={[0, 1.36, 0]} rotation={[-0.35, 0, 0]} material={ink} castShadow />
+          <mesh geometry={octGeo()} scale={[0.08, 0.1, 0.08]} position={[0, 1.31, -0.22]} rotation={[Math.PI / 2 - 0.35, 0, 0]} material={mat(CI.glass, { r: 0.15, m: 0.4 })} />
         </group>
       </group>
 
       {/* ===== giant phone: 50K downloads ===== */}
       <group position={[-1.2, 0.06, -2.4]} rotation={[0, 0.3, 0]}>
-        <RoundedBox args={[1.6, 0.3, 0.8]} radius={0.05} smoothness={2} position={[0, 0.15, 0]} material={white} castShadow receiveShadow />
+        <mesh geometry={unitBox()} scale={[1.6, 0.3, 0.8]} position={[0, 0.15, 0]} material={concrete} castShadow receiveShadow />
         <group position={[0, 1.95, 0]} rotation={[-0.06, 0, 0]}>
-          <RoundedBox args={[1.6, 3.2, 0.16]} radius={0.07} smoothness={4} material={mat(C.black, { r: 0.25, m: 0.3 })} castShadow receiveShadow />
-          <mesh geometry={unitBox()} scale={[1.44, 3.0, 0.01]} position={[0, 0, 0.081]} material={mat("#20262f", { glow: 0.25, e: "#222b36" })} />
+          <mesh geometry={unitBox()} scale={[1.6, 3.2, 0.16]} material={mat(CI.ink, { r: 0.55, m: 0.2 })} castShadow receiveShadow />
+          <mesh geometry={unitBox()} scale={[1.44, 3.0, 0.01]} position={[0, 0, 0.081]} material={mat(CI.glass, { glow: 0.25, e: CI.glass })} />
           <group position={[0, 0, 0.09]}>
             <mesh geometry={unitBox()} scale={[0.32, 0.06, 0.01]} position={[0, 1.38, 0]} material={ink} />
-            <RoundedBox args={[0.5, 0.5, 0.02]} radius={0.08} smoothness={2} position={[0, 0.95, 0]} material={mat(C.red, { glow: 1.2 })} />
-            <Label position={[0, 0.95, 0.015]} fontSize={0.3} color={C.white}>
+            <mesh geometry={unitBox()} scale={[0.5, 0.5, 0.02]} position={[0, 0.95, 0]} material={mat(C.red, { glow: 1.2 })} />
+            <Label position={[0, 0.95, 0.015]} fontSize={0.3} color={CI.paper}>
               H
             </Label>
-            <Label position={[0, 0.42, 0.01]} fontSize={0.56} color={C.white} material={mat(C.white, { glow: 1.3 })}>
+            <Label position={[0, 0.42, 0.01]} fontSize={0.56} color={CI.paper} material={mat(CI.paper, { glow: 1.3 })}>
               50K
             </Label>
-            <Label position={[0, 0.14, 0.01]} fontSize={0.12} color={C.greyLight} material={mat(C.greyLight, { glow: 0.9 })} letterSpacing={0.25}>
+            <Label mono position={[0, 0.14, 0.01]} fontSize={0.11} color={CI.concrete} material={mat(CI.concrete, { glow: 0.9 })} letterSpacing={0.08}>
               DOWNLOADS
             </Label>
             <group position={[0, -0.1, 0]}>
-              <Inst geometry={unitBox()} material={mat(C.gold, { glow: 1.2 })} items={STARS} cast={false} />
+              <Inst geometry={unitBox()} material={mat(CI.paper, { glow: 1.0 })} items={STARS} cast={false} />
             </group>
-            <Inst geometry={unitBox()} material={mat(C.greyDark, { glow: 0.6 })} items={UI_ROWS} cast={false} />
-            <mesh geometry={unitBox()} scale={[0.6, 0.03, 0.01]} position={[0, -1.4, 0]} material={mat(C.greyLight, { glow: 0.8 })} />
+            <Inst geometry={unitBox()} material={mat(CI.graphite, { glow: 0.6 })} items={UI_ROWS} cast={false} />
+            <mesh geometry={unitBox()} scale={[0.6, 0.03, 0.01]} position={[0, -1.4, 0]} material={mat(CI.concrete, { glow: 0.8 })} />
           </group>
         </group>
       </group>

@@ -15,7 +15,7 @@
 import { RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import { CI } from "../../buildings/concrete";
-import { geo, mat, unitBox, unitCyl, unitSphere, type GroupProps } from "../props/shared";
+import { geo, mat, unitBox, unitCyl, type GroupProps } from "../props/shared";
 import { Inst, at, dome, mBox, type T9 } from "./kit";
 
 const ZF = -3.6; // street facade line
@@ -132,6 +132,8 @@ const LANTERN_WIN: T9[] = Array.from({ length: 8 }, (_, i) => {
 });
 
 // ---- street furniture ----
+/** Faceted lumps (snow drifts, finials): no round toy spheres. */
+const facetGeo = () => geo("bost-facet", () => new THREE.IcosahedronGeometry(1, 0));
 const LAMP_AT: T9[] = [-12.3, -7.4, 1.0, 11.2].map((x) => at(x, -1.0));
 const LAMP_BASE: T9[] = [[0, 0.2, 0, 0.15, 0.4, 0.15]];
 const LAMP_POLE: T9[] = [[0, 1.9, 0, 0.055, 3.1, 0.055]];
@@ -261,7 +263,7 @@ export function BostonSector(props: GroupProps) {
         <mesh geometry={unitCyl()} scale={[0.98, 0.14, 0.98]} position={[0, 3.7, 0]} material={white} castShadow />
         <mesh geometry={dome()} scale={[0.82, 0.9, 0.82]} position={[0, 3.76, 0]} material={ink} castShadow />
         <mesh geometry={unitCyl()} scale={[0.04, 0.9, 0.04]} position={[0, 4.95, 0]} material={mat(CI.orange, { r: 0.55 })} />
-        <mesh geometry={unitSphere()} scale={0.1} position={[0, 4.75, 0]} material={mat(CI.orange, { r: 0.55 })} />
+        <mesh geometry={facetGeo()} scale={0.1} position={[0, 4.75, 0]} material={mat(CI.orange, { r: 0.55, flat: true })} />
       </group>
 
       {/* ===== street ===== */}
@@ -269,11 +271,11 @@ export function BostonSector(props: GroupProps) {
       <Inst geometry={unitCyl()} material={iron} items={LAMP_POLE} at={LAMP_AT} />
       <Inst geometry={unitBox()} material={warm} items={LAMP_GLASS} at={LAMP_AT} cast={false} />
       <Inst geometry={geo("bost-lampcap", () => new THREE.CylinderGeometry(0.05, 0.72, 1, 4))} material={iron} items={LAMP_CAP} at={LAMP_AT} />
-      <Inst geometry={unitSphere()} material={iron} items={LAMP_FIN} at={LAMP_AT} />
-      <Inst geometry={unitSphere()} material={snow} items={LAMP_SNOW} at={LAMP_AT} cast={false} />
+      <Inst geometry={unitBox()} material={iron} items={LAMP_FIN} at={LAMP_AT} />
+      <Inst geometry={facetGeo()} material={snow} items={LAMP_SNOW} at={LAMP_AT} cast={false} />
       <Inst geometry={unitCyl()} material={ink} items={TREE_PARTS} at={TREE_AT} />
       <Inst geometry={unitBox()} material={mat(CI.graphite, { r: 0.85 })} items={PIT} />
-      <Inst geometry={unitSphere()} material={snow} items={SNOW_PATCH} />
+      <Inst geometry={facetGeo()} material={snow} items={SNOW_PATCH} />
       <group position={[2.4, 0.06, -1.4]}>
         <Inst geometry={unitBox()} material={mat(CI.concrete, { r: 0.9 })} items={BENCH_SLATS} />
         <Inst geometry={unitBox()} material={iron} items={BENCH_IRON} />

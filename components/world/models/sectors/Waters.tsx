@@ -11,12 +11,11 @@
 
 import { RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
-import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { C } from "../../palette";
 import { CI } from "../../buildings/concrete";
 import { Label } from "../props/Label";
 import { Tree } from "../props/Tree";
-import { geo, mat, unitBox, unitCyl, unitSphere, type GroupProps } from "../props/shared";
+import { geo, mat, unitBox, unitCyl, type GroupProps } from "../props/shared";
 import { Inst, mix, plainTextMat, unitPlane, type T9 } from "./kit";
 
 const BX = -5.3;
@@ -53,7 +52,7 @@ function instrumentBodyGeo() {
     s.lineTo(0.05, 1.22);
     s.lineTo(-0.5, 1.22);
     s.lineTo(-0.5, 0);
-    const g = new THREE.ExtrudeGeometry(s, { depth: 1.3, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.04, bevelSegments: 3 });
+    const g = new THREE.ExtrudeGeometry(s, { depth: 1.3, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 1 });
     // shape x -> world z, extrusion -> world x
     g.rotateY(-Math.PI / 2);
     g.translate(0.65, 0, 0);
@@ -83,46 +82,48 @@ function arcGeo(a: [number, number], b: [number, number], lift: number) {
     const p0 = new THREE.Vector3(a[0], NODE_Y, a[1]);
     const p2 = new THREE.Vector3(b[0], NODE_Y, b[1]);
     const p1 = p0.clone().add(p2).multiplyScalar(0.5).setY(NODE_Y + lift);
-    return new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(p0, p1, p2), 32, 0.035, 8, false);
+    return new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(p0, p1, p2), 16, 0.035, 4, false);
   });
 }
 
-/** Lab instrument: glossy white mass-spectrometer-like body with a screen, sample module and solvent tray. Origin at its base centre, faces +Z. */
+/** Lab instrument: a matte paper mass-spectrometer-like body with a screen, sample module and solvent tray, one orange status light. Origin at its base centre, faces +Z. */
 function Instrument(props: GroupProps) {
-  const white = mat(C.white, { r: 0.18, m: 0.05 });
-  const grey = mat(C.greyLight, { r: 0.3 });
-  const screen = mat("#1b2530", { glow: 0.3, e: "#20303e" });
+  const white = mat(C.paper, { r: 0.6 });
+  const grey = mat(C.concreteDark, { r: 0.9 });
+  const screen = mat(C.glass, { glow: 0.3, e: C.glass });
   return (
     <group {...props}>
       <group position={[-0.35, 0, 0]}>
         <mesh geometry={instrumentBodyGeo()} material={white} castShadow receiveShadow />
         {/* angled screen with UI */}
         <group position={[0, 1.0, 0.28]} rotation={[-SCREEN_ANG, 0, 0]}>
-          <RoundedBox args={[0.9, 0.5, 0.03]} radius={0.012} smoothness={2} position={[0, 0, 0.03]} material={mat(C.black, { r: 0.2, m: 0.2 })} />
+          <mesh geometry={unitBox()} scale={[0.9, 0.5, 0.03]} position={[0, 0, 0.03]} material={mat(C.ink, { r: 0.6, m: 0.2 })} />
           <mesh geometry={unitBox()} scale={[0.82, 0.42, 0.01]} position={[0, 0, 0.05]} material={screen} />
           {/* spectrum peaks */}
           {[-0.28, -0.16, -0.05, 0.08, 0.2, 0.3].map((x, i) => (
-            <mesh key={x} geometry={unitBox()} scale={[0.02, [0.08, 0.2, 0.1, 0.3, 0.12, 0.06][i], 0.004]} position={[x, -0.16 + [0.08, 0.2, 0.1, 0.3, 0.12, 0.06][i] / 2, 0.058]} material={mat(C.teal, { glow: 1.6 })} />
+            <mesh key={x} geometry={unitBox()} scale={[0.02, [0.08, 0.2, 0.1, 0.3, 0.12, 0.06][i], 0.004]} position={[x, -0.16 + [0.08, 0.2, 0.1, 0.3, 0.12, 0.06][i] / 2, 0.058]} material={mat(C.paper, { glow: 1.4 })} />
           ))}
         </group>
         {/* ion source probe and status strip */}
-        <mesh geometry={unitCyl()} scale={[0.13, 0.26, 0.13]} position={[-0.42, 0.55, 0.56]} rotation={[Math.PI / 2, 0, 0]} material={mat(C.metal, { r: 0.25, m: 0.7 })} castShadow />
-        <mesh geometry={unitCyl()} scale={[0.15, 0.04, 0.15]} position={[-0.42, 0.55, 0.66]} rotation={[Math.PI / 2, 0, 0]} material={mat(C.charcoal, { r: 0.4 })} />
-        <mesh geometry={unitBox()} scale={[1.1, 0.025, 0.01]} position={[0, 0.16, 0.545]} material={mat(C.white, { glow: 1.6 })} />
+        <mesh geometry={octGeo()} scale={[0.13, 0.26, 0.13]} position={[-0.42, 0.55, 0.56]} rotation={[Math.PI / 2, 0, 0]} material={mat(C.charcoal, { r: 0.5, m: 0.4 })} castShadow />
+        <mesh geometry={octGeo()} scale={[0.15, 0.04, 0.15]} position={[-0.42, 0.55, 0.66]} rotation={[Math.PI / 2, 0, 0]} material={mat(C.ink, { r: 0.6 })} />
+        <mesh geometry={unitBox()} scale={[1.1, 0.025, 0.01]} position={[0, 0.16, 0.545]} material={mat(C.ink, { r: 0.6 })} />
         <mesh geometry={unitBox()} scale={[1.34, 0.06, 1.06]} position={[0, 0.03, 0]} material={grey} receiveShadow />
       </group>
       {/* sample manager tower with drawers and a solvent tray */}
       <group position={[0.72, 0, 0.05]}>
-        <RoundedBox args={[0.62, 1.5, 0.86]} radius={0.04} smoothness={3} position={[0, 0.75, 0]} material={white} castShadow receiveShadow />
-        <Inst geometry={unitBox()} material={mat(C.grey, { r: 0.4 })} items={DRAWERS} cast={false} />
+        <mesh geometry={unitBox()} scale={[0.62, 1.5, 0.86]} position={[0, 0.75, 0]} material={white} castShadow receiveShadow />
+        <Inst geometry={unitBox()} material={mat(C.concreteDark, { r: 0.8 })} items={DRAWERS} cast={false} />
         <mesh geometry={unitBox()} scale={[0.5, 0.05, 0.4]} position={[0, 1.53, -0.05]} material={grey} castShadow />
-        <Inst geometry={unitCyl()} material={mat("#c9d6da", { r: 0.08, m: 0.1, o: 0.7 })} items={BOTTLES} />
-        <Inst geometry={unitCyl()} material={mat(C.teal, { r: 0.4 })} items={CAPS} />
-        <mesh geometry={unitSphere()} scale={0.03} position={[0.2, 1.35, 0.44]} material={mat(C.teal, { glow: 2.5 })} />
+        <Inst geometry={octGeo()} material={mat(C.glass, { r: 0.1, m: 0.2, o: 0.7 })} items={BOTTLES} />
+        <Inst geometry={octGeo()} material={mat(C.ink, { r: 0.6 })} items={CAPS} />
+        <mesh geometry={unitBox()} scale={0.05} position={[0.2, 1.35, 0.44]} material={mat(C.orange, { glow: 2.0 })} />
       </group>
     </group>
   );
 }
+
+const octGeo = () => geo("waters-oct", () => new THREE.CylinderGeometry(1, 1, 1, 8));
 
 /** Sector 4: concrete-and-glass Waters lab campus with a single orange accent line, a mass-spec instrument on a plinth and the agent-ops (MCP) server sculpture. Faces +Z. */
 export function WatersSector(props: GroupProps) {
@@ -131,8 +132,10 @@ export function WatersSector(props: GroupProps) {
   const fin = mat(CI.paper, { r: 0.6 });
   const ink = mat(C.ink, { r: 0.35, m: 0.1 });
   const blue = mat(CI.orange, { glow: 1.15 }); // the one accent line, orange in Concrete & Ink
-  const tealGlow = mat(C.teal, { glow: 2.2 });
-  const rack = mat(C.charcoal, { r: 0.22, m: 0.2 });
+  // agent ops: the links between the servers are its one orange, the rest ink and paper
+  const linkGlow = mat(C.orange, { glow: 2.0 });
+  const paperGlow = mat(C.paper, { glow: 1.4 });
+  const rack = mat(C.ink, { r: 0.55, m: 0.2 });
   return (
     <group {...props}>
       {/* pale stone plaza with paving joints */}
@@ -166,37 +169,37 @@ export function WatersSector(props: GroupProps) {
       <Inst geometry={unitBox()} material={mat(CI.graphite, { r: 0.7 })} items={ROOF_PLANT} />
       <Inst geometry={unitBox()} material={mat(C.leaf, { r: 0.8 })} items={GREEN_ROOF} />
       {/* front planter with clipped hedges */}
-      <RoundedBox args={[6.6, 0.55, 1.0]} radius={0.04} smoothness={2} position={[-8.8, 0.3, -1.7]} material={mat(CI.concreteDark, { r: 0.9 })} castShadow receiveShadow />
-      <Inst geometry={geo("waters-hedge", () => new RoundedBoxGeometry(1, 1, 1, 3, 0.22))} material={mat(C.leafDark, { r: 0.7 })} items={HEDGE} />
+      <mesh geometry={unitBox()} scale={[6.6, 0.55, 1.0]} position={[-8.8, 0.3, -1.7]} material={mat(CI.concreteDark, { r: 0.9 })} castShadow receiveShadow />
+      <Inst geometry={unitBox()} material={mat(C.leafDark, { r: 0.9 })} items={HEDGE} />
       <Tree variant="round" seed={4} position={[3.3, 0.06, -7.2]} />
 
       {/* ===== instrument on a plinth ===== */}
       <group position={[6.0, 0.06, -3.0]}>
-        <RoundedBox args={[2.8, 0.7, 1.6]} radius={0.04} smoothness={2} position={[0, 0.35, 0]} material={ink} castShadow receiveShadow />
-        <mesh geometry={unitPlane()} scale={[1.9, 0.2, 1]} position={[0, 0.36, 0.805]} material={plainTextMat("MASS SPECTROMETRY", C.greyLight, { weight: 500, spacing: 0.24, w: 1536, h: 160 })} />
+        <mesh geometry={unitBox()} scale={[2.8, 0.7, 1.6]} position={[0, 0.35, 0]} material={ink} castShadow receiveShadow />
+        <mesh geometry={unitPlane()} scale={[1.9, 0.2, 1]} position={[0, 0.36, 0.805]} material={plainTextMat("MASS SPECTROMETRY", C.paper, { weight: 500, spacing: 0.08, w: 1536, h: 160, mono: true })} />
         <Instrument position={[0, 0.7, 0]} scale={1.2} />
       </group>
 
       {/* ===== agent ops: three MCP server racks linked by glowing arcs ===== */}
       <group position={[AO[0], 0.06, AO[1]]}>
-        <mesh geometry={geo("waters-ao-base", () => new THREE.CylinderGeometry(2.5, 2.55, 0.15, 56))} position={[0, 0.075, 0]} material={white} castShadow receiveShadow />
-        <mesh geometry={geo("waters-ao-ring", () => new THREE.RingGeometry(2.0, 2.08, 56))} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.152, 0]} material={tealGlow} />
+        <mesh geometry={geo("waters-ao-base", () => new THREE.CylinderGeometry(2.5, 2.55, 0.15, 8))} position={[0, 0.075, 0]} rotation={[0, Math.PI / 8, 0]} material={white} castShadow receiveShadow />
+        <mesh geometry={geo("waters-ao-ring", () => new THREE.RingGeometry(2.0, 2.06, 8))} rotation={[-Math.PI / 2, 0, Math.PI / 8]} position={[0, 0.152, 0]} material={mat(C.ink, { r: 0.6 })} />
         <Inst geometry={geo("waters-rack", () => new THREE.BoxGeometry(0.76, RACK_H, 0.96))} material={rack} items={[[0, RACK_H / 2, 0]]} at={RACK_AT} />
-        <Inst geometry={unitBox()} material={mat(C.metal, { r: 0.3, m: 0.6 })} items={[[0, RACK_H + 0.03, 0, 0.8, 0.06, 1.0]]} at={RACK_AT} />
-        <Inst geometry={unitBox()} material={tealGlow} items={RACK_LINES} at={RACK_AT} cast={false} />
-        <Inst geometry={unitBox()} material={mat(C.white, { glow: 2 })} items={RACK_LEDS} at={RACK_AT} cast={false} />
-        <Inst geometry={unitSphere()} material={tealGlow} items={RACKS.map(([x, z]) => [x, NODE_Y, z, 0.12, 0.12, 0.12] as T9)} cast={false} />
-        <Inst geometry={unitCyl()} material={mat(C.metal, { r: 0.3, m: 0.6 })} items={RACKS.map(([x, z]) => [x, NODE_Y - 0.12, z, 0.025, 0.2, 0.025] as T9)} />
-        <mesh geometry={arcGeo(RACKS[0], RACKS[1], 1.2)} material={tealGlow} />
-        <mesh geometry={arcGeo(RACKS[1], RACKS[2], 1.0)} material={tealGlow} />
-        <mesh geometry={arcGeo(RACKS[2], RACKS[0], 1.0)} material={tealGlow} />
+        <Inst geometry={unitBox()} material={mat(C.charcoal, { r: 0.5, m: 0.4 })} items={[[0, RACK_H + 0.03, 0, 0.8, 0.06, 1.0]]} at={RACK_AT} />
+        <Inst geometry={unitBox()} material={paperGlow} items={RACK_LINES} at={RACK_AT} cast={false} />
+        <Inst geometry={unitBox()} material={linkGlow} items={RACK_LEDS} at={RACK_AT} cast={false} />
+        <Inst geometry={unitBox()} material={paperGlow} items={RACKS.map(([x, z]) => [x, NODE_Y, z, 0.2, 0.2, 0.2, 0, Math.PI / 4, 0] as T9)} cast={false} />
+        <Inst geometry={unitBox()} material={mat(C.charcoal, { r: 0.5, m: 0.4 })} items={RACKS.map(([x, z]) => [x, NODE_Y - 0.12, z, 0.04, 0.2, 0.04] as T9)} />
+        <mesh geometry={arcGeo(RACKS[0], RACKS[1], 1.2)} material={linkGlow} />
+        <mesh geometry={arcGeo(RACKS[1], RACKS[2], 1.0)} material={linkGlow} />
+        <mesh geometry={arcGeo(RACKS[2], RACKS[0], 1.0)} material={linkGlow} />
         {/* sign plate */}
         <group position={[0, 0.15, 2.05]} rotation={[-0.5, 0, 0]}>
-          <RoundedBox args={[1.7, 0.36, 0.06]} radius={0.02} smoothness={2} position={[0, 0.2, 0]} material={ink} castShadow />
-          <Label position={[0, 0.24, 0.035]} fontSize={0.15} color={C.white} letterSpacing={0.1}>
+          <mesh geometry={unitBox()} scale={[1.7, 0.36, 0.06]} position={[0, 0.2, 0]} material={ink} castShadow />
+          <Label position={[0, 0.24, 0.035]} fontSize={0.15} color={C.paper} letterSpacing={0.04}>
             AGENT OPS
           </Label>
-          <Label position={[0, 0.1, 0.035]} fontSize={0.065} color={C.teal} letterSpacing={0.3}>
+          <Label mono position={[0, 0.1, 0.035]} fontSize={0.065} color={C.concrete} letterSpacing={0.1}>
             MCP SERVERS
           </Label>
         </group>
