@@ -210,7 +210,7 @@ export default function Motion() {
       </div>
       <div className="mx-auto max-w-[1180px] px-4 pt-10 sm:px-8 sm:pt-14">
         <div className="border-b-[3px] border-[#111] pb-4">
-          <p className={`${mono} text-[12px] text-[#5d5d58]`}>HG-26 · Identity · Motion</p>
+          <p className={`${mono} text-[12px] text-[#5d5d58]`}>HG-08 · Identity · Motion</p>
           <h1 className="text-[34px] font-semibold leading-none tracking-tight sm:text-[44px]">Still and in motion</h1>
         </div>
         <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-[#5d5d58]">

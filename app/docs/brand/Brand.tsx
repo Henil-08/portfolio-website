@@ -76,7 +76,7 @@ function Datasheet() {
             </div>
           </div>
           <p className={`${dsMono} text-right text-[12px] leading-relaxed text-[#5d5d58]`}>
-            HG-26 · AI/ML engineer
+            HG-08 · AI/ML engineer
             <br />
             Rev 2026.10 · Boston, MA
           </p>

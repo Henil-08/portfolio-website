@@ -29,6 +29,15 @@ export function useRun<T extends Element>(on: boolean) {
 }
 
 const GLYPHS = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#/<>";
+// Scramble glyphs keep the real character's case, so the text stays about the same width
+// while it decodes (the wide M and W are left out on purpose).
+const UPPER = "ABCDEFGHJKLNPRSTUVXYZ";
+const LOWER = "abcdeghknopqrsuvxyz";
+const DIGIT = "0123456789";
+function glyph(ch: string) {
+  const set = /[A-Z]/.test(ch) ? UPPER : /[a-z]/.test(ch) ? LOWER : /\d/.test(ch) ? DIGIT : "#/<>";
+  return set[(Math.random() * set.length) | 0];
+}
 
 /** Text that decodes left to right through random glyphs. */
 export function Decode({ text, run, delay = 0, dur = 450 }: { text: string; run: boolean; delay?: number; dur?: number }) {
@@ -41,7 +50,7 @@ export function Decode({ text, run, delay = 0, dur = 450 }: { text: string; run:
       const k = Math.max(0, (now - t0) / dur);
       const n = Math.floor(Math.min(1, k) * text.length);
       let s = text.slice(0, n);
-      if (k > 0 && k < 1) for (let i = n; i < Math.min(text.length, n + 3); i++) s += text[i] === " " ? " " : GLYPHS[(Math.random() * GLYPHS.length) | 0];
+      if (k > 0 && k < 1) for (let i = n; i < Math.min(text.length, n + 3); i++) s += text[i] === " " ? " " : glyph(text[i]);
       setOut(s);
       if (k < 1) raf = requestAnimationFrame(tick);
     };
@@ -78,13 +87,21 @@ export function Count({ value, run, delay = 0, dur = 700 }: { value: string; run
   return <Hold text={value} shown={run ? out : null} />;
 }
 
+// Text that sits on one line stays on one line while it animates; text that wraps keeps wrapping.
+// Measured from the invisible copy (its line boxes), set straight on the live copy.
+function fit(el: HTMLSpanElement | null) {
+  if (!el) return;
+  const [ghost, live] = Array.from(el.children) as HTMLElement[];
+  live.style.whiteSpace = ghost.getClientRects().length > 1 ? "pre-wrap" : "nowrap";
+}
+
 /** Keeps the final text's box so the layout never jumps while it animates. */
 function Hold({ text, shown }: { text: string; shown: string | null }) {
   if (shown === null) return <>{text}</>;
   return (
-    <span className="relative inline-block">
+    <span ref={fit} className="relative inline-block">
       <span className="invisible">{text}</span>
-      <span className="absolute inset-0 whitespace-pre-wrap" aria-hidden>
+      <span className="absolute inset-0" aria-hidden>
         {shown}
       </span>
       <span className="sr-only">{text}</span>
@@ -220,7 +237,7 @@ export function DsCard({ index, motion = false, onNav }: { index: number; motion
           <div className={`${dsMono} relative flex flex-wrap justify-between gap-x-6 gap-y-1 px-4 py-2 text-[12px] text-[#f3f2ed]`}>
             <span className="dsa-x absolute inset-0 bg-[#111]" style={d(150)} />
             <span className="relative">
-              <Decode text={`HG-26 / P${pad(index + 1)}`} run={run} delay={350} />
+              <Decode text={`HG-08 / P${pad(index + 1)}`} run={run} delay={350} />
             </span>
             <span className="relative text-[#f3f2ed]/60">
               <Decode text={domain} run={run} delay={450} />

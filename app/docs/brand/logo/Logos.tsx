@@ -142,7 +142,7 @@ export default function Logos() {
       </div>
       <div className="mx-auto max-w-[1180px] px-4 pt-10 sm:px-8 sm:pt-14">
         <div className="border-b-[3px] border-[#111] pb-4">
-          <p className={`${mono} text-[12px] text-[#5d5d58]`}>HG-26 · Identity</p>
+          <p className={`${mono} text-[12px] text-[#5d5d58]`}>HG-08 · Identity</p>
           <h1 className="text-[34px] font-semibold leading-none tracking-tight sm:text-[44px]">Pick a mark</h1>
         </div>
         <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-[#5d5d58]">
@@ -177,12 +177,12 @@ export default function Logos() {
                     <M s={40} fg={INK} bg="#ffffff" />
                     <div>
                       <p className="text-[18px] font-semibold leading-none tracking-tight">Henil Gajjar</p>
-                      <p className={`${mono} mt-1 text-[11px] text-[#5d5d58]`}>HG-26 · AI/ML engineer</p>
+                      <p className={`${mono} mt-1 text-[11px] text-[#5d5d58]`}>HG-08 · AI/ML engineer</p>
                     </div>
                   </div>
                   <div className={`${mono} flex items-center gap-2.5 bg-[#111] px-3 py-1.5 text-[12px] text-[#f3f2ed]`}>
                     <M s={18} fg={PAPER} bg={INK} />
-                    HG-26 / P01
+                    HG-08 / P01
                   </div>
                 </div>
               </div>

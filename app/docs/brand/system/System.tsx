@@ -9,7 +9,9 @@ import { profile, story } from "@/content/profile";
 import { projects, DOMAINS } from "@/content/projects";
 import { ACHIEVEMENTS } from "@/content/achievements";
 import { radioLines, radioText } from "@/content/radio";
-import { trackPoint, zones } from "@/components/world/layout";
+import { GARAGES, LAKES, PIT, PIT_LANE_WIDTH, RIVER, START_T, TRACK_WIDTH, coastR, sectorT, trackPoint, trackTangent, zones } from "@/components/world/layout";
+import { MAP } from "@/components/world/MapCapture";
+import { BUILDINGS } from "@/components/world/street/town";
 import { Count, Decode, DsCard, DsResume, MotionStyles, Stage, d } from "../datasheet/parts";
 import { DS, dsMono, pad } from "../datasheet/shared";
 import { ATTENTION, MARK_CSS, Mark } from "../mark";
@@ -57,7 +59,11 @@ const CSS = `
 @keyframes x-blink{50%{opacity:0}}
 .x-wave{transform-origin:bottom;animation:x-wave .5s ease-in-out infinite alternate}
 @keyframes x-wave{from{transform:scaleY(.25)}to{transform:none}}
-@media (prefers-reduced-motion:reduce){.x-load,.x-wave,.x-blink{animation:none}}
+.map-draw{animation:map-draw 1.1s cubic-bezier(.6,0,.2,1) var(--d,0ms) both}
+@keyframes map-draw{from{stroke-dasharray:1;stroke-dashoffset:1}99%{stroke-dasharray:1;stroke-dashoffset:0}to{stroke-dasharray:none}}
+.map-ping{transform-box:fill-box;transform-origin:center;animation:map-ping 1.8s cubic-bezier(.2,.6,.3,1) infinite}
+@keyframes map-ping{from{transform:scale(.4);opacity:1}to{transform:scale(2.2);opacity:0}}
+@media (prefers-reduced-motion:reduce){.x-load,.x-wave,.x-blink,.map-ping,.map-draw{animation:none}}
 `;
 
 /** Orange corner brackets for any .x-sel element (hover, focus, or .is-on). */
@@ -131,7 +137,7 @@ function Identity() {
             <Mark key={take} size={180} motion />
             <div className="text-center">
               <p className="text-[28px] font-semibold leading-none tracking-tight">{profile.name}</p>
-              <p className={`${dsMono} mt-2 text-[12px] text-[#5d5d58]`}>HG-26 · AI/ML engineer</p>
+              <p className={`${dsMono} mt-2 text-[12px] text-[#5d5d58]`}>HG-08 · AI/ML engineer</p>
             </div>
           </div>
         </div>
@@ -199,7 +205,7 @@ function Identity() {
             ["Title", "IBM Plex Sans 600 · 22 / 1.2", <span key="b" className="text-[22px] font-semibold">Seven agents that write and run chip tests</span>],
             ["Body", "IBM Plex Sans 400 · 15 / 1.6", <span key="c" className="text-[15px] leading-relaxed">{projects[0].points[2]}</span>],
             ["Label", "IBM Plex Sans 600 · 13 · caps · 0.06em", <span key="d" className="text-[13px] font-semibold uppercase tracking-[0.06em]">Key specifications</span>],
-            ["Code", "IBM Plex Mono 400 · 12", <span key="e" className={`${dsMono} text-[12px]`}>HG-26 / P01 · Z03 · Garage</span>],
+            ["Code", "IBM Plex Mono 400 · 12", <span key="e" className={`${dsMono} text-[12px]`}>HG-08 / P01 · Z03 · Garage</span>],
             ["Figure", "IBM Plex Mono 600 · 16–48 · tabular", <span key="f" className={`${dsMono} text-[32px] font-semibold`}>17.3% → 44.9%</span>],
           ] as const
         ).map(([n, spec, ex]) => (
@@ -217,7 +223,7 @@ function Identity() {
       <ol className="grid gap-px border-2 border-[#111] bg-[#111] sm:grid-cols-2 lg:grid-cols-3">
         {[
           ["Hard edges", "No rounded corners, no blur, no glow, no gradients. Shadows are solid ink, offset 3 px."],
-          ["Number everything", "Sections, specs, zones and projects carry a code: 01, P01, Z03, HG-26."],
+          ["Number everything", "Sections, specs, zones and projects carry a code: 01, P01, Z03, HG-08."],
           ["Units on claims", "A figure always has its unit and its label: 250ms p95 TTFT, not “fast”."],
           ["One orange", "Orange marks focus, status and the one figure that matters. Never a fill for a whole panel."],
           ["Motion builds, then stops", "Things assemble once when they appear. Nothing loops except loaders, the radio wave and a cursor."],
@@ -314,7 +320,7 @@ function MotionSection() {
             <div className="relative mx-auto w-full max-w-[240px] px-3 py-2">
               <span className="dsa-x absolute inset-0 bg-[#111]" style={d(0)} />
               <span className={`${dsMono} dsa-rise relative text-[12px] text-white`} style={d(250)}>
-                HG-26 / P01 · Project datasheet
+                HG-08 / P01 · Project datasheet
               </span>
             </div>
           )}
@@ -653,7 +659,7 @@ function BootScreen() {
               <Decode text={profile.name} run={run} delay={750} dur={500} />
             </p>
             <p className={`${dsMono} mt-3 text-[13px] text-[#5d5d58]`}>
-              <Decode text={`HG-26 · ${profile.role} · ${profile.location}`} run={run} delay={1000} dur={600} />
+              <Decode text={`HG-08 · ${profile.role} · ${profile.location}`} run={run} delay={1000} dur={600} />
             </p>
             <div className="mt-10 w-[320px]">
               <div className={`${dsMono} mb-1.5 flex justify-between text-[12px]`}>
@@ -782,52 +788,155 @@ function GarageScreen() {
   );
 }
 
+// The map, drawn like a tactical map in a game: real geometry from the world (coast, lakes,
+// river, every building, the garages, pit lane and track) in world units, an 8x8 grid
+// with references, sector labels, the player's arrow and view cone, one objective pinging.
+const GRID_N = 8;
+const COLS = "ABCDEFGH";
+const coastPath = (() => {
+  let d = "";
+  for (let i = 0; i <= 360; i++) {
+    const a = (i / 360) * Math.PI * 2;
+    const r = coastR(a);
+    d += `${i ? "L" : "M"}${(Math.cos(a) * r).toFixed(1)} ${(Math.sin(a) * r).toFixed(1)}`;
+  }
+  return d + "Z";
+})();
+const trackPath = (() => {
+  const pts = Array.from({ length: 400 }, (_, k) => trackPoint(k / 400));
+  return pts.map((p, k) => `${k ? "L" : "M"}${p.x.toFixed(1)} ${p.z.toFixed(1)}`).join("") + "Z";
+})();
+/** A footprint's corners, turned like three.js turns it about y (map is x right, z down). */
+function corners(x: number, z: number, w: number, dd: number, yaw: number) {
+  const c = Math.cos(yaw);
+  const s = Math.sin(yaw);
+  return [
+    [-w / 2, -dd / 2],
+    [w / 2, -dd / 2],
+    [w / 2, dd / 2],
+    [-w / 2, dd / 2],
+  ]
+    .map(([lx, lz]) => `${(x + lx * c + lz * s).toFixed(1)},${(z - lx * s + lz * c).toFixed(1)}`)
+    .join(" ");
+}
+
 function MapScreen() {
   const [take, replay] = useTake();
   const [hover, setHover] = useState<number | null>(null);
-  // the circuit sampled from the real layout, fitted into the panel
-  const pts = Array.from({ length: 240 }, (_, k) => trackPoint(k / 240));
-  const xs = [...pts.map((p) => p.x), ...zones.map((z) => z.pos[0])];
-  const zs = [...pts.map((p) => p.z), ...zones.map((z) => z.pos[1])];
-  const [x0, x1, z0, z1] = [Math.min(...xs) - 10, Math.max(...xs) + 10, Math.min(...zs) - 10, Math.max(...zs) + 10];
-  const W = 520;
-  const H = (W * (z1 - z0)) / (x1 - x0);
-  const at = (x: number, z: number) => [((x - x0) / (x1 - x0)) * W, ((z - z0) / (z1 - z0)) * H] as const;
-  const path = pts.map((p, k) => `${k ? "L" : "M"}${at(p.x, p.z).map((v) => v.toFixed(1)).join(" ")}`).join(" ") + "Z";
-  const me = at(zones[0].pos[0], zones[0].pos[1]);
+  const { cx, cz, half } = MAP;
+  const x0 = cx - half;
+  const z0 = cz - half;
+  const size = half * 2;
+  const cell = size / GRID_N;
+  const ref = (x: number, z: number) => `${COLS[Math.min(GRID_N - 1, Math.floor((x - x0) / cell))]}${Math.min(GRID_N - 1, Math.floor((z - z0) / cell)) + 1}`;
+  const me = zones[1];
+  // on the track just before the zone, looking down the track
+  const meT = sectorT(1) - 0.012;
+  const mp = trackPoint(meT);
+  const mt = trackTangent(meT);
+  const [mx, mz] = [mp.x, mp.z];
+  const goal = zones.findIndex((z) => z.id === "podium");
+  const g = zones[goal];
+  const dist = Math.round(Math.hypot(g.pos[0] - mx, g.pos[1] - mz));
+  const start = trackPoint(START_T);
+  const startTan = trackTangent(START_T);
+  const startYaw = (Math.atan2(startTan.z, startTan.x) * 180) / Math.PI;
+  const fwd = (Math.atan2(mt.z, mt.x) * 180) / Math.PI;
   return (
-    <Screen code="S04" title="Map" note="M opens it. Zones are coded pins; hover one for its label. Achievements are a spec table." onReplay={replay} bg="/img/design/day.jpg">
-      <div className="absolute inset-0 bg-[#111]/30" />
-      <Stage key={take} motion className="absolute inset-6">
+    <Screen code="S04" title="Map" note="M opens it. A tactical map of the real island: grid references, buildings, the objective pinging, you and where you are looking." onReplay={replay} bg="/img/design/day.jpg">
+      <div className="absolute inset-0 bg-[#111]/40" />
+      <Stage key={take} motion className="absolute inset-5">
         {(run) => (
           <div className="dsa-frame flex h-full flex-col border-2 border-[#111] bg-[#f3f2ed]" style={d(0)}>
-            <div className={`${dsMono} relative flex items-center justify-between px-4 py-2 text-[12px] text-white`}>
+            <div className={`${dsMono} relative flex items-center gap-4 px-4 py-2 text-[12px] text-white`}>
               <span className="dsa-x absolute inset-0 bg-[#111]" style={d(120)} />
               <span className="relative">
-                <Decode text="HG-26 / MAP · The island" run={run} delay={250} />
+                <Decode text="HG-08 / MAP · The island" run={run} delay={250} />
+              </span>
+              <span className="relative ml-auto flex items-center gap-1.5 text-white/70">
+                <span className="x-blink h-1.5 w-1.5 rounded-full bg-[#ff4f00]" /> Live
               </span>
               <span className="relative flex items-center gap-2">
                 <span className="bg-white px-1.5 text-[#111]">Esc</span> Close
               </span>
             </div>
-            <div className="grid min-h-0 flex-1 grid-cols-[1.25fr_1fr]">
-              <div className="relative min-h-0 border-r-2 border-[#111] bg-white">
-                <svg viewBox={`-10 -10 ${W + 20} ${H + 20}`} className="absolute inset-4 h-[calc(100%-2rem)] w-[calc(100%-2rem)]">
-                  <path d={path} fill="none" stroke="#cfcdc4" strokeWidth="14" strokeLinejoin="round" />
-                  <path d={path} fill="none" stroke="#111" strokeWidth="2.5" strokeLinejoin="round" className="dsa-rise" style={d(300)} />
+            <div className="grid min-h-0 flex-1 grid-cols-[1fr_300px]">
+              <div className="relative min-h-0 overflow-hidden border-r-2 border-[#111] bg-[#e9e7e0]">
+                <svg viewBox={`${x0} ${z0} ${size} ${size}`} preserveAspectRatio="xMidYMid meet" className="absolute inset-0 h-full w-full">
+                  <defs>
+                    <pattern id="sea" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                      <line x1="0" y1="0" x2="0" y2="3" stroke="#cfcdc4" strokeWidth="0.7" />
+                    </pattern>
+                  </defs>
+                  <rect x={x0} y={z0} width={size} height={size} fill="url(#sea)" />
+                  <path d={coastPath} fill="#fbfaf7" stroke="#111" strokeWidth="0.9" className="dsa-rise" style={d(200)} />
+                  {LAKES.map((l, k) => (
+                    <ellipse key={k} cx={l.x} cy={l.z} rx={l.rx} ry={l.rz} transform={`rotate(${(-l.yaw * 180) / Math.PI} ${l.x} ${l.z})`} fill="url(#sea)" stroke="#111" strokeWidth="0.5" />
+                  ))}
+                  <polyline points={RIVER.pts.map((p) => p.join(",")).join(" ")} fill="none" stroke="#d6d3ca" strokeWidth="5.5" strokeLinejoin="round" strokeLinecap="round" />
+                  {/* grid: 8x8 with references along two edges */}
+                  {Array.from({ length: GRID_N - 1 }, (_, k) => (
+                    <g key={k} stroke="#111" strokeOpacity="0.14" strokeWidth="0.35">
+                      <line x1={x0 + (k + 1) * cell} y1={z0} x2={x0 + (k + 1) * cell} y2={z0 + size} />
+                      <line x1={x0} y1={z0 + (k + 1) * cell} x2={x0 + size} y2={z0 + (k + 1) * cell} />
+                    </g>
+                  ))}
+                  {Array.from({ length: GRID_N }, (_, k) => (
+                    <g key={k} fontFamily="var(--b-plex-mono)" fontSize="3.6" fill="#5d5d58">
+                      <text x={x0 + k * cell + cell / 2} y={z0 + 4.5} textAnchor="middle">
+                        {COLS[k]}
+                      </text>
+                      <text x={x0 + 2} y={z0 + k * cell + cell / 2 + 1.2}>
+                        {k + 1}
+                      </text>
+                    </g>
+                  ))}
+                  {/* track and pit lane: outlined roads at true width */}
+                  <path d={trackPath} fill="none" stroke="#111" strokeWidth={TRACK_WIDTH + 1.2} strokeLinejoin="round" pathLength={1} className="map-draw" style={d(250)} />
+                  <path d={trackPath} fill="none" stroke="#c9c6bd" strokeWidth={TRACK_WIDTH - 1} strokeLinejoin="round" className="dsa-rise" style={d(900)} />
+                  <rect x={PIT.from} y={PIT.z - PIT_LANE_WIDTH / 2} width={PIT.to - PIT.from} height={PIT_LANE_WIDTH} fill="#c9c6bd" stroke="#111" strokeWidth="0.6" className="dsa-rise" style={d(900)} />
+                  <g transform={`rotate(${startYaw} ${start.x} ${start.z})`}>
+                    <rect x={start.x - 0.8} y={start.z - TRACK_WIDTH / 2} width="1.6" height={TRACK_WIDTH} fill={DS.orange} className="dsa-pop" style={d(1000)} />
+                  </g>
+                  {/* buildings, then the garages: solid ink blocks */}
+                  {BUILDINGS.map((b, k) => (
+                    <polygon key={k} points={corners(b.x, b.z, b.w, b.d, b.yaw)} fill="#111" fillOpacity={0.55 + Math.min(0.4, b.floors * 0.08)} className="dsa-pop" style={d(500 + (k % 30) * 18)} />
+                  ))}
+                  {GARAGES.map((gr, k) => (
+                    <rect key={gr.domain} x={gr.x - 4.5} y={PIT.garageZ - 9} width="9" height="7" fill="#111" className="dsa-pop" style={d(600 + k * 40)} />
+                  ))}
+                  {/* sector labels */}
+                  {zones.slice(0, 4).map((z, k) => (
+                    <text key={z.id} x={z.pos[0]} y={z.pos[1] - 9} textAnchor="middle" fontFamily="var(--b-plex-mono)" fontSize="4.2" fontWeight="600" fill="#5d5d58" className="dsa-rise" style={d(1100 + k * 60)}>
+                      S{k + 1}
+                    </text>
+                  ))}
+                  {/* objective ping, under the pins */}
+                  <g transform={`translate(${g.pos[0]} ${g.pos[1]})`}>
+                    <circle r="6" fill="none" stroke={DS.orange} strokeWidth="0.9" className="map-ping" />
+                    <circle r="6" fill="none" stroke={DS.orange} strokeWidth="0.9" className="map-ping" style={{ animationDelay: "0.9s" }} />
+                  </g>
+                  {/* the player: an arrow and a view cone */}
+                  {/* the SVG transform sits on the outer group; the CSS pop would replace it */}
+                  <g transform={`translate(${mx} ${mz}) rotate(${fwd})`}>
+                    <g className="dsa-pop" style={d(1300)}>
+                      <path d="M0 0 L26 -11 A28 28 0 0 1 26 11 Z" fill={DS.orange} fillOpacity="0.16" />
+                      <path d="M5 0 L-3.5 -3.6 L-1.8 0 L-3.5 3.6 Z" fill={DS.orange} stroke="#111" strokeWidth="0.4" />
+                    </g>
+                  </g>
                   {zones.map((z, k) => {
-                    const [x, y] = at(z.pos[0], z.pos[1]);
                     const on = hover === k;
+                    const obj = k === goal;
                     return (
-                      <g key={z.id} transform={`translate(${x} ${y})`} onMouseEnter={() => setHover(k)} onMouseLeave={() => setHover(null)} className="cursor-pointer">
-                        <rect className="dsa-pop" style={d(450 + k * 40)} x="-15" y="-9" width="30" height="18" fill={on ? "#111" : "#fff"} stroke="#111" strokeWidth="2" />
-                        <text y="4" textAnchor="middle" fontFamily="var(--b-plex-mono)" fontSize="10" fontWeight="600" fill={on ? "#fff" : "#111"} className="dsa-rise" style={d(500 + k * 40)}>
+                      <g key={z.id} transform={`translate(${z.pos[0]} ${z.pos[1]})`} onMouseEnter={() => setHover(k)} onMouseLeave={() => setHover(null)} className="cursor-pointer">
+                        <rect className="dsa-pop" style={d(1150 + k * 35)} x="-5.2" y="-3.1" width="10.4" height="6.2" fill={on || obj ? "#111" : "#fff"} stroke={obj ? DS.orange : "#111"} strokeWidth={obj ? 0.9 : 0.6} />
+                        <text y="1.25" textAnchor="middle" fontFamily="var(--b-plex-mono)" fontSize="3.3" fontWeight="600" fill={on || obj ? "#fff" : "#111"} className="dsa-rise" style={d(1200 + k * 35)}>
                           Z{pad(k + 1)}
                         </text>
                         {on && (
-                          <g transform="translate(0 -16)">
-                            <rect x={-(z.label.length * 4 + 12)} y="-18" width={z.label.length * 8 + 24} height="20" fill="#fff" stroke="#111" strokeWidth="2" />
-                            <text y="-4" textAnchor="middle" fontFamily="var(--b-plex)" fontSize="12" fontWeight="600" fill="#111">
+                          <g transform="translate(0 -6)">
+                            <rect x={-(z.label.length * 1.15 + 3)} y="-6" width={z.label.length * 2.3 + 6} height="6.4" fill="#fff" stroke="#111" strokeWidth="0.6" />
+                            <text y="-1.6" textAnchor="middle" fontFamily="var(--b-plex)" fontSize="3.6" fontWeight="600" fill="#111">
                               {z.label}
                             </text>
                           </g>
@@ -835,26 +944,76 @@ function MapScreen() {
                       </g>
                     );
                   })}
-                  <g transform={`translate(${me[0] + 22} ${me[1]})`}>
-                    <path d="M0 -9 L8 8 L0 4 L-8 8 Z" fill={DS.orange} className="dsa-pop" style={d(1100)} />
+                  {/* scale bar, 25 m */}
+                  <g transform={`translate(${x0 + 6} ${z0 + size - 7})`} fontFamily="var(--b-plex-mono)" fontSize="3.2" fill="#111">
+                    <rect width="25" height="1.6" fill="#111" />
+                    <rect x="12.5" width="12.5" height="1.6" fill="#fff" stroke="#111" strokeWidth="0.3" />
+                    <text y="-1.6">0</text>
+                    <text x="25" y="-1.6" textAnchor="end">
+                      25 m
+                    </text>
                   </g>
                 </svg>
+                <span className="dsa-scan pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-[#ff4f00]" style={d(150)} />
+                {/* compass */}
+                <div className={`${dsMono} absolute right-3 top-3 grid h-11 w-11 place-items-center border-2 border-[#111] bg-white text-[11px] font-semibold`}>
+                  <span className="absolute top-0.5">N</span>
+                  <span className="mt-2 block h-0 w-0 border-x-[5px] border-b-[10px] border-x-transparent border-b-[#111]" />
+                </div>
               </div>
-              <div className="min-h-0 overflow-y-auto p-4">
-                <h4 className="mb-2 flex items-baseline gap-3 border-b border-[#111] pb-1.5 text-[13px] font-semibold uppercase tracking-[0.06em]">
-                  <span className={`${dsMono} text-[#ff4f00]`}>2</span> Achievements
-                  <span className={`${dsMono} ml-auto text-[12px] font-normal normal-case text-[#5d5d58]`}>
+
+              <div className="min-h-0 overflow-y-auto bg-white p-4 text-[13px]">
+                <h4 className="mb-2 flex items-baseline gap-3 border-b border-[#111] pb-1.5 text-[12px] font-semibold uppercase tracking-[0.06em]">
+                  <span className={`${dsMono} text-[#ff4f00]`}>1</span> Position
+                </h4>
+                {(
+                  [
+                    ["You", `${me.label} · ${ref(mx, mz)}`],
+                    ["Objective", `${g.label} · ${ref(g.pos[0], g.pos[1])}`],
+                    ["Distance", `${dist} m`],
+                  ] as const
+                ).map(([k, v], i) => (
+                  <div key={k} className="dsa-wipe flex justify-between gap-3 border-b border-[#cfcdc4] py-1.5" style={d(500 + i * 70)}>
+                    <span className="text-[#5d5d58]">{k}</span>
+                    <span className={`${dsMono} font-semibold`}>
+                      {k === "Distance" ? <Count value={v} run={run} delay={600} /> : v}
+                    </span>
+                  </div>
+                ))}
+                <h4 className="mb-2 mt-5 flex items-baseline gap-3 border-b border-[#111] pb-1.5 text-[12px] font-semibold uppercase tracking-[0.06em]">
+                  <span className={`${dsMono} text-[#ff4f00]`}>2</span> Legend
+                </h4>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12.5px]">
+                  {(
+                    [
+                      [<span key="t" className="h-2.5 w-5 border border-[#111] bg-[#c9c6bd]" />, "Track, pit lane"],
+                      [<span key="b" className="h-3 w-3 bg-[#111]/80" />, "Building"],
+                      [<span key="z" className={`${dsMono} border border-[#111] px-0.5 text-[9px] font-semibold`}>Z</span>, "Zone"],
+                      [<span key="o" className="h-3 w-3 rounded-full border-2 border-[#ff4f00]" />, "Objective"],
+                      [<span key="y" className="h-0 w-0 border-y-[5px] border-l-[9px] border-y-transparent border-l-[#ff4f00]" />, "You"],
+                      [<span key="s" className="h-3 w-1 bg-[#ff4f00]" />, "Start line"],
+                    ] as const
+                  ).map(([icon, t]) => (
+                    <span key={t} className="flex items-center gap-2">
+                      <span className="grid w-5 place-items-center">{icon}</span>
+                      {t}
+                    </span>
+                  ))}
+                </div>
+                <h4 className="mb-1 mt-5 flex items-baseline gap-3 border-b border-[#111] pb-1.5 text-[12px] font-semibold uppercase tracking-[0.06em]">
+                  <span className={`${dsMono} text-[#ff4f00]`}>3</span> Achievements
+                  <span className={`${dsMono} ml-auto text-[11.5px] font-normal normal-case text-[#5d5d58]`}>
                     <Count value="3" run={run} delay={500} /> / {ACHIEVEMENTS.length}
                   </span>
                 </h4>
-                {ACHIEVEMENTS.slice(0, 9).map((a, k) => {
+                {ACHIEVEMENTS.slice(0, 6).map((a, k) => {
                   const got = k < 3; // example state for the mock-up
                   return (
-                    <div key={a.id} className="dsa-wipe grid grid-cols-[34px_1fr_14px] items-center gap-2 border-b border-[#cfcdc4] py-1.5 text-[13px]" style={d(500 + k * 70)}>
-                      <span className={`${dsMono} text-[11.5px] text-[#5d5d58]`}>A{pad(k + 1)}</span>
+                    <div key={a.id} className="dsa-wipe grid grid-cols-[30px_1fr_10px] items-center gap-2 border-b border-[#cfcdc4] py-1" style={d(700 + k * 60)}>
+                      <span className={`${dsMono} text-[11px] text-[#5d5d58]`}>A{pad(k + 1)}</span>
                       <span className="min-w-0">
                         <span className={`block truncate font-medium ${got ? "" : "text-[#5d5d58]"}`}>{got ? a.name : "• • • • •"}</span>
-                        <span className="block truncate text-[12px] text-[#5d5d58]">{a.how}</span>
+                        <span className="block truncate text-[11.5px] text-[#5d5d58]">{a.how}</span>
                       </span>
                       <span className={`h-2 w-2 rounded-full ${got ? "bg-[#ff4f00]" : "border border-[#111]"}`} />
                     </div>
@@ -882,7 +1041,7 @@ function NotFoundScreen() {
                 <span className="relative">
                   <Decode text="E404 · Off track" run={run} delay={250} />
                 </span>
-                <span className="relative">HG-26</span>
+                <span className="relative">HG-08</span>
               </div>
               <div className="flex items-start gap-5 p-6">
                 <Mark size={64} />
@@ -947,7 +1106,7 @@ export default function System() {
             <Mark key={take} size={26} motion />
             <span className="text-[15px] font-semibold tracking-tight">{profile.name}</span>
           </button>
-          <span className={`${dsMono} hidden text-[12px] text-[#5d5d58] sm:inline`}>HG-26 · Design system</span>
+          <span className={`${dsMono} hidden text-[12px] text-[#5d5d58] sm:inline`}>HG-08 · Design system</span>
           <nav className="ml-auto hidden items-center gap-5 text-[14px] md:flex">
             {[
               ["01", "Identity", "#identity"],
@@ -968,7 +1127,7 @@ export default function System() {
       </header>
       <div className="mx-auto max-w-[1180px] px-4 sm:px-8">
         <div className="pt-12 sm:pt-16">
-          <p className={`${dsMono} text-[12px] text-[#5d5d58]`}>HG-26 · Rev 2026.10 · Approved 2026-10-25</p>
+          <p className={`${dsMono} text-[12px] text-[#5d5d58]`}>HG-08 · Rev 2026.10 · Approved 2026-10-25</p>
           <h1 className="mt-2 max-w-3xl text-[40px] font-semibold leading-[1.02] tracking-tight sm:text-[64px]">
             The portfolio, in its own language<span className="text-[#ff4f00]">.</span>
           </h1>
