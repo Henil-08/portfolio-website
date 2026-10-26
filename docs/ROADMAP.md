@@ -416,3 +416,28 @@ Owns new components/world/ui3d/** and Race.tsx (`InteractionPoint`, the current 
 - [x] (4f9c1f7) Garage experience: dolly in (Rig.tsx, garageShots.ts), spec sheet per project (Panels.tsx
       `GarageSheet`), ring on the plinth, arrow keys.
 - [x] (3317f53) /resume in design A with hover states; ink on white in print. Scroll-driven site: dropped (owner).
+
+### 10. Brand: Datasheet (owner, 2026-10-25)
+Owner picked the Datasheet direction (`/docs/brand/datasheet`), with motion. It replaces design A
+(pit wall broadcast) on every screen; the 3D world's art direction stays as it is. Reference parts:
+app/docs/brand/datasheet/{parts,shared}.tsx. Tokens: paper #f3f2ed, ink #111111, graphite #5d5d58,
+rule #cfcdc4, signal orange #ff4f00 (section numbers, status dots, focus brackets only). Type: IBM Plex
+Sans, IBM Plex Mono for part numbers, values and keys. Hard edges, no rounded corners, no blur, no glow.
+Voice: short, declarative, units on every claim.
+
+Micro-interactions, everywhere: panels draw their frame in, header bars wipe, titles and codes decode,
+figures count up, list rows wipe in staggered, orange corner brackets on hover/focus, buttons invert
+to ink on hover, one scan line on a panel's first open. `prefers-reduced-motion` skips to the end.
+
+- [ ] Logo: owner picks from `/docs/brand/logo` (L1–L6); then favicon (app/icon.svg) and the mark in the boot.
+- [ ] Tokens and shared classes: globals.css `hud-*` rewritten as `ds-*` (panel, bar, head, key, chip,
+      bracket, btn) plus the motion rules from parts.tsx; Plex loaded in app/layout.tsx; DESIGN.md rewritten.
+- [ ] Boot (StartLights.tsx, Reveal.tsx): the mark assembles, name and part number decode, then the wipe into the world.
+- [ ] HUD edge tabs, toasts, speed readout, hints, controls and settings panels (Hud.tsx).
+- [ ] Zone card and interact prompt (Hud.tsx, ui3d/InteractivePoints.tsx canvas label): the parts sticker.
+- [ ] Garage spec sheet (Panels.tsx `GarageSheet`): the datasheet card with specs, bus diagram, prev/next.
+- [ ] Other panels (Panels.tsx), FitPanel, Ask, RadioMessages, AutopilotHud, RaceHud, EasterEggs, Section.
+- [ ] Map menu (MapMenu.tsx): zone codes on pins, achievements as a spec table.
+- [ ] /resume (page, Tailored, PrintButton) as the datasheet resume; print stays ink on white.
+- [ ] not-found, /docs/design specimen replaced by the datasheet specimen.
+- [ ] In-world text that carries the brand: trackside "HG RACING" boards (Trackside.tsx) to the new mark.

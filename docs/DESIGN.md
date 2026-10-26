@@ -1,6 +1,6 @@
 # Design language
 
-**Status: approved, option A with Racero / Geist / Geist Mono (owner, 2026-10-24).** Live specimen:
+**Status: being replaced by the Datasheet identity (owner, 2026-10-25; docs/ROADMAP.md step 10). Option A below is what the screens use until that lands.** Previously: approved, option A with Racero / Geist / Geist Mono (owner, 2026-10-24). Live specimen:
 `/docs/design` (app/docs/design). Shared classes in app/globals.css: `hud-panel`, `hud-tab`, `hud-edge`,
 `hud-red`, `hud-key`, `hud-chip`. Font rules: Racero only for titles and big numbers (tabular digits
 in a fixed box), Geist sentence case for body and buttons, Geist Mono caps for labels.
