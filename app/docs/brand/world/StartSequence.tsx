@@ -8,7 +8,9 @@ import { useFrame } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera, View } from "@react-three/drei";
 import { Count, Decode, d } from "@/components/brand/motion";
 import { Lights, M } from "./models";
-import { BUILD_LOG, BUILD_MODES, GRID, ISLAND, Island, PLAN, PaperFloor, type BuildClock, type BuildMode } from "./island";
+import { BUILD_LOG, GRID, ISLAND, Island, PLAN, PaperFloor, type BuildClock } from "./island";
+import type { RefObject } from "react";
+import { PowerMeter, Powers, powerName, type Follow, type PowerState } from "./powers";
 import { Atv, Bike, Formula, LIVERIES, Roadster, type Livery } from "./vehicles";
 import { VEHICLE_ICONS } from "./vehicleIcons";
 
@@ -30,18 +32,25 @@ type Vehicle = {
   icon: ReactNode;
 };
 
+/**
+ * Turntable size: each vehicle is scaled so its swept radius (the farthest point from the spin
+ * axis, measured off the model's vertices) lands at the same 1.42, just inside the dial ring's
+ * inner edge (0.86 × the 1.75 plinth = 1.505). So all four fill the same circle as they turn.
+ */
+const FIT_R = 1.42;
+
 // Game stats only: how each one drives in the world, not facts about anything real.
 const VEHICLES: Vehicle[] = [
   {
     code: "V01",
     kind: "Formula",
-    name: "HG-08",
+    name: "TH-18",
     line: "The open-wheeler the world was built around. Fastest on the straight, nervous on the grass.",
     stats: [96, 90, 82],
     len: 5.6,
     cam: [5.3, 2.0, 6.0],
     target: [0, 0.45, 0],
-    fit: 0.6,
+    fit: FIT_R / 3.02, // front wing tips
     liveries: LIVERIES.V01,
     model: (l) => <Formula livery={l} />,
     icon: VEHICLE_ICONS.V01,
@@ -55,7 +64,7 @@ const VEHICLES: Vehicle[] = [
     len: 2.4,
     cam: [3.3, 1.75, 3.9],
     target: [0, 0.62, 0],
-    fit: 1.22,
+    fit: FIT_R / 1.33, // tyre shoulders
     liveries: LIVERIES.V02,
     model: (l) => <Atv livery={l} />,
     icon: VEHICLE_ICONS.V02,
@@ -63,13 +72,13 @@ const VEHICLES: Vehicle[] = [
   {
     code: "V03",
     kind: "Road car",
-    name: "Roadster",
+    name: "Atlas",
     line: "Long, low and pale, with crisp creases, a dark glass canopy and a tall wing on two struts. The easy one to start with.",
     stats: [92, 80, 82],
     len: 4.6,
     cam: [5.1, 2.0, 5.8],
     target: [0, 0.5, 0],
-    fit: 0.66,
+    fit: FIT_R / 2.55, // wing endplates
     liveries: LIVERIES.V03,
     model: (l) => <Roadster livery={l} />,
     icon: VEHICLE_ICONS.V03,
@@ -77,13 +86,13 @@ const VEHICLES: Vehicle[] = [
   {
     code: "V04",
     kind: "Bike",
-    name: "R-08",
+    name: "Apollo",
     line: "A sport bike, light and quick to turn. Two wheels, so it forgives nothing.",
     stats: [84, 62, 95],
     len: 2.1,
     cam: [2.9, 1.45, 3.4],
     target: [0, 0.62, 0],
-    fit: 1.36,
+    fit: FIT_R / 1.03, // tyres, nose to tail
     liveries: LIVERIES.V04,
     model: (l) => <Bike livery={l} />,
     icon: VEHICLE_ICONS.V04,
@@ -128,7 +137,7 @@ const dotFloor = (() => {
 
 /**
  * The game's own camera (components/world/Rig.tsx): a fixed world offset from the car, looking
- * at the car's position less 0.3 m, fov 34 (components/world/World.tsx). Every build-in lands here.
+ * at the car's position less 0.3 m, fov 34 (components/world/World.tsx). The build-in lands here.
  */
 const GAME_OFFSET = new THREE.Vector3(10.5, 12.5, 14);
 const GAME_FOV = 34;
@@ -145,34 +154,21 @@ const END: Pose = {
 /** High over the island's middle, framing all of it. */
 const over = (k: number, az: number, el: number): Pose => ({ tx: ISLAND.x, ty: 0, tz: ISLAND.z, r: ISLAND.r * k, az, el });
 
-/** Camera keyframes per build-in: [seconds, pose]. Eased between, ending on the game view. */
-const PATHS: Record<BuildMode, [number, Pose][]> = {
-  // high and turning slowly while the pen draws the lap, then down onto the car
-  trace: [
-    [0, over(2.45, END.az - 0.75, 1.02)],
-    [2.9, over(2.3, END.az - 0.12, 0.92)],
-    [PLAN.trace.camEnd, END],
-  ],
-  // square on to the scan line, a slow push in, then down
-  scan: [
-    [0, over(2.45, END.az, 0.98)],
-    [3.0, over(2.2, END.az, 0.9)],
-    [PLAN.scan.camEnd, END],
-  ],
-  // close on the car, rising with the bloom, then back down
-  bloom: [
-    [0, { ...END, ty: 0.5, r: 12, el: 0.42, az: END.az + 0.9 }],
-    [2.4, over(2.2, END.az + 0.3, 1.05)],
-    [PLAN.bloom.camEnd, END],
-  ],
-};
+/** The bloom's camera keyframes: [seconds, pose], eased between. Close on the car, rising with
+ * the bloom, then back down onto the game view. */
+const PATH: [number, Pose][] = [
+  [0, { ...END, ty: 0.5, r: 12, el: 0.42, az: END.az + 0.9 }],
+  [2.4, over(2.2, END.az + 0.3, 1.05)],
+  [PLAN.camEnd, END],
+];
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 
-function BuildCamera({ mode, clock }: { mode: BuildMode; clock: BuildClock }) {
+/** After the landing it follows the vehicle (a power moves it), with the power's fov kick and shake. */
+function BuildCamera({ clock, followRef }: { clock: BuildClock; followRef: RefObject<Follow> }) {
   const cam = useRef<THREE.PerspectiveCamera>(null!);
   useFrame((s) => {
     const t = clock(s.clock.elapsedTime);
-    const path = PATHS[mode];
+    const path = PATH;
     let i = 0;
     while (i < path.length - 2 && t > path[i + 1][0]) i++;
     const [t0, a] = path[i];
@@ -189,8 +185,17 @@ function BuildCamera({ mode, clock }: { mode: BuildMode; clock: BuildClock }) {
     const ty = lerp(a.ty, b.ty, kt);
     const tz = lerp(a.tz, b.tz, kt);
     const c = cam.current;
-    c.position.set(tx + Math.cos(el) * Math.cos(az) * r, ty + Math.sin(el) * r, tz + Math.cos(el) * Math.sin(az) * r);
-    c.lookAt(tx, ty, tz);
+    const f = followRef.current;
+    const w = s.clock.elapsedTime;
+    const sx = f.shake * Math.sin(w * 53.1) * Math.cos(w * 31.7);
+    const sy = f.shake * Math.sin(w * 47.3 + 1.3);
+    c.position.set(tx + f.x + sx + Math.cos(el) * Math.cos(az) * r, ty + f.y + sy + Math.sin(el) * r, tz + f.z + Math.cos(el) * Math.sin(az) * r);
+    c.lookAt(tx + f.x + sx * 0.5, ty + f.y + sy * 0.5, tz + f.z);
+    const fov = GAME_FOV + f.fov;
+    if (Math.abs(c.fov - fov) > 1e-3) {
+      c.fov = fov;
+      c.updateProjectionMatrix();
+    }
   });
   return <PerspectiveCamera ref={cam} makeDefault fov={GAME_FOV} position={[GRID.x + GAME_OFFSET.x, GAME_OFFSET.y, GRID.z + GAME_OFFSET.z]} near={0.5} far={2400} />;
 }
@@ -218,8 +223,9 @@ function IslandLights() {
   );
 }
 
-function BuildScene({ v, mode }: { v: Vehicle; mode: BuildMode }) {
+function BuildScene({ v, powerRef }: { v: Vehicle; powerRef: RefObject<PowerState | null> }) {
   const t0 = useRef(-1);
+  const followRef = useRef<Follow>({ x: 0, y: 0, z: 0, fov: 0, shake: 0 });
   const clock = useCallback((now: number) => {
     if (process.env.NODE_ENV !== "production" && typeof window !== "undefined" && typeof window.__buildT === "number") return window.__buildT;
     if (t0.current < 0) t0.current = now;
@@ -229,16 +235,16 @@ function BuildScene({ v, mode }: { v: Vehicle; mode: BuildMode }) {
     <>
       <color attach="background" args={["#ebe9e3"]} />
       <fog attach="fog" args={["#ebe9e3", 420, 1100]} />
-      <BuildCamera mode={mode} clock={clock} />
+      <BuildCamera clock={clock} followRef={followRef} />
       <IslandLights />
       {/* 1 · the paper floor and its dot grid, giving way as the island arrives */}
       <PaperFloor map={dotFloor} />
       {/* 2 · the whole island: first as dots in its own layout, then rising out of them */}
-      <Island clock={clock} mode={mode} />
-      {/* the chosen vehicle on its grid slot */}
-      <group position={[GRID.x, GRID.y, GRID.z]} rotation={[0, GRID.yaw, 0]}>
+      <Island clock={clock} />
+      {/* the chosen vehicle on its grid slot; Shift fires its power once the world has landed */}
+      <Powers code={v.code} clock={clock} powerRef={powerRef} followRef={followRef}>
         {v.model()}
-      </group>
+      </Powers>
     </>
   );
 }
@@ -254,6 +260,7 @@ const SWAP = { old: 0.3, spin: 0.55, scan0: 0.05, scan1: 0.42, pop0: 0.12, pop1:
 const SPIN = Math.PI * 0.8;
 const power2In = (k: number) => k * k;
 const power3Out = (k: number) => 1 - Math.pow(1 - k, 3);
+const UP_Y = new THREE.Vector3(0, 1, 0);
 
 /** The plinth's top: a paper disc with a dial of ticks round the rim, one orange, and the code. */
 function plinthTop(code: string) {
@@ -440,6 +447,16 @@ function SelectScene({ v, livery }: { v: Vehicle; livery: Livery }) {
     scanMat.current.opacity = 1 - clamp01((k - 1) / 0.25);
     if (k >= 1 && A.clips.length) unclip(A);
   });
+  // dev only: pin the camera for stills (window.__selCam = [x, y, z])
+  useFrame((s) => {
+    if (process.env.NODE_ENV === "production") return;
+    const w = window as unknown as { __selCam?: V3 };
+    if (!w.__selCam) return;
+    const cur = (st.cur === "a" ? slotA : slotB).current;
+    // in the vehicle's own frame, so +z is always its nose
+    s.camera.position.set(...w.__selCam).applyAxisAngle(UP_Y, cur.rotation.y);
+    s.camera.lookAt(0, w.__selCam[1] > 6 ? 0 : SELECT_TARGET[1], 0);
+  });
 
   const slot = (o: Slot | null) => o && <group key={o.n} scale={o.v.fit}>{o.v.model(o.l)}</group>;
   return (
@@ -488,16 +505,16 @@ const CSS = `
 @media (prefers-reduced-motion:reduce){.ss-cover,.ss-uncover,.ss-fadeout{animation-duration:1ms}}
 `;
 
-/** What arrives when (ms) per build-in, read from the island's own timeline so the log ticks with it. */
-const BUILD_STEPS = Object.fromEntries(BUILD_MODES.map((m) => [m.id, BUILD_LOG(m.id)])) as Record<BuildMode, [string, number][]>;
-const doneMs = (mode: BuildMode) => BUILD_STEPS[mode][BUILD_STEPS[mode].length - 1][1];
+/** What arrives when (ms), read from the island's own timeline so the log ticks with it. */
+const BUILD_STEPS = BUILD_LOG();
+const DONE_MS = BUILD_STEPS[BUILD_STEPS.length - 1][1];
 
 export default function StartSequence() {
   const box = useRef<HTMLDivElement>(null);
   const [sel, setSel] = useState(0);
   const [phase, setPhase] = useState<Phase>("select");
   const [run, setRun] = useState(0); // bumps to replay
-  const [mode, setMode] = useState<BuildMode>("trace"); // which build-in plays after Enter
+  const power = useRef<PowerState | null>(null); // the stage-B power meter, shared by the scene and the HUD
   const [down, setDown] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   // the chosen livery per vehicle (index into its liveries), kept while you switch around
@@ -693,7 +710,7 @@ export default function StartSequence() {
         ) : (
           <div key={`b${run}`} className="absolute inset-0">
             <View className="absolute inset-0">
-              <BuildScene v={v} mode={mode} />
+              <BuildScene v={v} powerRef={power} />
             </View>
             {/* HUD over the build */}
             <div data-anim="" data-run="" className="pointer-events-none absolute inset-0 z-[25]">
@@ -702,7 +719,7 @@ export default function StartSequence() {
                   HG-08 / WORLD · <span className="text-[#ff4f00]">{v.code}</span>
                 </div>
                 <ol className="px-2 py-1.5">
-                  {BUILD_STEPS[mode].map(([s, ms], i) => (
+                  {BUILD_STEPS.map(([s, ms], i) => (
                     <li key={s} className="dsa-wipe font-mono flex justify-between text-[11.5px] leading-[1.7]" style={d(ms)}>
                       <span>
                         <span className="text-[#ff4f00]">{String(i + 1).padStart(2, "0")}</span> {s}
@@ -712,14 +729,18 @@ export default function StartSequence() {
                   ))}
                 </ol>
               </div>
-              <p className="ss-fadeout font-mono absolute bottom-16 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap text-[13px]" style={d(doneMs(mode) - 600)}>
+              <p className="ss-fadeout font-mono absolute bottom-16 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap text-[13px]" style={d(DONE_MS - 600)}>
                 Press <kbd className="x-key is-down">Enter</kbd> to drive
               </p>
-              <div className="dsa-flicker absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center border-2 border-[#111] bg-white shadow-[3px_3px_0_#111]" style={d(doneMs(mode) + 150)}>
+              <div className="dsa-flicker absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center border-2 border-[#111] bg-white shadow-[3px_3px_0_#111]" style={d(DONE_MS + 150)}>
                 <span className="font-mono bg-[#111] px-2 py-1 text-[12px] text-white">E</span>
                 <span className="px-2.5 py-1 text-[13px] font-semibold uppercase tracking-[0.06em]">
                   <span className="font-mono mr-1.5 text-[#ff4f00]">Z01</span>Start grid
                 </span>
+              </div>
+              {/* the power meter: fills from the start of the build, Shift fires it once the world has landed */}
+              <div className="dsa-flicker absolute right-3 top-3" style={d(DONE_MS + 250)}>
+                <PowerMeter code={v.code} powerRef={power} liveRef={live} />
               </div>
             </div>
           </div>
@@ -732,34 +753,13 @@ export default function StartSequence() {
         <button type="button" onClick={replay} className="x-btn x-secondary">
           ↺ Replay {phase === "build" ? "build-in" : "select"}
         </button>
-        {/* which build-in plays after Enter; picking one mid-build replays it */}
-        <div role="group" aria-label="Build-in" className="flex items-stretch border-2 border-[#111] shadow-[3px_3px_0_#111]">
-          <span className="font-mono flex items-center bg-[#111] px-2 text-[11px] uppercase tracking-[0.06em] text-white">Build-in</span>
-          {BUILD_MODES.map((m, i) => {
-            const on = m.id === mode;
-            return (
-              <button
-                key={m.id}
-                type="button"
-                aria-pressed={on}
-                onClick={() => {
-                  setMode(m.id);
-                  if (phase === "build") replay();
-                }}
-                className={`font-mono px-2.5 py-1.5 text-[12px] uppercase tracking-[0.06em] transition-colors ${i ? "border-l-2 border-[#111]" : ""} ${on ? "bg-[#111] text-white" : "bg-white hover:bg-[#f3f2ed]"}`}
-              >
-                <span className={on ? "text-[#ff4f00]" : "text-[#5d5d58]"}>{String(i + 1).padStart(2, "0")}</span> {m.label}
-              </button>
-            );
-          })}
-        </div>
         {phase === "build" && (
           <button type="button" onClick={back} className="x-btn x-secondary">
             {key("Escape", "Esc")} Back to select
           </button>
         )}
         <span className="font-mono text-[12px] text-[#5d5d58]">
-          {phase === "build" ? `${v.code} ${v.name} · building the world` : `${v.code} ${v.name} selected · ← → to switch`}
+          {phase === "build" ? `${v.code} ${v.name} · Shift · ${powerName(v.code)}` : `${v.code} ${v.name} selected · ← → to switch`}
         </span>
       </div>
     </div>

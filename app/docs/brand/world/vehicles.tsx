@@ -20,6 +20,8 @@ export type Livery = {
   body: string;
   trim: string;
   accent: string;
+  /** body finish as [roughness, metalness], over the vehicle's own default */
+  finish?: [number, number];
   /** tube frame (ATV) */
   frame?: string;
   /** coilovers (ATV) */
@@ -31,32 +33,41 @@ export type Livery = {
 const INK = W.ink;
 const PAPER = W.paper;
 const ORANGE = W.orange;
+/** Silver Arrows: a silver metallic body, teal accents, black trim. */
+const SILVER = "#c9ccce";
+const TEAL = "#00a19c";
+const BLACK = "#0e0e0e";
+const SILVER_FINISH: [number, number] = [0.35, 0.6];
 
+// The same five on every vehicle, in this order: Paper, Ink, Graphite, Orange, Silver Arrows.
 export const LIVERIES: Record<"V01" | "V02" | "V03" | "V04", Livery[]> = {
   V01: [
-    { name: "Ink", body: INK, trim: PAPER, accent: ORANGE },
     { name: "Paper", body: PAPER, trim: INK, accent: ORANGE },
+    { name: "Ink", body: INK, trim: PAPER, accent: ORANGE },
     { name: "Graphite", body: "#3d3e40", trim: PAPER, accent: ORANGE },
     { name: "Orange", body: ORANGE, trim: INK, accent: PAPER },
+    { name: "Silver Arrows", body: SILVER, trim: BLACK, accent: TEAL, finish: SILVER_FINISH },
   ],
   V02: [
-    { name: "Ink", body: INK, trim: PAPER, accent: ORANGE, frame: INK, spring: ORANGE },
     { name: "Paper", body: PAPER, trim: INK, accent: ORANGE, frame: INK, spring: INK },
+    { name: "Ink", body: INK, trim: PAPER, accent: ORANGE, frame: INK, spring: ORANGE },
     { name: "Graphite", body: "#3d3e40", trim: PAPER, accent: ORANGE, frame: INK, spring: PAPER },
     { name: "Orange", body: ORANGE, trim: PAPER, accent: INK, frame: INK, spring: INK },
-    { name: "Team", body: "#141414", trim: "#ffffff", accent: "#d01c24", frame: "#1a1a1a", spring: "#2463d8", lamp: "#ff2418" },
+    { name: "Silver Arrows", body: SILVER, trim: BLACK, accent: TEAL, finish: SILVER_FINISH, frame: BLACK, spring: TEAL, lamp: ORANGE },
   ],
   V03: [
     { name: "Paper", body: "#e3e2dc", trim: INK, accent: ORANGE },
     { name: "Ink", body: "#2f3032", trim: "#0e0e0e", accent: ORANGE },
     { name: "Graphite", body: "#6b6b67", trim: INK, accent: ORANGE },
     { name: "Orange", body: ORANGE, trim: INK, accent: PAPER },
+    { name: "Silver Arrows", body: SILVER, trim: BLACK, accent: TEAL, finish: SILVER_FINISH, lamp: ORANGE },
   ],
   V04: [
     { name: "Paper", body: PAPER, trim: INK, accent: ORANGE },
     { name: "Ink", body: "#1b1b1c", trim: "#3d3e40", accent: ORANGE },
     { name: "Graphite", body: "#5d5d58", trim: INK, accent: PAPER },
     { name: "Orange", body: ORANGE, trim: INK, accent: PAPER },
+    { name: "Silver Arrows", body: SILVER, trim: BLACK, accent: TEAL, finish: SILVER_FINISH },
   ],
 };
 
@@ -67,7 +78,7 @@ const glow = (color: string, k = 2.4) => std(color, 0.3, 0, { emissive: color, e
 
 /** The livery's materials, rebuilt when the livery changes and freed after. */
 function useMats(l: Livery, body: [number, number] = [0.55, 0.2]) {
-  const [br, bm] = body;
+  const [br, bm] = l.finish ?? body;
   const m = useMemo(
     () => ({
       body: std(l.body, br, bm),
@@ -94,6 +105,8 @@ const K = {
   smoke: std("#3b302b", 0.12, 0.35),
   shell: std("#e9e8e3", 0.34, 0.22),
   canopy: std("#151a1f", 0.1, 0.6),
+  /** wheel-arch liners, seen from both sides */
+  liner: std("#121212", 0.9, 0, { side: THREE.DoubleSide }),
   paperLine: std(W.paper, 0.7),
   lampWhite: std("#ffffff", 0.3, 0, { emissive: "#ffffff", emissiveIntensity: 2.2, toneMapped: false }),
   lampOrange: std(W.orange, 0.3, 0, { emissive: W.orange, emissiveIntensity: 2.4, toneMapped: false }),
@@ -238,7 +251,7 @@ function tyreGeo(r: number, w: number, rim: number, round = 0.25) {
   return new THREE.LatheGeometry(pts.reverse(), 40);
 }
 
-/* ------------------------------------------------------------------ V01 Formula (HG-08) */
+/* ------------------------------------------------------------------ V01 Formula (TH-18) */
 
 const F = { fz: 1.78, rz: -1.82, r: 0.36 };
 
@@ -399,7 +412,7 @@ export function Formula({ livery = LIVERIES.V01[0] }: { livery?: Livery }) {
       beam: aerofoil(0.2, 0.035, 0.9),
     };
   }, []);
-  const num = useLabel("08", { fg: livery.body, bg: livery.trim, w: 256, h: 128, size: 104 });
+  const num = useLabel("18", { fg: livery.body, bg: livery.trim, w: 256, h: 128, size: 104 });
   const halo = useMemo(() => {
     const c = new THREE.CatmullRomCurve3(
       ([
@@ -854,7 +867,7 @@ export function Atv({ livery = LIVERIES.V02[0] }: { livery?: Livery }) {
           <Tube a={[s * 0.3, 0.38, -0.92]} b={[s * 0.53, 0.26, rz]} r={0.015} m={mt.accent} />
           <Tube a={[s * 0.32, 0.58, -0.94]} b={[s * 0.52, 0.42, rz]} r={0.015} m={mt.accent} />
           <Box s={[0.05, 0.24, 0.06]} p={[s * 0.53, 0.33, rz]} m={M.graphite} />
-          <Coilover a={[s * 0.5, 0.36, rz + 0.1]} b={[s * 0.41, 0.98, -0.6]} body={mt.spring} coil={livery.name === "Team" ? M.ink : mt.spring} />
+          <Coilover a={[s * 0.5, 0.36, rz + 0.1]} b={[s * 0.41, 0.98, -0.6]} body={mt.spring} coil={mt.spring} />
           <OffroadWheel p={[s * rx, r, rz]} geo={tyreR} r={r} w={0.27} />
         </group>
       ))}
@@ -862,7 +875,7 @@ export function Atv({ livery = LIVERIES.V02[0] }: { livery?: Livery }) {
   );
 }
 
-/* ------------------------------------------------------------------ V03 Roadster */
+/* ------------------------------------------------------------------ V03 Roadster (Atlas) */
 
 const RS = { fz: 1.45, rz: -1.35, r: 0.36, ra: 0.41, cy: 0.35 };
 
@@ -1127,6 +1140,32 @@ export function Roadster({ livery = LIVERIES.V03[0] }: { livery?: Livery }) {
         0.03,
       ),
       wing: aerofoil(0.34, 0.04, 1.86),
+      // the rear fascia: a solid slab in the tail's own outline, so the back reads closed from any angle
+      fascia: (() => {
+        const ring = [...back.p, ...back.p.slice(1, -1).reverse().map(([x, y]): P2 => [-x, y])].filter((q, i, arr) => {
+          const n = arr[(i + 1) % arr.length];
+          return Math.hypot(q[0] - n[0], q[1] - n[1]) > 1e-6;
+        });
+        const g = new THREE.ExtrudeGeometry(new THREE.Shape(ring.map(([x, y]) => new THREE.Vector2(x * 0.995, y))), { depth: 0.07, bevelEnabled: false });
+        g.translate(0, 0, back.z - 0.055);
+        return g;
+      })(),
+      // the engine cover: a low hump from under the canopy's tail to the fascia, closing the gap behind the glass
+      cover: loft([
+        { z: -1.5, p: [[0, 0.76], [0.44, 0.76], [0.44, 0.86], [0.3, 0.91], [0, 0.915]] },
+        { z: -1.62, p: [[0, 0.76], [0.45, 0.76], [0.45, 0.87], [0.31, 0.905], [0, 0.91]] },
+        { z: -1.9, p: [[0, 0.76], [0.56, 0.76], [0.56, 0.9], [0.4, 0.93], [0, 0.935]] },
+        { z: -2.24, p: [[0, 0.76], [0.62, 0.76], [0.62, 0.885], [0.45, 0.91], [0, 0.915]] },
+      ]),
+      // a liner over the top of each wheel: half a drum round the axle, and the inboard wall
+      liner: (() => {
+        const drum = new THREE.CylinderGeometry(RS.ra - 0.012, RS.ra - 0.012, 0.36, 28, 1, true, 0, Math.PI);
+        drum.rotateZ(Math.PI / 2);
+        const wall = new THREE.CircleGeometry(RS.ra - 0.012, 28, 0, Math.PI);
+        wall.rotateY(Math.PI / 2);
+        wall.translate(-0.18, 0, 0);
+        return mergeGeometries([drum, wall]);
+      })(),
       end: plate(
         [
           [-2.0, 1.16],
@@ -1154,22 +1193,40 @@ export function Roadster({ livery = LIVERIES.V03[0] }: { livery?: Livery }) {
       {/* the face: a thin light bar along the leading edge over a dark intake */}
       <Box s={[1.5, 0.018, 0.02]} p={[0, 0.48, 2.302]} m={K.lampWhite} />
       <Box s={[1.42, 0.17, 0.03]} p={[0, 0.3, 2.296]} m={mt.trim} />
-      {/* the back: a full-width light bar under a dark strip, the diffuser and four round exhausts */}
-      <Box s={[1.78, 0.07, 0.02]} p={[0, 0.79, -2.302]} m={mt.trim} />
-      <Box s={[1.7, 0.026, 0.02]} p={[0, 0.79, -2.314]} m={mt.lamp} />
-      <Box s={[1.36, 0.24, 0.05]} p={[0, 0.3, -2.29]} m={mt.trim} />
+      {/* the back: a solid fascia, the full-width light bar on a dark strip, the engine cover with
+          louvres, a diffuser box with the four round exhausts set into it, and arch liners */}
+      <mesh geometry={geo.fascia} material={mt.body} castShadow receiveShadow />
+      <Box s={[1.8, 0.08, 0.02]} p={[0, 0.79, -2.362]} m={mt.trim} />
+      <Box s={[1.72, 0.026, 0.02]} p={[0, 0.79, -2.374]} m={mt.lamp} />
+      <Box s={[1.5, 0.05, 0.016]} p={[0, 0.6, -2.358]} m={mt.trim} />
+      <mesh geometry={geo.cover} material={mt.body} castShadow />
+      {[-1.72, -1.82, -1.92, -2.02, -2.12].map((z) => (
+        <Box key={z} s={[0.86, 0.012, 0.035]} p={[0, rsYt(z) + 0.045, z]} m={mt.trim} />
+      ))}
+      <Box s={[1.5, 0.3, 0.6]} p={[0, 0.27, -2.07]} m={mt.trim} />
+      <Box s={[1.42, 0.03, 0.2]} p={[0, 0.405, -2.27]} m={M.inkMatte} />
       {[-0.45, -0.15, 0.15, 0.45].map((x) => (
-        <group key={x} position={[x, 0.36, -2.32]} rotation={[Math.PI / 2, 0, 0]}>
+        <group key={x} position={[x, 0.27, -2.385]} rotation={[Math.PI / 2, 0, 0]}>
           <mesh material={K.steel}>
-            <cylinderGeometry args={[0.045, 0.045, 0.05, 18]} />
+            <cylinderGeometry args={[0.055, 0.055, 0.04, 20]} />
           </mesh>
-          <mesh position={[0, 0.026, 0]} material={M.ink}>
-            <cylinderGeometry args={[0.032, 0.032, 0.004, 16]} />
+          <mesh position={[0, -0.021, 0]} material={M.ink}>
+            <cylinderGeometry args={[0.04, 0.04, 0.004, 18]} />
           </mesh>
         </group>
       ))}
-      {[-0.55, -0.3, 0, 0.3, 0.55].map((x) => (
-        <Box key={x} s={[0.02, 0.12, 0.2]} p={[x, 0.2, -2.2]} m={M.ink} />
+      {[-0.6, -0.3, 0, 0.3, 0.6].map((x) => (
+        <Box key={x} s={[0.02, 0.07, 0.42]} p={[x, 0.11, -2.13]} m={M.ink} />
+      ))}
+      {SIDES.map((s) =>
+        [
+          [RS.fz, rsHw(RS.fz)],
+          [RS.rz, rsHw(RS.rz)],
+        ].map(([z, hw]) => <mesh key={`${s}${z}`} geometry={geo.liner} position={[s * (hw - 0.24), RS.cy, z]} scale={[s, 1, 1]} material={K.liner} />),
+      )}
+      {/* the accent: one line along each sill, between the arches */}
+      {SIDES.map((s) => (
+        <Tube key={s} a={[s * (rsHw(0.98) - 0.072), rsYs(0.98) + 0.012, 0.98]} b={[s * (rsHw(-0.88) - 0.072), rsYs(-0.88) + 0.012, -0.88]} r={0.011} m={mt.accent} />
       ))}
       {/* the wing on two struts, endplates angled down */}
       {SIDES.map((s) => (
@@ -1189,7 +1246,7 @@ export function Roadster({ livery = LIVERIES.V03[0] }: { livery?: Livery }) {
   );
 }
 
-/* ------------------------------------------------------------------ V04 Bike (R-08) */
+/* ------------------------------------------------------------------ V04 Bike (Apollo) */
 
 const B = { fz: 0.72, rz: -0.7, r: 0.31 };
 

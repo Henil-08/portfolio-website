@@ -7,11 +7,8 @@
 //
 // The world first shows as a field of square dots in its own layout (the track's centreline and
 // edges, the coast, building footprints, garages, trees, lakes and the river), then the solid
-// geometry rises out of them and each piece's dots fade as it lands. Three orders for it:
-//   trace  the dots draw the lap from the start line both ways, then the rest sprinkles in,
-//          then everything extrudes outward from the car;
-//   scan   a thin orange line sweeps the island, dots behind it, geometry a beat later;
-//   bloom  dots bloom outward from the car by distance, geometry follows outward.
+// geometry rises out of them and each piece's dots fade as it lands. Bloom (locked 2026-10-26):
+// the dots bloom outward from the car by distance, and the geometry follows them outward.
 // Repeated things are instanced, the dots are one draw call, and nothing sets React state per frame.
 import { useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
@@ -23,13 +20,6 @@ import { Gantry, W } from "./models";
 
 /** Maps the real clock to build seconds (frozen by `window.__buildT` in dev). */
 export type BuildClock = (now: number) => number;
-
-export type BuildMode = "trace" | "scan" | "bloom";
-export const BUILD_MODES: { id: BuildMode; label: string }[] = [
-  { id: "trace", label: "Trace" },
-  { id: "scan", label: "Scan" },
-  { id: "bloom", label: "Bloom" },
-];
 
 const clamp01 = (k: number) => Math.min(1, Math.max(0, k));
 const power2Out = (k: number) => 1 - (1 - k) * (1 - k);
@@ -58,19 +48,24 @@ const slot = carP.clone().addScaledVector(carN, -TRACK_WIDTH * 0.2);
 /** Where the vehicle waits: position, heading (rotation about y turning local +z forward), and forward. */
 export const GRID = { x: slot.x, y: 0.09, z: slot.z, yaw: Math.atan2(carF.x, carF.z), fx: carF.x, fz: carF.z };
 
-/* ------------------------------------------------------------------ waves: when a place arrives */
+/** A point d metres down the track from the grid slot, in the same lane: position and heading. */
+export function gridAhead(d: number, out = new THREE.Vector3()) {
+  const t = CAR_T + d / TRACK_LEN;
+  const p = trackPoint(t);
+  const f = trackTangent(t).setY(0).normalize();
+  out.set(p.x - f.z * -TRACK_WIDTH * 0.2, p.y + GRID.y, p.z + f.x * -TRACK_WIDTH * 0.2);
+  return { p: out, yaw: Math.atan2(f.x, f.z) };
+}
 
-/** The scan sweeps along the game camera's view, far side first, so on screen it runs top to bottom. */
-const AX = new THREE.Vector2(10.5, 14).normalize();
+/* ------------------------------------------------------------------ the bloom: when a place arrives */
+
 const COAST_RING = Array.from({ length: 360 }, (_, i) => {
   const a = (i / 360) * Math.PI * 2;
   const r = coastR(a);
   return [Math.cos(a) * r, Math.sin(a) * r] as const;
 });
-/** Furthest coast point from the car, and the coast's extent along the scan axis. */
+/** Furthest coast point from the car. */
 const RMAX = Math.max(...COAST_RING.map(([x, z]) => Math.hypot(x - GRID.x, z - GRID.z))) + 14;
-const SMIN = Math.min(...COAST_RING.map(([x, z]) => x * AX.x + z * AX.y)) - 6;
-const SMAX = Math.max(...COAST_RING.map(([x, z]) => x * AX.x + z * AX.y)) + 6;
 /** The island's middle and radius, for cameras that frame all of it. */
 export const ISLAND = (() => {
   const xs = COAST_RING.map((p) => p[0]);
@@ -80,47 +75,37 @@ export const ISLAND = (() => {
   return { x: cx, z: cz, r: Math.max(...COAST_RING.map(([x, z]) => Math.hypot(x - cx, z - cz))) };
 })();
 
-/** arrive = a + b * s, where s runs 0..1 radially from the car (kind 0) or along the scan axis (kind 1). */
-type Wave = { kind: 0 | 1; a: number; b: number };
+/** arrive = a + b * s, where s runs 0..1 outward from the car. */
+type Wave = { a: number; b: number };
 const RAD_POW = 1.3;
-const waveS = (kind: 0 | 1, x: number, z: number) =>
-  kind === 0 ? Math.pow(Math.min(1, Math.hypot(x - GRID.x, z - GRID.z) / RMAX), 1 / RAD_POW) : clamp01((x * AX.x + z * AX.y - SMIN) / (SMAX - SMIN));
-const at = (w: Wave, x: number, z: number) => w.a + w.b * waveS(w.kind, x, z);
+const waveS = (x: number, z: number) => Math.pow(Math.min(1, Math.hypot(x - GRID.x, z - GRID.z) / RMAX), 1 / RAD_POW);
+const at = (w: Wave, x: number, z: number) => w.a + w.b * waveS(x, z);
 
-type Plan = {
-  /** when the dots arrive (trace uses its own order instead) */
-  dot: Wave;
+/** The bloom's timeline (s). */
+export const PLAN = {
+  /** when the dots arrive */
+  dot: { a: 0.3, b: 2.1 } as Wave,
   /** when the flat land, coast and water arrive, and the outward extrude of everything else */
-  solid: Wave;
-  water0: number;
+  solid: { a: 1.05, b: 2.35 } as Wave,
+  water0: 3.2,
   /** when the camera settles on the game's chase view */
-  camEnd: number;
+  camEnd: 4.7,
 };
-export const PLAN: Record<BuildMode, Plan> = {
-  trace: { dot: { kind: 0, a: 0, b: 0 }, solid: { kind: 0, a: 2.35, b: 1.35 }, water0: 3.5, camEnd: 5.0 },
-  scan: { dot: { kind: 1, a: 0.35, b: 2.5 }, solid: { kind: 1, a: 0.95, b: 2.5 }, water0: 3.3, camEnd: 4.7 },
-  bloom: { dot: { kind: 0, a: 0.3, b: 2.1 }, solid: { kind: 0, a: 1.05, b: 2.35 }, water0: 3.2, camEnd: 4.7 },
-};
-/** Trace: the pen draws the lap from the start line, both ways at once, over this window. */
-const TRACE = { lap0: 0.2, lapDur: 1.5, coast0: 1.25, coastDur: 1.0, town0: 1.5, townDur: 0.9, tree0: 1.8, treeDur: 0.8, water0: 1.6, waterDur: 0.7, pit0: 1.45, pitDur: 0.4, solid0: 2.3, solidDur: 0.9 };
 
 /* ------------------------------------------------------------------ shader reveal for flat things */
 
 /** Shared by every reveal shader; the Driver writes them once a frame. */
 const U = {
   uTime: { value: 0 },
-  uKind: { value: 0 },
-  uA: { value: 0 },
-  uB: { value: 1 },
+  uA: { value: PLAN.solid.a },
+  uB: { value: PLAN.solid.b },
   uC: { value: new THREE.Vector2(GRID.x, GRID.z) },
-  uAx: { value: AX.clone() },
-  uS: { value: new THREE.Vector3(SMIN, SMAX, RMAX) },
+  uR: { value: RMAX },
 };
 const ARRIVE_GLSL = `
-uniform float uTime; uniform float uKind; uniform float uA; uniform float uB; uniform vec2 uC; uniform vec2 uAx; uniform vec3 uS;
+uniform float uTime; uniform float uA; uniform float uB; uniform vec2 uC; uniform float uR;
 float arrive(vec2 p){
-  float s = uKind < 0.5 ? pow(min(1.0, distance(p, uC) / uS.z), ${(1 / RAD_POW).toFixed(5)}) : clamp((dot(p, uAx) - uS.x) / (uS.y - uS.x), 0.0, 1.0);
-  return uA + uB * s;
+  return uA + uB * pow(min(1.0, distance(p, uC) / uR), ${(1 / RAD_POW).toFixed(5)});
 }`;
 
 /** Discards fragments the wave hasn't reached (or, for the paper floor, the ones it has). */
@@ -276,7 +261,7 @@ function buildBase() {
   const HW = TRACK_WIDTH / 2;
   const r = rng(808);
 
-  // the track as one ribbon; each segment gets its arrival time per mode as a vertex attribute
+  // the track as one ribbon; each segment gets its arrival time as a vertex attribute
   const N = 1100;
   const pts = Array.from({ length: N }, (_, i) => trackPoint(i / N));
   const turn = pts.map((_, i) => {
@@ -294,8 +279,6 @@ function buildBase() {
   ];
   const raw = ribbon(pts, strips, true);
   const iStart = Math.round(START_T * N) % N;
-  /** 0 at the start line, 1 half a lap away either way. */
-  const segArc = pts.map((_, i) => Math.min(Math.abs(i - iStart), N - Math.abs(i - iStart)) / (N / 2));
   const segMid = pts.map((p, i) => {
     const q = pts[(i + 1) % N];
     return [(p.x + q.x) / 2, (p.z + q.z) / 2] as const;
@@ -406,14 +389,12 @@ function buildBase() {
   const dp: number[] = []; // x, y, z
   const dGroup: number[] = [];
   const dRef: number[] = []; // track segment or item index
-  const dAux: number[] = []; // trace order 0..1 (coast) or a random seed
   const dSize: number[] = [];
   const dHot: number[] = []; // 1 = orange
-  const dot = (x: number, y: number, z: number, group: number, ref: number, aux: number, size = 1, hot = 0) => {
+  const dot = (x: number, y: number, z: number, group: number, ref: number, size = 1, hot = 0) => {
     dp.push(x, y + 0.18, z);
     dGroup.push(group);
     dRef.push(ref);
-    dAux.push(aux);
     dSize.push(size);
     dHot.push(hot);
   };
@@ -424,9 +405,9 @@ function buildBase() {
     const n = raw.norms[i];
     const along = i * segLen;
     if (Math.floor(along / 2) !== Math.floor((along + segLen) / 2)) {
-      for (const s of [-HW - 0.45, HW + 0.45]) dot(p.x + n.x * s, p.y, p.z + n.z * s, G.track, i, 0, 1);
+      for (const s of [-HW - 0.45, HW + 0.45]) dot(p.x + n.x * s, p.y, p.z + n.z * s, G.track, i, 1);
     }
-    if (Math.floor(along / 4) !== Math.floor((along + segLen) / 4)) dot(p.x, p.y, p.z, G.track, i, 0, 0.75);
+    if (Math.floor(along / 4) !== Math.floor((along + segLen) / 4)) dot(p.x, p.y, p.z, G.track, i, 0.75);
   }
   // the start line and the car's grid slot, in orange
   {
@@ -435,7 +416,7 @@ function buildBase() {
     const sn = new THREE.Vector3(-sf.z, 0, sf.x);
     for (let k = 0; k <= 10; k++) {
       const s = -HW + (k / 10) * TRACK_WIDTH;
-      dot(sp.x + sn.x * s, sp.y, sp.z + sn.z * s, G.track, iStart, 0, 1.15, 1);
+      dot(sp.x + sn.x * s, sp.y, sp.z + sn.z * s, G.track, iStart, 1.15, 1);
     }
     const hl = 3.0;
     const hw = 1.5;
@@ -450,39 +431,37 @@ function buildBase() {
       else if ((d -= 2 * hl) < 2 * hw) [lx, lz] = [-hw + d, hl];
       else if ((d -= 2 * hw) < 2 * hl) [lx, lz] = [hw, hl - d];
       else [lx, lz] = [hw - (d - 2 * hl), -hl];
-      dot(GRID.x + carN.x * lx + GRID.fx * lz, carP.y, GRID.z + carN.z * lx + GRID.fz * lz, G.track, Math.round(CAR_T * N + N) % N, 0, 1.15, 1);
+      dot(GRID.x + carN.x * lx + GRID.fx * lz, carP.y, GRID.z + carN.z * lx + GRID.fz * lz, G.track, Math.round(CAR_T * N + N) % N, 1.15, 1);
     }
   }
-  // pit lane centreline
+  // pit lane centreline (each dot still draws from the seeded sequence, so the jitter below is unchanged)
   for (const l of pitLines) {
     const c = new THREE.CatmullRomCurve3(l);
     const len = c.getLength();
     for (let k = 0, m = Math.floor(len / 3); k <= m; k++) {
       const p = c.getPointAt(k / m);
-      dot(p.x, 0, p.z, G.pit, 0, r(), 0.8);
+      r();
+      dot(p.x, 0, p.z, G.pit, 0, 0.8);
     }
   }
-  // coast: every 2.2 m, ordered for the trace by bearing from the car, both ways round
+  // coast: every 2.2 m
   {
-    const b0 = Math.atan2(GRID.z, GRID.x);
     const len = COAST_RING.reduce((s, p, i) => s + Math.hypot(p[0] - COAST_RING[(i + 1) % 360][0], p[1] - COAST_RING[(i + 1) % 360][1]), 0);
     const n = Math.round(len / 2.2);
     for (let k = 0; k < n; k++) {
       const a = (k / n) * Math.PI * 2;
       const rr = coastR(a) - 0.6;
-      let da = Math.abs(a - b0) % (Math.PI * 2);
-      if (da > Math.PI) da = Math.PI * 2 - da;
-      dot(Math.cos(a) * rr, 0, Math.sin(a) * rr, G.coast, 0, da / Math.PI, 0.9);
+      dot(Math.cos(a) * rr, 0, Math.sin(a) * rr, G.coast, 0, 0.9);
     }
   }
   // lakes: the shore, and a sparse grid on the water
   for (const l of LAKES) {
     const n = Math.round((Math.PI * (l.rx + l.rz)) / 1.6);
-    const seed = r();
+    r();
     const cy = Math.cos(l.yaw);
     const sy = Math.sin(l.yaw);
     // the lake mesh is a circle in its own plane (scaled rx, rz, turned by yaw), laid flat: plane y = -world z
-    const put = (px: number, py: number, size: number) => dot(l.x + px * cy - py * sy, 0, l.z - (px * sy + py * cy), G.water, 0, seed, size);
+    const put = (px: number, py: number, size: number) => dot(l.x + px * cy - py * sy, 0, l.z - (px * sy + py * cy), G.water, 0, size);
     for (let k = 0; k < n; k++) {
       const a = (k / n) * Math.PI * 2;
       put(Math.cos(a) * l.rx, Math.sin(a) * l.rz, 0.9);
@@ -495,7 +474,7 @@ function buildBase() {
     const c = new THREE.CatmullRomCurve3(riverPts, false, "catmullrom", 0);
     const len = c.getLength();
     const m = Math.floor(len / 2.2);
-    const seed = r();
+    r();
     for (let k = 0; k <= m; k++) {
       const u = k / m;
       const p = c.getPointAt(u);
@@ -503,9 +482,9 @@ function buildBase() {
       const f = u * (RIVER.pts.length - 1);
       const i = Math.min(RIVER.pts.length - 2, Math.floor(f));
       const w = (RIVER.w[i] + (RIVER.w[i + 1] - RIVER.w[i]) * (f - i)) / 2;
-      dot(p.x - tan.z * w, 0, p.z + tan.x * w, G.water, 0, seed, 0.9);
-      dot(p.x + tan.z * w, 0, p.z - tan.x * w, G.water, 0, seed, 0.9);
-      if (k % 2 === 0) dot(p.x, 0, p.z, G.water, 0, seed, 0.6);
+      dot(p.x - tan.z * w, 0, p.z + tan.x * w, G.water, 0, 0.9);
+      dot(p.x + tan.z * w, 0, p.z - tan.x * w, G.water, 0, 0.9);
+      if (k % 2 === 0) dot(p.x, 0, p.z, G.water, 0, 0.6);
     }
   }
   // footprints: the outline of every building and garage, a dot at each corner and every ~2 m
@@ -527,15 +506,15 @@ function buildBase() {
       for (let k = 0; k < n; k++) {
         const lx = ax + ((bx - ax) * k) / n;
         const lz = az + ((bz - az) * k) / n;
-        dot(it.x + lx * c + lz * s, 0, it.z - lx * s + lz * c, group, ref, 0, k === 0 ? 1 : 0.8);
+        dot(it.x + lx * c + lz * s, 0, it.z - lx * s + lz * c, group, ref, k === 0 ? 1 : 0.8);
       }
     }
   };
   buildings.forEach((b, i) => footprint(b, G.building, i));
   garages.forEach((g, i) => footprint(g, G.garage, i));
-  masts.forEach((m, i) => dot(m.x, 0, m.z, G.mast, i, 0, 1));
-  pines.forEach((t, i) => dot(t.x, 0, t.z, G.pine, i, 0, 1.1));
-  rounds.forEach((t, i) => dot(t.x, 0, t.z, G.round, i, 0, 1.1));
+  masts.forEach((m, i) => dot(m.x, 0, m.z, G.mast, i, 1));
+  pines.forEach((t, i) => dot(t.x, 0, t.z, G.pine, i, 1.1));
+  rounds.forEach((t, i) => dot(t.x, 0, t.z, G.round, i, 1.1));
 
   const dots = {
     count: dGroup.length,
@@ -544,25 +523,23 @@ function buildBase() {
     hot: new THREE.BufferAttribute(new Float32Array(dHot), 1),
     group: dGroup,
     ref: dRef,
-    aux: dAux,
     jitter: dGroup.map(() => r()),
   };
 
-  return { N, pts, segArc, segMid, raw, pit, slab, grass, coastLine, river, bld, buildings, gar, garages, mast, masts, pier, piers, pine, pines, round, rounds, dots };
+  return { N, pts, segMid, raw, pit, slab, grass, coastLine, river, bld, buildings, gar, garages, mast, masts, pier, piers, pine, pines, round, rounds, dots };
 }
 
-/* ------------------------------------------------------------------ timings, per mode */
+/* ------------------------------------------------------------------ timings */
 
-const planCache: Partial<Record<BuildMode, ReturnType<typeof buildPlan>>> = {};
-const planFor = (mode: BuildMode) => (planCache[mode] ??= buildPlan(mode));
+let planCache: ReturnType<typeof buildPlan> | null = null;
+const plan = () => (planCache ??= buildPlan());
 
-function buildPlan(mode: BuildMode) {
+function buildPlan() {
   const B = base();
-  const P = PLAN[mode];
-  const trace = mode === "trace";
+  const P = PLAN;
 
-  // track segments: trace re-draws the lap from the start line; the others follow the wave
-  const segT = B.segMid.map(([x, z], i) => (trace ? TRACE.solid0 + TRACE.solidDur * B.segArc[i] : at(P.solid, x, z)));
+  // track segments follow the wave outward
+  const segT = B.segMid.map(([x, z]) => at(P.solid, x, z));
   const track = new THREE.BufferGeometry();
   for (const name of ["position", "normal", "color"]) track.setAttribute(name, B.raw.geo.attributes[name]);
   const aT = new Float32Array(B.N * B.raw.per);
@@ -570,17 +547,17 @@ function buildPlan(mode: BuildMode) {
   track.setAttribute("aT", new THREE.BufferAttribute(aT, 1));
 
   // things that stand up: when their dots show, then when they rise
-  const timed = (items: Item[], off: number, t0: number, span: number) => {
-    const dotAt = items.map((it) => (trace ? t0 + span * it.seed : at(P.dot, it.x, it.z)));
+  const timed = (items: Item[], off: number) => {
+    const dotAt = items.map((it) => at(P.dot, it.x, it.z));
     const list: Timed[] = items.map((it, i) => ({ ...it, at: Math.max(it.seg !== undefined ? segT[it.seg] : at(P.solid, it.x, it.z) + off, dotAt[i] + 0.35) }));
     return { dotAt, list };
   };
-  const buildings = timed(B.buildings, 0.04, TRACE.town0, TRACE.townDur);
-  const garages = timed(B.garages, 0.04, TRACE.town0, TRACE.townDur * 0.5);
-  const masts = timed(B.masts, 0.18, TRACE.town0 + 0.2, TRACE.townDur);
-  const pines = timed(B.pines, 0.08, TRACE.tree0, TRACE.treeDur);
-  const rounds = timed(B.rounds, 0.08, TRACE.tree0, TRACE.treeDur);
-  const piers = timed(B.piers, 0, 0, 0);
+  const buildings = timed(B.buildings, 0.04);
+  const garages = timed(B.garages, 0.04);
+  const masts = timed(B.masts, 0.18);
+  const pines = timed(B.pines, 0.08);
+  const rounds = timed(B.rounds, 0.08);
+  const piers = timed(B.piers, 0);
   const itemsOf = [null, null, null, null, buildings, garages, masts, pines, rounds];
 
   // every dot: when it shows (aDot) and when its piece lands and it fades (aSolid)
@@ -595,15 +572,11 @@ function buildPlan(mode: BuildMode) {
     const j = D.jitter[k];
     const own = itemsOf[g];
     if (own) {
-      aDot[k] = own.dotAt[D.ref[k]] + j * (trace ? 0.08 : 0.05);
+      aDot[k] = own.dotAt[D.ref[k]] + j * 0.05;
       aSolid[k] = own.list[D.ref[k]].at;
       continue;
     }
-    if (!trace) aDot[k] = at(P.dot, x, z) + j * 0.04;
-    else if (g === G.track) aDot[k] = TRACE.lap0 + TRACE.lapDur * B.segArc[D.ref[k]] + j * 0.03;
-    else if (g === G.coast) aDot[k] = TRACE.coast0 + TRACE.coastDur * D.aux[k] + j * 0.05;
-    else if (g === G.water) aDot[k] = TRACE.water0 + TRACE.waterDur * D.aux[k] + j * 0.25;
-    else aDot[k] = TRACE.pit0 + TRACE.pitDur * D.aux[k];
+    aDot[k] = at(P.dot, x, z) + j * 0.04;
     aSolid[k] = Math.max(g === G.track ? segT[D.ref[k]] : at(P.solid, x, z), aDot[k] + 0.35);
   }
   const dots = new THREE.BufferGeometry();
@@ -616,7 +589,7 @@ function buildPlan(mode: BuildMode) {
   const first = (xs: Timed[]) => Math.min(...xs.map((i) => i.at));
   const firstDot = Math.min(...aDot);
   const gantryP = trackPoint(START_T);
-  const gantryAt = (trace ? TRACE.solid0 : at(P.solid, gantryP.x, gantryP.z)) + 0.25;
+  const gantryAt = at(P.solid, gantryP.x, gantryP.z) + 0.25;
   return {
     track,
     dots,
@@ -631,19 +604,18 @@ function buildPlan(mode: BuildMode) {
   };
 }
 
-/** The build log: what arrives when (ms), in order, for one mode. */
-export const BUILD_LOG = (mode: BuildMode): [string, number][] => {
-  const L = planFor(mode).log;
-  const P = PLAN[mode];
+/** The build log: what arrives when (ms), in order. */
+export const BUILD_LOG = (): [string, number][] => {
+  const L = plan().log;
   const rows: [string, number][] = [
-    [mode === "trace" ? "Trace lap" : mode === "scan" ? "Scan" : "Bloom", L.firstDot],
+    ["Bloom", L.firstDot],
     ["Track", L.track],
     ["Town", L.town],
     ["Garages", L.garages],
     ["Trees", L.trees],
     ["Lights", L.lights],
-    ["Water", P.water0],
-    ["Game cam", P.camEnd - 0.2],
+    ["Water", PLAN.water0],
+    ["Game cam", PLAN.camEnd - 0.2],
   ];
   return rows.map(([s, t]) => [s, Math.round(t * 20) * 50] as [string, number]).sort((a, b) => a[1] - b[1]);
 };
@@ -762,51 +734,13 @@ function Dots({ geo }: { geo: THREE.BufferGeometry }) {
   return <points geometry={geo} material={dotMat} frustumCulled={false} renderOrder={4} />;
 }
 
-/** Scan only: the thin orange line on the floor, with a faint wash between it and the rising geometry. */
-const scanMat = new THREE.ShaderMaterial({
-  transparent: true,
-  depthWrite: false,
-  uniforms: { uLine: { value: -1e4 }, uBack: { value: -1e4 }, uA: { value: 0 }, uAx: U.uAx, uCol: { value: new THREE.Color(W.orange) } },
-  vertexShader: `varying vec2 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-  fragmentShader: `uniform float uLine; uniform float uBack; uniform float uA; uniform vec2 uAx; uniform vec3 uCol; varying vec2 vW;
-    void main(){
-      float s = dot(vW, uAx);
-      float line = 1.0 - smoothstep(0.35, 0.9, abs(s - uLine));
-      float wash = step(uBack, s) * step(s, uLine) * smoothstep(uLine - 40.0, uLine, s) * 0.06;
-      float a = max(line, wash) * uA;
-      if (a < 0.01) discard;
-      gl_FragColor = vec4(uCol, a);
-      #include <colorspace_fragment>
-    }`,
-});
-
-function ScanLine({ clock }: { clock: BuildClock }) {
+/** Writes the shared uniforms once a frame: the clock and the water. */
+function Driver({ clock }: { clock: BuildClock }) {
   useFrame((s) => {
     const t = clock(s.clock.elapsedTime);
-    const P = PLAN.scan;
-    const k = (t - P.dot.a) / P.dot.b;
-    scanMat.uniforms.uLine.value = SMIN + (SMAX - SMIN) * k;
-    scanMat.uniforms.uBack.value = SMIN + (SMAX - SMIN) * ((t - P.solid.a) / P.solid.b);
-    scanMat.uniforms.uA.value = k < 0 ? 0 : 1 - clamp01((k - 1) / 0.12);
-  });
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[ISLAND.x, 0.2, ISLAND.z]} material={scanMat} renderOrder={5}>
-      <planeGeometry args={[ISLAND.r * 2.6, ISLAND.r * 2.6]} />
-    </mesh>
-  );
-}
-
-/** Writes the shared uniforms once a frame: the clock, the mode's wave, the water. */
-function Driver({ mode, clock }: { mode: BuildMode; clock: BuildClock }) {
-  useFrame((s) => {
-    const t = clock(s.clock.elapsedTime);
-    const P = PLAN[mode];
     U.uTime.value = t;
-    U.uKind.value = P.solid.kind;
-    U.uA.value = P.solid.a;
-    U.uB.value = P.solid.b;
     dotMat.uniforms.uDpr.value = s.gl.getPixelRatio();
-    const w = power2Out(clamp01((t - P.water0) / 0.9));
+    const w = power2Out(clamp01((t - PLAN.water0) / 0.9));
     MAT.water.color.copy(BASIN_C).lerp(WATER_C, w);
     MAT.sea.color.copy(FLOOR_C).lerp(WATER_C, w);
   });
@@ -825,15 +759,14 @@ export function PaperFloor({ map }: { map: THREE.Texture | null }) {
   );
 }
 
-export function Island({ clock, mode }: { clock: BuildClock; mode: BuildMode }) {
+export function Island({ clock }: { clock: BuildClock }) {
   const B = base();
-  const P = planFor(mode);
+  const P = plan();
   const gantryP = trackPoint(START_T);
   return (
     <>
-      <Driver mode={mode} clock={clock} />
+      <Driver clock={clock} />
       <Dots geo={P.dots} />
-      {mode === "scan" && <ScanLine clock={clock} />}
       {/* sea under everything: paper until the water fades in */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, SEA_Y, 0]} material={MAT.sea}>
         <planeGeometry args={[1400, 1400]} />
@@ -853,15 +786,15 @@ export function Island({ clock, mode }: { clock: BuildClock; mode: BuildMode }) 
       <mesh geometry={P.track} material={MAT.track} receiveShadow frustumCulled={false} />
       <mesh geometry={B.pit} material={MAT.lines} receiveShadow />
       <GridMarks />
-      <Pops key={`pier-${mode}`} geo={B.pier} mat={MAT.solid} items={P.piers} mode="grow" dur={0.4} clock={clock} />
+      <Pops geo={B.pier} mat={MAT.solid} items={P.piers} mode="grow" dur={0.4} clock={clock} />
       {/* town, garages, groves, masts */}
-      <Pops key={`bld-${mode}`} geo={B.bld} mat={MAT.solid} items={P.buildings} mode="grow" dur={0.75} clock={clock} />
-      <Pops key={`gar-${mode}`} geo={B.gar} mat={MAT.solid} items={P.garages} mode="grow" dur={0.7} clock={clock} />
-      <Pops key={`pine-${mode}`} geo={B.pine} mat={MAT.faceted} items={P.pines} mode="pop" dur={0.45} clock={clock} />
-      <Pops key={`round-${mode}`} geo={B.round} mat={MAT.faceted} items={P.rounds} mode="pop" dur={0.45} clock={clock} />
-      <Pops key={`mast-${mode}`} geo={B.mast} mat={MAT.solid} items={P.masts} mode="lift" dur={0.6} clock={clock} />
+      <Pops geo={B.bld} mat={MAT.solid} items={P.buildings} mode="grow" dur={0.75} clock={clock} />
+      <Pops geo={B.gar} mat={MAT.solid} items={P.garages} mode="grow" dur={0.7} clock={clock} />
+      <Pops geo={B.pine} mat={MAT.faceted} items={P.pines} mode="pop" dur={0.45} clock={clock} />
+      <Pops geo={B.round} mat={MAT.faceted} items={P.rounds} mode="pop" dur={0.45} clock={clock} />
+      <Pops geo={B.mast} mat={MAT.solid} items={P.masts} mode="lift" dur={0.6} clock={clock} />
       <group position={[gantryP.x, 0, gantryP.z]} rotation={[0, GRID.yaw, 0]}>
-        <Lift key={mode} at={P.gantryAt} depth={8} clock={clock}>
+        <Lift at={P.gantryAt} depth={8} clock={clock}>
           <Gantry />
         </Lift>
       </group>
