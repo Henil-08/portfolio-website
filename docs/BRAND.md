@@ -127,6 +127,11 @@ Hover and keyboard focus share one signal, the orange corner brackets (`x-sel` +
   world and compiling shaders block the main thread, and a JS bar froze then jumped to 100% (owner,
   2026-10-26). There is no percent readout for the same reason. The floor's dot grid stays hidden
   until the world is ready (Reveal.tsx `load.grid`), so it doesn't snap when the camera moves into place.
+- **Boot order** (components/Experience.tsx `INTRO_MS`): the world isn't imported or mounted
+  until the intro has played (1.8 s). Importing it runs heavy module code and building it blocks
+  the main thread for seconds, which made the mark and the decoding stutter (owner, 2026-10-26).
+  Measured with Chrome long tasks: none before 2.2 s now; the heavy work runs behind a still
+  screen where only the CSS bar moves.
 - **S01 Boot (mock):** paper screen.
   1. The mark builds.
   2. The name decodes, then `HG-08 · role · city`.
