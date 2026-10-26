@@ -191,12 +191,12 @@ export const FENCES: FenceRun[] = (() => {
 
 /** Sponsor boards on two legs at the far edge of the run-off. */
 const BOARD_WANT: [number, string][] = [
-  [0.3, "HG RACING"],
+  [0.3, "HG-08"],
   [0.355, "LIGHTS OUT"],
   [0.4, "BOX BOX"],
   [0.585, "DRS ZONE"],
   [0.645, "08"],
-  [0.665, "HG RACING"],
+  [0.665, "HG-08"],
   [0.83, "LIGHTS OUT"],
   [0.875, "BOX BOX"],
   [0.94, "08"],

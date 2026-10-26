@@ -2,17 +2,17 @@
 
 import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, CylinderCollider, RigidBody } from "@react-three/rapier";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
 import { heightAt } from "../terrain";
 import { C } from "../palette";
 import { geo, mat, unitBox, unitCyl } from "../models/props/shared";
-import { Label } from "../models/props/Label";
 import { BARRIER_H, compose, farSpot, inSectorScene, nearPlace, nearTree, rng, yawOf } from "./common";
 import { Instances } from "./Instances";
 import { BOARDS, FENCES, FENCE_H, MARSHALS } from "./layoutStreet";
 import { STAND_SPOTS } from "./standSpots";
 import { lensMat } from "./Floodlights";
+import { boardTexture, loadBoardFonts } from "./boardArt";
 
 // ------------------------------------------------------------ painted parts (one draw call)
 
@@ -85,8 +85,11 @@ const PAINT = (() => {
     }
     for (const sx of [-1, 1]) put(sx * (W / 2 + 0.06), R + (ROWS * STEP_H + 0.4) / 2, Z0 - (ROWS * STEP_D) / 2 + 0.1, 0.12, ROWS * STEP_H + 0.4, ROWS * STEP_D + 0.4, WHITE);
     put(0, R + 0.25, Z0 + 0.1, W, 0.5, 0.08, WHITE);
-    put(-W / 2 + 0.6, R + 0.25, Z0 + 0.105, 1.2, 0.5, 0.08, RED);
-    put(0, R + 0.03, Z0 + 0.105, W, 0.03, 0.09, RED);
+    if (!s.label) {
+      // named stands carry a printed board here instead (Boards below)
+      put(-W / 2 + 0.6, R + 0.25, Z0 + 0.105, 1.2, 0.5, 0.08, RED);
+      put(0, R + 0.03, Z0 + 0.105, W, 0.03, 0.09, RED);
+    }
     // cantilever roof
     for (const sx of [-1, 1]) pst(sx * (W / 2 + 0.1), (roofY - R) / 2 + R, backZ + 0.1, 0.14, roofY - R, 0.14, LIGHT);
     put(0, roofY, backZ + 1.2, W + 1, 0.14, 2.8, WHITE, -0.1);
@@ -111,10 +114,8 @@ const PAINT = (() => {
   // ---- sponsor boards on two legs at the edge of the run-off (local +Z faces the road)
   for (const b of BOARDS) {
     const put = placer(paint, b.x, b.z, b.yaw);
-    const face = b.text === "DRS ZONE" ? INK : b.text === "BOX BOX" ? RED : WHITE;
     put(0, BARRIER_H + 0.42, -0.05, 4.2, 0.84, 0.1, CHAR);
-    put(0, BARRIER_H + 0.44, 0.005, 4.04, 0.66, 0.02, face);
-    put(0, BARRIER_H + 0.16, 0.006, 4.04, 0.08, 0.022, face === RED ? WHITE : RED);
+    put(0, BARRIER_H + 0.44, 0.005, 4.04, 0.66, 0.02, WHITE);
     for (const sx of [-1.7, 1.7]) put(sx, (BARRIER_H + 0.1) / 2, -0.08, 0.1, BARRIER_H + 0.1, 0.1, CHAR);
   }
 
@@ -299,6 +300,60 @@ const FLAGS = (() => {
   return { poles, feet, cloth };
 })();
 
+// ------------------------------------------------------------ printed boards
+
+const BOARD_W = 4.04;
+const BOARD_H = 0.66;
+const FASCIA_H = 0.5;
+
+/** "HG-08" and "08" are codes, so they set in mono; words in sans. */
+const parts = (text: string) => text.split("   ").map((t) => ({ text: t, mono: /^(HG-08|08)$/.test(t) }));
+
+const boardPlane = () => geo("street-board-plane", () => new THREE.PlaneGeometry(1, 1));
+
+/**
+ * Sponsor boards and the named stands' fascias: one canvas texture per text, drawn once the
+ * Plex fonts are in. Nothing shows until then (the white face is painted underneath).
+ */
+function Boards() {
+  const [mats, setMats] = useState<Map<string, THREE.MeshStandardMaterial> | null>(null);
+  useEffect(() => {
+    let dead = false;
+    const made = new Map<string, THREE.MeshStandardMaterial>();
+    void loadBoardFonts().then((fonts) => {
+      if (dead) return;
+      const add = (key: string, w: number, h: number) => {
+        if (!made.has(key)) made.set(key, new THREE.MeshStandardMaterial({ map: boardTexture(parts(key), w, h, fonts), roughness: 0.55, metalness: 0.02 }));
+      };
+      for (const b of BOARDS) add(b.text, BOARD_W, BOARD_H);
+      for (const s of STAND_SPOTS) if (s.label) add(`HG-08   ${s.label}`, W, FASCIA_H);
+      setMats(made);
+    });
+    return () => {
+      dead = true;
+      for (const m of made.values()) {
+        m.map?.dispose();
+        m.dispose();
+      }
+    };
+  }, []);
+  if (!mats) return null;
+  return (
+    <>
+      {BOARDS.map((b, i) => (
+        <group key={i} position={[b.x, heightAt(b.x, b.z) + BARRIER_H + 0.44, b.z]} rotation={[0, b.yaw, 0]}>
+          <mesh geometry={boardPlane()} material={mats.get(b.text)} position={[0, 0, 0.02]} scale={[BOARD_W, BOARD_H, 1]} />
+        </group>
+      ))}
+      {STAND_SPOTS.filter((s) => s.label).map((s, i) => (
+        <group key={i} position={[s.x, heightAt(s.x, s.z), s.z]} rotation={[0, s.yaw, 0]}>
+          <mesh geometry={boardPlane()} material={mats.get(`HG-08   ${s.label}`)} position={[0, s.raise + FASCIA_H / 2, Z0 + 0.15]} scale={[W, FASCIA_H, 1]} />
+        </group>
+      ))}
+    </>
+  );
+}
+
 // ------------------------------------------------------------ component
 
 export function Trackside() {
@@ -324,26 +379,7 @@ export function Trackside() {
       <Instances geometry={unitCyl()} material={mat(C.ink, { r: 0.45, m: 0.2 })} batch={FLAGS.feet} shadow={false} />
       <Instances geometry={flagGeo()} material={flagMat} batch={FLAGS.cloth} />
 
-      {/* signage text */}
-      {BOARDS.map((b, i) => (
-        <group key={i} position={[b.x, heightAt(b.x, b.z) + BARRIER_H + 0.44, b.z]} rotation={[0, b.yaw, 0]}>
-          <Label
-            position={[0, 0, 0.03]}
-            fontSize={b.text.length <= 2 ? 0.55 : 0.4}
-            color={b.text === "DRS ZONE" || b.text === "BOX BOX" ? C.white : b.text === "08" ? C.red : C.ink}
-            letterSpacing={0.06}
-          >
-            {b.text}
-          </Label>
-        </group>
-      ))}
-      {STAND_SPOTS.filter((s) => s.label).map((s, i) => (
-        <group key={i} position={[s.x, heightAt(s.x, s.z), s.z]} rotation={[0, s.yaw, 0]}>
-          <Label position={[-W / 2 + 1.5, s.raise + 0.27, Z0 + 0.16]} anchorX="left" fontSize={0.24} color={C.ink} letterSpacing={0.1}>
-            {`HG RACING   ${s.label}`}
-          </Label>
-        </group>
-      ))}
+      <Boards />
 
       <RigidBody type="fixed" colliders={false}>
         {STAND_SPOTS.map((s, i) => {
