@@ -32,7 +32,7 @@ small, verified with headless screenshots, and committed on its own
 | Town | components/world/street/town.ts (placement, `BUILDINGS`), street/Skyline.tsx (renderer) |
 | Waterfront | components/world/waterfront/* (`PROMENADE`, `PIER`, `nearPromenade`) |
 | Contact logos | components/world/social/* (`LINKS`, store `nearLink`) |
-| Trees, bushes (from folio-2025) | components/world/foliage/* (`species.ts` colours), models/props/Tree.tsx, park/bushes.ts, public/vendor/ (MIT: LICENSE.md, NOTICE.md) |
+| Trees, bushes (W10 faceted cypresses and round crowns) | components/world/foliage/* (`species.ts` geometry and colours, `registry.ts` one instanced draw per kind), models/props/Tree.tsx, park/bushes.ts |
 | Opening (start lights, circle, label, sweep) | components/ui/StartLights.tsx, components/world/Reveal.tsx (`RevealPass` is a Pass, before Bloom; `FLOOR`, timings at the top), components/ui/Intro.tsx (click/keys), Experience.tsx (boot colour) |
 | Start spot and the way to the track | components/world/startSpot.ts (`START_SPOT`, `REVEAL_AT`), start.ts, StartGarden.tsx; the sandy path to the pit lane is a garden path (garden/layout.ts `PATHS`) |
 | Park common ground (slab paths, lanterns, benches, fence) | components/world/districts/park.ts |
@@ -452,14 +452,14 @@ grass, orange sand) once approved. Proposals with turntable models: `/docs/brand
       the start sequence (garage select, align, Bloom), powers on Shift. All in docs/BRAND.md.
 - [ ] Swap, model by model. Reference code: app/docs/brand/world/* (models.tsx W02–W10, vehicles.tsx,
       StartSequence.tsx, island.tsx Bloom, powers.tsx). Wave 1 runs in parallel (disjoint files); wave 2 needs 11e.
-  - [ ] a. Palette and ground: retune components/world/palette.ts `C` to Concrete & Ink (keys stay), terrain,
+  - [x] a. (4e549b4, c4cfa8a, b7a707b) Palette and ground: retune components/world/palette.ts `C` to Concrete & Ink (keys stay), terrain,
         grass, water and sand colours; W05 kerbs (ink/paper), the paper edge line, gravel run-off.
         Files: palette.ts, terrain.ts, Island.tsx, Grass.tsx, Water.tsx, street run-off.
-  - [ ] b. Trackside: W03 TecPro blocks replace the tyre walls, W04 concrete wall + ink debris fence (pit wall),
+  - [x] b. (172b8da..28f81ed) Trackside: W03 TecPro blocks replace the tyre walls, W04 concrete wall + ink debris fence (pit wall),
         W06 grandstands, W07 floodlights, W08 start gantry. Files: street/*, PitWallRun.tsx, Embankments.tsx.
   - [ ] c. Buildings: W02 garages (concrete block, glazed bays, thin ink roof), W09 concrete town blocks.
         Files: Places.tsx garages, models/sectors/*, street/Skyline.tsx, street/town.ts, districts/*.
-  - [ ] d. Trees: W10 faceted cypresses and round crowns. Files: foliage/*, models/props/Tree.tsx, Groves.tsx.
+  - [x] d. (75c2a5f, 259b723; palms became cypresses) Trees: W10 faceted cypresses and round crowns. Files: foliage/*, models/props/Tree.tsx, Groves.tsx.
   - [ ] e. Vehicles: the four vehicles (TH-18, E14, Atlas, Apollo) and five liveries drive in the game, each with
         its own handling; models move to components/world/vehicles/ and the docs page imports them from there.
         Replaces models/Car.tsx (and its Racero use). Files: models/Car.tsx, liveries.ts, Vehicle.tsx, store.ts.
@@ -469,3 +469,7 @@ grass, orange sand) once approved. Proposals with turntable models: `/docs/brand
         physics. In the game the vehicle keeps going from where the power leaves it (no reset to the grid).
   - [ ] h. Night lighting rework (owner flagged it on the proposal).
   - [ ] i. Racero leftovers (Timeline.tsx, models/Avatar.tsx, models/props/Label.tsx) move to IBM Plex.
+  - [ ] j. Sweep: everything not covered above follows the design language too (owner, 2026-10-26: design
+        what the proposal lacks). Harbour, waterfront, park islands and slabs, garden (beds, hedges, flowers),
+        StartGarden, timeline stones, contact logos, name letters, knock-about props, alive/* (birds, confetti,
+        leaves), people, pit road paint.
