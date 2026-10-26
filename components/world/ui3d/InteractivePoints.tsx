@@ -1,7 +1,7 @@
 "use client";
 
 // The interaction prompt, ported from folio-2025 (MIT, public/vendor/LICENSE.md),
-// sources/Game/InteractivePoints.js, in the HUD's pit wall colours (docs/DESIGN.md).
+// sources/Game/InteractivePoints.js, as the brand's zone sticker (docs/BRAND.md I08).
 //
 // Every place and contact medallion has a point standing in the world with the
 // original's fixed tilt (it faces our chase camera, which sits at the same angle as the
@@ -10,8 +10,9 @@
 // with an elastic overshoot, the E key pops in and the label slides out of the diamond,
 // all drawn on top. Leaving conceals it again. E / Enter (Hud.tsx) or a click opens it.
 //
-// The diamond is the original's square SDF with an inner outline; the label is a canvas
-// texture (Geist Mono on ink) revealed by a moving UV offset. Built imperatively under
+// The marker is the original's square SDF with an inner outline, kept square (no diamond):
+// an ink square with a paper line, the E key on it. The label is a canvas texture (Plex
+// Sans, ink on white, the place's name as written) revealed by a moving UV offset. Built imperatively under
 // one group so every material is mutated through refs, never through hook values.
 import { useEffect, useRef } from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
@@ -27,8 +28,9 @@ const CONCEALED = 1;
 const OPEN = 2;
 
 const SCALE = 1.15; // the original's 0.85, for our bigger car and props
-const BACK = new THREE.Color("#1f2133");
-const FRONT = new THREE.Color("#fff8ec");
+const BACK = new THREE.Color("#111111"); // ink
+const FRONT = new THREE.Color("#f3f2ed"); // paper
+const LABEL_BACK = new THREE.Color("#ffffff");
 
 // gsap's eases
 const back = (s: number) => (t: number) => (s + 1) * t ** 3 - s * t ** 2;
@@ -100,18 +102,15 @@ void main() {
 }
 `;
 
-function monoFamily() {
-  return getComputedStyle(document.documentElement).getPropertyValue("--font-geist-mono").trim() || "ui-monospace, monospace";
-}
+const fontVar = (v: string, fallback: string) => getComputedStyle(document.documentElement).getPropertyValue(v).trim() || fallback;
 
-/** The label: mono caps, cream on black (the shader maps black to ink), room for the diamond on the left. */
+/** The label: the name in Plex Sans (white where text, the shader maps it to ink on white), room for the marker on the left. */
 function labelTexture(text: string, family: string) {
   const h = 64;
   const font = `600 40px ${family}`;
   const c = document.createElement("canvas");
   const g = c.getContext("2d")!;
   g.font = font;
-  g.letterSpacing = "5px";
   const padL = 62;
   const padR = 22;
   c.width = Math.ceil(g.measureText(text).width) + padL + padR;
@@ -119,7 +118,6 @@ function labelTexture(text: string, family: string) {
   g.fillStyle = "#000";
   g.fillRect(0, 0, c.width, h);
   g.font = font;
-  g.letterSpacing = "5px";
   g.fillStyle = "#fff";
   g.textBaseline = "middle";
   g.fillText(text, padL, h / 2 + 2);
@@ -169,11 +167,12 @@ export default function InteractivePoints() {
     const labelGeo = new THREE.PlaneGeometry(1, 1);
     labelGeo.translate(0.5, 0, 0);
     const owned: { dispose: () => void }[] = [plane, labelGeo];
-    const family = monoFamily();
-    // canvas text needs the web font loaded first
-    void document.fonts.load(`600 40px ${family}`).finally(() => {
+    const sans = fontVar("--font-plex", "system-ui, sans-serif");
+    const mono = fontVar("--font-plex-mono", "ui-monospace, monospace");
+    // canvas text needs the web fonts loaded first
+    void Promise.all([document.fonts.load(`600 40px ${sans}`), document.fonts.load(`700 52px ${mono}`)]).finally(() => {
       if (disposed) return;
-      const keyTex = keyTexture(family);
+      const keyTex = keyTexture(mono);
       owned.push(keyTex);
       for (const p of points()) {
         const group = new THREE.Group();
@@ -184,11 +183,11 @@ export default function InteractivePoints() {
         group.scale.setScalar(SCALE);
         group.userData.id = p.id;
 
-        const { t, aspect } = labelTexture(p.label.toUpperCase(), family);
+        const { t, aspect } = labelTexture(p.label, sans);
         const labelMat = new THREE.ShaderMaterial({
           vertexShader,
           fragmentShader: labelFrag,
-          uniforms: { uMap: { value: t }, uOffset: { value: 1 }, uBack: { value: BACK }, uFront: { value: FRONT } },
+          uniforms: { uMap: { value: t }, uOffset: { value: 1 }, uBack: { value: LABEL_BACK }, uFront: { value: BACK } },
         });
         const label = new THREE.Mesh(labelGeo, labelMat);
         label.renderOrder = 6;
@@ -202,7 +201,6 @@ export default function InteractivePoints() {
         });
         const diamond = new THREE.Mesh(plane, diamondMat);
         diamond.renderOrder = 7;
-        diamond.rotation.z = Math.PI * 0.25;
 
         const keyMat = new THREE.ShaderMaterial({
           vertexShader,

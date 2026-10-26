@@ -436,7 +436,7 @@ to ink on hover, one scan line on a panel's first open. `prefers-reduced-motion`
 - [ ] Remove the old `hud-*`, `r-*`, `map-pin*`, `start-*` CSS, Racero and the `--font-geist*` aliases once nothing uses them.
 - [x] (59526e3) Boot S01: components/ui/Boot.tsx replaces StartLights; paper floor with an ink dot grid, orange reveal ring; the start label is a sticker with the key.
 - [x] (bcf5046) HUD S02 (Hud.tsx): tabs top right, the `Sheet` frame every place opens in, toast, hints, speed, Controls and Settings modals, touch stick and pedals.
-- [ ] Interact prompt in the world (ui3d/InteractivePoints.tsx canvas label): the zone sticker.
+- [x] (PROMPT) Interact prompt in the world (ui3d/InteractivePoints.tsx): an ink square marker (no diamond) with the E key, the label ink Plex on white.
 - [x] (bcf5046) Garage S03: GarageSheet shows `DsCard` (container-aware, prev/next within the garage); place bodies in Panels.tsx rewritten (roles as rows, papers and patents as coded rows, compounds as code squares, contact as rows).
 - [x] (77cd8be) Overlays: RadioMessages (radio panel), Ask (I06), FitPanel and LapChip, AutopilotHud. EasterEggs only toasts. Deleted dead Section.tsx, ui/Reveal.tsx, RaceHud.tsx.
 - [x] (77cd8be) Map S04: components/brand/TacticalMap.tsx, live car, objective = nearest unopened place, pins wipe there; side panel with position, places, achievements. MapCapture (top-down render) deleted.
