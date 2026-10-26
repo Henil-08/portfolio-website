@@ -3,8 +3,8 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 
-// The intro floor colour (world/Reveal.tsx FLOOR): painted before the canvas exists, so the page never jumps.
-const FLOOR = "#f3f2ed"; // the boot floor, paper (world/Reveal.tsx)
+// The boot's dotted floor colour (components/ui/Boot.tsx): painted before the canvas exists, so the page never jumps.
+const FLOOR = "#ebe9e3";
 
 // How long the boot's own animation runs (components/ui/Boot.tsx: the mark, then the name and
 // part line decoding). The world waits for it: importing and building the world blocks the main

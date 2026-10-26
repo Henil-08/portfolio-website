@@ -1,6 +1,6 @@
 "use client";
 
-import { IntroLabel, RevealDriver, RevealPass } from "./Reveal";
+import { Opening } from "./bloom/Opening";
 import { Suspense, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Physics, useRapier } from "@react-three/rapier";
@@ -65,8 +65,8 @@ export default function World() {
         </Physics>
       </Suspense>
       <CameraRig />
-      <RevealDriver />
-      <IntroLabel />
+      {/* the start sequence: after the rig, so its camera wins until the chase camera takes over */}
+      <Opening />
       <ZoneWatcher />
       <InteractivePoints />
       <Weather />
@@ -77,18 +77,10 @@ export default function World() {
       <Autopilot />
       <EnvLight />
       <Overlay />
-      {/* The light version still gets the opening reveal, then drops the composer. */}
-      {!fancy && !revealed && (
-        <EffectComposer multisampling={0} enableNormalPass={false}>
-          <RevealPass />
-          <Bloom luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0.55} mipmapBlur />
-        </EffectComposer>
-      )}
       {fancy && (
         <EffectComposer multisampling={0} enableNormalPass={false}>
           <N8AO halfRes aoRadius={1.6} intensity={1.6} distanceFalloff={0.7} color="#151515" />
           {/* Only emissives pushed past 1.0 bloom (lamps, windows, garage headers, neon). */}
-          <RevealPass />
           <Bloom luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0.55} mipmapBlur />
           <SMAA />
           <Vignette offset={0.3} darkness={0.28} />

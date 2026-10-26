@@ -2,5 +2,3 @@
 
 /** [x, z, heading]: in front of the name, on the garden path that leads to the circuit, facing along it. */
 export const START_SPOT: [number, number, number] = [16, 3.1, -0.02];
-/** Centre of the opening circle: the car, nudged toward the shade tree. */
-export const REVEAL_AT: [number, number] = [14.6, 2.6];

@@ -1,6 +1,5 @@
 "use client";
 
-import { reveal } from "./Reveal";
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { updateSeeThrough } from "./seeThrough";
@@ -58,7 +57,7 @@ export function CameraRig() {
     // Pull back a little at speed.
     const spd = Math.hypot(target.current.x - prev.current.x, target.current.z - prev.current.y) / Math.max(dt, 1e-4);
     zoomS.current += (THREE.MathUtils.smoothstep(spd, 5, 30) * 0.22 - zoomS.current) * k1;
-    const followPos = tmp.copy(OFFSET).multiplyScalar(zoom * (1 + zoomS.current) * reveal.zoom).add(target.current);
+    const followPos = tmp.copy(OFFSET).multiplyScalar(zoom * (1 + zoomS.current)).add(target.current);
 
     // Dev and headless checks: window.__cam = [x, y, z, tx, ty, tz] pins the camera.
     const dbg = (window as unknown as { __cam?: number[] }).__cam;
@@ -69,8 +68,8 @@ export function CameraRig() {
     }
 
     if (phase !== "world") {
-      // Start screen, like the original's: the chase camera's angle, pulled in close on
-      // the car inside the reveal circle (Reveal.tsx eases the zoom back on start).
+      // The opening (bloom/Opening.tsx) drives the camera after this; the chase pose is kept
+      // up to date here so the hand-over when driving starts is the same frame.
       target.current.set(carState.pos.x, carState.pos.y - 0.3, carState.pos.z);
       camera.position.copy(followPos);
       camera.lookAt(target.current);
