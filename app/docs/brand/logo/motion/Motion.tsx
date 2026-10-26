@@ -33,6 +33,10 @@ const CSS = `
 @keyframes lm-type{from{opacity:0}to{opacity:1}}
 @keyframes lm-caret{0%{transform:translateX(-38px)}40%{transform:translateX(-20px)}75%,100%{transform:none}}
 @keyframes lm-blink{50%{opacity:0}}
+[data-motion] .lm-trace{animation:lm-trace .5s cubic-bezier(.6,0,.2,1) var(--d,0ms) both}
+[data-motion] .lm-slice{transform-origin:top;animation:lm-slice .55s cubic-bezier(.6,0,.2,1) var(--d,0ms) both}
+@keyframes lm-trace{0%{stroke-dasharray:1;stroke-dashoffset:1;opacity:1}55%{stroke-dasharray:1;stroke-dashoffset:0;opacity:1}100%{stroke-dasharray:1;stroke-dashoffset:0;opacity:0}}
+@keyframes lm-slice{0%{transform:scaleY(0);opacity:1}45%{transform:none;opacity:1}70%{opacity:1}100%{transform:none;opacity:0}}
 @media (prefers-reduced-motion:reduce){[data-motion] .lm{animation:none!important}}
 `;
 
@@ -56,6 +60,44 @@ const Attention: Mark = ({ s, fg }) => (
         ),
       ),
     )}
+  </svg>
+);
+
+const cellXY = (r: number, c: number) => ({ x: 4 + c * 14.5, y: 4 + r * 14.5, width: 12.5, height: 12.5 });
+
+/** L10 · A: L9's steps, cell by cell. Each outline traces, the cell fills from the left, then the orange flickers on. */
+const AttentionDraw: Mark = ({ s, fg }) => (
+  <svg width={s} height={s} viewBox="0 0 64 64" aria-hidden>
+    {ATT.flatMap((row, r) =>
+      row.map((w, c) => {
+        const at = (r + c) * 45;
+        if (w < 0) return <rect key={`${r}${c}`} className="lm lm-flick" style={d(560)} {...cellXY(r, c)} fill={ORANGE} />;
+        return (
+          <g key={`${r}${c}`}>
+            {/* the outline is only there while it draws, then it fades */}
+            <rect className="lm lm-trace" style={d(at)} pathLength={1} {...cellXY(r, c)} fill="none" stroke={fg} strokeWidth="1.4" opacity={0} />
+            <rect className="lm lm-fill" style={d(at + 170)} {...cellXY(r, c)} fill={fg} opacity={w} />
+          </g>
+        );
+      }),
+    )}
+  </svg>
+);
+
+/** L10 · B: rows fill from the left like L9's G box, then an orange boundary cuts down and becomes the cell. */
+const AttentionSlice: Mark = ({ s, fg }) => (
+  <svg width={s} height={s} viewBox="0 0 64 64" aria-hidden>
+    {ATT.flatMap((row, r) =>
+      row.map((w, c) =>
+        w < 0 ? (
+          <rect key={`${r}${c}`} className="lm lm-hit" style={d(600)} {...cellXY(r, c)} fill={ORANGE} />
+        ) : (
+          <rect key={`${r}${c}`} className="lm lm-fill" style={d(r * 70 + c * 30)} {...cellXY(r, c)} fill={fg} opacity={w} />
+        ),
+      ),
+    )}
+    {/* the boundary between the third and fourth columns, gone once the cell lands */}
+    <rect className="lm lm-slice" style={d(380)} x={4 + 3 * 14.5 - 1.75 - 1} y="2" width="2" height="60" fill={ORANGE} opacity={0} />
   </svg>
 );
 
@@ -126,6 +168,8 @@ const Cursor: Mark = ({ s, fg }) => (
 );
 
 const MARKS: { id: string; name: string; mark: Mark; motion: string; kept?: boolean }[] = [
+  { id: "L10 · A", name: "Draw and fill", mark: AttentionDraw, kept: true, motion: "L10's look with L9's motion, cell by cell: each outline traces itself, the cell fills from the left to its weight, the outline fades, then the orange cell flickers on. About 0.8 s." },
+  { id: "L10 · B", name: "Slice", mark: AttentionSlice, kept: true, motion: "L10's look with L9's motion, row by row: rows fill from the left like L9's G box, an orange boundary cuts down between the columns like L9's, then it collapses into the orange cell. About 0.9 s." },
   { id: "L10", name: "Attention", mark: Attention, kept: true, motion: "Cells sweep in diagonally, each to its own weight, and the orange cell lands with a small overshoot. About half a second, then it holds still." },
   { id: "L10b", name: "Attention · HG", mark: AttentionHG, motion: "A bigger map where the strongest cells spell HG in pixels. The faint weights sweep in first, the letter cells take the weight left to right, then the orange cell (the G's spur) lands. About 0.6 s." },
   { id: "L9", name: "Tokens", mark: Tokens, motion: "The H box draws its outline, the G box fills from the left, both letters flicker on, then the orange boundary cuts down between them. Then it holds still." },
@@ -180,7 +224,7 @@ export default function Motion() {
               <div className="flex flex-wrap items-baseline gap-3 border-b-2 border-[#111] px-5 py-3">
                 <span className={`${mono} text-[13px] text-[#ff4f00]`}>{id}</span>
                 <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em]">{name}</h2>
-                {kept && <span className={`${mono} ml-auto bg-[#111] px-2 py-0.5 text-[11px] text-white`}>Kept</span>}
+                {kept && <span className={`${mono} ml-auto bg-[#111] px-2 py-0.5 text-[11px] text-white`}>{id.includes("·") ? "New" : "Kept"}</span>}
               </div>
               <div className="grid grid-cols-2 lg:grid-cols-4">
                 <Tile label="Still">
