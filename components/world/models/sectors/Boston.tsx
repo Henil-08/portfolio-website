@@ -14,9 +14,9 @@
 
 import { RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
-import { C } from "../../palette";
+import { CI } from "../../buildings/concrete";
 import { geo, mat, unitBox, unitCyl, unitSphere, type GroupProps } from "../props/shared";
-import { Inst, at, brickMat, dome, mBox, mix, type T9 } from "./kit";
+import { Inst, at, dome, mBox, type T9 } from "./kit";
 
 const ZF = -3.6; // street facade line
 const HD = 5.4; // building depth
@@ -25,14 +25,15 @@ const FL = 2.6; // storey height
 const HH = BASE + FL * 3; // 9.1 house eaves
 const HW = 4.2; // house width
 const HOUSES = [
-  { x: -10.8, color: mix(C.red, C.woodDark, 0.5), brick: true, bow: false },
-  { x: -6.6, color: mix(C.woodDark, C.wood, 0.25), brick: false, bow: true },
-  { x: -2.4, color: mix(mix(C.red, C.wood, 0.5), C.greyDark, 0.12), brick: true, bow: false },
+  // Concrete & Ink: the row in three concrete tones, the bays and stoops keep it Boston
+  { x: -10.8, color: "#cfccc4", bow: false },
+  { x: -6.6, color: CI.concreteDark, bow: true },
+  { x: -2.4, color: CI.concrete, bow: false },
 ];
 const BAY_DX = -0.75; // bay centre offset within the house
 const DOOR_DX = 1.3;
 const BAY_R = 1.2;
-const SNOW = mix(C.white, C.blue, 0.06);
+const SNOW = CI.paper;
 
 /** Half-cylinder bay (from -X round through +Z to +X), metre UVs for brick. */
 function bayGeo(seg: number) {
@@ -178,27 +179,27 @@ const BENCH_IRON: T9[] = [-0.75, 0.75].flatMap((x) => [
   [x, 0.44, -0.04, 0.05, 0.05, 0.5] as T9,
 ]);
 
-/** Sector 3: Boston brownstone row with bay windows and stoops, a columned red-brick college hall with a clock cupola, lamps, bench and snow. Faces +Z. */
+/** Sector 3: Boston brownstone row with bay windows and stoops, a columned concrete college hall with a clock cupola, in Concrete & Ink, lamps, bench and snow. Faces +Z. */
 export function BostonSector(props: GroupProps) {
-  const cream = mat(C.cream, { r: 0.5 });
-  const white = mat(C.white, { r: 0.35 });
-  const iron = mat(C.black, { r: 0.4, m: 0.4 });
-  const ink = mat(C.ink, { r: 0.3, m: 0.1 });
-  const glass = mat("#26333a", { r: 0.08, m: 0.4 });
+  const cream = mat(CI.paper, { r: 0.6 });
+  const white = mat(CI.paper, { r: 0.6 });
+  const iron = mat(CI.ink, { r: 0.45, m: 0.3 });
+  const ink = mat(CI.ink, { r: 0.5, m: 0.1 });
+  const glass = mat(CI.glass, { r: 0.15, m: 0.4 });
   const snow = mat(SNOW, { r: 0.65 });
-  const stoopStone = mat(mix(C.woodDark, C.wood, 0.3), { r: 0.7 });
+  const stoopStone = mat(CI.graphite, { r: 0.8 });
   const warm = mat("#ffe7bf", { glow: 1.8 });
-  const collegeBrick = brickMat(mix(C.red, C.woodDark, 0.42), 0.8);
+  const hall = mat(CI.concrete, { r: 0.92 });
   return (
     <group {...props}>
-      {/* granite base, red-brick sidewalk, kerb */}
-      <RoundedBox args={[25.6, 0.06, 8.6]} radius={0.025} smoothness={2} position={[0, 0.03, -4.7]} material={mat(C.greyLight, { r: 0.85 })} receiveShadow />
-      <mesh geometry={mBox(25.4, 0.04, 2.9)} position={[0, 0.07, -2.1]} material={brickMat(mix(C.red, C.sand, 0.5), 0.9)} receiveShadow />
-      <mesh geometry={unitBox()} scale={[25.6, 0.16, 0.26]} position={[0, 0.08, -0.62]} material={mat(C.grey, { r: 0.7 })} castShadow receiveShadow />
+      {/* concrete base, sidewalk, kerb */}
+      <mesh geometry={unitBox()} scale={[25.6, 0.06, 8.6]} position={[0, 0.03, -4.7]} material={mat(CI.concreteDark, { r: 0.95 })} receiveShadow />
+      <mesh geometry={unitBox()} scale={[25.4, 0.04, 2.9]} position={[0, 0.07, -2.1]} material={mat("#cdc9bf", { r: 0.95 })} receiveShadow />
+      <mesh geometry={unitBox()} scale={[25.6, 0.16, 0.26]} position={[0, 0.08, -0.62]} material={mat(CI.concreteDark, { r: 0.9 })} castShadow receiveShadow />
 
       {/* ===== brownstone row ===== */}
-      {HOUSES.map(({ x, color, brick, bow }) => {
-        const wall = brick ? brickMat(color, 0.8) : mat(color, { r: 0.75 });
+      {HOUSES.map(({ x, color, bow }) => {
+        const wall = mat(color, { r: 0.92 });
         return (
           <group key={x}>
             <mesh geometry={mBox(HW, HH, HD)} position={[x, HH / 2, ZF - HD / 2]} material={wall} castShadow receiveShadow />
@@ -207,8 +208,8 @@ export function BostonSector(props: GroupProps) {
             <mesh geometry={unitBox()} scale={[HW, BASE, 0.08]} position={[x, BASE / 2, ZF + 0.04]} material={stoopStone} receiveShadow />
             <mesh geometry={unitBox()} scale={[1.5, 0.7, 0.04]} position={[x + DOOR_DX - 0.05, 0.6, ZF + 0.1]} material={glass} />
             {/* cornice, frieze, parapet, roof snow */}
-            <mesh geometry={unitBox()} scale={[HW + 0.04, 0.5, 0.2]} position={[x, HH + 0.05, ZF + 0.05]} material={brick ? cream : mat(C.woodDark, { r: 0.55 })} castShadow />
-            <mesh geometry={unitBox()} scale={[HW + 0.1, 0.16, 0.6]} position={[x, HH + 0.36, ZF + 0.12]} material={brick ? cream : mat(C.woodDark, { r: 0.55 })} castShadow receiveShadow />
+            <mesh geometry={unitBox()} scale={[HW + 0.04, 0.5, 0.2]} position={[x, HH + 0.05, ZF + 0.05]} material={cream} castShadow />
+            <mesh geometry={unitBox()} scale={[HW + 0.1, 0.16, 0.6]} position={[x, HH + 0.36, ZF + 0.12]} material={cream} castShadow receiveShadow />
             <RoundedBox args={[HW - 0.08, 0.16, HD - 0.1]} radius={0.06} smoothness={3} position={[x, HH + 0.1, ZF - HD / 2 - 0.05]} material={snow} castShadow receiveShadow />
             <mesh geometry={unitBox()} scale={[HW - 0.04, 0.14, 0.42]} position={[x, HH + 0.5, ZF + 0.12]} material={snow} castShadow />
             <mesh geometry={snowCapGeo()} position={[x + BAY_DX, HH + 0.02, ZF]} material={snow} castShadow />
@@ -222,7 +223,7 @@ export function BostonSector(props: GroupProps) {
       <Inst geometry={unitBox()} material={cream} items={WIN_FRAME} at={HOUSE_WIN_AT} />
       <Inst geometry={unitBox()} material={glass} items={WIN_GLASS} at={HOUSE_WIN_AT} cast={false} />
       <Inst geometry={unitBox()} material={cream} items={WIN_BAR} at={HOUSE_WIN_AT} cast={false} />
-      <Inst geometry={unitBox()} material={mat(mix(C.cream, C.sand, 0.5), { r: 0.6 })} items={WIN_STONE} at={HOUSE_WIN_AT} />
+      <Inst geometry={unitBox()} material={mat(CI.concreteDark, { r: 0.9 })} items={WIN_STONE} at={HOUSE_WIN_AT} />
       <Inst geometry={unitBox()} material={ink} items={DOOR_PANEL} at={DOOR_AT} />
       <Inst geometry={unitBox()} material={cream} items={DOOR_SURROUND} at={DOOR_AT} />
       <Inst geometry={unitBox()} material={glass} items={DOOR_TRANSOM} at={DOOR_AT} cast={false} />
@@ -230,8 +231,8 @@ export function BostonSector(props: GroupProps) {
       <Inst geometry={unitCyl()} material={iron} items={STOOP_RAILS} at={STOOP_AT} />
 
       {/* ===== college hall ===== */}
-      <mesh geometry={mBox(CW, CH, HD)} position={[CX, CH / 2, ZF - HD / 2]} material={collegeBrick} castShadow receiveShadow />
-      <mesh geometry={unitBox()} scale={[CW + 0.1, 0.7, HD + 0.1]} position={[CX, 0.35, ZF - HD / 2]} material={mat(C.greyLight, { r: 0.7 })} castShadow receiveShadow />
+      <mesh geometry={mBox(CW, CH, HD)} position={[CX, CH / 2, ZF - HD / 2]} material={hall} castShadow receiveShadow />
+      <mesh geometry={unitBox()} scale={[CW + 0.1, 0.7, HD + 0.1]} position={[CX, 0.35, ZF - HD / 2]} material={mat(CI.concreteDark, { r: 0.9 })} castShadow receiveShadow />
       <mesh geometry={unitBox()} scale={[CW + 0.3, 0.45, HD + 0.3]} position={[CX, CH + 0.1, ZF - HD / 2]} material={white} castShadow receiveShadow />
       <mesh geometry={unitBox()} scale={[CW + 0.1, 0.12, 0.1]} position={[CX, 3.62, ZF + 0.03]} material={white} />
       <RoundedBox args={[CW, 0.14, HD]} radius={0.06} smoothness={3} position={[CX, CH + 0.38, ZF - HD / 2]} material={snow} receiveShadow />
@@ -240,7 +241,7 @@ export function BostonSector(props: GroupProps) {
       <Inst geometry={unitBox()} material={white} items={WIN_BAR} at={COL_WIN_AT} cast={false} />
       <Inst geometry={unitBox()} material={white} items={WIN_STONE} at={COL_WIN_AT} />
       {/* portico */}
-      <Inst geometry={unitBox()} material={mat(C.greyLight, { r: 0.6 })} items={PORTICO_STEPS} />
+      <Inst geometry={unitBox()} material={mat(CI.concreteDark, { r: 0.9 })} items={PORTICO_STEPS} />
       <Inst geometry={unitCyl()} material={white} items={COLS} />
       <Inst geometry={unitBox()} material={white} items={COL_CAPS} />
       <mesh geometry={unitBox()} scale={[6.4, 0.65, 2.1]} position={[CX, 6.22, ZF + 1.0]} material={white} castShadow receiveShadow />
@@ -251,16 +252,16 @@ export function BostonSector(props: GroupProps) {
       <group position={[CX, CH + 0.3, ZF - 2.4]}>
         <mesh geometry={unitBox()} scale={[2.4, 2.2, 2.4]} position={[0, 1.1, 0]} material={white} castShadow receiveShadow />
         <mesh geometry={unitBox()} scale={[2.6, 0.18, 2.6]} position={[0, 2.25, 0]} material={white} castShadow />
-        <mesh geometry={unitCyl()} scale={[0.72, 0.05, 0.72]} position={[0, 1.15, 1.22]} rotation={[Math.PI / 2, 0, 0]} material={mat(C.cream, { r: 0.3 })} />
+        <mesh geometry={unitCyl()} scale={[0.72, 0.05, 0.72]} position={[0, 1.15, 1.22]} rotation={[Math.PI / 2, 0, 0]} material={mat(CI.paper, { r: 0.5 })} />
         <mesh geometry={geo("bost-clockring", () => new THREE.TorusGeometry(0.72, 0.05, 8, 40))} position={[0, 1.15, 1.25]} material={ink} />
         <mesh geometry={unitBox()} scale={[0.05, 0.45, 0.02]} position={[0, 1.15 + 0.2, 1.27]} material={ink} />
         <mesh geometry={unitBox()} scale={[0.05, 0.32, 0.02]} position={[0.13, 1.15 - 0.08, 1.27]} rotation={[0, 0, 2.2]} material={ink} />
         <mesh geometry={geo("bost-lantern", () => new THREE.CylinderGeometry(0.85, 0.85, 1.3, 8))} position={[0, 3.0, 0]} material={white} castShadow />
         <Inst geometry={unitBox()} material={glass} items={LANTERN_WIN} cast={false} />
         <mesh geometry={unitCyl()} scale={[0.98, 0.14, 0.98]} position={[0, 3.7, 0]} material={white} castShadow />
-        <mesh geometry={dome()} scale={[0.82, 0.9, 0.82]} position={[0, 3.76, 0]} material={mat(C.green, { r: 0.45, m: 0.2 })} castShadow />
-        <mesh geometry={unitCyl()} scale={[0.04, 0.9, 0.04]} position={[0, 4.95, 0]} material={mat(C.gold, { r: 0.3, m: 0.6 })} />
-        <mesh geometry={unitSphere()} scale={0.1} position={[0, 4.75, 0]} material={mat(C.gold, { r: 0.3, m: 0.6 })} />
+        <mesh geometry={dome()} scale={[0.82, 0.9, 0.82]} position={[0, 3.76, 0]} material={ink} castShadow />
+        <mesh geometry={unitCyl()} scale={[0.04, 0.9, 0.04]} position={[0, 4.95, 0]} material={mat(CI.orange, { r: 0.55 })} />
+        <mesh geometry={unitSphere()} scale={0.1} position={[0, 4.75, 0]} material={mat(CI.orange, { r: 0.55 })} />
       </group>
 
       {/* ===== street ===== */}
@@ -270,11 +271,11 @@ export function BostonSector(props: GroupProps) {
       <Inst geometry={geo("bost-lampcap", () => new THREE.CylinderGeometry(0.05, 0.72, 1, 4))} material={iron} items={LAMP_CAP} at={LAMP_AT} />
       <Inst geometry={unitSphere()} material={iron} items={LAMP_FIN} at={LAMP_AT} />
       <Inst geometry={unitSphere()} material={snow} items={LAMP_SNOW} at={LAMP_AT} cast={false} />
-      <Inst geometry={unitCyl()} material={mat(C.woodDark, { r: 0.7 })} items={TREE_PARTS} at={TREE_AT} />
-      <Inst geometry={unitBox()} material={mat(C.greyDark, { r: 0.8 })} items={PIT} />
+      <Inst geometry={unitCyl()} material={ink} items={TREE_PARTS} at={TREE_AT} />
+      <Inst geometry={unitBox()} material={mat(CI.graphite, { r: 0.85 })} items={PIT} />
       <Inst geometry={unitSphere()} material={snow} items={SNOW_PATCH} />
       <group position={[2.4, 0.06, -1.4]}>
-        <Inst geometry={unitBox()} material={mat(C.wood, { r: 0.6 })} items={BENCH_SLATS} />
+        <Inst geometry={unitBox()} material={mat(CI.concrete, { r: 0.9 })} items={BENCH_SLATS} />
         <Inst geometry={unitBox()} material={iron} items={BENCH_IRON} />
         <mesh geometry={unitBox()} scale={[1.3, 0.04, 0.3]} position={[0.1, 0.5, 0.0]} material={snow} />
       </group>

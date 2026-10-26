@@ -13,12 +13,13 @@
 import { RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import { C } from "../../palette";
+import { CI } from "../../buildings/concrete";
 import { Label } from "../props/Label";
 import { geo, mat, unitBox, unitCyl, unitSphere, type GroupProps } from "../props/shared";
-import { Inst, at, brickMat, mBox, mix, type T9 } from "./kit";
+import { Inst, at, mBox, mix, type T9 } from "./kit";
 
-const BRICK = mix(mix(C.red, C.woodDark, 0.55), C.greyDark, 0.12);
-const GLASS = "#1e2a30";
+// Concrete & Ink: a concrete sawtooth works shed with ink roofs and one orange neon
+const GLASS = CI.glass;
 
 // ---- warehouse ----
 const WX = -7.6;
@@ -131,33 +132,33 @@ const STARS: T9[] = Array.from({ length: 5 }, (_, i) => [-0.36 + i * 0.18, 0.02,
 
 /** Sector 2: converted brick-warehouse startup HQ with neon sign, a pitch-show studio set, table tennis with ball tracking and a giant phone. Faces +Z. */
 export function HyperlabSector(props: GroupProps) {
-  const brick = brickMat(BRICK, 0.8);
-  const steel = mat(C.black, { r: 0.4, m: 0.4 });
+  const brick = mat(CI.concrete, { r: 0.92 });
+  const steel = mat(CI.ink, { r: 0.45, m: 0.3 });
   const glass = mat(GLASS, { r: 0.08, m: 0.4 });
   const ink = mat(C.ink, { r: 0.4, m: 0.1 });
   const gloss = mat(mix(C.charcoal, C.greyDark, 0.35), { r: 0.22, m: 0.15 });
   const white = mat(C.white, { r: 0.25 });
-  const cream = mat(C.cream, { r: 0.45 });
+  const cream = mat(CI.paper, { r: 0.6 });
   const metal = mat(C.metal, { r: 0.3, m: 0.6 });
   const neon = mat(C.red, { glow: 3.2 });
   const warm = mat("#fff2dc", { glow: 2.4 });
   return (
     <group {...props}>
       {/* polished concrete yard */}
-      <RoundedBox args={[25.6, 0.06, 8.6]} radius={0.025} smoothness={2} position={[0, 0.03, -4.7]} material={mat(mix(C.greyLight, C.cream, 0.3), { r: 0.6 })} receiveShadow />
+      <RoundedBox args={[25.6, 0.06, 8.6]} radius={0.025} smoothness={2} position={[0, 0.03, -4.7]} material={mat(CI.concreteDark, { r: 0.95 })} receiveShadow />
 
       {/* ===== warehouse HQ ===== */}
       <mesh geometry={mBox(WW - 0.04, HW, WD - 0.5)} position={[WX, HW / 2, ZF - WD / 2]} material={brick} castShadow receiveShadow />
       <mesh geometry={sawtoothGeo()} position={[WX, 0, ZF]} material={brick} castShadow receiveShadow />
       <mesh geometry={sawtoothGeo()} position={[WX, 0, ZF - WD + 0.3]} material={brick} castShadow receiveShadow />
-      <Inst geometry={unitBox()} material={mat(C.greyDark, { r: 0.45, m: 0.3 })} items={ROOF} />
-      <Inst geometry={unitBox()} material={mat(C.grey, { r: 0.4, m: 0.4 })} items={SEAMS} cast={false} />
+      <Inst geometry={unitBox()} material={mat(CI.ink, { r: 0.55, m: 0.2 })} items={ROOF} />
+      <Inst geometry={unitBox()} material={mat(CI.graphite, { r: 0.6 })} items={SEAMS} cast={false} />
       <Inst geometry={unitBox()} material={glass} items={ROOF_GLASS} />
       {/* black steel factory windows, glazed door, stone sills, plinth */}
       <Inst geometry={unitBox()} material={glass} items={WIN_GLASS} cast={false} />
       <Inst geometry={unitBox()} material={steel} items={WIN_BARS} />
       <Inst geometry={unitBox()} material={cream} items={SILLS} />
-      <mesh geometry={unitBox()} scale={[WW + 0.1, 0.35, 0.1]} position={[WX, 0.17, ZF + 0.05]} material={mat(C.greyDark, { r: 0.7 })} receiveShadow />
+      <mesh geometry={unitBox()} scale={[WW + 0.1, 0.35, 0.1]} position={[WX, 0.17, ZF + 0.05]} material={mat(CI.concreteDark, { r: 0.9 })} receiveShadow />
       {/* canopy over the door */}
       <mesh geometry={unitBox()} scale={[2.9, 0.08, 1.1]} position={[WX, 2.62, ZF + 0.55]} material={steel} castShadow />
       {[-1, 1].map((s) => (
@@ -169,7 +170,7 @@ export function HyperlabSector(props: GroupProps) {
         HYPERLAB
       </Label>
       <mesh geometry={unitBox()} scale={[5.2, 0.03, 0.03]} position={[WX, 3.84, ZF + 0.12]} material={neon} />
-      <Label position={[WX + TW, 5.25, ZF + 0.03]} fontSize={0.16} color={C.cream} letterSpacing={0.3}>
+      <Label position={[WX + TW, 5.25, ZF + 0.03]} fontSize={0.16} color={CI.paper} letterSpacing={0.3}>
         STARTUP HQ · 2022
       </Label>
 
@@ -204,7 +205,7 @@ export function HyperlabSector(props: GroupProps) {
       <Inst geometry={unitCyl()} material={metal} items={CH_STEM} at={CHAIR_AT} />
       <Inst geometry={geo("hyper-seat", () => new THREE.BoxGeometry(1, 1, 1, 1, 1, 1))} material={cream} items={CH_SEAT} at={CHAIR_AT} />
       <Inst geometry={unitBox()} material={cream} items={CH_BACK} at={CHAIR_AT} />
-      <Inst geometry={unitBox()} material={mat(C.woodDark, { r: 0.45 })} items={CH_ARM} at={CHAIR_AT} />
+      <Inst geometry={unitBox()} material={mat(CI.ink, { r: 0.5 })} items={CH_ARM} at={CHAIR_AT} />
       {/* pitch podium, facing the panel */}
       <group position={[POD[0], SH, POD[1]]} rotation={[0, Math.PI, 0]}>
         <RoundedBox args={[0.8, 1.05, 0.5]} radius={0.04} smoothness={2} position={[0, 0.52, 0]} material={white} castShadow receiveShadow />
@@ -220,7 +221,7 @@ export function HyperlabSector(props: GroupProps) {
 
       {/* ===== table tennis with ball tracking ===== */}
       <group position={[TT[0], 0.06, TT[1]]}>
-        <mesh geometry={unitBox()} scale={[2.74, 0.05, 1.525]} position={[0, 0.74, 0]} material={mat(mix(C.blue, C.ink, 0.45), { r: 0.35 })} castShadow receiveShadow />
+        <mesh geometry={unitBox()} scale={[2.74, 0.05, 1.525]} position={[0, 0.74, 0]} material={mat(CI.graphite, { r: 0.5 })} castShadow receiveShadow />
         <Inst geometry={unitBox()} material={mat(C.white, { r: 0.5 })} items={TT_LINES} cast={false} />
         <Inst geometry={unitBox()} material={ink} items={TT_LEGS} />
         <mesh geometry={unitBox()} scale={[0.02, 0.16, 1.7]} position={[0, 0.85, 0]} material={mat(C.white, { r: 0.6, o: 0.75 })} />

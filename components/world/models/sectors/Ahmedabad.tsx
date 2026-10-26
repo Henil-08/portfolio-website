@@ -14,16 +14,18 @@
 import { RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import { C } from "../../palette";
+import { CI } from "../../buildings/concrete";
 import { Cone } from "../props/Cone";
 import { Label } from "../props/Label";
 import { geo, mat, unitBox, unitCyl, unitSphere, type GroupProps } from "../props/shared";
 import { Inst, dome, halfCyl, mix, type T9 } from "./kit";
 
 // ---- palette (derived only from the world palette) ----
-const STONE = mix(C.sand, C.wood, 0.55); // warm Gujarati sandstone
-const STONE_DEEP = mix(C.sand, C.woodDark, 0.5);
-const STONE_SHADE = mix(C.sand, C.woodDark, 0.62);
-const TRIM = C.cream;
+// Concrete & Ink: the arcades and jharokhas keep it Ahmedabad, in concrete and paper
+const STONE = CI.concrete;
+const STONE_DEEP = CI.concreteDark;
+const STONE_SHADE = "#a9a59b";
+const TRIM = CI.paper;
 
 // ---- university block ----
 const BW = 15; // width
@@ -247,21 +249,21 @@ function Mercury(props: GroupProps) {
   );
 }
 
-/** Sector 1: sandstone engineering school with arcade, jharokhas and chhatris; neem courtyard; solar car Mercury at a cone slalom. Faces +Z. */
+/** Sector 1: concrete engineering school with arcade, jharokhas and chhatris; neem courtyard; solar car Mercury at a cone slalom. Faces +Z. */
 export function AhmedabadSector(props: GroupProps) {
   // the upper windows are dark by day and warm at night (shared.ts nightGlow)
-  const litWindows = mat("#2a2622", { e: "#ffc98a", nightGlow: 1.6 });
-  const stone = mat(STONE, { r: 0.7 });
-  const stoneDeep = mat(STONE_DEEP, { r: 0.72 });
-  const shade = mat(STONE_SHADE, { r: 0.8 });
-  const trim = mat(TRIM, { r: 0.55 });
-  const wood = mat(C.woodDark, { r: 0.6 });
-  const dark = mat(mix(C.ink, C.woodDark, 0.25), { r: 0.4, m: 0.1 });
+  const litWindows = mat(CI.glass, { e: "#fff3dc", nightGlow: 1.6 });
+  const stone = mat(STONE, { r: 0.92 });
+  const stoneDeep = mat(STONE_DEEP, { r: 0.92 });
+  const shade = mat(STONE_SHADE, { r: 0.92 });
+  const trim = mat(TRIM, { r: 0.6 });
+  const wood = mat(CI.ink, { r: 0.6 });
+  const dark = mat(CI.ink, { r: 0.5, m: 0.1 });
   return (
     <group {...props}>
       {/* stone forecourt and courtyard paving */}
-      <RoundedBox args={[25.6, 0.06, 8.6]} radius={0.025} smoothness={2} position={[0, 0.03, -4.7]} material={mat(mix(C.sand, C.cream, 0.35), { r: 0.85 })} receiveShadow />
-      <mesh geometry={unitBox()} scale={[10, 0.03, 5.6]} position={[TX, 0.07, -6.0]} material={mat(mix(C.sand, C.wood, 0.2), { r: 0.85 })} receiveShadow />
+      <RoundedBox args={[25.6, 0.06, 8.6]} radius={0.025} smoothness={2} position={[0, 0.03, -4.7]} material={mat(CI.concreteDark, { r: 0.95 })} receiveShadow />
+      <mesh geometry={unitBox()} scale={[10, 0.03, 5.6]} position={[TX, 0.07, -6.0]} material={mat("#cdc9bf", { r: 0.95 })} receiveShadow />
 
       {/* ===== university block ===== */}
       <group position={[BX, 0, 0]}>
@@ -294,9 +296,9 @@ export function AhmedabadSector(props: GroupProps) {
         </Label>
         {/* roof: water tank and a small solar rig, readable from above */}
         <mesh geometry={unitBox()} scale={[BW - 0.4, 0.04, BD - 0.8]} position={[0, HT + 0.2, ZF - BD / 2 - 0.05]} material={stoneDeep} receiveShadow />
-        <RoundedBox args={[1.4, 0.9, 1.2]} radius={0.05} smoothness={2} position={[-3.4, HT + 0.65, ZF - 3.3]} material={mat(C.greyLight, { r: 0.5 })} castShadow receiveShadow />
+        <RoundedBox args={[1.4, 0.9, 1.2]} radius={0.05} smoothness={2} position={[-3.4, HT + 0.65, ZF - 3.3]} material={mat(CI.graphite, { r: 0.7 })} castShadow receiveShadow />
         {[0.8, 2.6].map((x) => (
-          <mesh key={x} geometry={unitBox()} scale={[1.6, 0.05, 1.1]} position={[x, HT + 0.6, ZF - 3.0]} rotation={[0.35, 0, 0]} material={mat(mix(C.blue, C.ink, 0.62), { r: 0.15, m: 0.35 })} castShadow />
+          <mesh key={x} geometry={unitBox()} scale={[1.6, 0.05, 1.1]} position={[x, HT + 0.6, ZF - 3.0]} rotation={[0.35, 0, 0]} material={mat(CI.glass, { r: 0.15, m: 0.4 })} castShadow />
         ))}
       </group>
       <Inst geometry={unitBox()} material={stoneDeep} items={MERLONS} />
@@ -306,14 +308,14 @@ export function AhmedabadSector(props: GroupProps) {
       <Inst geometry={unitBox()} material={stone} items={JH_PANEL} at={JH_AT} />
       <Inst geometry={unitBox()} material={trim} items={JH_POST} at={JH_AT} />
       <Inst geometry={unitBox()} material={trim} items={JH_EAVE} at={JH_AT} />
-      <Inst geometry={halfCyl()} material={stoneDeep} items={JH_ROOF} at={JH_AT} />
+      <Inst geometry={halfCyl()} material={dark} items={JH_ROOF} at={JH_AT} />
       <Inst geometry={unitBox()} material={dark} items={JH_BACK} at={JH_AT} cast={false} />
       {/* chhatris on the roof corners */}
       <Inst geometry={unitBox()} material={stoneDeep} items={CH_BASE} at={CH_AT} />
       <Inst geometry={unitBox()} material={trim} items={CH_POST} at={CH_AT} />
       <Inst geometry={unitBox()} material={trim} items={CH_SLAB} at={CH_AT} />
-      <Inst geometry={dome()} material={stone} items={CH_DOME} at={CH_AT} />
-      <Inst geometry={unitCyl()} material={mat(C.gold, { r: 0.3, m: 0.6 })} items={CH_FIN} at={CH_AT} />
+      <Inst geometry={dome()} material={dark} items={CH_DOME} at={CH_AT} />
+      <Inst geometry={unitCyl()} material={mat(CI.ink, { r: 0.5 })} items={CH_FIN} at={CH_AT} />
 
       {/* ===== courtyard ===== */}
       <mesh geometry={unitBox()} scale={[10.4, 0.8, 0.45]} position={[TX, 0.4, -8.75]} material={stone} castShadow receiveShadow />

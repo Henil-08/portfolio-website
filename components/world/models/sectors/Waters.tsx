@@ -13,6 +13,7 @@ import { RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { C } from "../../palette";
+import { CI } from "../../buildings/concrete";
 import { Label } from "../props/Label";
 import { Tree } from "../props/Tree";
 import { geo, mat, unitBox, unitCyl, unitSphere, type GroupProps } from "../props/shared";
@@ -123,25 +124,25 @@ function Instrument(props: GroupProps) {
   );
 }
 
-/** Sector 4: white-and-glass Waters lab campus with a single blue accent line, a mass-spec instrument on a plinth and the agent-ops (MCP) server sculpture. Faces +Z. */
+/** Sector 4: concrete-and-glass Waters lab campus with a single orange accent line, a mass-spec instrument on a plinth and the agent-ops (MCP) server sculpture. Faces +Z. */
 export function WatersSector(props: GroupProps) {
-  const white = mat(C.white, { r: 0.28 });
+  const white = mat(CI.concrete, { r: 0.9 });
   const glass = mat(GLASS, { r: 0.06, m: 0.45 });
-  const fin = mat(C.white, { r: 0.35 });
+  const fin = mat(CI.paper, { r: 0.6 });
   const ink = mat(C.ink, { r: 0.35, m: 0.1 });
-  const blue = mat(C.blue, { glow: 1.15 });
+  const blue = mat(CI.orange, { glow: 1.15 }); // the one accent line, orange in Concrete & Ink
   const tealGlow = mat(C.teal, { glow: 2.2 });
   const rack = mat(C.charcoal, { r: 0.22, m: 0.2 });
   return (
     <group {...props}>
       {/* pale stone plaza with paving joints */}
-      <RoundedBox args={[25.6, 0.06, 8.6]} radius={0.025} smoothness={2} position={[0, 0.03, -4.7]} material={mat(mix(C.greyLight, C.white, 0.5), { r: 0.7 })} receiveShadow />
+      <RoundedBox args={[25.6, 0.06, 8.6]} radius={0.025} smoothness={2} position={[0, 0.03, -4.7]} material={mat(CI.concreteDark, { r: 0.95 })} receiveShadow />
       {[-9, -4.5, 0, 4.5, 9].map((x) => (
         <mesh key={x} geometry={unitBox()} scale={[0.03, 0.005, 8.4]} position={[x, 0.062, -4.7]} material={mat(C.greyLight, { r: 0.8 })} />
       ))}
 
       {/* ===== campus building ===== */}
-      <RoundedBox args={[BW + 0.4, 0.3, BD + 0.2]} radius={0.04} smoothness={2} position={[BX, 0.15, ZB]} material={mat(C.greyLight, { r: 0.6 })} castShadow receiveShadow />
+      <RoundedBox args={[BW + 0.4, 0.3, BD + 0.2]} radius={0.04} smoothness={2} position={[BX, 0.15, ZB]} material={mat(CI.concreteDark, { r: 0.9 })} castShadow receiveShadow />
       {/* recessed glass lobby */}
       <mesh geometry={unitBox()} scale={[BW - 1.6, L1 - 0.3, BD - 1.4]} position={[BX + 0.6, 0.3 + (L1 - 0.3) / 2, ZB - 0.35 + 0.0]} material={glass} castShadow receiveShadow />
       <Inst geometry={unitBox()} material={fin} items={LOBBY_FINS} />
@@ -161,11 +162,11 @@ export function WatersSector(props: GroupProps) {
       {/* WATERS wordmark, plain type */}
       <mesh geometry={unitPlane()} scale={[3.4, 0.64, 1]} position={[BX + 4.4, 6.75, ZF + 0.012]} material={plainTextMat("WATERS", C.ink, { weight: 600, spacing: 0.22 })} />
       {/* roof: parapet line, plant, green roof */}
-      <mesh geometry={unitBox()} scale={[BW - 2.2, 0.12, BD]} position={[BX + 1.1, L2 + 0.02, ZB]} material={mat(C.greyLight, { r: 0.5 })} receiveShadow />
-      <Inst geometry={unitBox()} material={mat(C.greyLight, { r: 0.4, m: 0.2 })} items={ROOF_PLANT} />
+      <mesh geometry={unitBox()} scale={[BW - 2.2, 0.12, BD]} position={[BX + 1.1, L2 + 0.02, ZB]} material={mat(CI.ink, { r: 0.55 })} receiveShadow />
+      <Inst geometry={unitBox()} material={mat(CI.graphite, { r: 0.7 })} items={ROOF_PLANT} />
       <Inst geometry={unitBox()} material={mat(C.leaf, { r: 0.8 })} items={GREEN_ROOF} />
       {/* front planter with clipped hedges */}
-      <RoundedBox args={[6.6, 0.55, 1.0]} radius={0.04} smoothness={2} position={[-8.8, 0.3, -1.7]} material={mat(C.greyLight, { r: 0.55 })} castShadow receiveShadow />
+      <RoundedBox args={[6.6, 0.55, 1.0]} radius={0.04} smoothness={2} position={[-8.8, 0.3, -1.7]} material={mat(CI.concreteDark, { r: 0.9 })} castShadow receiveShadow />
       <Inst geometry={geo("waters-hedge", () => new RoundedBoxGeometry(1, 1, 1, 3, 0.22))} material={mat(C.leafDark, { r: 0.7 })} items={HEDGE} />
       <Tree variant="round" seed={4} position={[3.3, 0.06, -7.2]} />
 

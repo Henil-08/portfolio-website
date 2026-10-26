@@ -1,5 +1,5 @@
 // Shared building kit for the sector sets: instanced parts, metre-UV boxes,
-// a cached brick texture and plain-type canvas signage. Pure visuals.
+// and plain-type canvas signage. Pure visuals.
 "use client";
 
 import { useLayoutEffect, useMemo, useRef } from "react";
@@ -87,52 +87,6 @@ export function mBox(w: number, h: number, d: number) {
       }
     return g;
   });
-}
-
-let brickTex: THREE.CanvasTexture | null = null;
-/** Greyscale running-bond brick tile, 1.2 m x 0.8 m in metre UV space. Multiplied by the material colour. */
-function brickTexture() {
-  if (brickTex) return brickTex;
-  const c = document.createElement("canvas");
-  c.width = 384;
-  c.height = 256;
-  const g = c.getContext("2d")!;
-  g.fillStyle = "#f2efea";
-  g.fillRect(0, 0, c.width, c.height);
-  const rows = 4;
-  const cols = 3;
-  const bh = c.height / rows;
-  const bw = c.width / cols;
-  const mortar = 5;
-  let s = 7;
-  const rnd = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
-  for (let r = 0; r < rows; r++) {
-    const off = r % 2 ? bw / 2 : 0;
-    for (let k = -1; k < cols + 1; k++) {
-      const v = Math.round(200 + rnd() * 28);
-      g.fillStyle = `rgb(${v},${v - 3},${v - 6})`;
-      g.fillRect(k * bw + off + mortar / 2, r * bh + mortar / 2, bw - mortar, bh - mortar);
-    }
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.repeat.set(1 / 1.2, 1 / 0.8);
-  t.anisotropy = 8;
-  brickTex = t;
-  return t;
-}
-
-const brickMats = new Map<string, THREE.MeshStandardMaterial>();
-/** Satin painted-resin brick: palette colour multiplied by the brick tile. Needs metre UVs (mBox / extrusions). */
-export function brickMat(color: string, r = 0.75) {
-  const key = color + r;
-  let m = brickMats.get(key);
-  if (!m) {
-    m = new THREE.MeshStandardMaterial({ color, roughness: r, metalness: 0, map: brickTexture() });
-    brickMats.set(key, m);
-  }
-  return m;
 }
 
 const textMats = new Map<string, THREE.MeshStandardMaterial>();
