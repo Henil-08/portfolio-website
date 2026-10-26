@@ -4,7 +4,7 @@
 // timing, the micro-interactions as live components, and the real screens (boot, driving
 // HUD, garage, map, resume, 404) built from them. All copy comes from content/*.
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { profile, story } from "@/content/profile";
 import { projects, DOMAINS } from "@/content/projects";
 import { ACHIEVEMENTS } from "@/content/achievements";
@@ -16,7 +16,6 @@ import { DsCard, DsResume } from "@/components/brand/sheets";
 import { DS, pad } from "@/components/brand/tokens";
 import { ATTENTION, Lockup, Mark } from "@/components/brand/mark";
 import Corners from "@/components/brand/Corners";
-import { CURSOR_STYLES, setCursorStyle } from "@/components/brand/Cursor";
 
 /* ------------------------------------------------------------------ page frame */
 
@@ -370,29 +369,12 @@ function Tabs() {
   );
 }
 
-// I09: the small square, with two hover behaviours to pick from. The page never moves; only the
-// cursor changes over clickable things. Picking one sets <html data-cursor-style> and saves it in this browser.
-const subscribeStyle = (fn: () => void) => {
-  const mo = new MutationObserver(fn);
-  mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-cursor-style"] });
-  return () => mo.disconnect();
-};
-const readStyle = () => document.documentElement.dataset.cursorStyle ?? "a";
-
+// I09: the small square. Over anything clickable it becomes one cell of the logo: the outline
+// traces round, then orange fills it from the left. Targets to try it on.
 function CursorLab() {
-  const style = useSyncExternalStore(subscribeStyle, readStyle, () => "a");
-  const i = Math.max(0, CURSOR_STYLES.findIndex((s) => s.id === style));
   return (
     <div data-lab="cursor" className="space-y-5">
-      <div className="relative grid max-w-md grid-cols-2 border-2 border-[#111] bg-white">
-        <span className="absolute inset-y-0 left-0 w-1/2 bg-[#111] transition-transform duration-200 ease-[cubic-bezier(.6,0,.2,1)]" style={{ transform: `translateX(${i * 100}%)` }} />
-        {CURSOR_STYLES.map((s, j) => (
-          <button key={s.id} type="button" aria-pressed={i === j} onClick={() => setCursorStyle(s.id)} className={`font-mono relative px-2 py-2 text-[12px] uppercase tracking-[0.06em] transition-colors ${i === j ? "text-white" : "text-[#111]"}`}>
-            <span className={i === j ? "text-[#ff4f00]" : "text-[#5d5d58]"}>{s.code}</span> · {s.name}
-          </button>
-        ))}
-      </div>
-      <p className="text-[13.5px]">{CURSOR_STYLES[i].line}</p>
+      <p className="text-[13.5px]">Hover any target: the square becomes a logo cell, the outline traces round, the fill wipes in from the left. Press it and the fill turns ink.</p>
       <div className="flex flex-wrap items-center gap-5 text-[14px]">
         <button type="button" className="x-btn x-primary">
           Send <span className="x-arrow">→</span>
@@ -601,7 +583,7 @@ function Interactions() {
             </span>
           </div>
         </Panel>
-        <Panel code="I09" title="Cursor" note="Live on every page. The cursor is the small square; nothing on the page moves. Over anything clickable it either opens into an outline and fills orange (A), or flickers on as an orange square (B). An I-beam over text, DRAG over 3D views. Pick one; it is saved in this browser so you can carry it around the site. Mouse and pen only; touch keeps its own.">
+        <Panel code="I09" title="Cursor" note="Live on every page. The cursor is the small square; nothing on the page moves. Over anything clickable it becomes one 13 px logo cell: the outline traces round, then orange fills it from the left. An I-beam over text, DRAG over 3D views.">
           <CursorLab />
         </Panel>
       </div>

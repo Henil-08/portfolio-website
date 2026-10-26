@@ -775,13 +775,10 @@ export function PowerMeter({ code, powerRef, liveRef }: { code: string; powerRef
           0%
         </span>
       </div>
-      <div className="mx-2 mb-2.5 border-2 border-[#111] bg-[#f3f2ed] p-[2px]">
+      <div className="mx-2 mb-2 mt-1 border-2 border-[#111] bg-[#f3f2ed] p-[2px]">
         <div className="relative h-[8px]">
           <div ref={fill} className="pm-fill absolute inset-y-0 left-0 bg-[#111]" style={{ width: 0 }} />
           <div ref={head} className="absolute inset-y-0 bg-[#ff4f00]" style={{ width: 0, visibility: "hidden" }} />
-          {/* the 10% line: below it Shift does nothing */}
-          <span className="absolute inset-y-0 left-[10%] w-[2px] bg-[#f3f2ed]" />
-          <span className="absolute -bottom-[8px] left-[10%] h-[4px] w-[2px] bg-[#111]" />
         </div>
       </div>
     </div>

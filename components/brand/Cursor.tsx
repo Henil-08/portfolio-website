@@ -2,34 +2,16 @@
 
 // The custom cursor (docs/BRAND.md I09). The page is left alone: only the cursor changes over
 // something clickable. It is the small square (7 px ink, 1 px paper outline) sitting on the
-// pointer with no lag. Two hover behaviours to choose between, picked on
-// <html data-cursor-style="a|b"> (saved in localStorage "hg:cursor-style", default "a"):
-//   A Border and fill   the square opens into a hollow ink outline, then fills orange
-//   B Flicker           the square grows a little and flickers on, settling solid orange
-// Both: a press state, an I-beam over text, DRAG over [data-cursor="drag"], hidden over
-// [data-cursor="none"]. The mode lives on <html data-cursor-mode>; press is a flag on the layer.
-// Mouse and pen only. One rAF loop writes transforms, no React state.
+// pointer with no lag. Over a clickable thing it becomes one cell of the logo, animated the way
+// the mark draws itself: a 13 px outline traces round its edge, then orange fills it from the left
+// (owner's pick, "border and fill"). A press shrinks it and turns the fill ink. An I-beam over
+// text, DRAG over [data-cursor="drag"], hidden over [data-cursor="none"]. The mode lives on
+// <html data-cursor-mode>; press is a flag on the layer. Mouse and pen only. One rAF loop writes
+// transforms, no React state.
 import { useEffect, useRef } from "react";
 
 const TEXT = 'input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, [contenteditable="true"]';
 const CLICK = 'a[href], button:not(:disabled), [role="button"], summary, label[for], select, [data-cursor="hover"]';
-const KEY = "hg:cursor-style";
-
-export const CURSOR_STYLES = [
-  { id: "a", code: "A", name: "Border and fill", line: "Over anything clickable the square opens into an ink outline, then fills orange inside it. Pressing shrinks it and turns the fill ink." },
-  { id: "b", code: "B", name: "Flicker", line: "Over anything clickable the square grows a little and flickers on, then settles as a solid orange square. Pressing flashes it ink." },
-] as const;
-export type CursorStyle = (typeof CURSOR_STYLES)[number]["id"];
-
-const isStyle = (v: unknown): v is CursorStyle => CURSOR_STYLES.some((s) => s.id === v);
-
-/** Switch the cursor style site-wide and remember it in this browser. */
-export function setCursorStyle(id: CursorStyle) {
-  document.documentElement.dataset.cursorStyle = id;
-  try {
-    localStorage.setItem(KEY, id);
-  } catch {}
-}
 
 type Mode = "dot" | "hover" | "text" | "drag" | "hidden";
 
@@ -43,11 +25,9 @@ export default function Cursor() {
     const root = document.documentElement;
     const fx = layer.current;
     root.classList.add("has-cursor");
-    let saved: string | null = null;
     try {
-      saved = localStorage.getItem(KEY);
+      localStorage.removeItem("hg:cursor-style"); // the old A/B preview picker
     } catch {}
-    root.dataset.cursorStyle = isStyle(saved) ? saved : "a";
     const p = { x: -100, y: -100 };
     let mode: Mode = "dot";
     let raf = 0;
@@ -106,15 +86,20 @@ export default function Cursor() {
       flag("down", false);
       root.classList.remove("has-cursor");
       delete root.dataset.cursorMode;
-      delete root.dataset.cursorStyle;
     };
   }, []);
 
   return (
     <div ref={layer} className="cursor-layer" aria-hidden>
       <div ref={pt} className="cur-at">
-        {/* the square; its ::after is the fill */}
+        {/* idle: the square */}
         <div className="cur-sq" />
+        {/* over a clickable: one logo cell, the outline traces round, then the fill wipes from the left */}
+        <svg className="cur-cell" width="17" height="17" viewBox="-2 -2 17 17">
+          <rect className="cur-halo" x="0" y="0" width="13" height="13" />
+          <rect className="cur-fill" x="1.5" y="1.5" width="10" height="10" />
+          <rect className="cur-trace" x="0.75" y="0.75" width="11.5" height="11.5" pathLength={1} />
+        </svg>
         {/* over text: the I-beam */}
         <svg className="cur-ibeam" width="10" height="22" viewBox="-2 -2 10 22">
           <path d="M0 0H6V2H4V16H6V18H0V16H2V2H0Z" />
