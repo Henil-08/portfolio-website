@@ -18,11 +18,9 @@ import {
   CricketPitch,
   Football,
   Gantry,
-  Garage,
   Goal,
   Grandstand,
   Letter,
-  Pedestal,
   PitWall,
   Podium,
   Rock,
@@ -70,11 +68,14 @@ import {
   trackCurve,
   trackPoint,
   zoneById,
+  zones,
   type ZoneId,
 } from "./layout";
 import { cheer, pop } from "./sound";
 import { achieve, getState as getWorld, toast } from "./store";
 import { garagePlinths } from "./garageShots";
+import { PitBuilding, Plinth, pitSolids, type Bay, type PitOpts } from "./buildings/PitBuilding";
+import { CI } from "./buildings/concrete";
 import type { Domain } from "@/content/projects";
 import { heightAt } from "./terrain";
 import { pitAsphalt } from "./Island";
@@ -396,8 +397,17 @@ function Buildings() {
   );
 }
 
-// Pit lane: a pit wall between the lane and the main straight, and one garage
-// per project domain with that domain's projects on plinths inside.
+// The pit building's bays, one per project domain, coded like their zones (Z05…).
+const BAYS: Bay[] = GARAGES.map((g) => ({
+  x: g.x,
+  code: `Z${String(zones.findIndex((z) => z.id === `garage-${g.domain}`) + 1).padStart(2, "0")}`,
+  name: garageLabel[g.domain].toUpperCase(),
+}));
+// a concrete apron in front, as far as the grass mask allows (Grass.tsx)
+const PIT_OPTS: PitOpts = { apron: 1.5 };
+
+// Pit lane: a pit wall between the lane and the main straight, and the pit building
+// with a bay per project domain, that domain's projects on plinths inside.
 function PitLane() {
   const pitY = heightAt((PIT.from + PIT.to) / 2, PIT.z);
   return (
@@ -420,20 +430,17 @@ function PitLane() {
         </RigidBody>
       ))}
 
-      {GARAGES.map((g) => {
-        const plinths = garagePlinths(g.domain);
-        return (
-          <group key={g.domain} position={[g.x, pitY, PIT.garageZ - 1]}>
-            <RigidBody type="fixed" colliders={false}>
-              <Garage title={garageLabel[g.domain].toUpperCase()} />
-              <CuboidCollider args={[4.5, 2.25, 0.15]} position={[0, 2.25, -3.35]} />
-              <CuboidCollider args={[0.15, 2.25, 3.5]} position={[-4.35, 2.25, 0]} />
-              <CuboidCollider args={[0.15, 2.25, 3.5]} position={[4.35, 2.25, 0]} />
-            </RigidBody>
-            <GarageCarousel domain={g.domain} plinths={plinths} />
-          </group>
-        );
-      })}
+      <RigidBody type="fixed" colliders={false} position={[0, pitY, PIT.garageZ - 1]}>
+        <PitBuilding bays={BAYS} opts={PIT_OPTS} />
+        {pitSolids(BAYS, PIT_OPTS).map(([s, c], i) => (
+          <CuboidCollider key={i} args={[s[0] / 2, s[1] / 2, s[2] / 2]} position={c} />
+        ))}
+      </RigidBody>
+      {GARAGES.map((g) => (
+        <group key={g.domain} position={[g.x, pitY, PIT.garageZ - 1]}>
+          <GarageCarousel domain={g.domain} plinths={garagePlinths(g.domain)} />
+        </group>
+      ))}
     </>
   );
 }
@@ -452,7 +459,7 @@ const haloMat = new THREE.ShaderMaterial({
     "uniform float uK; varying vec2 vUv; void main(){ float d = length(vUv - 0.5) * 2.0; float a = pow(max(0.0, 1.0 - d), 2.2) * uK; gl_FragColor = vec4(vec3(1.0, 0.86, 0.72) * a * 1.6, 1.0); }",
 });
 
-const rimMat = new THREE.MeshStandardMaterial({ color: C.red, emissive: new THREE.Color(C.red), emissiveIntensity: 0, toneMapped: false });
+const rimMat = new THREE.MeshStandardMaterial({ color: CI.orange, emissive: new THREE.Color(CI.orange), emissiveIntensity: 0, toneMapped: false });
 const beamMat = new THREE.ShaderMaterial({
   transparent: true,
   depthWrite: false,
@@ -510,9 +517,9 @@ function GarageCarousel({ domain, plinths }: { domain: Domain; plinths: ReturnTy
       {plinths.map(({ project: p, lx: x }) => (
         <group key={p.slug} position={[x, 0, -1.4]}>
           <RigidBody type="fixed" colliders={false}>
-            <CylinderCollider args={[0.5, 0.5]} position={[0, 0.5, 0]} />
+            <CuboidCollider args={[0.5, 0.5, 0.5]} position={[0, 0.5, 0]} />
           </RigidBody>
-          <Pedestal />
+          <Plinth />
         </group>
       ))}
       <mesh ref={halo} position={[plinths[centre].lx, 1.8, -1.7]} material={haloMat} visible={false} renderOrder={3}>
