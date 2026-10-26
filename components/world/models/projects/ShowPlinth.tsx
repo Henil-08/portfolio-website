@@ -1,5 +1,5 @@
 // Showroom plinth for a project object: the 1 m glossy Pedestal plus a curved
-// charcoal name band on its front with the project name in Racero.
+// charcoal name band on its front with the project name in Plex.
 // Put the object on top at y = 1.0 (pass it as children, it is placed there).
 "use client";
 

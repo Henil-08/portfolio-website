@@ -616,16 +616,16 @@ function Signposts() {
     <>
       {(
         [
-          ["playbook", "TYRE WALL", "How I use AI", C.yellow, [0, 0, 4.5]],
-          ["podium", "PODIUM", "Papers and patents", C.purple, [0, 0, 4.5]],
-          ["cricket", "CRICKET", "Off the clock", C.green, [0, 0, 6]],
-          ["football", "FOOTBALL", "Off the clock", C.blue, [-10, 0, 8]],
+          ["playbook", "TYRE WALL", "How I use AI", [0, 0, 4.5]],
+          ["podium", "PODIUM", "Papers and patents", [0, 0, 4.5]],
+          ["cricket", "CRICKET", "Off the clock", [0, 0, 6]],
+          ["football", "FOOTBALL", "Off the clock", [-10, 0, 8]],
         ] as const
-      ).map(([id, t, sub, c, off]) => {
+      ).map(([id, t, sub, off]) => {
         const p = at(id);
         return (
           <group key={id} position={[p[0] + off[0], heightAt(p[0] + off[0], p[2] + off[2]), p[2] + off[2]]} scale={0.7}>
-            <Billboard title={t} subtitle={sub} accent={c} />
+            <Billboard title={t} subtitle={sub} />
           </group>
         );
       })}

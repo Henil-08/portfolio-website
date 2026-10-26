@@ -34,12 +34,12 @@ function ballGeo() {
       const n = a.clone().add(b).add(c).normalize();
       planes.push({ n, d: n.dot(cut(a, b)), pent: false });
     }
-    const g = new THREE.IcosahedronGeometry(BALL_R, 14);
+    const g = new THREE.IcosahedronGeometry(BALL_R, 6); // low enough to read faceted
     const pos = g.getAttribute("position");
     const colors = new Float32Array(pos.count * 3);
-    const black = new THREE.Color(C.charcoal);
-    const white = new THREE.Color(C.white);
-    const seam = new THREE.Color(C.greyLight);
+    const black = new THREE.Color(C.ink);
+    const white = new THREE.Color(C.paper);
+    const seam = new THREE.Color(C.concreteDark);
     const a = new THREE.Vector3();
     const b = new THREE.Vector3();
     const c = new THREE.Vector3();
@@ -74,11 +74,11 @@ function ballGeo() {
   });
 }
 
-/** Classic black and white football, r=0.35, glossy match-ball finish. */
+/** Ink and paper football, r=0.35, faceted, matte. */
 export function Football(props: GroupProps) {
   return (
     <group {...props}>
-      <mesh geometry={ballGeo()} material={mat(C.white, { r: 0.32, vc: true })} castShadow receiveShadow />
+      <mesh geometry={ballGeo()} material={mat("#ffffff", { r: 0.6, vc: true, flat: true })} castShadow receiveShadow />
     </group>
   );
 }

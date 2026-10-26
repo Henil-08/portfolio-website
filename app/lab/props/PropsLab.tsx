@@ -60,38 +60,24 @@ const ENTRIES: Entry[] = [
     r: 2.2,
     el: (
       <>
-        <P.Billboard title="2021" subtitle="The solar car" accent={C.red} index={1} position={[-1.8, 0, 0]} />
-        <P.Billboard title="SIDE QUEST" subtitle="AI for chips" accent={C.teal} position={[1.8, 0, 0]} scale={0.75} />
+        <P.Billboard title="2021" subtitle="The solar car" index={1} position={[-1.8, 0, 0]} />
+        <P.Billboard title="SIDE QUEST" subtitle="AI for chips" position={[1.8, 0, 0]} scale={0.75} />
       </>
     ),
   },
-  { name: "lab", r: 5, el: <P.Lab /> },
   { name: "podium", r: 3, el: <P.Podium /> },
-  { name: "flag", r: 2.4, cy: 2, el: <><P.Flag color={C.red} position={[-0.8, 0, 0]} /><P.Flag color={C.teal} position={[0.8, 0, 0]} speed={1.3} /></> },
+  { name: "flag", r: 2.4, cy: 2, el: <><P.Flag position={[-0.8, 0, 0]} /><P.Flag color={C.ink} position={[0.8, 0, 0]} speed={1.3} /></> },
   { name: "gantry", r: 5.5, el: <P.Gantry lights={3} /> },
   { name: "grandstand", r: 6, el: <P.Grandstand cheer /> },
   { name: "pitwall", r: 3.2, el: <P.PitWall /> },
-  {
-    name: "gadgets",
-    r: 2.6,
-    el: (
-      <>
-        {[P.Phone, P.Laptop, P.Headset, P.Chip].map((G, i) => (
-          <group key={i} position={[-2.4 + i * 1.6, 0, 0]}>
-            <P.Pedestal />
-            <G position={[0, 1.02, 0]} />
-          </group>
-        ))}
-      </>
-    ),
-  },
+  { name: "pedestal", r: 1.6, el: <P.Pedestal /> },
   {
     name: "letters",
     r: 3.6,
     el: (
       <>
         {(["H", "E", "N", "I", "L"] as const).map((ch, i) => (
-          <P.Letter key={ch} char={ch} color={i === 0 ? C.red : C.white} position={[-3.6 + i * 1.8, 0, 0]} />
+          <P.Letter key={ch} char={ch} color={i === 0 ? C.red : C.ink} position={[-3.6 + i * 1.8, 0, 0]} />
         ))}
       </>
     ),

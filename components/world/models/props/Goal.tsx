@@ -19,10 +19,11 @@ const ZF = D / 2;
 const ZB = -D / 2;
 
 function barGeo(len: number) {
-  return geo(`goal-bar-${len}`, () => new THREE.CapsuleGeometry(PR, len, 4, 14));
+  // square steel section, a touch past each end so the corners close
+  return geo(`goal-bar-${len}`, () => new THREE.BoxGeometry(PR * 2, len + PR * 2, PR * 2));
 }
 
-/** Bar between two points (capsule). */
+/** Bar between two points (square section). */
 function Bar({ a, b, m }: { a: THREE.Vector3Tuple; b: THREE.Vector3Tuple; m: THREE.Material }) {
   const va = new THREE.Vector3(...a);
   const vb = new THREE.Vector3(...b);
@@ -77,7 +78,7 @@ function Net() {
     m.instanceMatrix.needsUpdate = true;
   }, [cords]);
   return (
-    <instancedMesh ref={ref} args={[unitBox(), mat(C.white, { r: 0.6 }), cords.length]} castShadow receiveShadow />
+    <instancedMesh ref={ref} args={[unitBox(), mat(C.charcoal, { r: 0.7 }), cords.length]} castShadow receiveShadow />
   );
 }
 
@@ -98,10 +99,10 @@ function sheetGeo() {
   });
 }
 
-/** Football goal: clean white posts, light grey back frame and a fine cord net. Opening faces +Z. */
+/** Football goal, Concrete & Ink: square paper posts, an ink back frame and a fine graphite cord net. Opening faces +Z. */
 export function Goal(props: GroupProps) {
-  const white = mat(C.white, { r: 0.28 });
-  const back = mat(C.greyLight, { r: 0.35, m: 0.2 });
+  const white = mat(C.paper, { r: 0.6 });
+  const back = mat(C.ink, { r: 0.6, m: 0.2 });
   return (
     <group {...props}>
       <Bar a={[-W / 2, 0, ZF]} b={[-W / 2, H, ZF]} m={white} />
@@ -115,9 +116,9 @@ export function Goal(props: GroupProps) {
       <Bar a={[-W / 2, 0.02, ZF]} b={[-W / 2, 0.02, ZB]} m={back} />
       <Bar a={[W / 2, 0.02, ZF]} b={[W / 2, 0.02, ZB]} m={back} />
       <Net />
-      <mesh geometry={sheetGeo()} material={mat(C.white, { o: 0.1, side: THREE.DoubleSide })} />
-      {/* white goal line and six-yard box hint on the grass */}
-      <mesh geometry={unitBox()} scale={[W + 0.4, 0.02, 0.1]} position={[0, 0.01, ZF]} material={mat(C.white, { r: 0.8 })} receiveShadow />
+      <mesh geometry={sheetGeo()} material={mat(C.ink, { o: 0.08, side: THREE.DoubleSide })} />
+      {/* paper goal line on the grass */}
+      <mesh geometry={unitBox()} scale={[W + 0.4, 0.02, 0.1]} position={[0, 0.01, ZF]} material={mat(C.paper, { r: 0.8 })} receiveShadow />
     </group>
   );
 }

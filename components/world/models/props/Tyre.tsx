@@ -9,36 +9,37 @@ import { geo, mat, rng, type GroupProps } from "./shared";
 
 export type Compound = "soft" | "medium" | "hard" | "inter";
 
+// Concrete & Ink, as the UI's compound codes (Panels.tsx): soft is the orange one, hard paper,
+// medium and inter in concrete tones; each also carries its letter in Plex Mono.
 export const COMPOUND_COLOR: Record<Compound, string> = {
-  soft: C.red,
-  medium: C.yellow,
-  hard: C.white,
-  inter: C.green,
+  soft: C.orange,
+  medium: C.concrete,
+  hard: C.paper,
+  inter: C.concreteDark,
 };
 
 export const TYRE_R = 0.45;
 export const TYRE_H = 0.32;
 const R_IN = 0.26;
 
+const SIDES = 16; // faceted, not turned
+
 export function rubberGeo() {
   return geo("tyre-rubber", () => {
-    // Rounded-rectangle cross section, swept around Y: a fat doughnut.
-    const pts: THREE.Vector2[] = [];
-    const cr = 0.075; // outer shoulder radius
-    const ci = 0.03;
-    const arc = (cx: number, cy: number, r: number, a0: number, a1: number) => {
-      for (let i = 0; i <= 6; i++) {
-        const a = a0 + (a1 - a0) * (i / 6);
-        pts.push(new THREE.Vector2(cx + r * Math.cos(a), cy + r * Math.sin(a)));
-      }
-    };
-    // inner bottom -> outer bottom -> outer top -> inner top (counter-clockwise outline)
-    arc(R_IN + ci, ci, ci, Math.PI, Math.PI * 1.5);
-    arc(TYRE_R - cr, cr, cr, -Math.PI / 2, 0);
-    arc(TYRE_R - cr, TYRE_H - cr, cr, 0, Math.PI / 2);
-    arc(R_IN + ci, TYRE_H - ci, ci, Math.PI / 2, Math.PI);
-    pts.push(pts[0].clone());
-    return new THREE.LatheGeometry(pts, 36);
+    // Chamfered rectangular cross section swept round Y: hard shoulders, faceted tread.
+    const c = 0.05;
+    const pts = [
+      [R_IN, 0.015],
+      [R_IN + 0.015, 0],
+      [TYRE_R - c, 0],
+      [TYRE_R, c],
+      [TYRE_R, TYRE_H - c],
+      [TYRE_R - c, TYRE_H],
+      [R_IN + 0.015, TYRE_H],
+      [R_IN, TYRE_H - 0.015],
+      [R_IN, 0.015],
+    ].map(([x, y]) => new THREE.Vector2(x, y));
+    return new THREE.LatheGeometry(pts, SIDES).toNonIndexed();
   });
 }
 
@@ -48,7 +49,7 @@ export function bandGeo() {
   return geo("tyre-band", () => {
     const arc = Math.PI - GAP;
     const parts = [0, Math.PI].map((a0) => {
-      const g = new THREE.RingGeometry(0.33, 0.37, 30, 1, a0 + GAP / 2, arc);
+      const g = new THREE.RingGeometry(0.33, 0.37, 8, 1, a0 + GAP / 2, arc);
       g.rotateX(-Math.PI / 2);
       return g;
     });
@@ -59,7 +60,7 @@ export function bandGeo() {
 
 function lineGeo(r: number, w: number) {
   return geo(`tyre-line-${r}`, () => {
-    const g = new THREE.RingGeometry(r, r + w, 48);
+    const g = new THREE.RingGeometry(r, r + w, SIDES);
     g.rotateX(-Math.PI / 2);
     return g;
   });
@@ -78,7 +79,7 @@ function rimGeo() {
       new THREE.Vector2(0.075, 0.27),
       new THREE.Vector2(0, 0.275),
     ];
-    return new THREE.LatheGeometry(pts, 32);
+    return new THREE.LatheGeometry(pts, SIDES);
   });
 }
 
@@ -96,31 +97,31 @@ function spokeGeo() {
 
 type TyreProps = GroupProps & { compound?: Compound };
 
-const NAME: Record<Compound, string> = { soft: "SOFT", medium: "MEDIUM", hard: "HARD", inter: "INTER" };
+const CODE: Record<Compound, string> = { soft: "S", medium: "M", hard: "H", inter: "I" };
 
-/** Racing tyre lying flat: black rubber, compound-coloured sidewall band, satin wheel. */
+/** Racing tyre lying flat: ink rubber, a sidewall band in its compound's tone, graphite wheel, Plex Mono codes. */
 export function Tyre({ compound = "soft", ...props }: TyreProps) {
-  const band = mat(COMPOUND_COLOR[compound], { r: 0.45 });
+  const band = mat(COMPOUND_COLOR[compound], { r: 0.6 });
   const y = TYRE_H + 0.002;
   return (
     <group {...props}>
-      <mesh geometry={rubberGeo()} material={mat(C.black, { r: 0.78 })} castShadow receiveShadow />
+      <mesh geometry={rubberGeo()} material={mat(C.black, { r: 0.85, flat: true })} castShadow receiveShadow />
       <mesh geometry={bandGeo()} position={[0, y, 0]} material={band} receiveShadow />
       <mesh geometry={lineGeo(0.395, 0.008)} position={[0, y, 0]} material={band} />
-      <mesh geometry={rimGeo()} material={mat(C.greyDark, { r: 0.35, m: 0.45 })} castShadow receiveShadow />
-      <mesh geometry={spokeGeo()} material={mat(C.charcoal, { r: 0.4, m: 0.3 })} castShadow />
-      <mesh geometry={lineGeo(0.03, 0.045)} position={[0, 0.276, 0]} material={mat(C.red, { r: 0.35 })} />
-      {/* lettering in the band gaps, tangential */}
+      <mesh geometry={rimGeo()} material={mat(C.charcoal, { r: 0.5, m: 0.4, flat: true })} castShadow receiveShadow />
+      <mesh geometry={spokeGeo()} material={mat(C.ink, { r: 0.6, m: 0.2 })} castShadow />
+      {/* lettering in the band gaps, tangential: the compound's letter and the car's code */}
       {[0, Math.PI].map((a, i) => (
         <Label
           key={a}
+          mono
           position={[0.35 * Math.cos(a), y + 0.001, -0.35 * Math.sin(a)]}
           rotation={[-Math.PI / 2, 0, a - Math.PI / 2]}
-          fontSize={0.045}
-          color={C.white}
-          letterSpacing={0.06}
+          fontSize={i ? 0.07 : 0.045}
+          color={C.paper}
+          letterSpacing={0.04}
         >
-          {i ? NAME[compound] : "HG"}
+          {i ? CODE[compound] : "HG-08"}
         </Label>
       ))}
     </group>

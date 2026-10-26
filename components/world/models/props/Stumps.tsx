@@ -18,22 +18,22 @@ export const PITCH_STUMPS_Z = 8.8;
 
 function stumpGeo() {
   return geo("stump", () => {
-    // straight post with a domed top and a slightly tucked foot
+    // eight-sided post with a chamfered top and a pointed foot
     const pts = [
       new THREE.Vector2(0, 0),
-      new THREE.Vector2(STUMP_R * 0.75, 0),
+      new THREE.Vector2(STUMP_R * 0.6, 0),
       new THREE.Vector2(STUMP_R, 0.06),
-      new THREE.Vector2(STUMP_R, STUMP_H - 0.03),
-      new THREE.Vector2(STUMP_R * 0.8, STUMP_H - 0.006),
+      new THREE.Vector2(STUMP_R, STUMP_H - 0.02),
+      new THREE.Vector2(STUMP_R * 0.7, STUMP_H),
       new THREE.Vector2(0, STUMP_H),
     ];
-    return new THREE.LatheGeometry(pts, 20);
+    return new THREE.LatheGeometry(pts, 8).toNonIndexed();
   });
 }
 
 function bandGeo(y: number) {
   return geo(`stump-band-${y}`, () => {
-    const g = new THREE.CylinderGeometry(STUMP_R + 0.006, STUMP_R + 0.006, 0.07, 20, 1, true);
+    const g = new THREE.CylinderGeometry(STUMP_R + 0.006, STUMP_R + 0.006, 0.07, 8, 1, true);
     g.translate(0, y, 0);
     return g;
   });
@@ -41,7 +41,7 @@ function bandGeo(y: number) {
 
 function thinBandGeo(y: number) {
   return geo(`stump-thin-${y}`, () => {
-    const g = new THREE.CylinderGeometry(STUMP_R + 0.005, STUMP_R + 0.005, 0.015, 20, 1, true);
+    const g = new THREE.CylinderGeometry(STUMP_R + 0.005, STUMP_R + 0.005, 0.015, 8, 1, true);
     g.translate(0, y, 0);
     return g;
   });
@@ -49,19 +49,17 @@ function thinBandGeo(y: number) {
 
 function bailGeo() {
   return geo("bail", () => {
-    const g = new THREE.CapsuleGeometry(0.03, BAIL_LEN - 0.06, 4, 12);
-    g.rotateZ(Math.PI / 2);
-    return g;
+    return new THREE.BoxGeometry(BAIL_LEN, 0.05, 0.05);
   });
 }
 
-/** A single stump: lacquered off-white with a red sponsor band and a charcoal pin line. */
+/** A single stump: matte paper, eight-sided, one orange band and an ink pin line. */
 export function Stump(props: GroupProps) {
   return (
     <group {...props}>
-      <mesh geometry={stumpGeo()} material={mat(C.cream, { r: 0.35 })} castShadow receiveShadow />
-      <mesh geometry={bandGeo(0.52)} material={mat(C.red, { r: 0.35 })} castShadow />
-      <mesh geometry={thinBandGeo(0.465)} material={mat(C.ink, { r: 0.4 })} />
+      <mesh geometry={stumpGeo()} material={mat(C.paper, { r: 0.6, flat: true })} castShadow receiveShadow />
+      <mesh geometry={bandGeo(0.52)} material={mat(C.orange, { r: 0.55 })} castShadow />
+      <mesh geometry={thinBandGeo(0.465)} material={mat(C.ink, { r: 0.6 })} />
     </group>
   );
 }
@@ -70,7 +68,7 @@ export function Stump(props: GroupProps) {
 export function Bail(props: GroupProps) {
   return (
     <group {...props}>
-      <mesh geometry={bailGeo()} material={mat(C.wood, { r: 0.4 })} castShadow receiveShadow />
+      <mesh geometry={bailGeo()} material={mat(C.ink, { r: 0.6 })} castShadow receiveShadow />
     </group>
   );
 }
@@ -90,7 +88,7 @@ export function Wicket(props: GroupProps) {
 
 const LINE = 0.06;
 
-/** Tan pitch strip, 2.6 x 20 m, with white crease lines at both ends. Long axis is Z. */
+/** Gravel pitch strip, 2.6 x 20 m, with paper crease lines at both ends. Long axis is Z. */
 export function CricketPitch(props: GroupProps) {
   const lines: [number, number, number, number][] = []; // x, z, w, d
   for (const s of [-1, 1]) {
@@ -123,7 +121,7 @@ export function CricketPitch(props: GroupProps) {
           geometry={unitBox()}
           scale={[w, 0.02, d]}
           position={[x, 0.006, z]}
-          material={mat(C.white, { r: 0.6 })}
+          material={mat(C.paper, { r: 0.6 })}
           receiveShadow
         />
       ))}

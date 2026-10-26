@@ -5,16 +5,16 @@
 //   P3 right:  (1.72, 0.3, 0)     1.6 x 0.6 x 1.6
 "use client";
 
-import { RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import { C } from "../../palette";
 import { Label } from "./Label";
 import { geo, mat, unitBox, type GroupProps } from "./shared";
 
+// Cups in brushed steel tones (graphite, concrete, paper); first place is the orange one.
 const STEPS = [
-  { place: 2, x: -1.72, h: 0.85, cup: C.silver },
-  { place: 1, x: 0, h: 1.2, cup: C.gold },
-  { place: 3, x: 1.72, h: 0.6, cup: C.bronze },
+  { place: 2, x: -1.72, h: 0.85, cup: C.concreteDark },
+  { place: 1, x: 0, h: 1.2, cup: C.orange },
+  { place: 3, x: 1.72, h: 0.6, cup: C.charcoal },
 ];
 
 function cupGeo() {
@@ -36,20 +36,20 @@ function cupGeo() {
       [0.19, 0.6],
       [0, 0.55],
     ].map(([x, y]) => new THREE.Vector2(x, y));
-    return new THREE.LatheGeometry(pts, 40);
+    return new THREE.LatheGeometry(pts, 8).toNonIndexed();
   });
 }
 
 function handleGeo() {
-  return geo("trophy-handle-v2", () => new THREE.TorusGeometry(0.09, 0.016, 10, 24, Math.PI));
+  return geo("trophy-handle-v3", () => new THREE.TorusGeometry(0.09, 0.018, 4, 6, Math.PI));
 }
 
-/** Modern trophy, ~0.65 m tall, polished metal on a charcoal block. */
-export function Trophy({ color = C.gold, ...props }: GroupProps & { color?: string }) {
-  const m = mat(color, { r: 0.18, m: 0.65 });
+/** Modern trophy, ~0.65 m tall, a faceted eight-sided cup on an ink block. */
+export function Trophy({ color = C.orange, ...props }: GroupProps & { color?: string }) {
+  const m = mat(color, { r: 0.4, m: 0.3, flat: true });
   return (
     <group {...props}>
-      <RoundedBox args={[0.32, 0.08, 0.32]} radius={0.015} smoothness={2} position={[0, 0.04, 0]} material={mat(C.ink, { r: 0.35, m: 0.1 })} castShadow receiveShadow />
+      <mesh geometry={unitBox()} scale={[0.32, 0.08, 0.32]} position={[0, 0.04, 0]} material={mat(C.ink, { r: 0.6, m: 0.2 })} castShadow receiveShadow />
       <group position={[0, 0.08, 0]}>
         <mesh geometry={cupGeo()} material={m} castShadow receiveShadow />
         {[-1, 1].map((s) => (
@@ -60,20 +60,20 @@ export function Trophy({ color = C.gold, ...props }: GroupProps & { color?: stri
   );
 }
 
-/** F1 podium: glossy white numbered blocks with a red top edge, gold/silver/bronze trophies. */
+/** F1 podium in Concrete & Ink: concrete blocks with ink tops and Plex Mono numbers, the winner's cup the orange one. */
 export function Podium(props: GroupProps) {
-  const white = mat(C.white, { r: 0.25 });
-  const red = mat(C.red, { r: 0.35 });
+  const block = mat(C.concrete, { r: 0.95 });
+  const ink = mat(C.ink, { r: 0.6, m: 0.2 });
   return (
     <group {...props}>
-      {/* charcoal base plate */}
-      <RoundedBox args={[5.4, 0.08, 1.9]} radius={0.02} smoothness={2} position={[0, 0.04, 0]} material={mat(C.ink, { r: 0.45, m: 0.1 })} receiveShadow castShadow />
+      {/* ink base plate */}
+      <mesh geometry={unitBox()} scale={[5.4, 0.08, 1.9]} position={[0, 0.04, 0]} material={ink} receiveShadow castShadow />
       {STEPS.map((s) => (
         <group key={s.place} position={[s.x, 0, 0]}>
-          <RoundedBox args={[1.6, s.h, 1.6]} radius={0.04} smoothness={3} position={[0, s.h / 2, 0]} material={white} castShadow receiveShadow />
-          {/* red top edge band */}
-          <mesh geometry={unitBox()} scale={[1.61, 0.06, 1.61]} position={[0, s.h - 0.1, 0]} material={red} />
-          <Label position={[0, s.h / 2 - 0.04, 0.802]} fontSize={Math.min(0.62, s.h * 0.62)} color={C.ink}>
+          <mesh geometry={unitBox()} scale={[1.6, s.h, 1.6]} position={[0, s.h / 2, 0]} material={block} castShadow receiveShadow />
+          {/* ink top slab */}
+          <mesh geometry={unitBox()} scale={[1.62, 0.06, 1.62]} position={[0, s.h - 0.03, 0]} material={ink} />
+          <Label mono position={[0, s.h / 2 - 0.04, 0.802]} fontSize={Math.min(0.62, s.h * 0.62)} color={C.ink}>
             {String(s.place)}
           </Label>
           <Trophy color={s.cup} position={[0, s.h, 0]} scale={s.place === 1 ? 1.25 : 1} rotation={[0, -0.2, 0]} />
