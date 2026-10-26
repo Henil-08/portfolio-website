@@ -16,7 +16,7 @@ export function useRun<T extends Element>(on: boolean) {
   const [seen, setSeen] = useState(false);
   useEffect(() => {
     if (!on || !ref.current) return;
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && setSeen(true), { threshold: 0.2 });
+    const io = new IntersectionObserver(([e]) => e.isIntersecting && setSeen(true), { threshold: 0, rootMargin: "0px 0px -8% 0px" });
     io.observe(ref.current);
     return () => io.disconnect();
   }, [on]);

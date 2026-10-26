@@ -24,7 +24,6 @@ import Alive from "./alive";
 import Street from "./street";
 import { bindKeyboard } from "./input";
 import { useWorld } from "./store";
-import MapCapture from "./MapCapture";
 import Overlay from "./Overlay";
 
 export default function World() {
@@ -79,7 +78,6 @@ export default function World() {
       <Alive />
       <Autopilot />
       <Exposure />
-      <MapCapture />
       <Overlay />
       {/* The light version still gets the opening reveal, then drops the composer. */}
       {!fancy && !revealed && (

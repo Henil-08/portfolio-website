@@ -1,189 +1,151 @@
 "use client";
 
-// The map (M): a top-down picture of the real world (components/world/MapCapture.tsx) in a
-// framed panel, after folio-2025's map modal (sources/Game/Map.js, style/map.styl), in the
-// site's ink and cream. Diamond pins for every place and contact medallion; labels pop
-// on hover with the original's springy curves (on touch, the first tap shows the label
-// and the second goes); the player arrow turns with the car.
+// The map (M), docs/BRAND.md S04: the tactical map of the real island (components/brand/
+// TacticalMap.tsx) with the car live on it, and a side panel: where you are, the objective
+// (the nearest place you haven't opened yet), the legend and the achievements. Click a pin to
+// go there (the wipe, world/Overlay.tsx).
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { carState } from "@/components/world/carState";
-import { worldToMap } from "@/components/world/MapCapture";
 import { setState, useWorld } from "@/components/world/store";
 import { wipeTo } from "@/components/world/Overlay";
 import { zones, type ZoneId } from "@/components/world/layout";
-import { LINKS, LINK_SPOTS } from "@/components/world/social";
 import { ACHIEVEMENTS } from "@/content/achievements";
+import TacticalMap, { Compass, gridRef } from "@/components/brand/TacticalMap";
+import { Count, Decode, Stage, d } from "@/components/brand/motion";
+import { pad } from "@/components/brand/tokens";
 
-type Pin = { id: string; label: string; x: number; y: number; zone: ZoneId; small?: boolean };
-
-const PINS: Pin[] = [
-  ...zones.map((z) => ({ id: z.id, label: z.label, zone: z.id, ...worldToMap(z.pos[0], z.pos[1]) })),
-  ...LINKS.map((l, i) => ({ id: `link-${l.key}`, label: l.name, zone: "contact" as ZoneId, small: true, ...worldToMap(LINK_SPOTS[i][0], LINK_SPOTS[i][1]) })),
-];
+const nearest = (x: number, z: number, list = zones) => list.reduce((b, zn) => (Math.hypot(zn.pos[0] - x, zn.pos[1] - z) < Math.hypot(b.pos[0] - x, b.pos[1] - z) ? zn : b), list[0]);
 
 export default function MapMenu() {
   const open = useWorld((s) => s.menuOpen);
-  const shot = useWorld((s) => s.mapShot);
   const found = useWorld((s) => s.found);
   const got = useWorld((s) => s.achievements);
-  const [tab, setTab] = useState<"map" | "achievements">("map");
   const close = () => setState({ menuOpen: false });
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          className="fixed inset-0 z-40 grid place-items-center px-3 pb-3 pt-14"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          onClick={close}
-        >
-          <div className="hud-panel aspect-square w-[min(94vw,calc(100svh-5.5rem),900px)] select-none" onClick={(e) => e.stopPropagation()}>
-            <div className="absolute bottom-full left-2.5 flex gap-1">
-              {(["map", "achievements"] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  className={`hud-tab relative h-9 px-3 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors sm:h-10 sm:px-4 ${
-                    tab === t ? "bg-[#1f2133] text-cream" : "bg-[#171928]/80 text-cream/55 hover:text-cream"
-                  }`}
-                >
-                  {t === "map" ? "Map" : `Achievements ${got.length}/${ACHIEVEMENTS.length}`}
-                </button>
-              ))}
-            </div>
-            <button onClick={close} aria-label="Close map" className="hud-tab group absolute bottom-full right-2.5 h-11 w-[50px] overflow-hidden">
-              <span className="absolute inset-x-0 top-0 h-[calc(100%+4px)] bg-[radial-gradient(ellipse_at_top_right,#ff4b3e,#a3241c)] transition-transform duration-150 group-hover:-translate-y-1" />
-              <svg viewBox="0 0 24 24" className="relative mx-auto h-[18px] w-[18px]" fill="none" stroke="#fff8ec" strokeWidth="2.4" strokeLinecap="round">
-                <path d="M6 6l12 12M18 6 6 18" />
-              </svg>
-            </button>
-            {tab === "map" ? (
-              <div className="absolute inset-0 overflow-hidden">
-                {shot && (
-                  <motion.img
-                    key={shot.url}
-                    src={shot.url}
-                    alt="Top-down map of the island"
-                    className="pointer-events-none absolute inset-0 h-full w-full"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                    draggable={false}
-                  />
-                )}
-                <Pins found={found} />
-                <Player />
+        <motion.div className="fixed inset-0 z-40 grid place-items-center bg-ink/30 p-3 pt-14 sm:p-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} onClick={close}>
+          <Stage motion className="w-full max-w-[1120px]">
+            {(run) => (
+              <div className="dsa-frame flex max-h-[calc(100svh-5rem)] flex-col border-2 border-ink bg-paper shadow-[4px_4px_0_var(--color-ink)] select-none" style={d(0)} onClick={(e) => e.stopPropagation()}>
+                <div className="relative flex items-center gap-4 px-4 py-2 font-mono text-[12px] text-white">
+                  <span className="dsa-x absolute inset-0 bg-ink" style={d(120)} />
+                  <span className="relative">
+                    <Decode text="HG-08 / MAP · The island" run={run} delay={250} />
+                  </span>
+                  <span className="relative ml-auto hidden items-center gap-1.5 text-white/70 sm:flex">
+                    <span className="x-blink h-1.5 w-1.5 rounded-full bg-signal" /> Live
+                  </span>
+                  <button onClick={close} aria-label="Close map" className="relative flex items-center gap-1.5 transition hover:text-signal">
+                    <span className="bg-white px-1.5 text-ink">Esc</span> Close
+                  </button>
+                </div>
+                <div className="grid min-h-0 flex-1 overflow-y-auto md:grid-cols-[1fr_300px] md:overflow-hidden">
+                  <div className="relative aspect-square min-h-0 border-b-2 border-ink bg-[#e9e7e0] md:aspect-auto md:h-[min(calc(100svh-8rem),800px)] md:border-b-0 md:border-r-2">
+                    <TacticalMap player="live" found={found} objective={objectiveFor(found)} onPick={(z) => wipeTo(z)} className="absolute inset-0 h-full w-full" />
+                    <span className="dsa-scan pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-signal" style={d(150)} />
+                    <Compass />
+                  </div>
+                  <Side run={run} found={found} got={got} />
+                </div>
               </div>
-            ) : (
-              <AchievementList got={got} />
             )}
-          </div>
+          </Stage>
         </motion.div>
       )}
     </AnimatePresence>
   );
 }
 
-// Earned ones show their name; the rest stay "???" with how to get them as the hint.
-function AchievementList({ got }: { got: string[] }) {
+/** The nearest place to the car that hasn't been opened yet. */
+function objectiveFor(found: ZoneId[]) {
+  const left = zones.filter((z) => !found.includes(z.id));
+  return left.length ? nearest(carState.pos.x, carState.pos.z, left).id : null;
+}
+
+function Head({ n, children, extra }: { n: string; children: React.ReactNode; extra?: React.ReactNode }) {
   return (
-    <div className="no-scrollbar absolute inset-0 flex flex-col overflow-y-auto p-5 text-cream sm:p-8">
-      <div className="grid gap-2 sm:grid-cols-2">
-        {ACHIEVEMENTS.map((a) => {
+    <h4 className="mb-1.5 flex items-baseline gap-3 border-b border-ink pb-1.5 text-[12px] font-semibold uppercase tracking-[0.06em]">
+      <span className="font-mono text-signal">{n}</span>
+      {children}
+      {extra && <span className="ml-auto font-mono text-[11.5px] font-normal normal-case text-graphite">{extra}</span>}
+    </h4>
+  );
+}
+
+function Side({ run, found, got }: { run: boolean; found: ZoneId[]; got: string[] }) {
+  // position readout, refreshed a few times a second while the map is open
+  const [pos, setPos] = useState({ x: carState.pos.x, z: carState.pos.z });
+  useEffect(() => {
+    const t = setInterval(() => setPos({ x: carState.pos.x, z: carState.pos.z }), 300);
+    return () => clearInterval(t);
+  }, []);
+  const here = nearest(pos.x, pos.z);
+  const goal = zones.find((z) => z.id === objectiveFor(found));
+  const rows: [string, string][] = [
+    ["You", gridRef(pos.x, pos.z)],
+    ["Nearest", here.label],
+    ...(goal ? ([["Objective", `${goal.label} · ${gridRef(goal.pos[0], goal.pos[1])}`], ["Distance", `${Math.round(Math.hypot(goal.pos[0] - pos.x, goal.pos[1] - pos.z))} m`]] as [string, string][]) : [["Objective", "Every place found"] as [string, string]]),
+  ];
+  return (
+    <div className="min-h-0 overflow-y-auto bg-white p-4 text-[13px]">
+      <Head n="1">Position</Head>
+      {rows.map(([k, v], i) => (
+        <div key={k} className="dsa-wipe flex justify-between gap-3 border-b border-rule py-1.5" style={d(500 + i * 70)}>
+          <span className="text-graphite">{k}</span>
+          <span className="truncate font-mono font-semibold">{v}</span>
+        </div>
+      ))}
+      <div className="mt-5">
+        <Head n="2" extra={`${found.length} / ${zones.length}`}>
+          Places
+        </Head>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 pt-1 text-[12.5px]">
+          {(
+            [
+              [<span key="t" className="h-2.5 w-5 border border-ink bg-[#c9c6bd]" />, "Track, pit lane"],
+              [<span key="b" className="h-3 w-3 bg-ink/80" />, "Building"],
+              [<span key="z" className="border border-ink px-0.5 font-mono text-[9px] font-semibold">Z</span>, "Place"],
+              [<span key="o" className="h-3 w-3 rounded-full border-2 border-signal" />, "Objective"],
+              [<span key="y" className="h-0 w-0 border-y-[5px] border-l-[9px] border-y-transparent border-l-signal" />, "You"],
+              [<span key="s" className="h-2 w-2 bg-ink" />, "Opened"],
+            ] as const
+          ).map(([icon, t]) => (
+            <span key={t} className="flex items-center gap-2">
+              <span className="grid w-5 place-items-center">{icon}</span>
+              {t}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="mt-5">
+        <Head n="3" extra={<><Count value={String(got.length)} run={run} delay={500} /> / {ACHIEVEMENTS.length}</>}>
+          Achievements
+        </Head>
+        {ACHIEVEMENTS.map((a, k) => {
           const on = got.includes(a.id);
           return (
-            <div key={a.id} className={`flex items-start gap-3 border px-3 py-2.5 ${on ? "border-cream/40" : "border-dashed border-cream/15"}`}>
-              <span className={`mt-1 h-2.5 w-2.5 shrink-0 rotate-45 ${on ? "bg-red" : "border border-cream/30"}`} />
+            <div key={a.id} className="dsa-wipe grid grid-cols-[30px_1fr_10px] items-center gap-2 border-b border-rule py-1" style={d(700 + k * 50)}>
+              <span className="font-mono text-[11px] text-graphite">A{pad(k + 1)}</span>
               <span className="min-w-0">
-                <span className={`block text-[14px] font-semibold ${on ? "" : "text-cream/45"}`}>{on ? a.name : "???"}</span>
-                <span className="mt-0.5 block font-mono text-[11px] uppercase tracking-[0.08em] text-cream/50">{a.how}</span>
+                <span className={`block truncate font-medium ${on ? "" : "text-graphite"}`}>{on ? a.name : "• • • • •"}</span>
+                <span className="block truncate text-[11.5px] text-graphite">{a.how}</span>
               </span>
+              <span className={`h-2 w-2 rounded-full ${on ? "bg-signal" : "border border-ink"}`} />
             </div>
           );
         })}
       </div>
-      <div className="mt-auto grid grid-cols-2 gap-2 pt-5">
-        <button onClick={() => setState({ menuOpen: false, fitOpen: true })} className="bg-red px-3 py-2.5 text-[13px] font-semibold text-white">
-          Hiring? Check the fit
+      <div className="mt-5 flex flex-wrap gap-3">
+        <button onClick={() => setState({ menuOpen: false, fitOpen: true })} className="x-btn x-primary">
+          Hiring? Check the fit <span className="x-arrow">→</span>
         </button>
-        <Link href="/resume" className="grid place-items-center bg-cream px-3 py-2.5 text-[13px] font-semibold text-ink">
-          One-page resume
+        <Link href="/resume" className="x-link text-[13px] font-semibold">
+          One-page resume ↗
         </Link>
       </div>
-    </div>
-  );
-}
-
-function Pins({ found }: { found: ZoneId[] }) {
-  const [touch] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches);
-  const [active, setActive] = useState<string | null>(null);
-  const go = (p: Pin) => {
-    if (touch && active !== p.id) return setActive(p.id);
-    wipeTo(p.zone);
-  };
-  return (
-    <>
-      {PINS.map((p) => (
-        <button
-          key={p.id}
-          onClick={() => go(p)}
-          aria-label={p.label}
-          className={`map-pin group absolute -ml-5 -mt-5 h-10 w-10 ${active === p.id ? "is-active" : ""}`}
-          style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%`, zIndex: Math.round(p.y * 1000) }}
-        >
-          <span
-            className={`absolute left-1/2 top-1/2 rotate-45 border-ink shadow-[0_0_4px_#1f213377] ${found.includes(p.zone) && !p.small ? "bg-red" : "bg-cream"} ${
-              p.small ? "-ml-[5px] -mt-[5px] h-[10px] w-[10px] border-[2.5px]" : "-ml-2 -mt-2 h-4 w-4 border-[3.5px] sm:-ml-2.5 sm:-mt-2.5 sm:h-5 sm:w-5 sm:border-4"
-            }`}
-          />
-          <span className="pointer-events-none absolute bottom-[calc(100%-6px)] left-1/2 flex w-0 justify-center">
-            <span className="map-pin-name whitespace-nowrap bg-[#171928] px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.08em] text-cream shadow-[0_0_4px_#0007] sm:text-[12.5px]">
-              {p.label}
-            </span>
-          </span>
-        </button>
-      ))}
-    </>
-  );
-}
-
-// The car on the map: a red arrow that points where the car points.
-function Player() {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    let raf = 0;
-    let lx = NaN;
-    let lz = NaN;
-    let la = NaN;
-    const tick = () => {
-      raf = requestAnimationFrame(tick);
-      const el = ref.current;
-      if (!el) return;
-      const x = Math.round(carState.pos.x * 2) / 2;
-      const z = Math.round(carState.pos.z * 2) / 2;
-      // +x right and +z down on the map, so the bearing on screen is atan2(fz, fx)
-      const a = Math.round(Math.atan2(carState.forward.z, carState.forward.x) * 50) / 50;
-      if (x === lx && z === lz && a === la) return;
-      lx = x;
-      lz = z;
-      la = a;
-      const m = worldToMap(x, z);
-      el.style.left = `${m.x * 100}%`;
-      el.style.top = `${m.y * 100}%`;
-      el.style.transform = `rotate(${a}rad)`;
-    };
-    tick();
-    return () => cancelAnimationFrame(raf);
-  }, []);
-  return (
-    <div ref={ref} className="pointer-events-none absolute z-[2000] h-0 w-0">
-      <svg viewBox="-20 -20 40 40" className="absolute -left-4 -top-4 h-8 w-8 drop-shadow-[0_0_3px_#1f2133aa] sm:-left-5 sm:-top-5 sm:h-10 sm:w-10">
-        <path d="M14 0 -10 -11 -5 0 -10 11Z" fill="#ff4b3e" stroke="#fff8ec" strokeWidth="3" strokeLinejoin="round" />
-      </svg>
     </div>
   );
 }

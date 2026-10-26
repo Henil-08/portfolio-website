@@ -6,6 +6,7 @@ import { getState, setState, useWorld } from "@/components/world/store";
 import { radioBeep, radioLine } from "@/components/world/sound";
 import { radioLines, radioText } from "@/content/radio";
 import type { ZoneId } from "@/components/world/layout";
+import { Decode, Stage, d } from "@/components/brand/motion";
 
 let msgId = 0;
 
@@ -43,11 +44,25 @@ export default function RadioMessages() {
           transition={{ duration: 0.35 }}
           className="pointer-events-none fixed inset-x-0 bottom-[96px] z-20 flex justify-center px-6"
         >
-          {/* Broadcast-style subtitle: who's talking, then the line. */}
-          <p className="hud-panel max-w-[560px] px-4 py-2.5 text-[14.5px] leading-relaxed">
-            <span className="mr-2.5 inline-block bg-red px-1.5 py-px align-[1px] font-mono text-[10px] uppercase tracking-[0.16em] text-white">Pit wall</span>
-            {msg.text}
-          </p>
+          {/* The radio panel (docs/BRAND.md S02): who is talking on an ink bar with the live
+              waveform, then the line decoding in as it is said. */}
+          <Stage motion className="w-full max-w-[560px]">
+            {(run) => (
+              <div className="dsa-frame border-2 border-ink bg-white shadow-[3px_3px_0_var(--color-ink)]" style={d(0)}>
+                <div className="flex items-center justify-between bg-ink px-3 py-1.5 font-mono text-[11.5px] text-white">
+                  <span>RADIO · Race engineer</span>
+                  <span className="flex h-3 items-end gap-[2px]" aria-hidden>
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <span key={i} className="x-wave block h-3 w-[3px] bg-signal" style={{ animationDelay: `${i * 90}ms` }} />
+                    ))}
+                  </span>
+                </div>
+                <p className="px-3 py-2.5 text-[14.5px] leading-relaxed">
+                  <Decode text={msg.text} run={run} delay={150} dur={1400} />
+                </p>
+              </div>
+            )}
+          </Stage>
         </motion.div>
       )}
     </AnimatePresence>

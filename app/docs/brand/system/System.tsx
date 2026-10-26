@@ -9,9 +9,8 @@ import { profile, story } from "@/content/profile";
 import { projects, DOMAINS } from "@/content/projects";
 import { ACHIEVEMENTS } from "@/content/achievements";
 import { radioLines, radioText } from "@/content/radio";
-import { GARAGES, LAKES, PIT, PIT_LANE_WIDTH, RIVER, START_T, TRACK_WIDTH, coastR, sectorT, trackPoint, trackTangent, zones } from "@/components/world/layout";
-import { MAP } from "@/components/world/MapCapture";
-import { BUILDINGS } from "@/components/world/street/town";
+import { sectorT, trackPoint, trackTangent, zones } from "@/components/world/layout";
+import TacticalMap, { Compass, gridRef } from "@/components/brand/TacticalMap";
 import { Count, Decode, Stage, d } from "@/components/brand/motion";
 import { DsCard, DsResume } from "@/components/brand/sheets";
 import { DS, pad } from "@/components/brand/tokens";
@@ -738,47 +737,9 @@ function GarageScreen() {
   );
 }
 
-// The map, drawn like a tactical map in a game: real geometry from the world (coast, lakes,
-// river, every building, the garages, pit lane and track) in world units, an 8x8 grid
-// with references, sector labels, the player's arrow and view cone, one objective pinging.
-const GRID_N = 8;
-const COLS = "ABCDEFGH";
-const coastPath = (() => {
-  let d = "";
-  for (let i = 0; i <= 360; i++) {
-    const a = (i / 360) * Math.PI * 2;
-    const r = coastR(a);
-    d += `${i ? "L" : "M"}${(Math.cos(a) * r).toFixed(1)} ${(Math.sin(a) * r).toFixed(1)}`;
-  }
-  return d + "Z";
-})();
-const trackPath = (() => {
-  const pts = Array.from({ length: 400 }, (_, k) => trackPoint(k / 400));
-  return pts.map((p, k) => `${k ? "L" : "M"}${p.x.toFixed(1)} ${p.z.toFixed(1)}`).join("") + "Z";
-})();
-/** A footprint's corners, turned like three.js turns it about y (map is x right, z down). */
-function corners(x: number, z: number, w: number, dd: number, yaw: number) {
-  const c = Math.cos(yaw);
-  const s = Math.sin(yaw);
-  return [
-    [-w / 2, -dd / 2],
-    [w / 2, -dd / 2],
-    [w / 2, dd / 2],
-    [-w / 2, dd / 2],
-  ]
-    .map(([lx, lz]) => `${(x + lx * c + lz * s).toFixed(1)},${(z - lx * s + lz * c).toFixed(1)}`)
-    .join(" ");
-}
-
 function MapScreen() {
   const [take, replay] = useTake();
-  const [hover, setHover] = useState<number | null>(null);
-  const { cx, cz, half } = MAP;
-  const x0 = cx - half;
-  const z0 = cz - half;
-  const size = half * 2;
-  const cell = size / GRID_N;
-  const ref = (x: number, z: number) => `${COLS[Math.min(GRID_N - 1, Math.floor((x - x0) / cell))]}${Math.min(GRID_N - 1, Math.floor((z - z0) / cell)) + 1}`;
+  const ref = gridRef;
   const me = zones[1];
   // on the track just before the zone, looking down the track
   const meT = sectorT(1) - 0.012;
@@ -788,9 +749,6 @@ function MapScreen() {
   const goal = zones.findIndex((z) => z.id === "podium");
   const g = zones[goal];
   const dist = Math.round(Math.hypot(g.pos[0] - mx, g.pos[1] - mz));
-  const start = trackPoint(START_T);
-  const startTan = trackTangent(START_T);
-  const startYaw = (Math.atan2(startTan.z, startTan.x) * 180) / Math.PI;
   const fwd = (Math.atan2(mt.z, mt.x) * 180) / Math.PI;
   return (
     <Screen code="S04" title="Map" note="M opens it. A tactical map of the real island: grid references, buildings, the objective pinging, you and where you are looking." onReplay={replay} bg="/img/design/day.jpg">
@@ -812,104 +770,9 @@ function MapScreen() {
             </div>
             <div className="grid min-h-0 flex-1 grid-cols-[1fr_300px]">
               <div className="relative min-h-0 overflow-hidden border-r-2 border-[#111] bg-[#e9e7e0]">
-                <svg viewBox={`${x0} ${z0} ${size} ${size}`} preserveAspectRatio="xMidYMid meet" className="absolute inset-0 h-full w-full">
-                  <defs>
-                    <pattern id="sea" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                      <line x1="0" y1="0" x2="0" y2="3" stroke="#cfcdc4" strokeWidth="0.7" />
-                    </pattern>
-                  </defs>
-                  <rect x={x0} y={z0} width={size} height={size} fill="url(#sea)" />
-                  <path d={coastPath} fill="#fbfaf7" stroke="#111" strokeWidth="0.9" className="dsa-rise" style={d(200)} />
-                  {LAKES.map((l, k) => (
-                    <ellipse key={k} cx={l.x} cy={l.z} rx={l.rx} ry={l.rz} transform={`rotate(${(-l.yaw * 180) / Math.PI} ${l.x} ${l.z})`} fill="url(#sea)" stroke="#111" strokeWidth="0.5" />
-                  ))}
-                  <polyline points={RIVER.pts.map((p) => p.join(",")).join(" ")} fill="none" stroke="#d6d3ca" strokeWidth="5.5" strokeLinejoin="round" strokeLinecap="round" />
-                  {/* grid: 8x8 with references along two edges */}
-                  {Array.from({ length: GRID_N - 1 }, (_, k) => (
-                    <g key={k} stroke="#111" strokeOpacity="0.14" strokeWidth="0.35">
-                      <line x1={x0 + (k + 1) * cell} y1={z0} x2={x0 + (k + 1) * cell} y2={z0 + size} />
-                      <line x1={x0} y1={z0 + (k + 1) * cell} x2={x0 + size} y2={z0 + (k + 1) * cell} />
-                    </g>
-                  ))}
-                  {Array.from({ length: GRID_N }, (_, k) => (
-                    <g key={k} fontFamily="var(--font-plex-mono)" fontSize="3.6" fill="#5d5d58">
-                      <text x={x0 + k * cell + cell / 2} y={z0 + 4.5} textAnchor="middle">
-                        {COLS[k]}
-                      </text>
-                      <text x={x0 + 2} y={z0 + k * cell + cell / 2 + 1.2}>
-                        {k + 1}
-                      </text>
-                    </g>
-                  ))}
-                  {/* track and pit lane: outlined roads at true width */}
-                  <path d={trackPath} fill="none" stroke="#111" strokeWidth={TRACK_WIDTH + 1.2} strokeLinejoin="round" pathLength={1} className="map-draw" style={d(250)} />
-                  <path d={trackPath} fill="none" stroke="#c9c6bd" strokeWidth={TRACK_WIDTH - 1} strokeLinejoin="round" className="dsa-rise" style={d(900)} />
-                  <rect x={PIT.from} y={PIT.z - PIT_LANE_WIDTH / 2} width={PIT.to - PIT.from} height={PIT_LANE_WIDTH} fill="#c9c6bd" stroke="#111" strokeWidth="0.6" className="dsa-rise" style={d(900)} />
-                  <g transform={`rotate(${startYaw} ${start.x} ${start.z})`}>
-                    <rect x={start.x - 0.8} y={start.z - TRACK_WIDTH / 2} width="1.6" height={TRACK_WIDTH} fill={DS.orange} className="dsa-pop" style={d(1000)} />
-                  </g>
-                  {/* buildings, then the garages: solid ink blocks */}
-                  {BUILDINGS.map((b, k) => (
-                    <polygon key={k} points={corners(b.x, b.z, b.w, b.d, b.yaw)} fill="#111" fillOpacity={0.55 + Math.min(0.4, b.floors * 0.08)} className="dsa-pop" style={d(500 + (k % 30) * 18)} />
-                  ))}
-                  {GARAGES.map((gr, k) => (
-                    <rect key={gr.domain} x={gr.x - 4.5} y={PIT.garageZ - 9} width="9" height="7" fill="#111" className="dsa-pop" style={d(600 + k * 40)} />
-                  ))}
-                  {/* sector labels */}
-                  {zones.slice(0, 4).map((z, k) => (
-                    <text key={z.id} x={z.pos[0]} y={z.pos[1] - 9} textAnchor="middle" fontFamily="var(--font-plex-mono)" fontSize="4.2" fontWeight="600" fill="#5d5d58" className="dsa-rise" style={d(1100 + k * 60)}>
-                      S{k + 1}
-                    </text>
-                  ))}
-                  {/* objective ping, under the pins */}
-                  <g transform={`translate(${g.pos[0]} ${g.pos[1]})`}>
-                    <circle r="6" fill="none" stroke={DS.orange} strokeWidth="0.9" className="map-ping" />
-                    <circle r="6" fill="none" stroke={DS.orange} strokeWidth="0.9" className="map-ping" style={{ animationDelay: "0.9s" }} />
-                  </g>
-                  {/* the player: an arrow and a view cone */}
-                  {/* the SVG transform sits on the outer group; the CSS pop would replace it */}
-                  <g transform={`translate(${mx} ${mz}) rotate(${fwd})`}>
-                    <g className="dsa-pop" style={d(1300)}>
-                      <path d="M0 0 L26 -11 A28 28 0 0 1 26 11 Z" fill={DS.orange} fillOpacity="0.16" />
-                      <path d="M5 0 L-3.5 -3.6 L-1.8 0 L-3.5 3.6 Z" fill={DS.orange} stroke="#111" strokeWidth="0.4" />
-                    </g>
-                  </g>
-                  {zones.map((z, k) => {
-                    const on = hover === k;
-                    const obj = k === goal;
-                    return (
-                      <g key={z.id} transform={`translate(${z.pos[0]} ${z.pos[1]})`} onMouseEnter={() => setHover(k)} onMouseLeave={() => setHover(null)} className="cursor-pointer">
-                        <rect className="dsa-pop" style={d(1150 + k * 35)} x="-5.2" y="-3.1" width="10.4" height="6.2" fill={on || obj ? "#111" : "#fff"} stroke={obj ? DS.orange : "#111"} strokeWidth={obj ? 0.9 : 0.6} />
-                        <text y="1.25" textAnchor="middle" fontFamily="var(--font-plex-mono)" fontSize="3.3" fontWeight="600" fill={on || obj ? "#fff" : "#111"} className="dsa-rise" style={d(1200 + k * 35)}>
-                          Z{pad(k + 1)}
-                        </text>
-                        {on && (
-                          <g transform="translate(0 -6)">
-                            <rect x={-(z.label.length * 1.15 + 3)} y="-6" width={z.label.length * 2.3 + 6} height="6.4" fill="#fff" stroke="#111" strokeWidth="0.6" />
-                            <text y="-1.6" textAnchor="middle" fontFamily="var(--font-plex)" fontSize="3.6" fontWeight="600" fill="#111">
-                              {z.label}
-                            </text>
-                          </g>
-                        )}
-                      </g>
-                    );
-                  })}
-                  {/* scale bar, 25 m */}
-                  <g transform={`translate(${x0 + 6} ${z0 + size - 7})`} fontFamily="var(--font-plex-mono)" fontSize="3.2" fill="#111">
-                    <rect width="25" height="1.6" fill="#111" />
-                    <rect x="12.5" width="12.5" height="1.6" fill="#fff" stroke="#111" strokeWidth="0.3" />
-                    <text y="-1.6">0</text>
-                    <text x="25" y="-1.6" textAnchor="end">
-                      25 m
-                    </text>
-                  </g>
-                </svg>
+                <TacticalMap player={{ x: mx, z: mz, deg: fwd }} found={zones.slice(0, 4).map((z) => z.id)} objective="podium" className="absolute inset-0 h-full w-full" />
                 <span className="dsa-scan pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-[#ff4f00]" style={d(150)} />
-                {/* compass */}
-                <div className={`font-mono absolute right-3 top-3 grid h-11 w-11 place-items-center border-2 border-[#111] bg-white text-[11px] font-semibold`}>
-                  <span className="absolute top-0.5">N</span>
-                  <span className="mt-2 block h-0 w-0 border-x-[5px] border-b-[10px] border-x-transparent border-b-[#111]" />
-                </div>
+                <Compass />
               </div>
 
               <div className="min-h-0 overflow-y-auto bg-white p-4 text-[13px]">

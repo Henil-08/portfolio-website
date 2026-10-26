@@ -151,6 +151,11 @@ Hover and keyboard focus share one signal, the orange corner brackets (`x-sel` +
   - 8×8 grid with A–H / 1–8 references; S1–S4 labels; Zxx pins (hover shows the name)
   - objective pinging orange; player arrow with an orange view cone; compass; 25 m scale bar
   - side panel: 1 Position (grid references, distance), 2 Legend, 3 Achievements.
+- **Map (built):** `components/brand/TacticalMap.tsx` draws S04 in both the docs page (fixed
+  player) and the game (MapMenu.tsx, `player="live"` from carState). The objective is the nearest
+  place not opened yet; clicking a pin wipes there. The old top-down render (MapCapture) is gone.
+- **Stage trigger:** `useRun` starts on the first visible pixel (rootMargin −8% at the bottom). A
+  20% threshold never fired for tall fixed panels.
 - **S05 Resume:** the datasheet resume (`DsResume`). Print stays plain ink on white.
 - **S06 404:** `E404 · Off track`, "Track limits", "You went off the island. Lap time deleted.",
   and a primary button.

@@ -7,12 +7,14 @@ import { achieve, setState, useWorld } from "@/components/world/store";
 import { radioBeep, radioSpeak } from "@/components/world/sound";
 import { runAction, type Action } from "@/components/world/actions";
 import { usePushToTalk } from "./usePushToTalk";
+import { Decode } from "@/components/brand/motion";
 
 type Entry = ChatMessage | { role: "tool"; content: string };
 
 const starters = ["Show me his agent work", "Make it night", "What does he do at Waters?", "Rain, please"];
 
-// The race engineer: answers questions and drives the world through tool calls.
+// The race engineer: answers questions and drives the world through tool calls. The panel is
+// the Ask box from docs/BRAND.md I06: ink bar with a live dot, the latest answer decoding in.
 export default function Ask() {
   const open = useWorld((s) => s.askOpen);
   const [log, setLog] = useState<Entry[]>([]);
@@ -62,59 +64,45 @@ export default function Ask() {
     send(t);
   });
 
+  const lastAnswer = log.findLastIndex((e) => e.role === "assistant");
   return (
     <>
       {ptt.state !== "idle" && !open && (
-        <div className="hud-chip pointer-events-none fixed bottom-20 left-5 z-30 flex items-center gap-2 px-3 py-1.5">
-          <span className={`h-2 w-2 rounded-full ${ptt.state === "listening" ? "animate-pulse bg-red" : "bg-cream/50"}`} />
+        <div className="pointer-events-none fixed bottom-20 left-5 z-30 flex items-center gap-2 border-2 border-ink bg-white px-3 py-1.5 font-mono text-[12px] shadow-[3px_3px_0_var(--color-ink)]">
+          <span className={`h-2 w-2 rounded-full ${ptt.state === "listening" ? "x-blink bg-signal" : "border border-ink"}`} />
           {ptt.state === "listening" ? "Transmitting" : ptt.state === "thinking" ? "Copy, one sec" : "Mic blocked"}
         </div>
       )}
-      <button
-        onClick={() => setState((s) => ({ askOpen: !s.askOpen }))}
-        className="hud-panel fixed left-3 top-3 z-30 flex h-11 items-center gap-2.5 px-4 sm:bottom-5 sm:left-5 sm:top-auto"
-      >
-        <span className="relative flex h-2.5 w-2.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red opacity-60" />
-          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red" />
-        </span>
-        <span className="font-mono text-[11px] uppercase tracking-[0.16em]">{open ? "Close radio" : "Team radio"}</span>
+      <button onClick={() => setState((s) => ({ askOpen: !s.askOpen }))} className="ds-tab fixed left-3 top-3 z-30 sm:bottom-5 sm:left-5 sm:top-auto">
+        <span className="x-blink h-2 w-2 rounded-full bg-signal" />
+        {open ? "Close radio" : "Team radio"}
+        <span className="hidden bg-ink px-1.5 font-mono text-[11px] text-white sm:inline">V</span>
       </button>
 
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.94 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.96 }}
-            transition={{ type: "spring", stiffness: 300, damping: 26 }}
-            className="hud-panel fixed inset-x-3 top-[64px] z-30 flex max-h-[62svh] flex-col overflow-hidden sm:inset-x-auto sm:bottom-[76px] sm:left-5 sm:right-auto sm:top-auto sm:w-[400px]"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed inset-x-3 top-[64px] z-30 flex max-h-[62svh] flex-col border-2 border-ink bg-white shadow-[4px_4px_0_var(--color-ink)] sm:inset-x-auto sm:bottom-[76px] sm:left-5 sm:right-auto sm:top-auto sm:w-[420px]"
           >
-            <div className="flex items-center gap-2.5 border-b border-cream/15 px-4 py-3">
-              <span className="bg-red px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.16em] text-white">Team radio</span>
-              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-cream/45">Race engineer</span>
-              <button
-                onClick={() => setState((s) => ({ voice: !s.voice }))}
-                className={`ml-auto px-3 py-1 font-mono text-[10.5px] uppercase tracking-[0.12em] transition ${
-                  radio ? "bg-cream text-ink" : "border border-cream/30 text-cream/60 hover:text-cream"
-                }`}
-                aria-pressed={radio}
-              >
-                Voice {radio ? "on" : "off"}
+            <div className="flex items-center gap-2.5 bg-ink px-3 py-2 font-mono text-[12px] text-white">
+              <span className="x-blink h-1.5 w-1.5 rounded-full bg-signal" />
+              <span>ASK · Race engineer</span>
+              <button onClick={() => setState((s) => ({ voice: !s.voice }))} className="ml-auto transition hover:text-signal" aria-pressed={radio}>
+                Voice <span className={radio ? "bg-white px-1 text-ink" : "border border-white/40 px-1"}>{radio ? "ON" : "OFF"}</span>
               </button>
             </div>
 
-            <div ref={box} className="no-scrollbar flex-1 space-y-3 overflow-y-auto px-4 py-4 text-[13.5px] leading-relaxed">
+            <div ref={box} className="no-scrollbar flex-1 space-y-3 overflow-y-auto px-4 py-4 text-[14px] leading-relaxed">
               {log.length === 0 && (
                 <div className="space-y-3">
-                  <p className="text-cream/75">Radio check. Ask me anything about Henil, or ask me to show you something.</p>
+                  <p>Radio check. Ask me anything about Henil, or ask me to show you something.</p>
                   <div className="flex flex-wrap gap-1.5">
                     {starters.map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => send(s)}
-                        className="border border-cream/25 px-3 py-1 text-[12px] text-cream/80 transition hover:border-cream/70"
-                      >
+                      <button key={s} onClick={() => send(s)} className="x-chip">
                         {s}
                       </button>
                     ))}
@@ -124,24 +112,28 @@ export default function Ask() {
               {log.map((m, i) =>
                 m.role === "user" ? (
                   <p key={i} className="text-right">
-                    <span className="inline-block bg-cream/10 px-3 py-1.5">{m.content}</span>
+                    <span className="inline-block bg-ink px-3 py-1.5 text-white">{m.content}</span>
                   </p>
                 ) : m.role === "tool" ? (
-                  <p key={i} className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-green">
-                    <span className="h-1.5 w-1.5 bg-green" />
+                  <p key={i} className="flex items-center gap-2 font-mono text-[11.5px] text-graphite">
+                    <span className="h-1.5 w-1.5 bg-signal" />
                     Race control · {m.content}
                   </p>
                 ) : (
-                  <p key={i} className="whitespace-pre-wrap border-l-2 border-red pl-3 text-cream/90">
-                    {m.content}
+                  <p key={i} className="whitespace-pre-wrap border-l-2 border-ink pl-3">
+                    {i === lastAnswer ? <Decode text={m.content} run dur={Math.min(1600, 300 + m.content.length * 6)} /> : m.content}
                   </p>
-                )
+                ),
               )}
-              {busy && <p className="caret border-l-2 border-red pl-3 text-cream/50">&nbsp;</p>}
+              {busy && (
+                <p className="flex items-center gap-2 border-l-2 border-ink pl-3 font-mono text-[12px] text-graphite">
+                  <span className="x-blink inline-block h-3.5 w-2 bg-signal" /> Thinking
+                </p>
+              )}
             </div>
 
             <form
-              className="flex items-center gap-2 border-t border-cream/15 px-4 py-3"
+              className="flex items-center gap-2 border-t-2 border-ink px-3 py-2.5"
               onSubmit={(e) => {
                 e.preventDefault();
                 send(text);
@@ -154,7 +146,7 @@ export default function Ask() {
                 maxLength={400}
                 placeholder={ptt.state === "listening" ? "Listening…" : "Talk to your engineer, or hold V…"}
                 aria-label="Talk to the race engineer"
-                className="flex-1 bg-transparent text-[13.5px] text-cream outline-none placeholder:text-cream/35"
+                className="min-w-0 flex-1 bg-transparent text-[14px] caret-signal outline-none placeholder:text-graphite"
               />
               <button
                 type="button"
@@ -162,17 +154,15 @@ export default function Ask() {
                 onPointerUp={ptt.stop}
                 onPointerLeave={ptt.stop}
                 aria-label="Hold to talk"
-                className={`grid h-8 w-8 place-items-center transition ${
-                  ptt.state === "listening" ? "bg-red" : "bg-cream/10 hover:bg-cream/20"
-                }`}
+                className={`grid h-8 w-8 place-items-center border-2 border-ink transition ${ptt.state === "listening" ? "bg-signal text-white" : "bg-white hover:bg-ink hover:text-white"}`}
               >
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <rect x="9" y="3" width="6" height="11" rx="3" />
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
+                  <rect x="9" y="3" width="6" height="11" />
                   <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
                 </svg>
               </button>
-              <button disabled={busy || !text.trim()} className="bg-red px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-40">
-                Send
+              <button disabled={busy || !text.trim()} className="h-8 border-2 border-ink bg-ink px-3 font-mono text-[12px] text-white transition hover:bg-white hover:text-ink disabled:opacity-40">
+                Send ↵
               </button>
             </form>
           </motion.div>

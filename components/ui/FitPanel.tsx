@@ -6,10 +6,12 @@ import { openZone, setState, teleport, useWorld } from "@/components/world/store
 import { zoneById, type ZoneId } from "@/components/world/layout";
 import { projects } from "@/content/projects";
 import type { Fit } from "@/app/api/fit/route";
+import { Count, Decode, Stage, d } from "@/components/brand/motion";
 
 export const FIT_KEY = "hg:fit";
 
-// Recruiters paste a job description; the engineer reads it against Henil's record.
+// Recruiters paste a job description; the engineer reads it against Henil's record. A brand
+// modal (docs/BRAND.md): ink bar, the score as a counted figure with a bar, rows for the read.
 export default function FitPanel() {
   const open = useWorld((s) => s.fitOpen);
   const [jd, setJd] = useState("");
@@ -45,120 +47,108 @@ export default function FitPanel() {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          className="fixed inset-0 z-40 grid place-items-center p-3 pt-14"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={() => setState({ fitOpen: false })}
-        >
-          <motion.div
-            initial={{ scale: 0.94, y: 20 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.96, y: 10 }}
-            transition={{ type: "spring", stiffness: 300, damping: 26 }}
-            className="hud-panel no-scrollbar max-h-[84svh] w-full max-w-lg overflow-y-auto p-5 sm:p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-cream/55">Race strategy</p>
-                <h2 className="mt-1 font-racing text-2xl tracking-wide">{fit ? fit.role.toUpperCase() : "FIT FOR YOUR ROLE"}</h2>
-              </div>
-              <button onClick={() => setState({ fitOpen: false })} className="hud-red grid h-9 w-9 shrink-0 place-items-center text-[14px] hover:brightness-110" aria-label="Close">
-                ✕
-              </button>
-            </div>
-
-            {!fit ? (
-              <div className="mt-4 space-y-3">
-                <p className="text-[14px] leading-relaxed text-cream/75">
-                  Paste a job description. You&apos;ll get an honest read on the fit, the work that matters for it, and a lap
-                  through the island built around it.
-                </p>
-                <textarea
-                  value={jd}
-                  onChange={(e) => setJd(e.target.value)}
-                  rows={8}
-                  maxLength={8000}
-                  placeholder="Paste the job description here…"
-                  className="w-full resize-none border border-cream/25 bg-[#171928] px-4 py-3 text-[14px] text-cream outline-none placeholder:text-cream/35 focus:border-cream/60"
-                />
-                {err && <p className="text-sm text-red">{err}</p>}
-                <button
-                  onClick={check}
-                  disabled={busy || jd.trim().length < 40}
-                  className="w-full bg-red py-3 text-[13.5px] font-semibold text-white disabled:opacity-40"
-                >
-                  {busy ? "READING THE BRIEF…" : "CHECK THE FIT"}
-                </button>
-              </div>
-            ) : (
-              <div className="mt-4 space-y-4">
-                <div className="flex items-center gap-4">
-                  <Dial v={fit.score} />
-                  <p className="text-[14px] leading-relaxed text-cream/75">{fit.summary}</p>
-                </div>
-                <ul className="space-y-1.5">
-                  {fit.strengths.map((s) => (
-                    <li key={s} className="flex gap-2 text-[13.5px] leading-relaxed text-cream">
-                      <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rotate-45 bg-green" />
-                      {s}
-                    </li>
-                  ))}
-                  {fit.gaps.map((g) => (
-                    <li key={g} className="flex gap-2 text-[13.5px] leading-relaxed text-cream/65">
-                      <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rotate-45 border border-cream/50" />
-                      {g}
-                    </li>
-                  ))}
-                </ul>
-                <div className="flex flex-wrap gap-1.5">
-                  {projects
-                    .filter((p) => fit.slugs.includes(p.slug))
-                    .map((p) => (
-                      <span key={p.slug} className="hud-chip">
-                        {p.name}
-                      </span>
-                    ))}
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button onClick={drive} className="bg-red py-3 text-[13px] font-semibold text-white">
-                    DRIVE THIS LAP
+        <motion.div className="fixed inset-0 z-40 grid place-items-center bg-ink/30 p-3 pt-14" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setState({ fitOpen: false })}>
+          <Stage key={fit ? fit.role : "brief"} motion className="w-full max-w-lg">
+            {(run) => (
+              <div className="dsa-frame no-scrollbar max-h-[84svh] overflow-y-auto border-2 border-ink bg-white shadow-[4px_4px_0_var(--color-ink)]" style={d(0)} onClick={(e) => e.stopPropagation()}>
+                <div className="relative flex items-center px-4 py-2 font-mono text-[12px] text-white">
+                  <span className="dsa-x absolute inset-0 bg-ink" style={d(80)} />
+                  <span className="relative">
+                    <Decode text="HG-08 / Fit check" run={run} delay={200} />
+                  </span>
+                  <button onClick={() => setState({ fitOpen: false })} className="relative ml-auto flex items-center gap-1.5 transition hover:text-signal" aria-label="Close">
+                    <span className="bg-white px-1.5 text-ink">Esc</span> Close
                   </button>
-                  <a
-                    href={`/resume?for=${encodeURIComponent(fit.role)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="grid place-items-center bg-cream py-3 text-[13px] font-semibold text-ink"
-                  >
-                    TAILORED PDF
-                  </a>
                 </div>
-                <button onClick={() => setFit(null)} className="w-full text-center font-mono text-[11px] uppercase tracking-[0.12em] text-cream/55 hover:text-cream">
-                  Try another role
-                </button>
+                <div className="p-5 sm:p-6">
+                  <h2 className="text-[24px] font-semibold leading-tight tracking-tight">
+                    <Decode text={fit ? fit.role : "Fit for your role"} run={run} delay={300} />
+                  </h2>
+                  {!fit ? (
+                    <div className="mt-3 space-y-3">
+                      <p className="text-[14.5px] leading-relaxed text-graphite">
+                        Paste a job description. You&apos;ll get an honest read on the fit, the work that matters for it, and a lap through the island built around it.
+                      </p>
+                      <textarea
+                        value={jd}
+                        onChange={(e) => setJd(e.target.value)}
+                        rows={8}
+                        maxLength={8000}
+                        placeholder="Paste the job description here…"
+                        className="w-full resize-none border-2 border-ink bg-paper px-3 py-2.5 text-[14px] caret-signal outline-none placeholder:text-graphite"
+                      />
+                      {err && <p className="font-mono text-[12.5px] text-signal">{err}</p>}
+                      <button onClick={check} disabled={busy || jd.trim().length < 40} className="x-btn x-primary w-full justify-center disabled:opacity-40">
+                        {busy ? "Reading the brief…" : "Check the fit"} <span className="x-arrow">→</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-4 space-y-5">
+                      <div className="grid grid-cols-[auto_1fr] items-center gap-4">
+                        <div>
+                          <p className="font-mono text-[40px] font-semibold leading-none text-signal">
+                            <Count value={String(fit.score)} run={run} delay={300} />
+                          </p>
+                          <p className="font-mono text-[11px] text-graphite">fit / 100</p>
+                        </div>
+                        <div>
+                          <div className="h-2 border border-ink">
+                            <span className="dsa-x block h-full bg-ink" style={{ ...d(300), width: `${fit.score}%` }} />
+                          </div>
+                          <p className="mt-2 text-[14px] leading-relaxed">{fit.summary}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="mb-1 flex items-baseline gap-3 border-b border-ink pb-1.5 text-[12.5px] font-semibold uppercase tracking-[0.06em]">
+                          <span className="font-mono text-signal">1</span>The read
+                        </p>
+                        {fit.strengths.map((x, i) => (
+                          <p key={x} className="dsa-wipe grid grid-cols-[14px_1fr] gap-2 border-b border-rule py-2 text-[13.5px] leading-relaxed" style={d(500 + i * 90)}>
+                            <span className="mt-[0.45em] h-2 w-2 bg-ink" />
+                            {x}
+                          </p>
+                        ))}
+                        {fit.gaps.map((g, i) => (
+                          <p key={g} className="dsa-wipe grid grid-cols-[14px_1fr] gap-2 border-b border-rule py-2 text-[13.5px] leading-relaxed text-graphite" style={d(500 + (fit.strengths.length + i) * 90)}>
+                            <span className="mt-[0.45em] h-2 w-2 border border-ink" />
+                            {g}
+                          </p>
+                        ))}
+                      </div>
+                      <div>
+                        <p className="mb-2 flex items-baseline gap-3 border-b border-ink pb-1.5 text-[12.5px] font-semibold uppercase tracking-[0.06em]">
+                          <span className="font-mono text-signal">2</span>Work that matters
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {projects
+                            .filter((p) => fit.slugs.includes(p.slug))
+                            .map((p) => (
+                              <span key={p.slug} className="x-chip">
+                                {p.name}
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-3">
+                        <button onClick={drive} className="x-btn x-primary">
+                          Drive this lap <span className="x-arrow">→</span>
+                        </button>
+                        <a href={`/resume?for=${encodeURIComponent(fit.role)}`} target="_blank" rel="noreferrer" className="x-btn x-secondary">
+                          Tailored PDF <span className="x-arrow">↗</span>
+                        </a>
+                      </div>
+                      <button onClick={() => setFit(null)} className="x-link font-mono text-[12px]">
+                        Try another role
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
-          </motion.div>
+          </Stage>
         </motion.div>
       )}
     </AnimatePresence>
-  );
-}
-
-function Dial({ v }: { v: number }) {
-  const r = 30;
-  const c = 2 * Math.PI * r;
-  const color = v >= 80 ? "#9b6bff" : v >= 60 ? "#45c46b" : "#ffd23f"; // sector colours: purple, green, yellow
-  return (
-    <div className="relative grid h-20 w-20 shrink-0 place-items-center">
-      <svg viewBox="0 0 72 72" className="absolute inset-0 -rotate-90">
-        <circle cx="36" cy="36" r={r} fill="none" stroke="#fff8ec26" strokeWidth="6" />
-        <circle cx="36" cy="36" r={r} fill="none" stroke={color} strokeWidth="6" strokeLinecap="butt" strokeDasharray={`${(v / 100) * c} ${c}`} />
-      </svg>
-      <span className="font-racing text-xl">{v}</span>
-    </div>
   );
 }
 
@@ -175,16 +165,16 @@ export function LapChip() {
   };
   return (
     <div className="fixed left-1/2 top-[72px] z-20 -translate-x-1/2 sm:top-5">
-      <div className="hud-panel flex items-center gap-2.5 py-1.5 pl-3.5 pr-1.5 text-[12.5px]">
-        <span className="font-semibold">{lap.role}</span>
-        <span className="font-mono text-[11px] text-cream/55">
-          {lap.i + 1}/{lap.route.length}
+      <div className="flex items-stretch border-2 border-ink bg-white text-[13px] shadow-[3px_3px_0_var(--color-ink)]">
+        <span className="grid place-items-center bg-ink px-2.5 font-mono text-[11.5px] text-white">
+          LAP {lap.i + 1}/{lap.route.length}
         </span>
-        <button onClick={go} className="bg-red px-3 py-1 text-[12px] font-semibold text-white">
+        <span className="flex items-center px-3 font-semibold">{lap.role}</span>
+        <button onClick={go} className="border-l-2 border-ink px-3 py-1.5 font-medium transition hover:bg-ink hover:text-white">
           {next ? `${zoneById[next].label} →` : "Done"}
         </button>
-        <button onClick={() => setState({ lap: null })} className="px-1.5 text-cream/55 hover:text-cream" aria-label="End lap">
-          ✕
+        <button onClick={() => setState({ lap: null })} className="border-l-2 border-ink px-2.5 font-mono text-[12px] transition hover:bg-ink hover:text-white" aria-label="End lap">
+          Esc
         </button>
       </div>
     </div>
