@@ -107,25 +107,22 @@ const TRACK_SAMPLES = trackCurve.getSpacedPoints(160);
 // ------------------------------------------------------------ dynamic props
 
 // HENIL GAJJAR, set tight like the name at the original's landing: glyph widths plus
-// a small gap, a wider one between the words. First letter of each word in red.
+// a small gap, a wider one between the words. Ink letters, the first H the one orange.
 const NAME = (() => {
   const s = LETTERS.scale;
   const gap = 0.16 * s;
   const space = 1.1 * s;
   const items: { ch: LetterChar; x: number; w: number; red: boolean }[] = [];
   let x = 0;
-  let wordStart = true;
   for (const c of LETTERS.text) {
     if (c === " ") {
       x += space - gap;
-      wordStart = true;
       continue;
     }
     const ch = c as LetterChar;
     const w = LETTER_WIDTH[ch] * s;
-    items.push({ ch, x: x + w / 2, w, red: wordStart });
+    items.push({ ch, x: x + w / 2, w, red: items.length === 0 });
     x += w + gap;
-    wordStart = false;
   }
   const total = x - gap;
   return items.map((it) => ({ ...it, x: LETTERS.center[0] - total / 2 + it.x }));
@@ -141,7 +138,7 @@ function Letters() {
         <HomeBody key={l.ch + i} colliders={false} position={[l.x, heightAt(l.x, z) + h / 2 + 0.02, z]} mass={3 * s} linearDamping={0.3} angularDamping={0.4}>
           <CuboidCollider args={[l.w / 2, h / 2, 0.25 * s]} friction={0.7} restitution={0.15} />
           <group position={[0, -h / 2, 0]} scale={s}>
-            <Letter char={l.ch} color={l.red ? C.red : C.white} />
+            <Letter char={l.ch} color={l.red ? C.red : C.ink} />
           </group>
         </HomeBody>
       ))}

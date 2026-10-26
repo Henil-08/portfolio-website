@@ -1,7 +1,6 @@
-// Dynamic. Name letters: real extruded Racero glyphs with a small bevel. Origin at ground centre.
-// All letters are 1.55 m tall and 0.5 m deep (z -0.25..0.25). Bounding boxes (W x H x D):
-//   H: 1.50 x 1.55 x 0.5    E: 1.30 x 1.55 x 0.5    N: 1.50 x 1.55 x 0.5
-//   I: 0.41 x 1.55 x 0.5    L: 1.27 x 1.55 x 0.5    G, A: 1.50    J: 0.74    R: 1.57
+// Dynamic. Name letters: real extruded IBM Plex Sans SemiBold glyphs (the UI's face) with a
+// hard chamfer, matte like painted steel. Origin at ground centre. All letters are 1.55 m
+// tall and 0.5 m deep (z -0.25..0.25); widths in LETTER_WIDTH (H 1.24, I 0.73, J 0.99...).
 // A single cuboid of LETTER_WIDTH x 1.55 x 0.5 centred at y=0.775 is a good collider.
 // `letterBoxes(char)` returns that box (center, size, rotZ) for compound colliders.
 // The font loads once (opentype.js) and is cached; the letter renders nothing until then.
@@ -11,30 +10,30 @@ import { useEffect, useState } from "react";
 import * as THREE from "three";
 import opentype from "opentype.js";
 import { C } from "../../palette";
-import { FONT } from "./Label";
+import { FONT_SANS } from "./Label";
 import { mat, type GroupProps } from "./shared";
 
 export type LetterChar = "H" | "E" | "N" | "I" | "L" | "G" | "A" | "J" | "R";
 
 const LH = 1.55; // total height incl. bevel
 const DEPTH = 0.5; // total depth incl. bevel
-const BEVEL_T = 0.035; // bevel thickness (z)
-const BEVEL_S = 0.025; // bevel size (outline growth)
-const CAP = 700; // Racero cap height in font units (every capital here is 0..700)
+const BEVEL_T = 0.03; // chamfer depth (z)
+const BEVEL_S = 0.025; // chamfer size (outline growth)
+const CAP = 698; // Plex Sans cap height in font units
 
 export type LetterBar = { pos: [number, number, number]; size: [number, number, number]; rotZ: number };
 
-// Racero advance boxes (x1..x2 in font units) for each glyph, scaled to LH.
+// Plex Sans SemiBold glyph boxes (x1..x2 in font units), scaled to LH.
 const GLYPH_X: Record<LetterChar, [number, number]> = {
-  H: [50, 727],
-  E: [50, 634],
-  N: [50, 727],
-  I: [50, 215],
-  L: [50, 619],
-  G: [36, 713],
-  A: [43, 720],
-  J: [3, 326],
-  R: [50, 737],
+  H: [82, 637],
+  E: [82, 542],
+  N: [82, 637],
+  I: [53, 370],
+  L: [82, 489],
+  G: [52, 641],
+  A: [21, 651],
+  J: [26, 467],
+  R: [82, 616],
 };
 const SCALE = (LH - 2 * BEVEL_S) / CAP;
 
@@ -51,7 +50,7 @@ export function letterBoxes(char: LetterChar): LetterBar[] {
 
 let fontPromise: Promise<opentype.Font> | null = null;
 export function loadFont() {
-  fontPromise ??= fetch(FONT)
+  fontPromise ??= fetch(FONT_SANS)
     .then((r) => r.arrayBuffer())
     .then((b) => opentype.parse(b));
   return fontPromise;
@@ -139,7 +138,7 @@ function glyphGeometry(font: opentype.Font, char: LetterChar) {
     bevelEnabled: true,
     bevelThickness: BEVEL_T / SCALE,
     bevelSize: BEVEL_S / SCALE,
-    bevelSegments: 3,
+    bevelSegments: 1,
     curveSegments: 10,
   });
   const [x1, x2] = GLYPH_X[char];
@@ -167,9 +166,9 @@ function useGlyph(char: LetterChar) {
   return g && glyphCache.get(char) === g ? g : null;
 }
 
-/** One extruded Racero letter (H, E, N, I or L), 1.55 m tall, glossy painted resin. */
-export function Letter({ char, color = C.white, ...props }: GroupProps & { char: LetterChar; color?: string }) {
+/** One extruded Plex letter, 1.55 m tall, matte painted steel (ink by default). */
+export function Letter({ char, color = C.ink, ...props }: GroupProps & { char: LetterChar; color?: string }) {
   const g = useGlyph(char);
-  const m = mat(color, { r: 0.22, m: 0.02 });
+  const m = mat(color, { r: 0.6, m: 0.1 });
   return <group {...props}>{g ? <mesh geometry={g} material={m} castShadow receiveShadow /> : null}</group>;
 }
