@@ -102,18 +102,18 @@ function Ghosts() {
 
   return (
     <group>
-      {/* Holographic ghosts: additive teal, so they read as AI drivers, not real cars */}
+      {/* Ghosts in see-through ink, so they read as AI drivers, not real cars */}
       <instancedMesh ref={body} args={[geo, undefined, SIZE]} frustumCulled={false}>
-        <meshBasicMaterial color="#2ad4c4" transparent opacity={0.14} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <meshBasicMaterial color="#151515" transparent opacity={0.16} depthWrite={false} />
       </instancedMesh>
-      {/* The current leader glows purple, like the fastest sector */}
+      {/* The current leader in the one orange, with a ring on the ground */}
       <group ref={lead}>
         <mesh geometry={geo}>
-          <meshBasicMaterial color="#b14cff" transparent opacity={0.55} depthWrite={false} blending={THREE.AdditiveBlending} />
+          <meshBasicMaterial color="#ff4f00" transparent opacity={0.5} depthWrite={false} />
         </mesh>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.2, 0.03, 0]}>
-          <ringGeometry args={[1.7, 1.85, 40]} />
-          <meshBasicMaterial color="#b14cff" transparent opacity={0.7} />
+          <ringGeometry args={[1.7, 1.78, 48]} />
+          <meshBasicMaterial color="#ff4f00" transparent opacity={0.8} />
         </mesh>
       </group>
     </group>

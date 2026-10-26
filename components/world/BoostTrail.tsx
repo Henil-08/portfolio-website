@@ -8,7 +8,7 @@ import { getState } from "./store";
 const N = 36; // points per trail
 const WIDTH = 0.16;
 
-// A glowing ribbon that follows an anchor (a wing tip) while boosting and fades out after.
+// A glowing ribbon in the brand orange that follows an anchor (a wing tip) while boosting and fades out after.
 export function BoostTrail({ anchor }: { anchor: React.RefObject<THREE.Object3D | null> }) {
   const pts = useRef(Array.from({ length: N }, () => new THREE.Vector3()));
   const life = useRef(0);
@@ -31,7 +31,7 @@ export function BoostTrail({ anchor }: { anchor: React.RefObject<THREE.Object3D 
         depthWrite: false,
         blending: THREE.AdditiveBlending,
         side: THREE.DoubleSide,
-        uniforms: { uLife: { value: 0 }, uColor: { value: new THREE.Color("#ff3b2f") } },
+        uniforms: { uLife: { value: 0 }, uColor: { value: new THREE.Color("#ff4f00") } },
         vertexShader: `attribute float fade; varying float vFade; void main(){ vFade = fade; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
         fragmentShader: `uniform float uLife; uniform vec3 uColor; varying float vFade; void main(){ gl_FragColor = vec4(uColor * 1.6, vFade * vFade * uLife); }`,
       }),
