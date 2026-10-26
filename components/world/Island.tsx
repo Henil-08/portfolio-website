@@ -279,8 +279,9 @@ function lit(m: THREE.MeshStandardMaterial, k = 1) {
   return m;
 }
 
-// keeps the night tarmac as bright as it was at the old #3a3b3e
-const ASPHALT_NIGHT = new THREE.Color(C.asphalt).r / new THREE.Color(ASPHALT).r;
+// night tarmac stays near-black like the proposal: only a faint lift, so the floodlight
+// pools, the paper edge lines and the kerbs carry the lap
+const ASPHALT_NIGHT = 0.1;
 
 const ROAD = {
   asphalt: lit(new THREE.MeshStandardMaterial({ color: ASPHALT, roughness: 0.95 }), ASPHALT_NIGHT),

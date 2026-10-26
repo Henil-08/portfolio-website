@@ -14,7 +14,7 @@ import Vehicle from "./Vehicle";
 import Places from "./Places";
 import { CameraRig, Sky, Sun, ZoneWatcher } from "./Rig";
 import InteractivePoints from "./ui3d/InteractivePoints";
-import { DayNight, Exposure, RainCycle, Spawns, Weather } from "./Effects";
+import { DayNight, EnvLight, RainCycle, Spawns, Weather } from "./Effects";
 import Autopilot from "./autopilot/Autopilot";
 import Grass from "./Grass";
 import StartGarden from "./StartGarden";
@@ -37,7 +37,7 @@ export default function World() {
       shadows
       dpr={[1, fancy ? 1.75 : 1.25]}
       camera={{ fov: 34, near: 0.5, far: 1200, position: [90, 60, 40] }}
-      gl={{ antialias: !fancy, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.94 }}
+      gl={{ antialias: !fancy, powerPreference: "high-performance", toneMapping: THREE.NoToneMapping }}
       className={`!fixed inset-0 ${hallucinating ? "hallucinate" : ""}`}
     >
       {/* never swap renderers mid-reveal: that remount is a visible hitch */}
@@ -75,7 +75,7 @@ export default function World() {
       <Grass />
       <Alive />
       <Autopilot />
-      <Exposure />
+      <EnvLight />
       <Overlay />
       {/* The light version still gets the opening reveal, then drops the composer. */}
       {!fancy && !revealed && (

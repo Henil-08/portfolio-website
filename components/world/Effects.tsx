@@ -17,9 +17,9 @@ import { nightGlow } from "./models/props/shared";
 // paper sky and fog. Dusk warms the key a little and keeps the paper readable. Night is ink:
 // a cool, dim moon over a near-black bounce, so the floodlights, lamps and the orange carry it.
 export const SCENES = {
-  day: { sun: 2.4, sunColor: "#fff6ea", hemi: 0.7, hemiSky: "#ffffff", hemiGround: "#b8b4a9", env: 0.2, exposure: 0.94, top: "#d3d8da", mid: "#e9e7e1", bottom: "#e2dfd8", fog: "#e9e7e1" },
-  golden: { sun: 1.9, sunColor: "#ffd2a6", hemi: 0.8, hemiSky: "#f3ebe2", hemiGround: "#9a948a", env: 0.24, exposure: 0.98, top: "#c8ccd0", mid: "#e6ddd2", bottom: "#ddd6cc", fog: "#e2dcd3" },
-  night: { sun: 0.8, sunColor: "#a9bdd6", hemi: 0.9, hemiSky: "#4a5664", hemiGround: "#1a1c20", env: 0.1, exposure: 1.0, top: "#0b0d10", mid: "#16191d", bottom: "#0f1114", fog: "#15181b" },
+  day: { sun: 2.4, sunColor: "#fff6ea", hemi: 0.7, hemiSky: "#ffffff", hemiGround: "#b8b4a9", env: 0.2, top: "#d3d8da", mid: "#e9e7e1", bottom: "#e2dfd8", fog: "#e9e7e1" },
+  golden: { sun: 1.9, sunColor: "#ffd2a6", hemi: 0.8, hemiSky: "#f3ebe2", hemiGround: "#9a948a", env: 0.24, top: "#c8ccd0", mid: "#e6ddd2", bottom: "#ddd6cc", fog: "#e2dcd3" },
+  night: { sun: 0.6, sunColor: "#a9bdd6", hemi: 0.9, hemiSky: "#4a5664", hemiGround: "#1a1c20", env: 0.03, top: "#0b0d10", mid: "#16191d", bottom: "#0f1114", fog: "#15181b" },
 } as const;
 
 // Rain on top of any of them: the key dims and the sky and fog go concrete grey.
@@ -83,7 +83,7 @@ export function Weather() {
   );
 }
 
-type Params = { sun: number; sunColor: THREE.Color; hemi: number; hemiSky: THREE.Color; hemiGround: THREE.Color; env: number; exposure: number; top: THREE.Color; mid: THREE.Color; bottom: THREE.Color; fog: THREE.Color };
+type Params = { sun: number; sunColor: THREE.Color; hemi: number; hemiSky: THREE.Color; hemiGround: THREE.Color; env: number; top: THREE.Color; mid: THREE.Color; bottom: THREE.Color; fog: THREE.Color };
 const K = Object.fromEntries(
   Object.entries(SCENES).map(([k, v]) => [
     k,
@@ -96,7 +96,6 @@ function blend(a: Params, b: Params, k: number) {
   out.sun = THREE.MathUtils.lerp(a.sun, b.sun, k);
   out.hemi = THREE.MathUtils.lerp(a.hemi, b.hemi, k);
   out.env = THREE.MathUtils.lerp(a.env, b.env, k);
-  out.exposure = THREE.MathUtils.lerp(a.exposure, b.exposure, k);
   out.sunColor.lerpColors(a.sunColor, b.sunColor, k);
   out.hemiSky.lerpColors(a.hemiSky, b.hemiSky, k);
   out.hemiGround.lerpColors(a.hemiGround, b.hemiGround, k);
@@ -208,12 +207,11 @@ export function RainCycle() {
   return null;
 }
 
-// Exposure follows the time of day.
-export function Exposure() {
-  useFrame(({ gl, scene }, dt) => {
-    const want = sceneParams().exposure;
-    gl.toneMappingExposure += (want - gl.toneMappingExposure) * Math.min(1, dt * 2);
-    // The studio environment (reflections on paint and glass) dims at night too.
+// The studio environment (reflections on paint and glass) follows the time of day.
+// No exposure here: the composer turns tone mapping off (@react-three/postprocessing), so
+// World.tsx renders without it everywhere and the light version looks the same.
+export function EnvLight() {
+  useFrame(({ scene }) => {
     scene.environmentIntensity = sceneParams().env;
   });
   return null;

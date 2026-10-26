@@ -21,7 +21,7 @@ import Street from "@/components/world/street";
 import StartGarden from "@/components/world/StartGarden";
 import InteractivePoints from "@/components/world/ui3d/InteractivePoints";
 import { Sky } from "@/components/world/Rig";
-import { Exposure, sceneParams } from "@/components/world/Effects";
+import { EnvLight, sceneParams } from "@/components/world/Effects";
 import { dayNight } from "@/components/world/daynight";
 import { heightAt } from "@/components/world/terrain";
 import { views } from "./views";
@@ -139,7 +139,7 @@ export default function Scene() {
         </Physics>
       </Suspense>
       <InteractivePoints />
-      <Exposure />
+      <EnvLight />
     </Canvas>
   );
 }
