@@ -2,13 +2,15 @@
 
 // 04 · Start sequence mock: after the boot, pick a vehicle on a loadout screen, press Enter,
 // and the world builds itself around it. Both stages draw through the page's one canvas.
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera, View } from "@react-three/drei";
 import { Count, Decode, d } from "@/components/brand/motion";
-import { Car, Floodlight, Gantry, Garage, Grandstand, Lights, M, TecPro, Town, Trees, W, WallFence } from "./models";
-import { Atv, Bike, Supercar } from "./vehicles";
+import { Lights, M } from "./models";
+import { BUILD_LOG, GRID, Island, PaperFloor, T, type BuildClock } from "./island";
+import { Atv, Bike, Formula, Roadster } from "./vehicles";
+import { VEHICLE_ICONS } from "./vehicleIcons";
 
 type V3 = [number, number, number];
 
@@ -33,13 +35,11 @@ const VEHICLES: Vehicle[] = [
     name: "HG-08",
     line: "The open-wheeler the world was built around. Fastest on the straight, nervous on the grass.",
     stats: [96, 90, 82],
-    len: 5.4,
-    cam: [5.6, 2.3, 6.4],
-    target: [0, 0.5, 0],
-    model: () => <Car />,
-    icon: (
-      <path d="M4 17h8l3-3h14l3-3h6l2 3h12l4 1v2H50v-1H12v1H4zM2 13h5v6H2zM56 12h6v7h-6z M14 22a4 4 0 1 0 8 0a4 4 0 1 0-8 0M44 22a4 4 0 1 0 8 0a4 4 0 1 0-8 0" />
-    ),
+    len: 5.6,
+    cam: [5.3, 2.0, 6.0],
+    target: [0, 0.45, 0],
+    model: () => <Formula />,
+    icon: VEHICLE_ICONS.V01,
   },
   {
     code: "V02",
@@ -51,21 +51,19 @@ const VEHICLES: Vehicle[] = [
     cam: [3.3, 1.75, 3.9],
     target: [0, 0.62, 0],
     model: () => <Atv />,
-    icon: (
-      <path d="M22 4h14l6 9h6l4 5H12l3-5h5zM24 6v7h3V6zM31 6v7h9l-5-7zM8 21a6 6 0 1 0 12 0a6 6 0 1 0-12 0M44 21a6 6 0 1 0 12 0a6 6 0 1 0-12 0" />
-    ),
+    icon: VEHICLE_ICONS.V02,
   },
   {
     code: "V03",
-    kind: "Supercar",
-    name: "GT-08",
-    line: "Mid-engined road car: low wedge, wide hips. The easy one to start with.",
-    stats: [88, 78, 80],
-    len: 4.7,
-    cam: [5.2, 2.1, 5.9],
-    target: [0, 0.55, 0],
-    model: () => <Supercar />,
-    icon: <path d="M3 18l2-5 22-4 9-4h8l12 6 4 2v5H3zM30 8l-3 3h14l-2-4zM10 21a4.5 4.5 0 1 0 9 0a4.5 4.5 0 1 0-9 0M46 21a4.5 4.5 0 1 0 9 0a4.5 4.5 0 1 0-9 0" />,
+    kind: "Road car",
+    name: "Roadster",
+    line: "A low wedge of flat, creased panels under a dark glass canopy, with a tall wing on two struts. The easy one to start with.",
+    stats: [92, 80, 82],
+    len: 4.6,
+    cam: [5.1, 2.0, 5.8],
+    target: [0, 0.5, 0],
+    model: () => <Roadster />,
+    icon: VEHICLE_ICONS.V03,
   },
   {
     code: "V04",
@@ -77,9 +75,7 @@ const VEHICLES: Vehicle[] = [
     cam: [2.9, 1.45, 3.4],
     target: [0, 0.62, 0],
     model: () => <Bike />,
-    icon: (
-      <path d="M22 9h10l4 3h8l6-6h4l-4 7 4 4H18l-2-4zM36 6h6v3h-6zM6 20a6 6 0 1 0 12 0a6 6 0 1 0-12 0M46 20a6 6 0 1 0 12 0a6 6 0 1 0-12 0" />
-    ),
+    icon: VEHICLE_ICONS.V04,
   },
 ];
 const STATS = ["Speed", "Grip", "Handling"];
@@ -91,237 +87,116 @@ const power2Out = (k: number) => 1 - (1 - k) * (1 - k);
 const power2InOut = (k: number) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
 const backOut = (k: number, s = 1.70158) => 1 + (s + 1) * Math.pow(k - 1, 3) + s * Math.pow(k - 1, 2);
 
-/** The build's start time on the R3F clock, set by whichever tween runs first. */
-const Clock0 = createContext<(now: number) => number>((now) => now);
-const useSince = () => useContext(Clock0);
-
-type Kind = "grow" | "pop" | "lift" | "wipeZ" | "wipeX" | "spread";
-
-/** One piece of the world arriving: scale or lift tweened from `at` seconds, mutated per frame. */
-function Arrive({ at, dur = 0.6, kind, depth = 6, position, rotation, children }: { at: number; dur?: number; kind: Kind; depth?: number; position?: V3; rotation?: V3; children: ReactNode }) {
-  const g = useRef<THREE.Group>(null!);
-  const since = useSince();
-  useFrame((s) => {
-    const k = clamp01((since(s.clock.elapsedTime) - at) / dur);
-    const o = g.current;
-    o.visible = k > 0;
-    if (kind === "grow") o.scale.set(1, Math.max(1e-4, backOut(k, 0.9)), 1);
-    else if (kind === "pop") o.scale.setScalar(Math.max(1e-4, backOut(k, 2.4)));
-    else if (kind === "lift") o.position.y = -depth * (1 - backOut(k, 1.2));
-    else if (kind === "wipeZ") o.scale.set(1, 1, Math.max(1e-4, power2InOut(k)));
-    else if (kind === "wipeX") o.scale.set(Math.max(1e-4, power2InOut(k)), 1, 1);
-    else if (kind === "spread") o.scale.setScalar(Math.max(1e-4, power2Out(k)));
-  });
-  return (
-    <group position={position} rotation={rotation}>
-      <group ref={g} visible={false}>
-        {children}
-      </group>
-    </group>
-  );
+declare global {
+  interface Window {
+    /** Dev only: freeze the build-in at this many seconds (for stills). */
+    __buildT?: number;
+  }
 }
-
-/** Delay that grows with distance from the car, so things arrive in a wave. */
-const wave = (base: number, x: number, z: number, per = 0.014) => base + Math.hypot(x, z) * per;
 
 const dotFloor = (() => {
   if (typeof document === "undefined") return null;
   const c = document.createElement("canvas");
   c.width = c.height = 64;
   const g = c.getContext("2d")!;
-  g.fillStyle = W.paper;
+  g.fillStyle = "#ebe9e3";
   g.fillRect(0, 0, 64, 64);
   g.fillStyle = "#b9b6ab";
-  g.fillRect(30, 30, 4, 4);
+  g.fillRect(29, 29, 6, 6);
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.repeat.set(160, 160);
+  t.repeat.set(300, 300);
   t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
   return t;
 })();
 
 /* ------------------------------------------------------------------ stage B scene */
 
-const CAR_X = -2.4;
+/** Roughly the island's middle: where the camera looks while it's high. */
+const MID = new THREE.Vector3(2, 0, -8);
+/** How far round the camera swings (radians): three quarters of a turn. */
+const SWEEP = Math.PI * 1.5;
 
-function FloorFade() {
-  const mat = useRef<THREE.MeshBasicMaterial>(null!);
-  const since = useSince();
-  useFrame((s) => {
-    mat.current.opacity = power2Out(clamp01(since(s.clock.elapsedTime) / 0.45));
-  });
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.06, 0]}>
-      <planeGeometry args={[480, 480]} />
-      <meshBasicMaterial ref={mat} map={dotFloor} transparent opacity={0} />
-    </mesh>
-  );
-}
-
-/** Eases from a close orbit round the vehicle out to the chase-cam angle. */
-function BuildCamera({ v }: { v: Vehicle }) {
+/**
+ * Close on the car, then up and round the island in a wide arc while the ring builds it,
+ * then down behind the car into the chase cam as the last pieces land.
+ */
+function BuildCamera({ v, clock }: { v: Vehicle; clock: BuildClock }) {
   const cam = useRef<THREE.PerspectiveCamera>(null!);
-  const since = useSince();
-  const look = useRef(new THREE.Vector3());
+  const pivot = useRef(new THREE.Vector3());
   useFrame((s) => {
-    const t = since(s.clock.elapsedTime);
-    const r = v.len * 0.85 + 2;
-    const a = 2.3 - t * 0.55;
-    const orbit = new THREE.Vector3(CAR_X + Math.sin(a) * r, 1.3 + v.len * 0.1, Math.cos(a) * r);
-    const chase = new THREE.Vector3(CAR_X + 1.4, 2.6 + v.len * 0.75, -4.5 - v.len * 2);
-    const e = power2InOut(clamp01((t - 0.35) / 3.1));
-    cam.current.position.lerpVectors(orbit, chase, e);
-    look.current.set(CAR_X, 0.6, 0).lerp(new THREE.Vector3(CAR_X + 1, 0.2, 12), e);
-    cam.current.lookAt(look.current);
+    const t = clock(s.clock.elapsedTime);
+    const u = clamp01((t - T.cam0) / T.camDur);
+    const e = power2InOut(u);
+    // 0 at the car, 1 over the island: up, hold a beat while the ring crosses it, down
+    const high = power2InOut(clamp01(Math.min(u / 0.42, (1 - u) / 0.38)));
+    const close = { r: v.len * 0.95 + 2.8, h: 1.1 + v.len * 0.14 };
+    const chase = { r: 4.6 + v.len * 1.9, h: 2.3 + v.len * 0.62 };
+    const behind = Math.atan2(-GRID.fz, -GRID.fx);
+    const az = behind + (1 - e) * SWEEP;
+    const r = close.r + (chase.r - close.r) * e + 104 * high;
+    const h = close.h + (chase.h - close.h) * e + 76 * high;
+    // the camera turns round a pivot that drifts from the car to the island's middle and back
+    pivot.current.set(GRID.x, 0.6, GRID.z).lerp(MID, high * 0.85);
+    const c = cam.current;
+    c.position.set(pivot.current.x + Math.cos(az) * r, h, pivot.current.z + Math.sin(az) * r);
+    // looking at the pivot, and at the end along the car's nose like the chase cam
+    pivot.current.x += GRID.fx * 10 * e * e;
+    pivot.current.z += GRID.fz * 10 * e * e;
+    pivot.current.y = 0.6 - 0.3 * e;
+    c.lookAt(pivot.current);
+    c.fov = 38 + 10 * high;
+    c.updateProjectionMatrix();
   });
-  return <PerspectiveCamera ref={cam} makeDefault fov={36} position={[CAR_X + 6, 2, 6]} near={0.1} far={400} />;
+  return <PerspectiveCamera ref={cam} makeDefault fov={38} position={[GRID.x + 6, 2, GRID.z + 6]} near={0.2} far={900} />;
 }
 
-const KERB_N = 14;
-function Kerb({ z, x, flip }: { z: number; x: number; flip?: boolean }) {
+/** Daylight over the whole island, with a shadow box that covers it. */
+function IslandLights() {
   return (
-    <Arrive at={wave(0.85, x, z, 0.012)} dur={0.5} kind="wipeZ" position={[x, 0, z]} rotation={flip ? [0, Math.PI, 0] : undefined}>
-      {Array.from({ length: KERB_N }, (_, i) => (
-        <mesh key={i} position={[0, 0.06, i * 1.2 + 0.6]} material={i % 2 ? M.paper : M.ink} receiveShadow>
-          <boxGeometry args={[1.0, 0.1, 1.2]} />
-        </mesh>
-      ))}
-    </Arrive>
+    <>
+      <hemisphereLight args={["#ffffff", "#b8b4a9", 1.05]} />
+      <directionalLight
+        position={[70, 120, 50]}
+        intensity={2.3}
+        color="#fff6ea"
+        castShadow
+        shadow-mapSize={[4096, 4096]}
+        shadow-bias={-0.0005}
+        shadow-normalBias={0.04}
+        shadow-camera-left={-150}
+        shadow-camera-right={150}
+        shadow-camera-top={150}
+        shadow-camera-bottom={-150}
+        shadow-camera-far={420}
+      />
+    </>
   );
 }
 
 function BuildScene({ v }: { v: Vehicle }) {
   const t0 = useRef(-1);
-  const since = useCallback((now: number) => {
+  const clock = useCallback((now: number) => {
+    if (process.env.NODE_ENV !== "production" && typeof window !== "undefined" && typeof window.__buildT === "number") return window.__buildT;
     if (t0.current < 0) t0.current = now;
     return now - t0.current;
   }, []);
-  const segs = [-50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50];
   return (
-    <Clock0.Provider value={since}>
+    <>
       <color attach="background" args={["#ebe9e3"]} />
-      <fog attach="fog" args={["#ebe9e3", 55, 150]} />
-      <BuildCamera v={v} />
-      <Lights size={60} />
-      {/* 1 · paper floor with the dot grid, then the ground spreading out from the car */}
-      <FloorFade />
-      <Arrive at={0.15} dur={1.1} kind="spread" position={[CAR_X, 0, 0]}>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]} material={M.grass} receiveShadow>
-          <circleGeometry args={[110, 64]} />
-        </mesh>
-      </Arrive>
-      {/* 2 · the track draws out from under the car */}
-      <Arrive at={0.35} dur={0.9} kind="wipeZ">
-        <mesh position={[0, 0.025, 0]} material={M.asphalt} receiveShadow>
-          <boxGeometry args={[12, 0.05, 170]} />
-        </mesh>
-      </Arrive>
-      <Arrive at={0.55} dur={0.7} kind="wipeZ">
-        <mesh position={[11.5, 0.024, 0]} material={M.asphalt} receiveShadow>
-          <boxGeometry args={[6, 0.05, 120]} />
-        </mesh>
-        <mesh position={[-9.2, 0.02, 0]} material={M.gravel} receiveShadow>
-          <boxGeometry args={[6.4, 0.04, 170]} />
-        </mesh>
-      </Arrive>
-      {/* 3 · edge lines, the grid slots and the kerbs wipe along */}
-      <Arrive at={0.7} dur={0.8} kind="wipeZ">
-        {[-5.6, 5.6].map((x) => (
-          <mesh key={x} position={[x, 0.03, 0]} material={M.paper}>
-            <boxGeometry args={[0.2, 0.053, 170]} />
-          </mesh>
-        ))}
-      </Arrive>
-      <Arrive at={0.8} dur={0.45} kind="wipeX" position={[-6, 0, 9]}>
-        <mesh position={[6, 0.03, 0]} material={M.paper}>
-          <boxGeometry args={[12, 0.055, 0.6]} />
-        </mesh>
-      </Arrive>
-      {[
-        [CAR_X, 3.2],
-        [2.4, -4.2],
-        [CAR_X, -11.6],
-        [2.4, -19],
-      ].map(([x, z], i) => (
-        <Arrive key={i} at={0.75 + i * 0.08} dur={0.4} kind="pop" position={[x, 0, z]}>
-          <mesh position={[0, 0.03, 0]} material={M.paper}>
-            <boxGeometry args={[2.4, 0.055, 0.16]} />
-          </mesh>
-          <mesh position={[-1.12, 0.03, -0.6]} material={M.paper}>
-            <boxGeometry args={[0.16, 0.055, 1.2]} />
-          </mesh>
-        </Arrive>
-      ))}
-      <Kerb x={-6.1} z={18} />
-      <Kerb x={6.1} z={18} />
-      <Kerb x={-6.1} z={-18} flip />
-      <Kerb x={6.1} z={-18} flip />
-      {/* 4 · barriers rise in a wave travelling out from the car */}
-      {segs.map((z) => (
-        <Arrive key={`w${z}`} at={wave(1.0, 7.4, z)} dur={0.55} kind="lift" depth={5} position={[7.4, 0, z]} rotation={[0, Math.PI / 2, 0]}>
-          <WallFence len={10} />
-        </Arrive>
-      ))}
-      {segs.map((z) => (
-        <Arrive key={`t${z}`} at={wave(1.05, -12.6, z)} dur={0.5} kind="lift" depth={2} position={[-12.6, 0, z - 4.5]} rotation={[0, Math.PI / 2, 0]}>
-          <TecPro n={9} />
-        </Arrive>
-      ))}
-      {/* 5 · garages, stands and the town extrude up */}
-      {[
-        [26, -8],
-        [26, 26],
-      ].map(([x, z]) => (
-        <Arrive key={`g${z}`} at={wave(1.45, x, z, 0.01)} dur={0.7} kind="grow" position={[x, 0, z]} rotation={[0, -Math.PI / 2, 0]}>
-          <Garage />
-        </Arrive>
-      ))}
-      {[
-        [-17, -6, 26],
-        [-17, 26, 20],
-      ].map(([x, z, len]) => (
-        <Arrive key={`s${z}`} at={wave(1.5, x, z, 0.01)} dur={0.7} kind="grow" position={[x, 0, z]} rotation={[0, Math.PI / 2, 0]}>
-          <Grandstand len={len} />
-        </Arrive>
-      ))}
-      <Arrive at={1.35} dur={0.6} kind="lift" depth={8} position={[0, 0, 30]}>
-        <Gantry />
-      </Arrive>
-      {[
-        [-52, 46, Math.PI / 2],
-        [58, -34, -Math.PI / 2],
-        [56, 58, -Math.PI / 2],
-        [26, 84, -Math.PI / 2],
-      ].map(([x, z, r]) => (
-        <Arrive key={`b${z}`} at={wave(1.6, x, z, 0.006)} dur={0.8} kind="grow" position={[x, 0, z]} rotation={[0, r, 0]}>
-          <Town />
-        </Arrive>
-      ))}
-      {/* 6 · trees pop with overshoot */}
-      {[
-        [-34, -30],
-        [-30, 62],
-        [42, 6],
-        [-46, 12],
-        [38, -60],
-        [30, 46],
-        [-24, -64],
-        [-24, 50],
-        [18, 60],
-      ].map(([x, z]) => (
-        <Arrive key={`tr${x}${z}`} at={wave(2.0, x, z, 0.008)} dur={0.5} kind="pop" position={[x, 0, z]}>
-          <Trees />
-        </Arrive>
-      ))}
-      {/* 7 · floodlights rise last */}
-      {[-34, -8, 18, 44].map((z, i) => (
-        <Arrive key={`f${z}`} at={2.45 + i * 0.09} dur={0.6} kind="lift" depth={13} position={[-14.5, 0, z]} rotation={[0, Math.PI / 2, 0]}>
-          <Floodlight />
-        </Arrive>
-      ))}
-      {/* the chosen vehicle on its slot */}
-      <group position={[CAR_X, 0, 0]}>{v.model()}</group>
-    </Clock0.Provider>
+      <fog attach="fog" args={["#ebe9e3", 240, 620]} />
+      <BuildCamera v={v} clock={clock} />
+      <IslandLights />
+      {/* 1 · the paper floor and its dot grid, eaten by the ring as the island arrives */}
+      <PaperFloor map={dotFloor} />
+      {/* 2 · the whole island, element by element as the ring reaches it */}
+      <Island clock={clock} />
+      {/* the chosen vehicle on its grid slot */}
+      <group position={[GRID.x, GRID.y, GRID.z]} rotation={[0, GRID.yaw, 0]}>
+        {v.model()}
+      </group>
+    </>
   );
 }
 
@@ -385,16 +260,9 @@ const CSS = `
 @media (prefers-reduced-motion:reduce){.ss-cover,.ss-uncover,.ss-fadeout{animation-duration:1ms}}
 `;
 
-const BUILD_STEPS: [string, number][] = [
-  ["Floor", 0],
-  ["Track", 350],
-  ["Kerbs, lines", 700],
-  ["Barriers", 1000],
-  ["Garages, stands", 1450],
-  ["Trees", 2000],
-  ["Floodlights", 2450],
-  ["Chase cam", 3450],
-];
+/** What arrives when (ms), read from the island's own timeline so the log ticks with it. */
+const BUILD_STEPS = BUILD_LOG();
+const DONE_MS = BUILD_STEPS[BUILD_STEPS.length - 1][1];
 
 export default function StartSequence() {
   const box = useRef<HTMLDivElement>(null);
@@ -577,10 +445,10 @@ export default function StartSequence() {
                   ))}
                 </ol>
               </div>
-              <p className="ss-fadeout font-mono absolute bottom-16 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap text-[13px]" style={d(2900)}>
+              <p className="ss-fadeout font-mono absolute bottom-16 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap text-[13px]" style={d(DONE_MS - 600)}>
                 Press <kbd className="x-key is-down">Enter</kbd> to drive
               </p>
-              <div className="dsa-flicker absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center border-2 border-[#111] bg-white shadow-[3px_3px_0_#111]" style={d(3500)}>
+              <div className="dsa-flicker absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center border-2 border-[#111] bg-white shadow-[3px_3px_0_#111]" style={d(DONE_MS + 150)}>
                 <span className="font-mono bg-[#111] px-2 py-1 text-[12px] text-white">E</span>
                 <span className="px-2.5 py-1 text-[13px] font-semibold uppercase tracking-[0.06em]">
                   <span className="font-mono mr-1.5 text-[#ff4f00]">Z01</span>Start grid

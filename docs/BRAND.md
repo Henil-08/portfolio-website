@@ -8,6 +8,7 @@ disagree, the page is what the owner approved; fix this file.
 
 | Date | Decision |
 |---|---|
+| 2026-10-26 | Start sequence mock reworked (owner feedback): vehicles rebuilt (V01 F1 HG-08, V02 E14 Baja space frame, V03 Roadster after the new roadster references with no logo, V04 R-08 sport bike) with new side-profile icons; the world now builds in all around from the real island data (an orange ring expands from the car, the camera arcs over the island and swoops into the chase cam). Special powers on F proposed, owner to pick. |
 | 2026-10-26 | Cursor: Magnetic chosen; small boxes get the square outside the corner, plain links get brackets (owner). Options D, F, G and their code removed. |
 | 2026-10-26 | Start sequence proposal (owner idea), mock in /docs/brand/world section 04: after the boot, a loadout panel to pick a vehicle on a turntable (V01 F1 HG-08, V02 ATV E14 after his SAE e-BAJA car, V03 supercar GT-08, V04 bike R-08), then Enter builds the world in around it (~3.5 s) and drops into the chase cam. Not approved yet. |
 | 2026-10-26 | Owner disliked cursor options A/B/C. New lab options (I09, /docs/brand/system): D Tag (context verb tag beside an orange square), E Magnetic (targets lean ≤5 px to the pointer, the square docks in their corner, press throws logo cells), F Trail (logo-weight trail folding into a 2x2 attention map on hover), G Scan (one orange scan across the target, crosshair with its data-code). Default stays "no change". Preview persists via localStorage `hg:cursor-style`. |
