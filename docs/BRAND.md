@@ -166,3 +166,24 @@ components/ui/brand/ and app/globals.css, and keep this file in step.
 The owner says the 3D world now feels childish next to this UI: the car, buildings, fences and colours.
 Proposals are at `/docs/brand/world`. Nothing in the world changes until the owner approves there;
 then record the approved palette and models here and in ROADMAP step 11.
+
+**Proposal (not approved yet): "Concrete & Ink"**, a modern circuit instead of a toy town.
+Code in app/docs/brand/world/models.tsx; the page draws every view through one WebGL canvas
+using drei `<View>`.
+- **Palette:**
+  - concrete `#d9d6ce`, concrete dark `#b8b4a9`, asphalt `#3a3b3e`, gravel `#cdc4b0`
+  - grass `#7a8462`, leaf `#5c6a4b` / `#73805c`, water `#3e5a63`
+  - ink `#151515`, paper `#f3f2ed`, orange `#ff4f00` (one accent per object), glass `#1f262b`
+- **Models:**
+  - W01 car HG-08: ink body, paper sidepods and engine cover with 08, an orange nose line
+  - W02 garages: a concrete block with five glazed bays Z05–Z09 and a thin ink roof
+  - W03 TecPro barrier blocks (replaces the tyre walls)
+  - W04 concrete wall and ink debris fence
+  - W05 ink/paper kerbs, a paper edge line and gravel
+  - W06 grandstand
+  - W07 floodlight with night beams
+  - W08 start gantry: LED board and orange start lights
+  - W09 concrete town blocks
+  - W10 trees: faceted cypresses and round crowns
+- **Changes from the old art direction** (it said no painted lines and kept red/white kerbs): this
+  proposal adds paper edge lines and ink/paper kerbs.
