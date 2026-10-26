@@ -4,7 +4,7 @@
 // timing, the micro-interactions as live components, and the real screens (boot, driving
 // HUD, garage, map, resume, 404) built from them. All copy comes from content/*.
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { profile, story } from "@/content/profile";
 import { projects, DOMAINS } from "@/content/projects";
 import { ACHIEVEMENTS } from "@/content/achievements";
@@ -16,7 +16,6 @@ import { DsCard, DsResume } from "@/components/brand/sheets";
 import { DS, pad } from "@/components/brand/tokens";
 import { ATTENTION, Lockup, Mark } from "@/components/brand/mark";
 import Corners from "@/components/brand/Corners";
-import { CURSOR_STYLE_KEY } from "@/components/brand/Cursor";
 
 /* ------------------------------------------------------------------ page frame */
 
@@ -370,53 +369,26 @@ function Tabs() {
   );
 }
 
-// I09 lab: the hover options for the cursor. The choice is <html data-cursor-style>, saved in
-// localStorage so Cursor.tsx applies it on every page until one is picked for real.
-const CURSOR_OPTIONS = [
-  { id: "", code: "00", label: "Current", note: "No change over clickable things; the target's own hover does the work." },
-  { id: "d", code: "D", label: "Tag", note: "A mono prompt snaps in beside an orange square and says what the click does: OPEN ↗, EMAIL, SEND." },
-  { id: "e", code: "E", label: "Magnetic", note: "The target leans toward you, the square snaps into its corner as the logo's orange cell, and a click throws four cells." },
-  { id: "f", code: "F", label: "Trail", note: "Four cells at the logo's weights trail the square and fold into a 2x2 map over a target; pressing fills it." },
-  { id: "g", code: "G", label: "Scan", note: "One orange line sweeps the target as you arrive; the square turns into a crosshair that reads its code." },
-];
-
-function watchCursorStyle(cb: () => void) {
-  const mo = new MutationObserver(cb);
-  mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-cursor-style"] });
-  return () => mo.disconnect();
-}
-
-function pickCursorStyle(id: string) {
-  if (id) document.documentElement.setAttribute("data-cursor-style", id);
-  else document.documentElement.removeAttribute("data-cursor-style");
-  try {
-    if (id) localStorage.setItem(CURSOR_STYLE_KEY, id);
-    else localStorage.removeItem(CURSOR_STYLE_KEY);
-  } catch {}
-}
-
+// I09: the cursor is Magnetic (owner's pick). Targets to try it on: boxed ones dock the orange
+// square outside their corner, unboxed links get corner brackets, wide rows keep it on the pointer.
 function CursorLab() {
-  const style = useSyncExternalStore(watchCursorStyle, () => document.documentElement.dataset.cursorStyle ?? "", () => "");
-  const i = Math.max(0, CURSOR_OPTIONS.findIndex((o) => o.id === style));
   return (
     <div className="space-y-5">
-      <div className="space-y-3">
-        <div className="relative grid grid-cols-5 border-2 border-[#111] bg-white">
-          <span className="absolute inset-y-0 w-1/5 bg-[#111] transition-transform duration-200 ease-[cubic-bezier(.6,0,.2,1)]" style={{ transform: `translateX(${i * 100}%)` }} />
-          {CURSOR_OPTIONS.map((o, j) => (
-            <button key={o.code} type="button" onClick={() => pickCursorStyle(o.id)} aria-pressed={i === j} data-cursor-label={i === j ? "On" : "Try"} className={`font-mono relative flex flex-col items-start px-2.5 py-1.5 text-left text-[12px] uppercase tracking-[0.06em] transition-colors ${i === j ? "text-white" : "text-[#111]"}`}>
-              <span className={`text-[10.5px] ${i === j ? "text-[#ff4f00]" : "text-[#5d5d58]"}`}>{o.code}</span>
-              {o.label}
-            </button>
-          ))}
-        </div>
-        <p className="text-[13.5px] text-[#111]">
-          <span className="font-mono mr-2 text-[12px] text-[#ff4f00]">{CURSOR_OPTIONS[i].code}</span>
-          {CURSOR_OPTIONS[i].note}
-        </p>
-      </div>
+      <ul className="space-y-1.5 text-[13.5px]">
+        {[
+          ["Boxed", "Buttons, chips, tabs lean toward you; the square docks just outside their bottom-right corner in orange."],
+          ["Links", "A link with only an underline gets orange corner brackets round it instead."],
+          ["Rows", "Wide rows keep the square on the pointer; the row inverts as usual."],
+          ["Press", "A click throws four little cells, the logo's weights and its orange one."],
+        ].map(([k, v]) => (
+          <li key={k} className="grid grid-cols-[64px_1fr] gap-2">
+            <span className="font-mono text-[12px] text-[#ff4f00]">{k}</span>
+            {v}
+          </li>
+        ))}
+      </ul>
       <div className="flex flex-wrap items-center gap-5 text-[14px]">
-        <button type="button" className="x-btn x-primary" data-cursor-label="Send">
+        <button type="button" className="x-btn x-primary">
           Send <span className="x-arrow">→</span>
         </button>
         <button type="button" className="x-btn x-secondary">

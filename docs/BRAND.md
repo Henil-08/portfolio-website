@@ -8,6 +8,7 @@ disagree, the page is what the owner approved; fix this file.
 
 | Date | Decision |
 |---|---|
+| 2026-10-26 | Cursor: Magnetic chosen; small boxes get the square outside the corner, plain links get brackets (owner). Options D, F, G and their code removed. |
 | 2026-10-26 | Start sequence proposal (owner idea), mock in /docs/brand/world section 04: after the boot, a loadout panel to pick a vehicle on a turntable (V01 F1 HG-08, V02 ATV E14 after his SAE e-BAJA car, V03 supercar GT-08, V04 bike R-08), then Enter builds the world in around it (~3.5 s) and drops into the chase cam. Not approved yet. |
 | 2026-10-26 | Owner disliked cursor options A/B/C. New lab options (I09, /docs/brand/system): D Tag (context verb tag beside an orange square), E Magnetic (targets lean ≤5 px to the pointer, the square docks in their corner, press throws logo cells), F Trail (logo-weight trail folding into a 2x2 attention map on hover), G Scan (one orange scan across the target, crosshair with its data-code). Default stays "no change". Preview persists via localStorage `hg:cursor-style`. |
 | 2026-10-26 | Boot: the bar follows the load in legs (→60% while the world loads, →88% while shaders compile, full when ready); the floor grid shows from the first frame as a still (public/img/boot-floor.jpg) that hands over to the live grid. |
@@ -119,7 +120,7 @@ panel: frame, bars, text, figures, details.
 | I07 | Toast | Flickers on, an ink countdown bar runs, it leaves. One at a time, top centre. |
 | I08 | Tooltip, status | Tooltip is a white sticker with a hard shadow. Status dots are the only round thing: orange blinking = live, ink = visited, outline = not yet. |
 
-| I09 | Cursor | `components/brand/Cursor.tsx`, mounted once in app/layout.tsx. A 7 px ink square with a 1 px paper outline follows the pointer and shrinks to 0.7 while pressed. **No brackets on hover** (owner, 2026-10-26); hover feedback is the target's own. A 2 px bar over text fields; `data-cursor="drag"` shows a DRAG tag (3D views); `data-cursor="none"` hides it. The current mode is on `<html data-cursor-mode>`. Mouse and pen only; touch is unchanged. |
+| I09 | Cursor | **Magnetic** (owner, 2026-10-26), `components/brand/Cursor.tsx`. A 7 px ink square with a paper outline. Over clickable things the target leans ≤5 px toward the pointer. A **boxed** target (border or fill) gets the square docked just outside its bottom-right corner, 8 px orange, so it never covers small labels like "Map". An **unboxed** link (underline only) gets orange corner brackets round it instead, and the square hides. Rows wider than 220 px keep the square on the pointer. A press throws four logo cells. 2 px bar over text, DRAG over `[data-cursor="drag"]`, `data-cursor="none"` hides. Mode on `<html data-cursor-mode>`, `data-cursor-frame` while bracketing. Reduced motion: no lean, easing or burst. |
 
 Hover and keyboard focus share one signal, the orange corner brackets (`x-sel` + `<Corners/>`). The cursor itself never shows brackets.
 

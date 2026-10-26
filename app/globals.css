@@ -246,7 +246,7 @@ body {
 }
 
 
-/* --- the custom cursor (components/brand/Cursor.tsx, docs/BRAND.md I09) */
+/* --- the custom cursor (components/brand/Cursor.tsx, docs/BRAND.md I09): Magnetic */
 @media (pointer: fine) {
   html.has-cursor,
   html.has-cursor * {
@@ -263,7 +263,6 @@ body {
   z-index: 2147483000;
 }
 .cursor-dot,
-.cursor-trail,
 .cursor-spark {
   position: fixed;
   left: -3.5px;
@@ -276,6 +275,54 @@ body {
 }
 .cursor-dot {
   transition: opacity 0.12s, width 0.1s, height 0.1s, left 0.1s, top 0.1s, background-color 0.1s;
+}
+/* over a clickable thing the square is small and orange, the logo's cell */
+html[data-cursor-mode="hover"] .cursor-dot {
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-signal);
+}
+/* an unboxed link gets brackets, so the square steps aside */
+html[data-cursor-mode="hover"][data-cursor-frame] .cursor-dot {
+  opacity: 0;
+}
+html[data-cursor-mode="text"] .cursor-dot {
+  left: -1px;
+  top: -10px;
+  width: 2px;
+  height: 20px;
+}
+/* the target leans toward the pointer (Cursor.tsx sets --cursor-mx/my on it) */
+[data-cursor-magnet] {
+  translate: var(--cursor-mx, 0) var(--cursor-my, 0);
+}
+.cursor-frame {
+  position: fixed;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+html[data-cursor-mode="hover"][data-cursor-frame] .cursor-frame {
+  opacity: 1;
+}
+.cursor-frame > span {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-color: var(--color-signal);
+  filter: drop-shadow(0 0 0.5px var(--color-paper));
+}
+.cursor-spark {
+  left: -2px;
+  top: -2px;
+  width: 4px;
+  height: 4px;
+}
+.cursor-spark[data-signal] {
+  background: var(--color-signal);
 }
 .cursor-tag {
   position: fixed;
@@ -293,146 +340,16 @@ body {
   white-space: nowrap;
   transition: opacity 0.12s;
 }
-.cursor-tag[data-kind="drag"],
-.cursor-tag[data-kind="label"],
-.cursor-tag[data-kind="code"] {
+.cursor-tag[data-on="1"] {
   opacity: 1;
-}
-html[data-cursor-mode="text"] .cursor-dot {
-  left: -1px;
-  top: -10px;
-  width: 2px;
-  height: 20px;
 }
 html[data-cursor-mode="hidden"] .cursor-layer > * {
   opacity: 0 !important;
 }
-
-/* Hover options, picked by <html data-cursor-style>. No style = no change. Each keeps a paper halo
-   so it reads on paper, ink and the 3D world. */
-
-/* D · Tag: an ink prompt snaps in beside the square with what the click does; the square goes orange. */
-html[data-cursor-style="d"][data-cursor-mode="hover"] .cursor-dot {
-  background-color: var(--color-signal);
-}
-.cursor-tag[data-kind="label"] {
-  margin-top: -9px;
-  animation: cursor-tag-in 0.12s cubic-bezier(0.6, 0, 0.2, 1);
-}
-@keyframes cursor-tag-in {
-  from {
-    clip-path: inset(0 100% 0 0);
-  }
-  to {
-    clip-path: inset(0 0 0 0);
-  }
-}
-
-/* E · Magnetic: the target leans (Cursor.tsx sets --cursor-mx/my on it); the square snaps into its
-   bottom-right corner, small and orange like the logo's cell; a press throws four cells. */
-html[data-cursor-style="e"] [data-cursor-magnet] {
-  translate: var(--cursor-mx, 0) var(--cursor-my, 0);
-}
-html[data-cursor-style="e"][data-cursor-mode="hover"] .cursor-dot {
-  left: -4px;
-  top: -4px;
-  width: 8px;
-  height: 8px;
-  background-color: var(--color-signal);
-}
-.cursor-spark {
-  left: -2px;
-  top: -2px;
-  width: 4px;
-  height: 4px;
-}
-.cursor-spark[data-signal] {
-  background: var(--color-signal);
-}
-
-/* F · Trail: four cells at the logo's weights chase the square; on hover they fold into a 2x2 map
-   (orange bottom right) and pressing fills it. */
-.cursor-trail {
-  display: none;
-  transition: opacity 0.1s, background-color 0.1s, width 0.1s, height 0.1s, left 0.1s, top 0.1s;
-}
-html[data-cursor-style="f"] .cursor-trail {
-  display: block;
-}
-html[data-cursor-style="f"]:is([data-cursor-mode="text"], [data-cursor-mode="hidden"]) .cursor-trail {
-  display: none;
-}
-.cursor-trail[data-i="0"] { opacity: 0.45; }
-.cursor-trail[data-i="1"] { opacity: 0.25; }
-.cursor-trail[data-i="2"] { opacity: 0.2; }
-.cursor-trail[data-i="3"] { opacity: 0.1; }
-html[data-cursor-style="f"][data-cursor-mode="hover"] :is(.cursor-dot, .cursor-trail) {
-  left: -3px;
-  top: -3px;
-  width: 6px;
-  height: 6px;
-}
-html[data-cursor-style="f"][data-cursor-mode="hover"] .cursor-trail[data-i="0"] { opacity: 0.25; }
-html[data-cursor-style="f"][data-cursor-mode="hover"] .cursor-trail[data-i="1"] { opacity: 0.45; }
-html[data-cursor-style="f"][data-cursor-mode="hover"] .cursor-trail[data-i="2"] {
-  opacity: 1;
-  background-color: var(--color-signal);
-}
-html[data-cursor-style="f"][data-cursor-mode="hover"] .cursor-trail[data-i="3"] { opacity: 0; }
-html[data-cursor-style="f"][data-cursor-mode="hover"][data-cursor-down] .cursor-trail:is([data-i="0"], [data-i="1"]) {
-  opacity: 1;
-}
-
-/* G · Scan: one orange line sweeps the target (once, on enter); the square becomes a thin crosshair
-   with the target's code (P01, Z03…) beside it in orange. */
-.cursor-scan {
-  position: fixed;
-  overflow: hidden;
-  display: none;
-}
-html[data-cursor-style="g"] .cursor-scan {
-  display: block;
-}
-.cursor-scan-line {
-  position: absolute;
-  left: -1px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  opacity: 0;
-  background: var(--color-signal);
-  box-shadow: 1px 0 0 var(--color-paper), -1px 0 0 var(--color-paper);
-}
-html[data-cursor-style="g"][data-cursor-mode="hover"] .cursor-dot {
-  left: -7px;
-  top: -7px;
-  width: 15px;
-  height: 15px;
-  outline: none;
-  background:
-    linear-gradient(var(--color-signal), var(--color-signal)) center / 3px 3px no-repeat,
-    linear-gradient(var(--color-ink), var(--color-ink)) left center / 5px 1px no-repeat,
-    linear-gradient(var(--color-ink), var(--color-ink)) right center / 5px 1px no-repeat,
-    linear-gradient(var(--color-ink), var(--color-ink)) center top / 1px 5px no-repeat,
-    linear-gradient(var(--color-ink), var(--color-ink)) center bottom / 1px 5px no-repeat;
-  filter: drop-shadow(1px 0 0 var(--color-paper)) drop-shadow(-1px 0 0 var(--color-paper)) drop-shadow(0 1px 0 var(--color-paper)) drop-shadow(0 -1px 0 var(--color-paper));
-}
-.cursor-tag[data-kind="code"] {
-  padding: 1px 4px;
-  background: var(--color-paper);
-  color: var(--color-signal);
-  outline: 1px solid var(--color-ink);
-  font-weight: 600;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .cursor-dot,
-  .cursor-trail,
+  .cursor-frame,
   .cursor-tag {
     transition: none;
-    animation: none;
-  }
-  html[data-cursor-style="f"]:not([data-cursor-mode="hover"]) .cursor-trail {
-    display: none;
   }
 }
