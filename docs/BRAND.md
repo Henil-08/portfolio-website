@@ -8,6 +8,7 @@ disagree, the page is what the owner approved; fix this file.
 
 | Date | Decision |
 |---|---|
+| 2026-10-26 | World approved ("Everything looks good"): Concrete & Ink palette and models W02–W10, the four vehicles and five liveries (they replace W01), the start sequence and powers. Build order in ROADMAP step 11. |
 | 2026-10-26 | Select to build is one continuous shot, no black wipe. On Enter (0.9 s) the garage chrome slides off (header up, spec column right, cards down), the turntable turns the vehicle to its grid heading, the camera glides onto the bloom's first frame and the dotted paper floor fades in. The build scene starts on that exact frame with the same plinth under the car, which sinks into the ground as the world blooms. In the select view the 3D spans the whole mock under the chrome; a camera view offset keeps the vehicle framed in its cell. |
 | 2026-10-26 | Tyres must read solid from the front and back, never hollow: every tyre closes its bore (inner wall at the rim radius plus a web across the middle). |
 | 2026-10-26 | True proportion made E14 and Apollo too small. Turntable sizes now sit between true proportion and all-the-same: swept radius TH-18 1.42, Atlas 1.25, E14 1.0, Apollo 0.95. Hover cursor cell 10 px. |
@@ -212,13 +213,12 @@ Short, declarative, units on everything. The radio keeps its warm F1-engineer vo
 - Reference pages: /docs/brand/system (System.tsx) and /docs/brand/world (World.tsx, models.tsx).
   /docs/brand redirects to the system page.
 
-## World (pending)
+## World (approved 2026-10-26)
 
 The owner says the 3D world now feels childish next to this UI: the car, buildings, fences and colours.
-Proposals are at `/docs/brand/world`. Nothing in the world changes until the owner approves there;
-then record the approved palette and models here and in ROADMAP step 11.
+Proposals are at `/docs/brand/world`. Approved 2026-10-26; the swap order is ROADMAP step 11.
 
-**Proposal: "Concrete & Ink"** (owner liked it 2026-10-26; implementation not started; night lighting to be reworked), a modern circuit instead of a toy town.
+**Proposal: "Concrete & Ink"** (approved 2026-10-26; night lighting to be reworked), a modern circuit instead of a toy town.
 Code in app/docs/brand/world/models.tsx; the page draws every view through one WebGL canvas
 using drei `<View>`.
 - **Palette:**

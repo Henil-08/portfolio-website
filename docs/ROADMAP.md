@@ -446,5 +446,25 @@ to ink on hover, one scan line on a panel's first open. `prefers-reduced-motion`
 Owner: next to the new UI "the world feels childish (car, building, fence, colors, etc)" and asked
 to "design everything again". This overrides the old art direction above (folio-2025 look, olive
 grass, orange sand) once approved. Proposals with turntable models: `/docs/brand/world`.
-- [ ] Owner picks the world palette and models on /docs/brand/world; record them in docs/BRAND.md.
-- [ ] Then plan the swap model by model (car, garages, barriers, fences, kerbs, stands, lights, town, trees, ground).
+- [x] Owner picks the world palette and models on /docs/brand/world (2026-10-26: "Everything looks good").
+      Approved: Concrete & Ink palette and W02–W10, the four vehicles with five liveries (replace W01),
+      the start sequence (garage select, align, Bloom), powers on Shift. All in docs/BRAND.md.
+- [ ] Swap, model by model. Reference code: app/docs/brand/world/* (models.tsx W02–W10, vehicles.tsx,
+      StartSequence.tsx, island.tsx Bloom, powers.tsx). Wave 1 runs in parallel (disjoint files); wave 2 needs 11e.
+  - [ ] a. Palette and ground: retune components/world/palette.ts `C` to Concrete & Ink (keys stay), terrain,
+        grass, water and sand colours; W05 kerbs (ink/paper), the paper edge line, gravel run-off.
+        Files: palette.ts, terrain.ts, Island.tsx, Grass.tsx, Water.tsx, street run-off.
+  - [ ] b. Trackside: W03 TecPro blocks replace the tyre walls, W04 concrete wall + ink debris fence (pit wall),
+        W06 grandstands, W07 floodlights, W08 start gantry. Files: street/*, PitWallRun.tsx, Embankments.tsx.
+  - [ ] c. Buildings: W02 garages (concrete block, glazed bays, thin ink roof), W09 concrete town blocks.
+        Files: Places.tsx garages, models/sectors/*, street/Skyline.tsx, street/town.ts, districts/*.
+  - [ ] d. Trees: W10 faceted cypresses and round crowns. Files: foliage/*, models/props/Tree.tsx, Groves.tsx.
+  - [ ] e. Vehicles: the four vehicles (TH-18, E14, Atlas, Apollo) and five liveries drive in the game, each with
+        its own handling; models move to components/world/vehicles/ and the docs page imports them from there.
+        Replaces models/Car.tsx (and its Racero use). Files: models/Car.tsx, liveries.ts, Vehicle.tsx, store.ts.
+  - [ ] f. (wave 2) Start sequence in the game: boot, garage select, align, Bloom of the real world, game camera.
+        Replaces the Reveal.tsx / Intro.tsx opening.
+  - [ ] g. (wave 2) Powers: Shift replaces boost, the meter in the HUD, SKYLINE / OVERTAKE / SPLIT / SEND IT in real
+        physics. In the game the vehicle keeps going from where the power leaves it (no reset to the grid).
+  - [ ] h. Night lighting rework (owner flagged it on the proposal).
+  - [ ] i. Racero leftovers (Timeline.tsx, models/Avatar.tsx, models/props/Label.tsx) move to IBM Plex.
