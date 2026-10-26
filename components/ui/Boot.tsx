@@ -6,16 +6,11 @@
 // garage select.
 import { useEffect, useRef } from "react";
 import { boot } from "@/components/world/bloom/state";
+import { FLOOR, drawFloor } from "@/components/world/bloom/view";
+import { getState } from "@/components/world/store";
 import { profile } from "@/content/profile";
 import { Mark } from "@/components/brand/mark";
 import { Decode, Stage, d } from "@/components/brand/motion";
-
-/** The 3D floor's colours: paper #ebe9e3 with a #b9b6ab square in every cell. */
-const DOTS = {
-  backgroundColor: "#ebe9e3",
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Crect x='10.5' y='10.5' width='3' height='3' fill='%23b9b6ab'/%3E%3C/svg%3E")`,
-  backgroundPosition: "center",
-} as const;
 
 const STAGE = { world: "Loading the island", shaders: "Warming up", ready: "Ready" } as const;
 
@@ -24,6 +19,30 @@ export default function Boot() {
   const label = useRef<HTMLSpanElement>(null);
   const bar = useRef<HTMLSpanElement>(null);
   const pct = useRef<HTMLSpanElement>(null);
+  const floor = useRef<HTMLCanvasElement>(null);
+
+  // The dotted floor as the garage camera will see it (bloom/view.ts), drawn once the bar is
+  // moving (a few ms) and again on resize, so the boot hands over to the live garage in place.
+  useEffect(() => {
+    const c = floor.current;
+    if (!c) return;
+    const draw = () => {
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      c.width = Math.round(W * dpr);
+      c.height = Math.round(H * dpr);
+      const g = c.getContext("2d");
+      // phones draw the world without the composer, so without its vignette (World.tsx)
+      if (g) drawFloor(g, W, H, dpr, getState().vehicle, !window.matchMedia("(pointer: coarse)").matches);
+    };
+    let id = requestAnimationFrame(() => (id = requestAnimationFrame(() => (id = requestAnimationFrame(draw)))));
+    window.addEventListener("resize", draw);
+    return () => {
+      cancelAnimationFrame(id);
+      window.removeEventListener("resize", draw);
+    };
+  }, []);
 
   useEffect(() => {
     // The bar is a CSS transition, so it keeps moving on the compositor while the main thread
@@ -66,9 +85,9 @@ export default function Boot() {
 
   return (
     <>
-    {/* the bloom's dotted paper floor (world/bloom/Opening.tsx): the garage and the build stand on
-        the same floor, so the boot fades into one continuous space (owner, 2026-10-26) */}
-    <div className="pointer-events-none absolute inset-0" style={DOTS} aria-hidden />
+    {/* the bloom's dotted paper floor (world/bloom/Opening.tsx) seen from the garage camera: the
+        garage and the build stand on the same floor, so the boot fades into one space (owner, 2026-10-26) */}
+    <canvas ref={floor} className="pointer-events-none absolute inset-0 h-full w-full" style={{ background: FLOOR.paper }} aria-hidden />
     <div ref={root} className="boot pointer-events-none absolute inset-0" aria-live="polite">
       <Stage motion className="absolute inset-0 flex flex-col items-center justify-center px-6 text-ink">
         {(run) => (
