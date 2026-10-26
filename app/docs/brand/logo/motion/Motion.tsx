@@ -16,8 +16,8 @@ const d = (ms: number, more: Record<string, string | number> = {}) => ({ "--d": 
 // Every rule is scoped under [data-motion], so the still versions ignore it.
 const CSS = `
 [data-motion] .lm{transform-box:fill-box}
-[data-motion] .lm-cell{transform-origin:center;animation:lm-cell .32s cubic-bezier(.3,1.5,.5,1) var(--d,0ms) both}
-[data-motion] .lm-hit{transform-origin:center;animation:lm-hit .5s cubic-bezier(.3,1.8,.5,1) var(--d,0ms) both}
+[data-motion] .lm-cell{transform-origin:center;animation:lm-cell .2s cubic-bezier(.3,1.5,.5,1) var(--d,0ms) both}
+[data-motion] .lm-hit{transform-origin:center;animation:lm-hit .32s cubic-bezier(.3,1.8,.5,1) var(--d,0ms) both}
 [data-motion] .lm-draw{animation:lm-draw .45s cubic-bezier(.6,0,.2,1) var(--d,0ms) both}
 [data-motion] .lm-fill{transform-origin:left;animation:lm-fill .35s cubic-bezier(.6,0,.2,1) var(--d,0ms) both}
 [data-motion] .lm-cut{transform-origin:top;animation:lm-cut .3s cubic-bezier(.3,1.6,.5,1) var(--d,0ms) both}
@@ -44,20 +44,56 @@ const ATT = [
   [0.1, 0.2, 0.5, -1],
 ];
 
-/** L10 · the map fills in cell by cell, row by row, then the orange cell lands. */
+/** L10 · the map fills in as a diagonal sweep, then the orange cell lands. About half a second. */
 const Attention: Mark = ({ s, fg }) => (
   <svg width={s} height={s} viewBox="0 0 64 64" aria-hidden>
     {ATT.flatMap((row, r) =>
       row.map((w, c) =>
         w < 0 ? (
-          <rect key={`${r}${c}`} className="lm lm-hit" style={d(780)} x={4 + c * 14.5} y={4 + r * 14.5} width="12.5" height="12.5" fill={ORANGE} />
+          <rect key={`${r}${c}`} className="lm lm-hit" style={d(300)} x={4 + c * 14.5} y={4 + r * 14.5} width="12.5" height="12.5" fill={ORANGE} />
         ) : (
-          <rect key={`${r}${c}`} className="lm lm-cell" style={d((r * 4 + c) * 45, { "--w": w })} x={4 + c * 14.5} y={4 + r * 14.5} width="12.5" height="12.5" fill={fg} opacity={w} />
+          <rect key={`${r}${c}`} className="lm lm-cell" style={d((r + c) * 40, { "--w": w })} x={4 + c * 14.5} y={4 + r * 14.5} width="12.5" height="12.5" fill={fg} opacity={w} />
         ),
       ),
     )}
   </svg>
 );
+
+// 9x9 attention map whose strongest cells spell HG in a 3x5 pixel font. # is a letter
+// pixel, o is the orange cell (the G's spur), anything else is a faint background weight.
+const HG_ROWS = [
+  ".........",
+  ".........",
+  ".#.#.###.",
+  ".#.#.#...",
+  ".###.#.o.",
+  ".#.#.#.#.",
+  ".#.#.###.",
+  ".........",
+  ".........",
+];
+// faint, uneven background weights so it still reads as a map, not a stencil (fixed, not random)
+const bgW = (r: number, c: number) => 0.05 + (((r * 7 + c * 13) % 5) / 4) * 0.1;
+
+/** L10b · the background sweeps in faint, then the letter cells take the weight, then the orange cell. */
+const AttentionHG: Mark = ({ s, fg }) => {
+  const cell = 60 / 9;
+  return (
+    <svg width={s} height={s} viewBox="0 0 64 64" aria-hidden>
+      {HG_ROWS.flatMap((row, r) =>
+        [...row].map((ch, c) => {
+          const x = 2 + c * cell;
+          const y = 2 + r * cell;
+          const sz = cell - 0.9;
+          if (ch === "o") return <rect key={`${r}${c}`} className="lm lm-hit" style={d(420)} x={x} y={y} width={sz} height={sz} fill={ORANGE} />;
+          const w = ch === "#" ? 1 : bgW(r, c);
+          const at = ch === "#" ? 160 + c * 22 : (r + c) * 12;
+          return <rect key={`${r}${c}`} className="lm lm-cell" style={d(at, { "--w": w })} x={x} y={y} width={sz} height={sz} fill={fg} opacity={w} />;
+        }),
+      )}
+    </svg>
+  );
+};
 
 /** L9 · the H box draws, the G box fills, the orange boundary cuts down between them. */
 const Tokens: Mark = ({ s, fg, bg }) => (
@@ -90,7 +126,8 @@ const Cursor: Mark = ({ s, fg }) => (
 );
 
 const MARKS: { id: string; name: string; mark: Mark; motion: string; kept?: boolean }[] = [
-  { id: "L10", name: "Attention", mark: Attention, kept: true, motion: "Cells fill in row by row like the scores being computed, each to its own weight. The orange cell lands last with a small overshoot. Then it holds still." },
+  { id: "L10", name: "Attention", mark: Attention, kept: true, motion: "Cells sweep in diagonally, each to its own weight, and the orange cell lands with a small overshoot. About half a second, then it holds still." },
+  { id: "L10b", name: "Attention · HG", mark: AttentionHG, motion: "A bigger map where the strongest cells spell HG in pixels. The faint weights sweep in first, the letter cells take the weight left to right, then the orange cell (the G's spur) lands. About 0.6 s." },
   { id: "L9", name: "Tokens", mark: Tokens, motion: "The H box draws its outline, the G box fills from the left, both letters flicker on, then the orange boundary cuts down between them. Then it holds still." },
   { id: "L12", name: "Cursor", mark: Cursor, motion: "The orange block types h, then g, and stays blinking where the next token would go. The only one that keeps moving; in the header it could stop after a few blinks." },
 ];
