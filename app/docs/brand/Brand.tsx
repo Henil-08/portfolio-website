@@ -2,48 +2,15 @@
 // voice, type and colour), not a recolour of one layout, and each is shown on the same real
 // content from content/*: the mark, one project card, the resume and an in-world label.
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { profile, stats } from "@/content/profile";
+import { profile } from "@/content/profile";
 import { experience } from "@/content/experience";
 import { DOMAINS, projects } from "@/content/projects";
+import { ChipMark, DS, DsCard, DsLabel, DsResume, Figures, LINKS, dsMono, pad } from "./datasheet/parts";
 
 const P = projects.find((p) => p.slug === "rtl-coverage-agents")!;
 const PI = projects.indexOf(P);
-const PREV = projects[(PI + projects.length - 1) % projects.length];
-const NEXT = projects[(PI + 1) % projects.length];
 const DOMAIN = DOMAINS.find((d) => d.id === P.domain)!.label;
 const ROLE = experience[0];
-const LINKS = [
-  ["Email", profile.email, `mailto:${profile.email}`],
-  ["LinkedIn", "in/henilgajjar", profile.links.linkedin],
-  ["GitHub", "Henil-08", profile.links.github],
-  ["Scholar", "Google Scholar", profile.links.scholar],
-] as const;
-const pad = (n: number) => String(n).padStart(2, "0");
-
-/** The project's numbers as a spec table; every row is a figure from its points in content/projects.ts. */
-const SPECS: [string, string][] = [
-  ["Agents", "7"],
-  ["Functional coverage", "100%"],
-  ["Cycles to close", "43"],
-  ["Iterations", "3"],
-  ["Planted bugs caught", "10 / 10"],
-];
-
-// Figures inside a sentence (44.9%, 20K+, <1s, 10) get picked out so a skim finds them.
-const NUM = /((?<![\w./])<?\d[\d.,]*(?:%|x|ms|K|B|TB|h)?\+?)/g;
-function Figures({ text, className }: { text: string; className: string }) {
-  return text.split(NUM).map((s, i) =>
-    i % 2 ? (
-      <span key={i} className={className}>
-        {s}
-      </span>
-    ) : (
-      s
-    ),
-  );
-}
-
 // Role dates ("Jan 2026 – Present") as decimal years, for the stint chart.
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const NOW = 2026 + 10 / 12;
@@ -94,39 +61,6 @@ export default function Brand() {
 // You as a part someone would design in. Structure comes from IC datasheets: a part number,
 // numbered sections, a spec table, units on everything. Ink on paper, one orange.
 
-const DS = { paper: "#f3f2ed", ink: "#111111", grey: "#5d5d58", rule: "#cfcdc4", orange: "#ff4f00" };
-const dsMono = "[font-family:var(--b-plex-mono)]";
-
-function ChipMark({ size = 56 }: { size?: number }) {
-  const pins = [10, 22, 34, 46];
-  return (
-    <svg width={size} height={size} viewBox="0 0 56 56" aria-hidden>
-      {pins.map((p) => (
-        <g key={p} fill={DS.ink}>
-          <rect x={p - 2} y="0" width="4" height="7" />
-          <rect x={p - 2} y="49" width="4" height="7" />
-          <rect x="0" y={p - 2} width="7" height="4" />
-          <rect x="49" y={p - 2} width="7" height="4" />
-        </g>
-      ))}
-      <rect x="7" y="7" width="42" height="42" fill={DS.ink} />
-      <circle cx="14" cy="14" r="2.4" fill={DS.orange} />
-      <text x="28" y="35" textAnchor="middle" fill={DS.paper} fontFamily="var(--b-plex)" fontWeight="600" fontSize="17" letterSpacing="-0.5">
-        HG
-      </text>
-    </svg>
-  );
-}
-
-function DsHead({ n, children }: { n: string; children: ReactNode }) {
-  return (
-    <h4 className="mb-3 mt-7 flex items-baseline gap-3 border-b border-[#111] pb-1.5 text-[13px] font-semibold uppercase tracking-[0.06em] first:mt-0">
-      <span className={`${dsMono} text-[#ff4f00]`}>{n}</span>
-      {children}
-    </h4>
-  );
-}
-
 function Datasheet() {
   return (
     <section id="datasheet" style={{ background: DS.paper, color: DS.ink, fontFamily: "var(--b-plex)" }} className="scroll-mt-4 px-4 py-14 sm:px-8 sm:py-20">
@@ -156,6 +90,11 @@ function Datasheet() {
             <p>
               <b>Why it reads well.</b> Engineers and recruiters already know how to skim a datasheet. The structure never changes, so after one card they know where the result, the
               stack and the links are on every other one.
+            </p>
+            <p>
+              <Link href="/docs/brand/datasheet" className="font-semibold text-[#ff4f00] underline-offset-4 hover:underline">
+                See it with and without motion →
+              </Link>
             </p>
             <p>
               <b>Voice.</b> Short, declarative, measured. <span className="text-[#5d5d58]">&ldquo;Closed 100% coverage in 43 cycles.&rdquo; Not &ldquo;blazing fast agents&rdquo;.</span>
@@ -192,142 +131,17 @@ function Datasheet() {
 
         {/* ---------------- project card: one datasheet page */}
         <p className={`${dsMono} mb-3 mt-16 text-[12px] uppercase tracking-[0.1em] text-[#5d5d58]`}>Project card (the garage, the map and the site)</p>
-        <article className="border-2 border-[#111] bg-white">
-          <div className={`${dsMono} flex flex-wrap justify-between gap-x-6 gap-y-1 bg-[#111] px-4 py-2 text-[12px] text-[#f3f2ed]`}>
-            <span>HG-26 / P{pad(PI + 1)}</span>
-            <span className="text-[#f3f2ed]/60">{DOMAIN}</span>
-            <span>Project datasheet</span>
-          </div>
-          <div className="grid md:grid-cols-[1.45fr_1fr]">
-            <div className="border-[#111] p-5 sm:p-7 md:border-r-2">
-              <h3 className="text-[30px] font-semibold leading-tight tracking-tight sm:text-[38px]">{P.name}</h3>
-              <p className="mt-1 text-[17px] text-[#5d5d58]">{P.tagline}</p>
-              <div className="mt-7">
-                <DsHead n="1">Features</DsHead>
-                <ul className="space-y-2.5 text-[15px] leading-relaxed">
-                  {P.points.map((t) => (
-                    <li key={t} className="grid grid-cols-[14px_1fr] gap-2">
-                      <span className="mt-[0.55em] h-[7px] w-[7px] bg-[#111]" />
-                      <span>
-                        <Figures text={t} className="font-semibold" />
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            <div className="border-t-2 border-[#111] p-5 sm:p-7 md:border-t-0">
-              <DsHead n="2">Key specifications</DsHead>
-              <table className="w-full text-[14.5px]">
-                <tbody>
-                  {SPECS.map(([k, v]) => (
-                    <tr key={k} className="border-b border-[#cfcdc4]">
-                      <td className="py-2 pr-3 text-[#5d5d58]">{k}</td>
-                      <td className={`${dsMono} py-2 text-right text-[16px] font-semibold`}>{v}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <DsHead n="3">Built with</DsHead>
-              {/* the stack hangs off one bus line, like a block diagram */}
-              <div className="border-t-2 border-[#111]">
-                <div className="flex flex-wrap gap-x-2 gap-y-1">
-                  {P.stack.map((s) => (
-                    <span key={s} className={`${dsMono} relative mt-3 border border-[#111] px-2 py-1 text-[12.5px] before:absolute before:-top-[13px] before:left-1/2 before:h-3 before:w-px before:bg-[#111]`}>
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <DsHead n="4">Source</DsHead>
-              {P.links.map((l) => (
-                <a key={l.href} href={l.href} target="_blank" rel="noreferrer" className="group flex items-center justify-between border-b border-[#cfcdc4] py-2 text-[14.5px] hover:border-[#111]">
-                  <span className="font-medium">{l.label}</span>
-                  <span className={`${dsMono} text-[12.5px] text-[#5d5d58] group-hover:text-[#ff4f00]`}>{l.href.replace("https://", "")} ↗</span>
-                </a>
-              ))}
-            </div>
-          </div>
-          <div className={`${dsMono} flex justify-between gap-4 border-t-2 border-[#111] px-4 py-2 text-[12px] text-[#5d5d58]`}>
-            <span className="truncate">← {PREV.name}</span>
-            <span className="shrink-0">
-              {pad(PI + 1)} / {projects.length}
-            </span>
-            <span className="truncate text-right">{NEXT.name} →</span>
-          </div>
-        </article>
+        <DsCard index={PI} />
 
         {/* ---------------- resume + in-world label */}
         <div className="mt-16 grid gap-10 lg:grid-cols-[1.6fr_1fr]">
           <div>
             <p className={`${dsMono} mb-3 text-[12px] uppercase tracking-[0.1em] text-[#5d5d58]`}>Resume (first page)</p>
-            <div className="border-2 border-[#111] bg-white p-5 sm:p-8">
-              <div className="flex flex-wrap items-start justify-between gap-4 border-b-[3px] border-[#111] pb-4">
-                <div>
-                  <h3 className="text-[32px] font-semibold leading-none tracking-tight">{profile.name}</h3>
-                  <p className="mt-2 text-[15px]">
-                    {profile.role}, {profile.company}
-                  </p>
-                </div>
-                <dl className={`${dsMono} grid grid-cols-[auto_auto] gap-x-3 text-[12px] leading-[1.7]`}>
-                  {LINKS.map(([k, v, h]) => (
-                    <div key={k} className="contents">
-                      <dt className="text-[#5d5d58]">{k}</dt>
-                      <dd>
-                        <a href={h} className="hover:text-[#ff4f00]">
-                          {v}
-                        </a>
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-              <div className="grid grid-cols-2 border-b border-[#111] sm:grid-cols-5">
-                {stats.map((s) => (
-                  <div key={s.label} className="border-b border-[#cfcdc4] py-3 pr-2 sm:border-b-0">
-                    <p className={`${dsMono} text-[20px] font-semibold`}>{s.value}</p>
-                    <p className="text-[12px] leading-tight text-[#5d5d58]">{s.label}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-7">
-                <DsHead n="1">Experience</DsHead>
-              </div>
-              {experience.slice(0, 2).map((r) => (
-                <div key={r.title} className="grid gap-x-6 border-b border-[#cfcdc4] py-3 sm:grid-cols-[130px_1fr]">
-                  <p className={`${dsMono} text-[12px] leading-6 text-[#5d5d58]`}>{r.dates}</p>
-                  <div>
-                    <p className="text-[15px] font-semibold">
-                      {r.title} <span className="font-normal text-[#5d5d58]">· {r.company}</span>
-                    </p>
-                    <ul className="mt-1.5 space-y-1 text-[14px] leading-relaxed">
-                      {r.points.slice(0, 3).map((t) => (
-                        <li key={t} className="grid grid-cols-[12px_1fr] gap-1.5">
-                          <span className="mt-[0.6em] h-[5px] w-[5px] bg-[#111]" />
-                          <span>
-                            <Figures text={t} className="font-semibold" />
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <DsResume />
           </div>
           <div>
             <p className={`${dsMono} mb-3 text-[12px] uppercase tracking-[0.1em] text-[#5d5d58]`}>In the world: a zone label</p>
-            <div className="bg-[#7d8a3a] p-6">
-              <div className="inline-flex items-stretch border-2 border-[#111] bg-white shadow-[4px_4px_0_#111]">
-                <span className={`${dsMono} grid place-items-center bg-[#111] px-3 text-[14px] font-semibold text-white`}>E</span>
-                <div className="px-3 py-2">
-                  <p className={`${dsMono} flex items-center gap-1.5 text-[11px] text-[#5d5d58]`}>
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#ff4f00]" /> Z03 · Garage
-                  </p>
-                  <p className="text-[15px] font-semibold">{projects.length} projects</p>
-                </div>
-              </div>
-            </div>
+            <DsLabel />
             <p className="mt-4 text-[14px] leading-relaxed text-[#5d5d58]">
               Labels in the world look like parts stickers: white, a hard black edge, the key on a black tab. Map pins become zone codes (Z01 Pit wall, Z03 Garage).
             </p>
