@@ -11,6 +11,7 @@ import {
   type RapierRigidBody,
 } from "@react-three/rapier";
 import * as THREE from "three";
+import { VEHICLE_SCALE } from "./vehicles/scale";
 import { RigContext, liveryOf, vehicleByCode, type VehicleDef, type VehicleRig } from "./vehicles";
 import { input } from "./input";
 import { carState, ticker } from "./carState";
@@ -81,12 +82,7 @@ const REST_Y = RIDE + 0.02;
 /** The old car's wheelbase (m): steering is scaled from it so every vehicle turns alike at the same handling. */
 const BASE_WHEELBASE = 2.48;
 const BASE_TRACK = 1.38;
-/**
- * The vehicles are modelled in true metres (TH-18 5.6 m long) for the proposal's 12 m road; the
- * game's road is 8 m (layout.ts TRACK_WIDTH), so they drive at 2/3 size to keep the proposal's
- * car-to-road proportion (owner, 2026-10-26: the F1 looked too big for the world).
- */
-export const VEHICLE_SCALE = 8 / 12;
+export { VEHICLE_SCALE };
 const S = VEHICLE_SCALE;
 /** The bike rides on two pairs of wheels this far either side of its centre line (hidden), and stays upright. */
 const BIKE_TRACK = 0.28;

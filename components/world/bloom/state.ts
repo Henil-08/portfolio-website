@@ -64,6 +64,16 @@ export const boot = { stage: "world" as "world" | "shaders" | "ready", out: fals
 /** ?skip (dev and headless checks) goes straight to driving. */
 export const skipping = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("skip");
 
+/**
+ * The garage is a plain studio (owner, 2026-10-26): fixed light like the proposal's turntable,
+ * paper sky and fog, no sun arc, night or weather. `k` is 1 in the boot and the garage and eases
+ * to 0 through the align and the bloom's first seconds (Opening.tsx), when the world's own light
+ * comes in (Effects.tsx `sceneParams`, `DayNight`; Rig.tsx `Sun`).
+ */
+export const studio = { k: skipping() ? 0 : 1 };
+/** How long the world's light takes to come in, from Enter (s). */
+export const STUDIO_OUT = ALIGN + 1.6;
+
 declare global {
   interface Window {
     /** Dev only: freeze the bloom at this many seconds (for stills). */
@@ -84,7 +94,7 @@ export function stageTime(freeze: number | undefined) {
 /** Back to the garage from the world (Intro.tsx, key G): the whole opening runs again from the select. */
 export function reenterGarage() {
   if (state.stage !== "done") return;
-  setState({ phase: "boot", revealed: false, zone: null, menuOpen: false });
+  setState({ phase: "boot", revealed: false, zone: null, menuOpen: false, settingsOpen: false, controlsOpen: false });
   setStage("select");
 }
 

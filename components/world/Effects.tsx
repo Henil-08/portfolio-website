@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { carState } from "./carState";
 import { getState, setState, subscribe, useWorld } from "./store";
 import { dayNight } from "./daynight";
+import { studio } from "./bloom/state";
 import { heightAt } from "./terrain";
 import { BALL_R, Cone, Football, TYRE_H, TYRE_R, Tyre } from "./models/props";
 import { nightGlow } from "./models/props/shared";
@@ -21,6 +22,10 @@ export const SCENES = {
   golden: { sun: 1.9, sunColor: "#ffd2a6", hemi: 0.8, hemiSky: "#f3ebe2", hemiGround: "#9a948a", env: 0.24, top: "#c8ccd0", mid: "#e6ddd2", bottom: "#ddd6cc", fog: "#e2dcd3" },
   night: { sun: 0.6, sunColor: "#a9bdd6", hemi: 0.9, hemiSky: "#4a5664", hemiGround: "#1a1c20", env: 0.03, top: "#0b0d10", mid: "#16191d", bottom: "#0f1114", fog: "#15181b" },
 } as const;
+
+// The garage studio (bloom/state.ts `studio`): the proposal's turntable light (app/docs/brand/world
+// models.tsx `Lights`) under a paper sky, and paper fog, the colour of the dot floor.
+const STUDIO = { sun: 2.4, sunColor: "#fff6ea", hemi: 1.0, hemiSky: "#ffffff", hemiGround: "#b8b4a9", env: 0.2, top: "#ebe9e3", mid: "#ebe9e3", bottom: "#ebe9e3", fog: "#ebe9e3" };
 
 // Rain on top of any of them: the key dims and the sky and fog go concrete grey.
 const RAIN = { sun: 0.45, hemi: 0.85, grey: 0.55, dark: 0.88 };
@@ -67,6 +72,10 @@ export function Weather() {
     }
     pos.needsUpdate = true;
     pts.position.set(carState.pos.x, 0, carState.pos.z);
+    // none in the garage studio
+    const m = pts.material as THREE.PointsMaterial;
+    m.opacity = (weather === "rain" ? 0.7 : 0.9) * (1 - studio.k);
+    pts.visible = studio.k < 1;
   });
 
   if (weather === "clear") return null;
@@ -90,6 +99,7 @@ const K = Object.fromEntries(
     { ...v, sunColor: new THREE.Color(v.sunColor), hemiSky: new THREE.Color(v.hemiSky), hemiGround: new THREE.Color(v.hemiGround), top: new THREE.Color(v.top), mid: new THREE.Color(v.mid), bottom: new THREE.Color(v.bottom), fog: new THREE.Color(v.fog) },
   ])
 ) as Record<keyof typeof SCENES, Params>;
+const KS: Params = { ...STUDIO, sunColor: new THREE.Color(STUDIO.sunColor), hemiSky: new THREE.Color(STUDIO.hemiSky), hemiGround: new THREE.Color(STUDIO.hemiGround), top: new THREE.Color(STUDIO.top), mid: new THREE.Color(STUDIO.mid), bottom: new THREE.Color(STUDIO.bottom), fog: new THREE.Color(STUDIO.fog) };
 const out: Params = { ...K.day, sunColor: new THREE.Color(), hemiSky: new THREE.Color(), hemiGround: new THREE.Color(), top: new THREE.Color(), mid: new THREE.Color(), bottom: new THREE.Color(), fog: new THREE.Color() };
 
 function blend(a: Params, b: Params, k: number) {
@@ -120,7 +130,7 @@ function timeOfDay() {
   return blend(K.night, K.night, 0);
 }
 
-/** Current lighting, blended from the sun's elevation, then wetted by the rain. */
+/** Current lighting, blended from the sun's elevation, then wetted by the rain, then (in the garage) the studio. */
 export function sceneParams() {
   const p = timeOfDay();
   const w = dayNight.rain;
@@ -128,6 +138,19 @@ export function sceneParams() {
     p.sun *= 1 - w * (1 - RAIN.sun);
     p.hemi *= 1 - w * (1 - RAIN.hemi);
     for (const c of [p.top, p.mid, p.bottom, p.fog, p.sunColor]) wetColor(c, w);
+  }
+  const k = studio.k;
+  if (k > 0) {
+    p.sun = THREE.MathUtils.lerp(p.sun, KS.sun, k);
+    p.hemi = THREE.MathUtils.lerp(p.hemi, KS.hemi, k);
+    p.env = THREE.MathUtils.lerp(p.env, KS.env, k);
+    p.sunColor.lerp(KS.sunColor, k);
+    p.hemiSky.lerp(KS.hemiSky, k);
+    p.hemiGround.lerp(KS.hemiGround, k);
+    p.top.lerp(KS.top, k);
+    p.mid.lerp(KS.mid, k);
+    p.bottom.lerp(KS.bottom, k);
+    p.fog.lerp(KS.fog, k);
   }
   return p;
 }
@@ -142,6 +165,7 @@ const labelOf = (e: number): keyof typeof TIME_OF => (e > 0.2 ? "day" : e > -0.0
 // clock has drifted away from the label it last set. Dev: window.__clockStop = true holds it.
 export function DayNight() {
   const label = useRef(getState().scene.time);
+  const rain = useRef(0);
   useEffect(() => {
     dayNight.t = TIME_OF[label.current];
     return subscribe(() => {
@@ -157,9 +181,12 @@ export function DayNight() {
     // capped so one long frame (a shader compile, a slow headless capture) can't skip the dusk
     if (!stop) dayNight.t = (dayNight.t + Math.min(dt, 0.1) / CYCLE) % 1;
     dayNight.sunElevation = Math.sin(dayNight.t * Math.PI * 2);
-    dayNight.night = THREE.MathUtils.smoothstep(-dayNight.sunElevation, -0.08, 0.2);
+    // in the garage studio there is no night and no rain; they ease in with the world's light
+    const open = 1 - studio.k;
+    dayNight.night = THREE.MathUtils.smoothstep(-dayNight.sunElevation, -0.08, 0.2) * open;
     const wet = getState().scene.weather === "rain" ? 1 : 0;
-    dayNight.rain += (wet - dayNight.rain) * Math.min(1, dt * 0.8);
+    rain.current += (wet - rain.current) * Math.min(1, dt * 0.8);
+    dayNight.rain = rain.current * open;
     nightGlow(dayNight.night);
     const now = labelOf(dayNight.sunElevation);
     if (now !== label.current) {

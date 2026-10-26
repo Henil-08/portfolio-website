@@ -9,6 +9,7 @@ import { input } from "./input";
 import { getState, setNear } from "./store";
 import { sceneParams } from "./Effects";
 import { dayNight } from "./daynight";
+import { studio } from "./bloom/state";
 import { zones, type Zone } from "./layout";
 import { garageShot } from "./garageShots";
 import type { Domain } from "@/content/projects";
@@ -141,6 +142,8 @@ export function CameraRig() {
 
 // The sun follows the car so the shadow map stays sharp where it matters.
 
+const _studio = new THREE.Vector3();
+
 export function Sun() {
   const light = useRef<THREE.DirectionalLight>(null);
   const hemi = useRef<THREE.HemisphereLight>(null);
@@ -158,17 +161,20 @@ export function Sun() {
   useFrame((_, dt) => {
     const l = light.current;
     if (!l) return;
-    const st = getState();
-    const c = st.phase === "world" ? carState.pos : new THREE.Vector3(0, 0, 0);
+    // round the car (before its first frame, the origin)
+    const c = carState.pos;
     // The sun arcs across the sky with the clock (it stays above the horizon for
-    // shadows; at night it becomes a dim, cool moonlight).
+    // shadows; at night it becomes a dim, cool moonlight). In the garage it is the studio's
+    // fixed key (the proposal's turntable light), easing onto the arc as the world comes in.
     const a = dayNight.t * Math.PI * 2;
     const elev = Math.max(0.35, Math.abs(Math.sin(a)));
     l.position.set(c.x + Math.cos(a) * 40, c.y + 40 * elev + 8, c.z + 14 + Math.sin(a) * 10);
+    if (studio.k > 0) l.position.lerp(_studio.set(c.x + 14 * 2, c.y + 22 * 2, c.z + 10 * 2), studio.k);
     tgt.position.set(c.x, c.y, c.z);
 
     const p = sceneParams();
-    const k = Math.min(1, dt * 3);
+    // the garage studio snaps in (the world is hidden at once); the world's light eases
+    const k = studio.k >= 1 ? 1 : Math.min(1, dt * 3);
     l.intensity += (p.sun - l.intensity) * k;
     l.color.lerp(p.sunColor, k);
     if (hemi.current) {
@@ -221,7 +227,8 @@ export function Sky() {
   );
   useFrame((_, dt) => {
     const p = sceneParams();
-    const k = Math.min(1, dt * 3);
+    // the garage studio snaps in (the world is hidden at once); the world's light eases
+    const k = studio.k >= 1 ? 1 : Math.min(1, dt * 3);
     (mat.uniforms.top.value as THREE.Color).lerp(p.top, k);
     (mat.uniforms.mid.value as THREE.Color).lerp(p.mid, k);
     (mat.uniforms.bottom.value as THREE.Color).lerp(p.bottom, k);

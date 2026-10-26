@@ -18,11 +18,11 @@ import { heightAt } from "../terrain";
 import { PLAYER_MODEL, VEHICLE_SCALE } from "../Vehicle";
 import { liveryOf, vehicleByCode, type Livery, type VehicleCode } from "../vehicles";
 import { revealSound } from "../sound";
-import { ALIGN, boot, opening, setStage, skipping, stageTime, useOpening } from "./state";
+import { ALIGN, STUDIO_OUT, boot, opening, setStage, skipping, stageTime, studio, useOpening } from "./state";
 import { ISLAND, PLAN, buildDots, reachFrom, type Bloom } from "./plan";
+import { FLOOR_SELECT, GAME_OFFSET as GAME_OFFSET_V, SELECT_AZ, SELECT_CAM, SELECT_EL, SELECT_FOV, SELECT_TARGET_Y, TABLE_SCALE, kOf, selectLens } from "./view";
 import { U, bloomOff, bloomOn, bloomStats, scan, warmOwn } from "./patch";
 
-type V3 = [number, number, number];
 const S = VEHICLE_SCALE;
 
 /* ------------------------------------------------------------------ easing */
@@ -38,37 +38,25 @@ const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 
 /* ------------------------------------------------------------------ the garage numbers (the mock's) */
 
-/**
- * Turntable size: each vehicle is scaled so its swept radius lands at a set radius. TH-18 is the
- * biggest at 1.42, just inside the dial ring's inner edge; the others sit between true proportion
- * and all the same size (owner, 2026-10-26).
- */
-const TABLE_SCALE: Record<VehicleCode, number> = { V01: 1.42 / 3.02, V02: 1.0 / 1.33, V03: 1.25 / 2.55, V04: 0.95 / 1.03 };
-/** table units to world metres, per vehicle */
-const kOf = (code: VehicleCode) => S / TABLE_SCALE[code];
 const PLINTH = 1.75;
-const SELECT_CAM: V3 = [4.3, 2.15, 4.9];
-const SELECT_TARGET_Y = 0.42;
-const SELECT_FOV = 30;
 /** the turntable's slow spin, as the mock's orbit autoRotateSpeed 1.4 (rad/s) */
 const SPIN_RATE = ((2 * Math.PI) / 60) * 1.4;
 /** Swap timings (s): the old one slides off, the table spins, the scan line reveals the new one. */
 const SWAP = { old: 0.3, spin: 0.55, scan0: 0.05, scan1: 0.42, pop0: 0.12, pop1: 0.58 };
 const SPIN = Math.PI * 0.8;
-/** The dot floor's height under the table top (table units): at the plinth's foot in the garage, then
- * just under the vehicle once aligned, where the bloom keeps it. One floor from the boot on. */
-const FLOOR_SELECT = -0.15;
+/** The dot floor rises from the plinth's foot in the garage (view.ts FLOOR_SELECT) to just under the
+ * vehicle once aligned, where the bloom keeps it. One floor from the boot on. */
 const FLOOR_BUILD = -0.03; // m
 
 /* ------------------------------------------------------------------ the game camera and the bloom's path */
 
 /** The game's chase camera (Rig.tsx): a fixed world offset from the car, looking at it less 0.3 m, fov 34. */
-const GAME_OFFSET = new THREE.Vector3(10.5, 12.5, 14);
+const GAME_OFFSET = new THREE.Vector3(...GAME_OFFSET_V);
 const GAME_FOV = 34;
 type Pose = { tx: number; ty: number; tz: number; r: number; az: number; el: number };
 const END_AZ = Math.atan2(GAME_OFFSET.z, GAME_OFFSET.x);
 /** The bloom's first frame, close on the car (the mock's 12 m round a true-size car, at game scale). */
-const START = { ty: 0.41 * S, r: 12 * S, el: 0.42, az: END_AZ + 0.9 };
+const START = { ty: 0.41 * S, r: 12 * S, el: 0.42, az: SELECT_AZ };
 
 function endPose(portrait: boolean): Pose {
   const o = GAME_OFFSET.clone().multiplyScalar(portrait ? 1.45 : 1);
@@ -480,7 +468,7 @@ export function Opening() {
   const stage = useOpening((s) => s.stage);
   const [dots, setDots] = useState<THREE.BufferGeometry | null>(null);
   const floor = useRef<THREE.Mesh>(null);
-  const w = useRef({ step: 0, frames: 0, t: 0, planned: 1, el: Math.asin(SELECT_CAM[1] / Math.hypot(...SELECT_CAM)) });
+  const w = useRef({ step: 0, frames: 0, t: 0, planned: 1, el: SELECT_EL });
 
   useEffect(() => {
     opening.restore = bloomOff;
@@ -569,6 +557,8 @@ export function Opening() {
     if (stg === "select" || stg === "boot") {
       U.uBloomT.value = -1e4;
     }
+    // the garage studio's light hands over to the world's from Enter on (Effects.tsx sceneParams)
+    studio.k = stg === "done" ? 0 : stg === "align" || stg === "build" ? 1 - power2InOut(clamp01((stageTime(stg === "align" ? window.__alignT : window.__buildT) + (stg === "build" ? ALIGN : 0)) / STUDIO_OUT)) : 1;
     if (stg === "done") return;
     {
       // the one dot floor: at the plinth's foot, rising to just under the vehicle on Enter
@@ -585,9 +575,7 @@ export function Opening() {
       st.el = THREE.MathUtils.clamp(st.el - opening.drag.el, Math.PI / 2 - 1.45, Math.PI / 2 - 0.9);
       opening.drag.el = 0;
       const r = Math.hypot(...SELECT_CAM);
-      const fov = F.height && C?.height ? (2 * Math.atan((Math.tan(THREE.MathUtils.degToRad(SELECT_FOV / 2)) * F.height) / C.height) * 180) / Math.PI : SELECT_FOV;
-      const ox = C ? F.width / 2 - (C.left - F.left + C.width / 2) : 0;
-      const oy = C ? F.height / 2 - (C.top - F.top + C.height / 2) : 0;
+      const { fov, ox, oy } = selectLens(F, C ? { left: C.left - F.left, top: C.top - F.top, width: C.width, height: C.height } : null);
       Object.assign(align, { r, el: st.el, fov, ox, oy, has: true });
       place(c, 0, SELECT_TARGET_Y, r, st.el, START.az, k);
       c.fov = fov;

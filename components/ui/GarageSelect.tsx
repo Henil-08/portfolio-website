@@ -7,13 +7,14 @@
 // The choice goes straight to the store (and so to localStorage). On Enter the chrome slides off
 // while the canvas aligns onto the bloom, then the build log ticks through the bloom.
 import { useEffect, useRef, useState } from "react";
-import { Count, Decode, d } from "@/components/brand/motion";
+import { Decode, d } from "@/components/brand/motion";
 import { setState, useWorld } from "@/components/world/store";
-import { LIVERY_NAMES, VEHICLES, liveryOf, vehicleByCode } from "@/components/world/vehicles";
+import { VEHICLES, vehicleByCode } from "@/components/world/vehicles";
+import { LiverySwatches, StatBars, VehicleCard } from "./garageParts";
 import { unlockAudio } from "@/components/world/sound";
 import { leaveGarage, opening, setStage, useOpening } from "@/components/world/bloom/state";
+import { BOX } from "@/components/world/bloom/view";
 
-const STATS = ["Speed", "Grip", "Handling"];
 
 const CSS = `
 .ss-up,.ss-right,.ss-down,.ss-gone{animation:.45s cubic-bezier(.6,0,.2,1) both}
@@ -22,6 +23,8 @@ const CSS = `
 @keyframes ss-right{to{transform:translateX(100%)}}
 @keyframes ss-down{to{transform:translateY(100%)}}
 @keyframes ss-gone{to{opacity:0}}
+.ss-shadow{animation:ss-shadow .3s ease-out .5s both}
+@keyframes ss-shadow{from{box-shadow:4px 4px 0 transparent}to{box-shadow:4px 4px 0 var(--color-ink)}}
 .ss-fadeout{animation:ss-fade .6s ease-in var(--d,0ms) both}
 @keyframes ss-fade{to{opacity:0;transform:translateY(6px)}}
 @media (prefers-reduced-motion:reduce){.ss-up,.ss-right,.ss-down,.ss-gone,.ss-fadeout{animation-duration:1ms}}
@@ -49,9 +52,7 @@ export default function GarageSelect() {
 
 function Select({ aligning, back }: { aligning: boolean; back: boolean }) {
   const code = useWorld((s) => s.vehicle);
-  const liveryName = useWorld((s) => s.livery);
   const v = vehicleByCode[code];
-  const livery = liveryOf(code, liveryName);
   const sel = VEHICLES.findIndex((o) => o.code === code);
   const [down, setDown] = useState<string | null>(null);
   const drag = useRef<{ x: number; y: number; id: number } | null>(null);
@@ -96,28 +97,43 @@ function Select({ aligning, back }: { aligning: boolean; back: boolean }) {
   const key = (k: string, label: string) => <kbd className={`x-key text-ink ${down === k ? "is-down" : ""}`}>{label}</kbd>;
   const out = (c: string) => (aligning ? c : "");
 
+  // the box (bloom/view.ts BOX): at most 1100 x 640 and centred, the floor all round it; stacked
+  // inside a 12 px margin below 768 px. The rows are fixed so the boot can draw the cell's floor.
+  const W = BOX.wide;
+  const N = BOX.narrow;
+  const frame = "absolute inset-3 md:inset-auto md:left-1/2 md:top-1/2 md:h-[min(640px,calc(100%-48px))] md:w-[min(1100px,calc(100%-48px))] md:-translate-x-1/2 md:-translate-y-1/2";
   return (
-    <div data-anim="" data-run="" className="dsa-frame pointer-events-none fixed inset-0 z-40 grid grid-rows-[auto_1fr_auto] text-ink">
-      {/* ink header bar */}
-      <div className={`pointer-events-auto relative z-[25] ${out("ss-up")}`}>
-        <div className="dsa-x flex items-center gap-3 bg-ink px-3 py-2 text-white" style={d(150)}>
-          <span className="font-mono text-[12px]">
-            HG-08 / GARAGE · <span className="text-signal">Select vehicle</span>
-          </span>
-          <span className="ml-auto hidden items-center gap-2 font-mono text-[11.5px] text-white/60 sm:flex">
+    <div data-anim="" data-run="" className="pointer-events-none fixed inset-0 z-40 text-ink">
+      {/* the sticker shadow sits outside the box only (box-shadow), so the cell stays a clear window */}
+      <div className={`${frame} transition-shadow duration-300 ${aligning ? "" : "ss-shadow"}`}>
+      <div
+        className={`dsa-frame relative grid h-full w-full grid-rows-[var(--nrows)] overflow-hidden border-2 bg-transparent transition-colors duration-300 md:grid-cols-[1fr_var(--side)] md:grid-rows-[var(--head)_1fr_var(--foot)] ${aligning ? "border-transparent" : "border-ink"}`}
+        style={{ "--side": `${W.side}px`, "--head": `${W.header}px`, "--foot": `${W.foot}px`, "--nrows": `${N.header}px 1fr ${N.spec}px ${N.cards}px ${N.drive}px` } as React.CSSProperties}
+      >
+        {/* ink header bar */}
+        <div className={`pointer-events-auto relative z-[25] min-w-0 md:col-span-2 ${out("ss-up")}`}>
+          <div className="dsa-x flex h-full items-center gap-3 bg-ink px-3 text-white" style={d(150)}>
+            <span className="truncate font-mono text-[12px]">
+              HG-08 / GARAGE · <span className="text-signal">Select vehicle</span>
+            </span>
+            <span className="ml-auto hidden items-center gap-2 font-mono text-[11.5px] text-white/60 md:flex">
+              {back && (
+                <>
+                  <span className="border border-white/40 px-1.5">Esc</span> Back
+                </>
+              )}
+              <span className="ml-2 border border-white/40 px-1.5">← →</span> Choose
+              <span className="ml-2 border border-white/40 px-1.5">Enter</span> Drive
+            </span>
             {back && (
-              <>
-                <span className="border border-white/40 px-1.5">Esc</span> Back
-              </>
+              <button type="button" onClick={leaveGarage} className="ml-auto font-mono text-[12px] text-white/70 md:hidden">
+                Back ✕
+              </button>
             )}
-            <span className="ml-2 border border-white/40 px-1.5">← →</span> Choose
-            <span className="ml-2 border border-white/40 px-1.5">Enter</span> Drive
-          </span>
+          </div>
         </div>
-      </div>
 
-      <div className="grid min-h-0 grid-cols-1 grid-rows-[1fr_auto] md:grid-cols-[1fr_300px] md:grid-rows-1">
-        {/* the 3D cell: the turntable is framed in here; drag to turn */}
+        {/* the 3D cell: the turntable is framed in here; drag (or swipe) to turn */}
         <div
           ref={(el) => {
             opening.cell = el;
@@ -147,104 +163,48 @@ function Select({ aligning, back }: { aligning: boolean; back: boolean }) {
           }}
         >
           <span className={`pointer-events-none absolute left-3 top-3 z-[25] bg-white px-1.5 py-0.5 font-mono text-[11.5px] shadow-[3px_3px_0_var(--color-ink)] ring-2 ring-ink ${out("ss-gone")}`}>
-            {v.code} · Drag to turn
+            {v.code} · <span className="pointer-coarse:hidden">Drag</span>
+            <span className="hidden pointer-coarse:inline">Swipe</span> to turn
           </span>
         </div>
 
-        {/* spec column: decodes and counts on every switch */}
-        <div key={v.code} data-anim="" data-run="" className={`pointer-events-auto relative z-[25] flex flex-col gap-4 bg-white p-4 ${out("ss-right")}`}>
-          <div>
+        {/* spec column: decodes and counts on every switch; a compact row on phones */}
+        <div key={v.code} data-anim="" data-run="" className={`pointer-events-auto relative z-[25] flex min-h-0 gap-4 overflow-hidden bg-white p-3 md:flex-col md:p-4 ${out("ss-right")}`}>
+          <div className="min-w-0 flex-1 md:flex-none">
             <p className="font-mono text-[12px] text-signal">
               <Decode text={`${v.code} · ${v.kind}`} run delay={40} dur={260} />
             </p>
-            <h1 className="mt-1 text-[34px] font-semibold leading-none tracking-tight">
+            <h1 className="mt-1 truncate text-[26px] font-semibold leading-none tracking-tight md:text-[34px]">
               <Decode text={v.name} run delay={80} dur={360} />
             </h1>
-            <p className="dsa-rise mt-2.5 hidden text-[14.5px] leading-relaxed text-graphite sm:block" style={d(180)}>
+            <p className="dsa-rise mt-2.5 hidden text-[14.5px] leading-relaxed text-graphite md:block" style={d(180)}>
               {v.line}
             </p>
           </div>
           {/* livery: square swatches, the chosen one framed in ink */}
-          <div className="dsa-rise" style={d(220)}>
-            <div className="flex items-baseline justify-between text-[12px] font-semibold uppercase tracking-[0.06em]">
-              <span>Livery</span>
-              <span className="font-mono text-[12px] normal-case tracking-normal text-graphite">{livery.name}</span>
-            </div>
-            <div role="radiogroup" aria-label="Livery" className="mt-1.5 flex gap-2">
-              {v.liveries.map((o, i) => {
-                const on = o.name === livery.name;
-                return (
-                  <button
-                    key={o.name}
-                    type="button"
-                    role="radio"
-                    aria-checked={on}
-                    aria-label={o.name}
-                    title={o.name}
-                    onClick={() => setState({ livery: LIVERY_NAMES[i] })}
-                    className={`relative h-8 w-8 border-2 border-ink p-[3px] transition-colors ${on ? "bg-ink" : "bg-white hover:bg-rule"}`}
-                  >
-                    <span className="relative block h-full w-full overflow-hidden ring-1 ring-ink/25" style={{ background: o.body }}>
-                      <span className="absolute bottom-0 right-0 h-1/2 w-1/2" style={{ background: o.accent }} />
-                      <span className="absolute bottom-0 left-0 h-[3px] w-1/2" style={{ background: o.trim }} />
-                    </span>
-                    {on && <span className="absolute -bottom-[7px] left-1/2 h-[3px] w-3 -translate-x-1/2 bg-signal" />}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="dsa-rise shrink-0" style={d(220)}>
+            <LiverySwatches v={v} />
           </div>
-          <div className="mt-auto hidden space-y-3 sm:block">
-            {STATS.map((s, i) => (
-              <div key={s}>
-                <div className="flex items-baseline justify-between text-[12px] font-semibold uppercase tracking-[0.06em]">
-                  <span>{s}</span>
-                  <span className="font-mono text-[13px]">
-                    <Count value={String(v.stats[i])} run delay={140 + i * 70} dur={420} />
-                  </span>
-                </div>
-                <div className="mt-1 h-[10px] border-2 border-ink bg-paper">
-                  <div className="h-full origin-left" style={{ width: `${v.stats[i]}%` }}>
-                    <div className="dsa-x h-full bg-ink" style={d(140 + i * 70)} />
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="mt-auto hidden space-y-3 md:block">
+            <StatBars v={v} />
             <p className="font-mono text-[11px] text-graphite">Game stats, out of 100</p>
           </div>
         </div>
-      </div>
 
-      {/* the four cards and the Enter prompt */}
-      <div className={`pointer-events-auto relative z-[25] grid grid-cols-2 border-t-2 border-ink bg-white sm:grid-cols-[repeat(4,1fr)_auto] ${out("ss-down")}`}>
-        {VEHICLES.map((o, i) => {
-          const on = i === sel;
-          return (
-            <button
-              key={o.code}
-              type="button"
-              onClick={() => pick(i)}
-              aria-pressed={on}
-              className={`dsa-wipe group flex items-center gap-3 border-r-2 border-ink px-3 py-2.5 text-left transition-colors ${on ? "bg-ink text-white" : "bg-white hover:bg-ink hover:text-white"}`}
-              style={d(380 + i * 90)}
-            >
-              <svg viewBox="0 0 64 28" className="h-7 w-14 shrink-0" fill="currentColor" aria-hidden>
-                {o.icon}
-              </svg>
-              <span className="min-w-0">
-                <span className={`block font-mono text-[11px] ${on ? "text-signal" : "text-graphite group-hover:text-white/60"}`}>
-                  {o.code} · {o.kind}
-                </span>
-                <span className="block truncate text-[15px] font-semibold leading-tight">{o.name}</span>
-              </span>
-            </button>
-          );
-        })}
-        <div className="col-span-2 flex items-center justify-center gap-3 px-4 py-2.5 sm:col-span-1">
-          <button type="button" onClick={go} className="x-btn x-primary dsa-flicker" style={d(800)}>
-            Press {key("Enter", "Enter")} to drive <span className="x-arrow">→</span>
+        {/* the four cards (two by two on phones), under the cell */}
+        <div className={`pointer-events-auto relative z-[25] grid min-h-0 grid-cols-2 grid-rows-2 border-t-2 border-ink bg-white md:grid-cols-4 md:grid-rows-1 ${out("ss-down")}`}>
+          {VEHICLES.map((o, i) => (
+            <VehicleCard key={o.code} v={o} on={i === sel} onClick={() => pick(i)} className="dsa-wipe max-md:odd:border-r-2 max-md:[&:nth-child(-n+2)]:border-b-2 md:border-r-2" style={d(380 + i * 90)} />
+          ))}
+        </div>
+        {/* the drive prompt: exactly the spec column's width, under it */}
+        <div className={`pointer-events-auto relative z-[25] flex min-h-0 items-center justify-center border-t-2 border-ink bg-white px-3 ${out("ss-down")}`}>
+          <button type="button" onClick={go} className="x-btn x-primary dsa-flicker max-md:w-full max-md:justify-center" style={d(800)}>
+            <span className="pointer-coarse:hidden">Press {key("Enter", "Enter")} to drive</span>
+            <span className="hidden pointer-coarse:inline">Drive</span> <span className="x-arrow">→</span>
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
