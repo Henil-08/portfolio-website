@@ -144,10 +144,11 @@ function keyTexture(family: string) {
   return t;
 }
 
-function points(): { id: string; label: string; x: number; z: number; y: number; open: () => void }[] {
+/** Every point; `s` scales the sticker (the contact slabs stand ~3 m apart, so theirs are smaller). */
+function points(): { id: string; label: string; x: number; z: number; y: number; s: number; open: () => void }[] {
   return [
-    ...zones.map((zn) => ({ id: zn.id, label: zn.label, x: zn.pos[0], z: zn.pos[1], y: 3.2, open: () => openZone(zn.id as ZoneId) })),
-    ...LINKS.map((l, i) => ({ id: `link-${l.key}`, label: l.name, x: LINK_SPOTS[i][0], z: LINK_SPOTS[i][1], y: 2.9, open: () => openLink(l.key) })),
+    ...zones.map((zn) => ({ id: zn.id, label: zn.label, x: zn.pos[0], z: zn.pos[1], y: 3.2, s: 1, open: () => openZone(zn.id as ZoneId) })),
+    ...LINKS.map((l, i) => ({ id: `link-${l.key}`, label: l.name, x: LINK_SPOTS[i][0], z: LINK_SPOTS[i][1], y: 2.6, s: 0.6, open: () => openLink(l.key) })),
   ];
 }
 
@@ -180,7 +181,7 @@ export default function InteractivePoints() {
         group.rotation.x = -Math.PI * 0.15;
         group.rotation.y = Math.PI * 0.25;
         group.position.set(p.x, heightAt(p.x, p.z) + p.y, p.z);
-        group.scale.setScalar(SCALE);
+        group.scale.setScalar(SCALE * p.s);
         group.userData.id = p.id;
 
         const { t, aspect } = labelTexture(p.label, sans);
@@ -280,7 +281,10 @@ export default function InteractivePoints() {
       for (const m of it.materials) m.depthTest = true;
     });
     to(it.v, "key", 0, 0.6, power2In);
-    to(it.v, "label", -1, 0.6, power2In);
+    // the first conceal (after the opening) parks the label at once: tweening it from 1 to -1
+    // swept every label across in view at the same moment
+    if (from === HIDDEN) it.v.label = -1;
+    else to(it.v, "label", -1, 0.6, power2In);
     if (from === OPEN) paper(false);
   }
 
