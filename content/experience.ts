@@ -56,6 +56,7 @@ export const experience: Role[] = [
     points: [
       "Delivered a multi-agent chatbot with guardrails on LangGraph and FastAPI, streaming from AWS Lambda",
       "Hit 180ms p95 TTFT with dynamic routing: SQL for curriculum, RAG for resources, direct answers for the rest",
+      "Architected a SQL agent with custom tools that fetches from multiple PostgreSQL tables from natural-language queries",
       "Improved ChromaDB retrieval with CRAG and a reranker: faithfulness +13.4%, hallucinations -32.5%",
       "Cut multimodal API latency by 80% at 30K+ monthly requests with queuing and threading",
       "Built an image-to-IEP-goals matcher on Qwen2-VL-7B that won a week-long hackathon and became the biggest release of Q1 2025",
@@ -84,7 +85,8 @@ export const experience: Role[] = [
       "Built a multimodal AI coach (LangChain, GPT-4, Llama 3, AstraDB) with FastAPI inference",
       "Built a vector store from 30K+ files with semantic chunking and fine-tuned Llama 3, cutting hallucinations by 60%",
       "Wrote ETL on AWS Glue, Spark and Kinesis over 10TB+ of athlete performance data",
-      "Trained a CNN table tennis ball predictor on SageMaker and ran multi-GPU LSTM training with Ray on 4 GPUs",
+      "Trained a CNN table tennis ball predictor on AWS SageMaker with PyTorch over a unified data warehouse",
+      "Ran multi-GPU distributed training of an LSTM with Ray on 4 Nvidia GPUs, containerized and deployed on AWS EC2",
     ],
   },
   {
@@ -107,6 +109,7 @@ export const experience: Role[] = [
     points: [
       "Curated a 150K-row Li-ion battery pack dataset across 1,300 charge cycles",
       "Predicted optimal charging temperature with Random Forest regression, improving battery health by 12%",
+      "Clustered current rates and pack temperature across 1,300 charge-discharge cycles",
     ],
   },
   {

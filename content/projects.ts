@@ -29,11 +29,11 @@ export const projects: Project[] = [
     headline: { value: "10/10", label: "planted bugs caught" },
     stack: ["LangGraph", "SystemVerilog", "UVM", "Verilator", "RAG", "MCP"],
     points: [
-      "A 7-agent LangGraph system that plans, writes and runs SystemVerilog/UVM tests for RTL designs end to end",
-      "Grounds the test plan in cited passages from the spec sheet with hybrid RAG (BM25 + bge-small, RRF)",
-      "Closed 100% functional coverage on a dual-port RAM in 43 cycles over 3 iterations",
-      "Mutation tested the AI-written testbenches: stuck-at, inversion, swap, off-by-one",
-      "The whole toolchain is an MCP server, so Claude Code can verify RTL directly",
+      "Built a 7-agent LangGraph system that plans, writes and runs SystemVerilog/UVM tests for RTL chip designs, end to end, automatically",
+      "Retrieves cited passages from DUT spec sheets via hybrid RAG (BM25 + bge-small embeddings, RRF) to ground the generated test plan",
+      "Verified a dual-port RAM via Verilator, closing 100% functional coverage in 43 cycles of directed stimulus over 3 iterations",
+      "Validated AI-written testbenches with mutation testing (stuck-at, inversion, swap, off-by-one): 10 of 10 planted bugs caught overall",
+      "Exposed the whole agent toolchain as an MCP server, so Claude Code or any other AI client can write tests and verify RTL directly",
     ],
     links: [
       { label: "GitHub", href: "https://github.com/Henil-08/rtl-coverage-agents" },
@@ -48,10 +48,10 @@ export const projects: Project[] = [
     headline: { value: "17.3 → 44.9%", label: "pass@1" },
     stack: ["LoRA", "QLoRA", "DeepSpeed", "vLLM", "MLX", "W&B"],
     points: [
-      "Fine-tuned Qwen2.5-Coder 1.5B to 7B over 19 LoRA, QLoRA and full runs with DeepSpeed ZeRO-2 on H100/H200s",
-      "Cleaned 131K OpenRTLSet modules, removed 54K fuzzer rows, held out a compiling test set",
-      "Beat a base model 9x its size on VerilogEval with Verilator differential testing",
-      "Serves through MLX, vLLM or Ollama automatically. 4-bit gave 3.5x faster decode",
+      "Fine-tuned Qwen2.5-Coder (1.5B-7B) across 19 LoRA/QLoRA/full runs with DeepSpeed ZeRO-2 on H100/H200 GPUs, tracked in W&B",
+      "Built a data pipeline over 131K OpenRTLSet Verilog modules, removing 54K fuzzer-generated rows and holding out a compiling test set",
+      "Evaluated via Verilator differential testing and VerilogEval, raising pass@1 from 17.3% to 44.9%, beating a 9x larger 14B base model",
+      "Served models via auto-detected MLX/vLLM/Ollama backends (Streamlit, CLI, VS Code); 4-bit quantization gave 3.5x faster decode",
     ],
     links: [
       { label: "GitHub", href: "https://github.com/Henil-08/verilog-coder-ft" },
@@ -67,9 +67,9 @@ export const projects: Project[] = [
     headline: { value: "<1s", label: "p99 TTFT at 600+ DAU" },
     stack: ["Gemini 2.5", "Vertex AI", "FAISS", "FastAPI", "TypeScript", "Cloud Run"],
     points: [
-      "Gemini 2.5 Pro with a FAISS RAG pipeline handling 20K+ daily chats",
-      "Full stack TypeScript + FastAPI with SSE streaming, JWT auth and CI/CD on Cloud Run",
-      "AES-256 with rotating keys in Firebase, GDPR compliant",
+      "Integrated Gemini 2.5 Pro (Vertex AI) with a RAG pipeline (FAISS + HF embeddings) to handle 20K+ daily chats with chat persistence",
+      "Architected the full-stack application (TypeScript + FastAPI) with SSE streaming, JWT auth and automated CI/CD on Cloud Run",
+      "Encrypted user data with AES-256 and rotating keys (GDPR compliant) in Firebase while maintaining <1s p99 TTFT for 600+ DAU",
     ],
     links: [
       { label: "GitHub", href: "https://github.com/Henil-08/AppSageAI" },
@@ -85,9 +85,9 @@ export const projects: Project[] = [
     headline: { value: "+40%", label: "inference speed" },
     stack: ["Flux.1-dev", "LoRA", "DeepSpeed", "vLLM", "MLX", "CUDA"],
     points: [
-      "Fine-tuned Flux.1-dev on 1,646 WhatsApp emojis with LoRA and ZeRO-2 on 2 A100s",
-      "Prompt Assist (Llama 3.3, 2-shot) cleans up what you type before it hits the model",
-      "GPU inference with vLLM/MLX + Diffusers and Int8 quantization",
+      "Fine-tuned Flux.1-dev on 1,646 WhatsApp emojis using LoRA with DeepSpeed ZeRO-2 on 2 Nvidia A100 GPUs, cutting model loss to 0.245",
+      "Designed Prompt Assist (2-shot prompting + Llama 3.3) to refine user inputs before the fine-tuned model, improving emoji quality",
+      "Boosted performance by 40% via GPU-accelerated inference (vLLM/MLX + Diffusers/Mflux + Streamlit) and Int8 quantization",
     ],
     links: [
       { label: "GitHub", href: "https://github.com/Henil-08/freemoji" },
@@ -106,10 +106,11 @@ export const projects: Project[] = [
     headline: { value: "250ms", label: "p95 TTFT under 6x load" },
     stack: ["LangGraph", "FAISS", "BigQuery", "Redis", "DeepEval", "MLflow"],
     points: [
-      "Multi-agent RAG across 4 LLMs with guardrails, FAISS and BigQuery",
-      "FastAPI on Cloud Run with CI/CD, built for 20K queries/sec",
-      "Layered Redis caching made responses 3x faster",
-      "DeepEval correctness 0.81, answer relevancy 0.87",
+      "Architected a chatbot on an end-to-end multi-agent RAG leveraging 4 LLMs using LangGraph, Guardrails, FAISS and BigQuery",
+      "Built the backend with FastAPI, deployed on Google Cloud Run (Docker + GitHub Actions CI/CD), capable of handling 20K queries/sec",
+      "Evaluated with DeepEval, achieving Correctness 0.81 and Answer Relevancy 0.87",
+      "Tracked experiments with MLflow and monitored traces with LangSmith, improving model performance via human-feedback loops",
+      "Optimized state management via layered Redis caching: 3x faster responses (1.5s p95 E2E and 250ms p95 TTFT) under 6x load",
     ],
     links: [{ label: "GitHub", href: "https://github.com/eCom-dev5/verta-chatbot" }],
   },
@@ -121,9 +122,10 @@ export const projects: Project[] = [
     headline: { value: "24 FPS", label: "real-time steering" },
     stack: ["TensorFlow", "OpenCV", "Jetson Nano", "STM32", "Embedded C"],
     points: [
-      "Custom CNN to detect two kinds of cones, mAP 0.93 after augmentation and K-Means anchors",
-      "Ran on a Jetson Nano talking to an STM32 over drivers I wrote in Embedded C",
-      "Pruned and quantized down to 120ms latency, 96.7% navigation accuracy",
+      "Built a track-following autonomous solar vehicle by identifying 2 types of cones using OpenCV and a custom CNN model",
+      "Improved model mAP to 0.93 using data augmentation (daylight shifts and motion blurs) and K-Means for anchor-box selection",
+      "Deployed on-edge on an Nvidia Jetson Nano with an STM32 microcontroller over custom low-level drivers (Embedded C) for 24 FPS real-time steering with a patented steering system",
+      "Optimized end-to-end inference via pruning and quantization, achieving 120ms latency and 96.7% autonomous navigation accuracy",
     ],
     links: [],
   },
@@ -135,8 +137,9 @@ export const projects: Project[] = [
     headline: { value: "85%", label: "team prediction accuracy" },
     stack: ["Gemma 2", "QLoRA", "NLTK", "Transformers"],
     points: [
-      "QLoRA on Gemma 2 with cricket data, +10% ROUGE on cricket text",
-      "NLTK extraction of player stats and scorecards from messy IPL history",
+      "Fine-tuned Gemma 2 using QLoRA on a cricket dataset, a 10% improvement in ROUGE score for cricket-specific text generation",
+      "Built an NLTK algorithm to extract structured data from unstructured IPL history, including player stats and match scorecards",
+      "Used 2-shot prompt engineering to raise prediction accuracy to 85% accurate team predictions for IPL matches",
     ],
     links: [
       { label: "GitHub", href: "https://github.com/Henil-08/Optimal-Fantasy-Sport-Recommender" },
@@ -150,8 +153,10 @@ export const projects: Project[] = [
     headline: { value: "0.96", label: "F1 score" },
     stack: ["PyTorch", "Airflow", "DVC", "SHAP", "Docker", "EC2"],
     points: [
-      "Modified VGG16 in PyTorch with SHAP explanations and calibration",
-      "Airflow + DVC pipelines, served as a Flask app on EC2",
+      "Built an end-to-end image classification pipeline on a modified VGG16 CNN in PyTorch, achieving an F1 score of 0.96",
+      "Developed interpretable ML workflows with feature importance analysis, SHAP-based insights and calibration for bias reduction",
+      "Automated data ingestion, training and evaluation pipelines with Airflow, MLflow and DVC for reproducibility and tracking",
+      "Containerized and deployed the model as a Flask web app on AWS EC2 via Docker and GitHub Actions for real-time inference",
     ],
     links: [
       {
@@ -168,8 +173,10 @@ export const projects: Project[] = [
     headline: { value: "+20%", label: "predictive accuracy" },
     stack: ["XGBoost", "Bayesian", "Mixed effects", "MLflow"],
     points: [
-      "Player ratings from XGBoost plus mixed-effects models",
-      "Bayesian on/off plus-minus for offensive and defensive impact",
+      "Engineered player rating models combining XGBoost and mixed-effects linear modeling for context-aware performance evaluation",
+      "Designed on/off plus-minus models with Bayesian modeling, increasing predictive accuracy 20% for offensive and defensive impact",
+      "Developed composite scoring metrics integrating multiple player features, improving ranking robustness by 15%",
+      "Built reproducible training and validation pipelines with DVC and MLflow",
     ],
     links: [],
   },
@@ -181,8 +188,10 @@ export const projects: Project[] = [
     headline: { value: "-40%", label: "update time" },
     stack: ["SVD", "Collaborative filtering", "BeautifulSoup"],
     points: [
-      "Matrix factorization plus cosine content similarity",
-      "Incremental SVD for cold-start users and products",
+      "Scraped product data and user reviews via BeautifulSoup into structured datasets with detailed attributes and feedback metrics",
+      "Engineered preprocessing pipelines for text cleaning, tokenization and feature extraction to improve review relevance",
+      "Developed a hybrid recommender: matrix factorization for collaborative and cosine similarity for content-based filtering",
+      "Incorporated incremental SVD updates for cold-start users and products, cutting system update time by 40%",
     ],
     links: [
       { label: "GitHub", href: "https://github.com/Henil-08/Renttherunway-Recommender" },
@@ -196,8 +205,9 @@ export const projects: Project[] = [
     headline: { value: "2", label: "databases, one agent" },
     stack: ["LangChain", "Gemma 2", "Groq", "SQLAlchemy"],
     points: [
-      "SQL agent on Gemma 2 through Groq that works over SQLite and MySQL",
-      "Custom SQL toolkit for zero-shot answers on complex queries",
+      "Developed an AI agent with LangChain, SQL and Gemma 2 that lets users query databases in natural language",
+      "Used SQLAlchemy ORM and custom connection handling to support SQLite and MySQL databases dynamically",
+      "Created a SQL Database Toolkit with Gemma 2 zero-shot question answering for complex SQL queries",
     ],
     links: [{ label: "GitHub", href: "https://github.com/Henil-08/chat-with-sql" }],
   },
