@@ -22,11 +22,17 @@ function DsHead({ n, children, at, run }: { n: string; children: ReactNode; at: 
   );
 }
 
-/** One project as a datasheet page. Remount it (key) to replay the boot. */
-export function DsCard({ index, motion = false, onNav }: { index: number; motion?: boolean; onNav?: (dir: -1 | 1) => void }) {
+/**
+ * One project as a datasheet page. Remount it (key) to replay the boot. `list` limits the
+ * prev/next footer to a set of project indices (a garage's projects); default is all of them.
+ * The layout follows its container's width (two columns from 42rem), not the viewport's.
+ */
+export function DsCard({ index, motion = false, onNav, list }: { index: number; motion?: boolean; onNav?: (dir: -1 | 1) => void; list?: number[] }) {
   const p = projects[index];
-  const prev = projects[(index + projects.length - 1) % projects.length];
-  const next = projects[(index + 1) % projects.length];
+  const order = list ?? projects.map((_, i) => i);
+  const at = Math.max(0, order.indexOf(index));
+  const prev = projects[order[(at + order.length - 1) % order.length]];
+  const next = projects[order[(at + 1) % order.length]];
   const domain = DOMAINS.find((x) => x.id === p.domain)!.label;
   const specs = p.specs ?? [[p.headline.label.charAt(0).toUpperCase() + p.headline.label.slice(1), p.headline.value]];
   const rowsEnd = 900 + specs.length * 90;
@@ -35,7 +41,7 @@ export function DsCard({ index, motion = false, onNav }: { index: number; motion
   return (
     <Stage motion={motion}>
       {(run) => (
-        <article className="dsa-card dsa-frame relative border-2 border-[#111] bg-white" style={d(0)}>
+        <article className="dsa-card dsa-frame @container relative border-2 border-[#111] bg-white" style={d(0)}>
           {/* hover: selection brackets, the way a game menu marks the focused slot */}
           {(
             [
@@ -60,10 +66,10 @@ export function DsCard({ index, motion = false, onNav }: { index: number; motion
             </span>
           </div>
 
-          <div className="grid md:grid-cols-[1.45fr_1fr]">
-            <div className="relative min-w-0 p-5 sm:p-7">
-              <span className="dsa-y absolute bottom-0 right-0 top-0 hidden w-[2px] bg-[#111] md:block" style={d(300)} />
-              <h3 className="text-[30px] font-semibold leading-tight tracking-tight sm:text-[38px]">
+          <div className="grid @2xl:grid-cols-[1.45fr_1fr]">
+            <div className="relative min-w-0 p-5 @lg:p-7">
+              <span className="dsa-y absolute bottom-0 right-0 top-0 hidden w-[2px] bg-[#111] @2xl:block" style={d(300)} />
+              <h3 className="text-[28px] font-semibold leading-tight tracking-tight @lg:text-[38px]">
                 <Decode text={p.name} run={run} delay={400} dur={500} />
               </h3>
               <p className="dsa-rise mt-1 text-[17px] text-[#5d5d58]" style={d(750)}>
@@ -86,7 +92,7 @@ export function DsCard({ index, motion = false, onNav }: { index: number; motion
               </div>
             </div>
 
-            <div className="min-w-0 border-t-2 border-[#111] p-5 sm:p-7 md:border-t-0">
+            <div className="min-w-0 border-t-2 border-[#111] p-5 @lg:p-7 @2xl:border-t-0">
               <DsHead n="2" at={750} run={run}>
                 Key specifications
               </DsHead>
@@ -148,7 +154,7 @@ export function DsCard({ index, motion = false, onNav }: { index: number; motion
               ← {prev.name}
             </button>
             <span className="shrink-0">
-              {pad(index + 1)} / {projects.length}
+              {pad(at + 1)} / {pad(order.length)}
             </span>
             <button type="button" onClick={() => onNav?.(1)} disabled={!onNav} className="min-w-0 truncate px-4 py-2 text-right transition enabled:hover:bg-[#111] enabled:hover:text-white">
               {next.name} →

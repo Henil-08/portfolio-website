@@ -493,6 +493,32 @@ body {
 
 }
 
+/* --- HUD tabs (components/ui/Hud.tsx TopBar): white stickers that invert on hover and press into their shadow */
+@layer components {
+  .ds-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 38px;
+    padding: 0 12px;
+    border: 2px solid var(--color-ink);
+    background: #fff;
+    color: var(--color-ink);
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 3px 3px 0 var(--color-ink);
+    transition: background 0.12s, color 0.12s, transform 0.08s, box-shadow 0.08s;
+  }
+  .ds-tab:hover {
+    background: var(--color-ink);
+    color: #fff;
+  }
+  .ds-tab:active {
+    transform: translate(3px, 3px);
+    box-shadow: none;
+  }
+}
+
 /* --- the custom cursor (components/brand/Cursor.tsx, docs/BRAND.md I09) */
 @media (pointer: fine) {
   html.has-cursor,

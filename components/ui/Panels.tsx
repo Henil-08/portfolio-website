@@ -1,14 +1,18 @@
 "use client";
 
+// What each place shows when you open it (E), in the brand language (docs/BRAND.md): ink text
+// on white, mono codes, rows that invert, one orange. The frame around it is Hud.tsx `Sheet`.
 import Image from "next/image";
 import { useState, useSyncExternalStore } from "react";
-import { SECTORS, garageLabel, type ZoneId } from "@/components/world/layout";
+import { SECTORS, garageLabel, zones, type ZoneId } from "@/components/world/layout";
 import { setState, useWorld } from "@/components/world/store";
 import { profile, story, offTrack } from "@/content/profile";
 import { experience, education } from "@/content/experience";
 import { DOMAINS, projects, type Domain } from "@/content/projects";
 import { patents, publications, toolbox } from "@/content/research";
 import { playbook, playbookIntro } from "@/content/playbook";
+import { DsCard } from "@/components/brand/sheets";
+import { Figures, pad } from "@/components/brand/tokens";
 
 // Which roles belong to each place, matched by company and title.
 const SECTOR_ROLES: Record<number, (r: (typeof experience)[number]) => boolean> = {
@@ -17,29 +21,34 @@ const SECTOR_ROLES: Record<number, (r: (typeof experience)[number]) => boolean> 
   3: (r) => ["Northeastern University", "Edlight, PBC", "Impacter AI"].includes(r.company) || r.kind === "Internship",
   4: (r) => r.company === "Waters Corporation" && r.kind === "Full time",
 };
-const SECTOR_COLOR = ["#d42a2f", "#dc7a45", "#5d7891", "#2fa79c"];
+
+/** A place's code on the map and in its sheet: Z01, Z02… in zone order (layout.ts `zones`). */
+export const zoneCode = (zone: ZoneId) => `Z${pad(zones.findIndex((z) => z.id === zone) + 1)}`;
 
 export const zoneMeta = {
-  ...Object.fromEntries(
-    SECTORS.map((s, i) => [
-      `sector-${s.n}`,
-      { kicker: `Sector ${s.n} · ${s.name} · ${s.year}`, title: story[i].title, color: SECTOR_COLOR[i] },
-    ])
-  ),
-  ...Object.fromEntries(
-    DOMAINS.map((d) => [`garage-${d.id}`, { kicker: `Pit garage · ${garageLabel[d.id]}`, title: d.label, color: "#d42a2f" }])
-  ),
-  playbook: { kicker: "Tyre wall", title: "How I work with AI", color: "#d4b062" },
-  podium: { kicker: "Podium", title: "Papers and patents", color: "#7a7391" },
-  cricket: { kicker: "Off the clock", title: "Cricket", color: "#6f9677" },
-  football: { kicker: "Off the clock", title: "Football", color: "#5d7891" },
-  contact: { kicker: "Mailbox", title: "Say hi", color: "#d42a2f" },
-} as Record<ZoneId, { kicker: string; title: string; color: string }>;
+  ...Object.fromEntries(SECTORS.map((s, i) => [`sector-${s.n}`, { kicker: `Sector ${s.n} · ${s.name} · ${s.year}`, title: story[i].title }])),
+  ...Object.fromEntries(DOMAINS.map((d) => [`garage-${d.id}`, { kicker: `Garage · ${garageLabel[d.id]}`, title: d.label }])),
+  playbook: { kicker: "Tyre wall", title: "How I work with AI" },
+  podium: { kicker: "Podium", title: "Papers and patents" },
+  cricket: { kicker: "Off the clock", title: "Cricket" },
+  football: { kicker: "Off the clock", title: "Football" },
+  contact: { kicker: "Mailbox", title: "Say hi" },
+} as Record<ZoneId, { kicker: string; title: string }>;
 
 const storyPhotos: Partial<Record<number, { src: string; alt: string }>> = {
   1: { src: "/img/mercury.jpg", alt: "Mercury, the Team Stallions solar car" },
   3: { src: "/img/henil-boston.jpg", alt: "Henil in Boston" },
 };
+
+/** A numbered section head, as in the datasheet: orange number, caps label, ink rule. */
+function Head({ n, children }: { n: string; children: React.ReactNode }) {
+  return (
+    <h3 className="mb-2 flex items-baseline gap-3 border-b border-ink pb-1.5 text-[12.5px] font-semibold uppercase tracking-[0.06em]">
+      <span className="font-mono text-signal">{n}</span>
+      {children}
+    </h3>
+  );
+}
 
 export function PanelBody({ zone }: { zone: ZoneId }) {
   if (zone.startsWith("sector-")) {
@@ -47,26 +56,25 @@ export function PanelBody({ zone }: { zone: ZoneId }) {
     const s = story[n - 1];
     const photo = storyPhotos[n];
     return (
-      <div className="space-y-4">
-        {photo && (
-          <Image src={photo.src} alt={photo.alt} width={800} height={500} className="h-44 w-full object-cover" sizes="420px" />
-        )}
-        {s.body.map((p) => (
-          <p key={p.slice(0, 20)} className="text-[15px] leading-relaxed text-cream/70">
-            {p}
-          </p>
-        ))}
-        <div className="space-y-2 pt-1">
+      <div className="space-y-5">
+        {photo && <Image src={photo.src} alt={photo.alt} width={800} height={500} className="h-44 w-full border-2 border-ink object-cover" sizes="420px" />}
+        <div className="space-y-3">
+          {s.body.map((p) => (
+            <p key={p.slice(0, 20)} className="text-[15px] leading-relaxed">
+              {p}
+            </p>
+          ))}
+        </div>
+        <div>
+          <Head n="1">Roles</Head>
           {experience.map((r, i) => (SECTOR_ROLES[n](r) ? <Role key={i} i={i} /> : null))}
           {n === 3 && (
-            <p className="px-1 text-[13px] text-cream/70">
-              <span className="font-semibold text-cream">{education[0].degree}</span>, {education[0].school} · {education[0].detail}
+            <p className="border-b border-rule py-2.5 text-[13.5px]">
+              <span className="font-semibold">{education[0].degree}</span>, {education[0].school} · <span className="font-mono text-[12px] text-graphite">{education[0].detail}</span>
             </p>
           )}
         </div>
-        <p className="pt-1 text-sm text-cream/50">
-          {n < 4 ? `Next up: Sector ${n + 1}, ${SECTORS[n].name}.` : "That's the story so far. The pit garages have the projects."}
-        </p>
+        <p className="font-mono text-[12px] text-graphite">{n < 4 ? `Next: Sector ${n + 1} · ${SECTORS[n].name}` : "That's the story so far. The garages have the projects."}</p>
       </div>
     );
   }
@@ -78,22 +86,25 @@ export function PanelBody({ zone }: { zone: ZoneId }) {
   switch (zone) {
     case "playbook":
       return (
-        <div className="space-y-4">
-          <p className="text-[15px] leading-relaxed text-cream/70">{playbookIntro}</p>
-          {playbook.map((t) => (
-            <div key={t.title} className="flex gap-3">
-              <Compound c={t.compound} />
-              <div>
-                <p className="font-display font-semibold text-cream">{t.title}</p>
-                <p className="mt-0.5 text-[14px] leading-relaxed text-cream/70">{t.body}</p>
+        <div className="space-y-5">
+          <p className="text-[15px] leading-relaxed">{playbookIntro}</p>
+          <div>
+            <Head n="1">Stints</Head>
+            {playbook.map((t) => (
+              <div key={t.title} className="grid grid-cols-[30px_1fr] gap-3 border-b border-rule py-3">
+                <Compound c={t.compound} />
+                <div>
+                  <p className="font-semibold">{t.title}</p>
+                  <p className="mt-0.5 text-[14px] leading-relaxed text-graphite">{t.body}</p>
+                </div>
               </div>
-            </div>
-          ))}
-          <div className="pt-2">
-            <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-cream/70">Toolbox</p>
-            <div className="flex flex-wrap gap-1.5">
+            ))}
+          </div>
+          <div>
+            <Head n="2">Toolbox</Head>
+            <div className="flex flex-wrap gap-1.5 pt-1">
               {toolbox.flatMap((t) => t.items).map((x) => (
-                <span key={x} className="border border-cream/20 px-2 py-0.5 text-[12px] text-cream/70">
+                <span key={x} className="x-chip">
                   {x}
                 </span>
               ))}
@@ -103,25 +114,33 @@ export function PanelBody({ zone }: { zone: ZoneId }) {
       );
     case "podium":
       return (
-        <div className="space-y-3">
-          {publications.map((p, i) => (
-            <div key={p.title} className="flex gap-3 bg-cream/[0.06] px-4 py-3">
-              <span className="font-racing text-lg text-[#7a7391]">P{i + 1}</span>
-              <div>
-                <p className="text-[14px] font-medium leading-snug text-cream">{p.title}</p>
-                <p className="mt-0.5 font-mono text-[11px] text-cream/70">
-                  {p.venue} · {p.date}
-                </p>
+        <div className="space-y-5">
+          <div>
+            <Head n="1">Papers</Head>
+            {publications.map((p, i) => (
+              <div key={p.title} className="grid grid-cols-[34px_1fr] gap-2 border-b border-rule py-2.5">
+                <span className="font-mono text-[12px] text-signal">P{pad(i + 1)}</span>
+                <div>
+                  <p className="text-[14px] font-medium leading-snug">{p.title}</p>
+                  <p className="mt-0.5 font-mono text-[11.5px] text-graphite">
+                    {p.venue} · {p.date}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
-          {patents.map((p) => (
-            <div key={p.id} className="border border-[#d4b062]/70 px-4 py-3">
-              <p className="font-mono text-[11px] uppercase tracking-wider text-yellow">Patent · {p.status}</p>
-              <p className="mt-1 text-[14px] font-medium leading-snug text-cream">{p.title}</p>
-            </div>
-          ))}
-          <a href={profile.links.scholar} target="_blank" rel="noreferrer" className="inline-block text-sm font-semibold text-red">
+            ))}
+          </div>
+          <div>
+            <Head n="2">Patents</Head>
+            {patents.map((p) => (
+              <div key={p.id} className="border-b border-rule py-2.5">
+                <p className="font-mono text-[11.5px] text-graphite">
+                  {p.id} · {p.status}
+                </p>
+                <p className="mt-0.5 text-[14px] font-medium leading-snug">{p.title}</p>
+              </div>
+            ))}
+          </div>
+          <a href={profile.links.scholar} target="_blank" rel="noreferrer" className="x-link text-[14px] font-semibold">
             Google Scholar ↗
           </a>
         </div>
@@ -131,15 +150,16 @@ export function PanelBody({ zone }: { zone: ZoneId }) {
       const o = offTrack.find((x) => x.key === zone)!;
       const rest = offTrack.filter((x) => x.key !== zone);
       return (
-        <div className="space-y-4">
-          <p className="text-[15px] leading-relaxed text-cream/70">{o.body}</p>
-          <p className="bg-cream/[0.06] px-4 py-3 text-sm text-cream/70">
+        <div className="space-y-5">
+          <p className="text-[15px] leading-relaxed">{o.body}</p>
+          <p className="border-2 border-dashed border-ink px-4 py-3 font-mono text-[12.5px]">
             {zone === "cricket" ? "Hit the stumps. You know you want to." : "Push the ball into the goal."}
           </p>
-          <div className="space-y-2 pt-2">
+          <div>
+            <Head n="1">Also off the clock</Head>
             {rest.map((r) => (
-              <p key={r.key} className="text-[14px] leading-relaxed text-cream/70">
-                <span className="font-semibold text-cream">{r.title}.</span> {r.body}
+              <p key={r.key} className="border-b border-rule py-2.5 text-[14px] leading-relaxed">
+                <span className="font-semibold">{r.title}.</span> <span className="text-graphite">{r.body}</span>
               </p>
             ))}
           </div>
@@ -152,24 +172,28 @@ export function PanelBody({ zone }: { zone: ZoneId }) {
   return null;
 }
 
+/** One role as a row that opens (I05): dates in mono, the points with their figures picked out. */
 function Role({ i }: { i: number }) {
   const [open, setOpen] = useState(false);
   const r = experience[i];
   return (
-    <div className="overflow-hidden bg-cream/[0.06]">
-      <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-3 px-4 py-3 text-left">
-        <span className="h-7 w-1 shrink-0 bg-red" />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate font-semibold text-cream">{r.title}</span>
-          <span className="block truncate text-[13px] text-cream/70">{r.company}</span>
+    <div className="border-b border-rule">
+      <button onClick={() => setOpen(!open)} aria-expanded={open} className="x-row grid w-full grid-cols-[1fr_auto_14px] items-center gap-3 px-1 py-2.5 text-left">
+        <span className="min-w-0">
+          <span className="block truncate font-semibold">{r.title}</span>
+          <span className="x-mute block truncate text-[13px] text-graphite">{r.company}</span>
         </span>
-        <span className="shrink-0 font-mono text-[11px] text-cream/70">{r.dates}</span>
+        <span className="x-mute font-mono text-[11.5px] text-graphite">{r.dates}</span>
+        <span className="font-mono text-[13px]">{open ? "−" : "+"}</span>
       </button>
       {open && (
-        <ul className="space-y-1.5 px-4 pb-4 pl-8 text-[13.5px] leading-relaxed text-cream/70">
+        <ul className="space-y-1.5 px-1 pb-3 text-[13.5px] leading-relaxed">
           {r.points.map((p) => (
-            <li key={p} className="list-disc">
-              {p}
+            <li key={p} className="grid grid-cols-[12px_1fr] gap-1.5">
+              <span className="mt-[0.6em] h-[5px] w-[5px] bg-ink" />
+              <span>
+                <Figures text={p} className="font-semibold" />
+              </span>
             </li>
           ))}
         </ul>
@@ -178,144 +202,74 @@ function Role({ i }: { i: number }) {
   );
 }
 
+/** Tyre compound as a code square: soft is the orange one. */
 function Compound({ c }: { c: string }) {
-  const color = { soft: "#ff4b3e", medium: "#ffd23f", hard: "#d9dbe3", inter: "#45c46b" }[c] ?? "#ccc";
-  return (
-    <span
-      className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#171928] font-mono text-xs font-bold text-cream"
-      style={{ boxShadow: `inset 0 0 0 4px ${color}` }}
-    >
-      {c[0].toUpperCase()}
-    </span>
-  );
+  const soft = c === "soft";
+  return <span className={`grid h-[30px] w-[30px] place-items-center border-2 border-ink font-mono text-[12px] font-semibold ${soft ? "border-signal bg-signal text-white" : c === "hard" ? "bg-white" : "bg-ink text-white"}`}>{c[0].toUpperCase()}</span>;
 }
 
-// Garage experience: the camera dollies in to one project at a time (world/Rig.tsx); this
-// is its spec sheet, like a team's car sheet: one big number, what it is, how it's built.
-// Tabs or the arrow keys move along the plinths.
+// Garage: the camera dollies in to one project at a time (world/Rig.tsx) and this is its
+// datasheet card (components/brand/sheets.tsx). ← → or the card's footer move along the plinths.
 function GarageSheet({ domain }: { domain: Domain }) {
-  const list = projects.filter((p) => p.domain === domain);
+  const list = projects.map((p, i) => [p, i] as const).filter(([p]) => p.domain === domain);
   const sel = Math.min(useWorld((s) => s.garageSel), list.length - 1);
-  const p = list[sel];
-  const go = (i: number) => setState({ garageSel: (i + list.length) % list.length });
+  const go = (dir: -1 | 1) => setState({ garageSel: (sel + dir + list.length) % list.length });
   return (
     <div className="space-y-4">
       {domain === "hardware" && (
-        <p className="text-[14px] leading-relaxed text-cream/70">
-          I started in electronics, writing Verilog and Embedded C before I ever trained a model. Chip verification eats
-          most of a hardware team&apos;s time and looks a lot like the agent problems I solve at work, so I&apos;m building
-          agents that write testbenches and small models that write RTL.
+        <p className="text-[14px] leading-relaxed text-graphite">
+          I started in electronics, writing Verilog and Embedded C before I ever trained a model. Chip verification eats most of a hardware team&apos;s time and looks a lot like the agent problems I solve at
+          work, so I&apos;m building agents that write testbenches and small models that write RTL.
         </p>
       )}
-      {list.length > 1 && (
-        <div className="flex gap-1 overflow-x-auto border-b border-cream/15" role="tablist">
-          {list.map((q, i) => (
-            <button
-              key={q.slug}
-              role="tab"
-              aria-selected={i === sel}
-              onClick={() => go(i)}
-              className={`-mb-px shrink-0 border-b-2 px-2.5 pb-2 pt-1 text-left font-mono text-[10.5px] uppercase tracking-[0.12em] transition ${
-                i === sel ? "border-red text-cream" : "border-transparent text-cream/45 hover:text-cream/80"
-              }`}
-            >
-              <span className="text-red">{String(i + 1).padStart(2, "0")}</span> {q.name}
-            </button>
-          ))}
-        </div>
-      )}
-      <div key={p.slug} className="space-y-4 [animation:sheet-in_0.35s_cubic-bezier(0.16,1,0.3,1)]">
-        <div className="flex items-end justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-[19px] font-semibold leading-tight">{p.name}</p>
-            <p className="mt-1 text-[13.5px] text-cream/70">{p.tagline}</p>
-          </div>
-          <div className="shrink-0 border-l-2 border-red pl-3 text-left">
-            <p className="text-[26px] font-semibold leading-none tabular-nums">{p.headline.value}</p>
-            <p className="mt-1.5 max-w-[10rem] text-[12px] leading-snug text-cream/65">{p.headline.label}</p>
-          </div>
-        </div>
-        <div>
-          <p className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-cream/45">Spec</p>
-          <ol className="space-y-2">
-            {p.points.map((x, i) => (
-              <li key={x} className="flex gap-3 text-[13.5px] leading-relaxed text-cream/85">
-                <span className="mt-[3px] font-mono text-[10.5px] text-red">{String(i + 1).padStart(2, "0")}</span>
-                <span>{x}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-        <div>
-          <p className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-cream/45">Built with</p>
-          <div className="flex flex-wrap gap-1.5">
-            {p.stack.map((x) => (
-              <span key={x} className="hud-chip">
-                {x}
-              </span>
-            ))}
-          </div>
-        </div>
-        {p.links.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {p.links.map((l) => (
-              <a key={l.href} href={l.href} target="_blank" rel="noreferrer" className="bg-cream px-3 py-2 text-[12.5px] font-semibold text-ink transition hover:bg-white">
-                {l.label} ↗
-              </a>
-            ))}
-          </div>
-        )}
-      </div>
-      {list.length > 1 && (
-        <div className="flex items-center justify-between border-t border-cream/15 pt-3 font-mono text-[10.5px] uppercase tracking-[0.12em] text-cream/55">
-          <button onClick={() => go(sel - 1)} className="flex items-center gap-2 transition hover:text-cream">
-            <kbd className="hud-key">←</kbd> Previous
-          </button>
-          <span>
-            {sel + 1} / {list.length}
-          </span>
-          <button onClick={() => go(sel + 1)} className="flex items-center gap-2 transition hover:text-cream">
-            Next <kbd className="hud-key">→</kbd>
-          </button>
-        </div>
-      )}
+      <DsCard
+        key={list[sel][1]}
+        index={list[sel][1]}
+        motion
+        onNav={list.length > 1 ? go : undefined}
+        list={list.map(([, i]) => i)}
+      />
     </div>
   );
 }
 
+/** A project in a list (the engineer's picks): code and figure, name, three points, stack. */
 export function ProjectItem({ p }: { p: (typeof projects)[number] }) {
   return (
-        <div className="overflow-hidden bg-cream/[0.06]">
-          <div className="flex items-stretch">
-            <div className="flex w-[108px] shrink-0 flex-col justify-center bg-[#171928] px-3 py-3 text-cream">
-              <span className="font-racing text-[19px] leading-none text-red">{p.headline.value}</span>
-              <span className="mt-1.5 font-mono text-[9.5px] uppercase leading-tight tracking-[0.08em] text-cream/55">{p.headline.label}</span>
-            </div>
-            <div className="min-w-0 flex-1 px-4 py-3">
-              <p className="font-display text-[16px] font-semibold leading-tight text-cream">{p.name}</p>
-              <p className="text-[12.5px] text-cream/70">{p.tagline}</p>
-            </div>
-          </div>
-          <div className="px-4 pb-3.5 pt-2.5">
-            <ul className="space-y-1 text-[13px] leading-relaxed text-cream/70">
-              {p.points.slice(0, 3).map((x) => (
-                <li key={x}>· {x}</li>
-              ))}
-            </ul>
-            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-              {p.stack.slice(0, 5).map((s) => (
-                <span key={s} className="hud-chip">
-                  {s}
-                </span>
-              ))}
-              {p.links.map((l) => (
-                <a key={l.href} href={l.href} target="_blank" rel="noreferrer" className="ml-1 text-[12px] font-semibold text-red">
-                  {l.label} ↗
-                </a>
-              ))}
-            </div>
-          </div>
+    <div className="border-2 border-ink">
+      <div className="flex items-center justify-between gap-3 bg-ink px-3 py-1.5 font-mono text-[11.5px] text-white">
+        <span>P{pad(projects.indexOf(p) + 1)}</span>
+        <span className="truncate">
+          <span className="text-signal">{p.headline.value}</span> {p.headline.label}
+        </span>
+      </div>
+      <div className="p-3.5">
+        <p className="text-[16px] font-semibold leading-tight">{p.name}</p>
+        <p className="text-[13px] text-graphite">{p.tagline}</p>
+        <ul className="mt-2.5 space-y-1 text-[13px] leading-relaxed">
+          {p.points.slice(0, 3).map((x) => (
+            <li key={x} className="grid grid-cols-[12px_1fr] gap-1.5">
+              <span className="mt-[0.6em] h-[5px] w-[5px] bg-ink" />
+              <span>
+                <Figures text={x} className="font-semibold" />
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {p.stack.slice(0, 5).map((s) => (
+            <span key={s} className="x-chip">
+              {s}
+            </span>
+          ))}
+          {p.links.map((l) => (
+            <a key={l.href} href={l.href} target="_blank" rel="noreferrer" className="x-link ml-1 text-[12.5px] font-semibold">
+              {l.label} ↗
+            </a>
+          ))}
         </div>
+      </div>
+    </div>
   );
 }
 
@@ -333,18 +287,15 @@ export function Contact() {
     } catch {}
   };
   return (
-    <div className="space-y-4">
-      <p className="text-[15px] leading-relaxed text-cream/70">
-        Hiring for ML or AI engineering, want to swap notes on agents, or argue about last Sunday&apos;s race. My inbox
-        is open.
+    <div className="space-y-5">
+      <p className="text-[15px] leading-relaxed">
+        Hiring for ML or AI engineering, want to swap notes on agents, or argue about last Sunday&apos;s race. My inbox is open.
       </p>
-      <a
-        href={`mailto:${profile.email}`}
-        className="block bg-red px-4 py-3 text-center font-semibold text-white"
-      >
-        {profile.email}
+      <a href={`mailto:${profile.email}`} className="x-btn x-primary w-full justify-between normal-case tracking-normal">
+        {profile.email} <span className="x-arrow">→</span>
       </a>
-      <div className="grid grid-cols-2 gap-2 text-sm">
+      <div>
+        <Head n="1">Elsewhere</Head>
         {(
           [
             ["LinkedIn", profile.links.linkedin],
@@ -353,19 +304,17 @@ export function Contact() {
             ["Resume", profile.resume],
           ] as const
         ).map(([l, h]) => (
-          <a key={l} href={h} target="_blank" rel="noreferrer" className="border border-cream/20 px-3 py-2 font-medium text-cream transition hover:border-cream/60">
-            {l} ↗
+          <a key={l} href={h} target="_blank" rel="noreferrer" className="x-row grid grid-cols-[1fr_18px] items-center border-b border-rule px-1 py-2.5 text-[14.5px] font-medium">
+            {l}
+            <span className="x-arrow">↗</span>
           </a>
         ))}
       </div>
-      <div className="border border-cream/20 p-4 text-cream">
-        <p className="font-display font-semibold">Ask your own AI about me</p>
-        <p className="mt-1 text-[13px] text-cream/60">This site is an MCP server. Add it to Claude Code or Cursor:</p>
-        <button
-          onClick={() => copy("mcp", cmd)}
-          className="mt-3 w-full truncate bg-cream/10 px-3 py-2 text-left font-mono text-[11px] text-cream/90"
-        >
-          {copied === "mcp" ? "copied ✓" : `$ ${cmd}`}
+      <div>
+        <Head n="2">Ask your own AI about me</Head>
+        <p className="text-[13.5px] text-graphite">This site is an MCP server. Add it to Claude Code or Cursor:</p>
+        <button onClick={() => copy("mcp", cmd)} className="mt-2 w-full truncate border-2 border-ink bg-paper px-3 py-2 text-left font-mono text-[11.5px] transition hover:bg-ink hover:text-white">
+          {copied === "mcp" ? "Copied ✓" : `$ ${cmd}`}
         </button>
       </div>
     </div>

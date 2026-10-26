@@ -132,6 +132,10 @@ Hover and keyboard focus share one signal, the orange corner brackets (`x-sel` +
   - Toast top centre.
   - Zone sticker bottom centre: E tab, `Z02 · Hyperlab`, and the story title.
   - Speed sticker bottom left.
+- **Place sheets (built):** Hud.tsx `Sheet`. On desktop it sits on the right, 440 px wide (640 px for
+  garages); on phones it's a bottom sheet. The ink bar shows `Zxx · kicker` (Panels.tsx `zoneCode`) and
+  an Esc close; the title decodes; bodies use numbered heads (`Head`). Controls and Settings use
+  the same frame as centred modals (`Modal`).
 - **S03 Garage:** the datasheet project card (parts.tsx `DsCard`) over the garage, with an Esc sticker.
   ← → step through projects and each one boots in. The card has:
   - header bar `HG-08 / Pxx`
