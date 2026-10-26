@@ -14,7 +14,8 @@ import { PROP_SCALE, propFoot } from "../models/props/kit";
 import { ISLANDS, islandDist } from "../park/layout";
 import { C } from "../palette";
 
-const TONES = ["#c9ab8a", "#d8c3a2", "#bf9c7f", "#e0cfb2"].map((c) => new THREE.Color(c));
+// gravel-toned slabs, with the run-off and shores
+const TONES = ["#cdc4b0", "#c3baa5", "#d6cfbe", "#bdb4a0"].map((c) => new THREE.Color(c));
 const PETALS = [C.white, C.white, C.cream, C.pink, C.yellow].map((c) => new THREE.Color(c));
 
 const at = (id: ZoneId) => zoneById[id].pos;

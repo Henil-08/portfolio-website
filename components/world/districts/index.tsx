@@ -1,7 +1,7 @@
 "use client";
 
 // District identity (layout v4 step g): paving, planting and props that tell you
-// which part of the island you are in. The original props (MIT) where it has one.
+// which part of the island you are in, in Concrete & Ink (./furniture.ts).
 import { useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
@@ -9,9 +9,8 @@ import { dayNight } from "../daynight";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { lowSphere, mat, unitCyl } from "../models/props/shared";
 import { C } from "../palette";
-import { propGeometry } from "../models/props/kit";
 import { withWind } from "../alive/sway";
-import { BENCH, FENCE, LANTERN, LANTERN_LIGHT } from "../models/props/propModels";
+import { benchGeo, fenceGeo, lanternGeo, lanternLightGeo } from "./furniture";
 import { Instances } from "../street/Instances";
 import { Movables, kindFromMatrices, type MovableKind } from "../Movables";
 import { heightAt } from "../terrain";
@@ -24,8 +23,8 @@ import { PARK } from "./park";
 import { WATERSIDE, padGeometry, reedGeometry } from "./waterside";
 import Streets from "./Streets";
 
-/** Lantern glass: a soft glow by day, blooming at night. Owned here so it's safe to animate. */
-const glass = new THREE.MeshStandardMaterial({ color: "#ffd9a8", emissive: new THREE.Color("#ff9440"), emissiveIntensity: 0.1, roughness: 0.4, toneMapped: false });
+/** Lantern light box: paper by day, blooming at night. Owned here so it's safe to animate. */
+const glass = new THREE.MeshStandardMaterial({ color: "#fff3dc", emissive: new THREE.Color("#ffd9a8"), emissiveIntensity: 0, roughness: 0.4, toneMapped: false });
 
 /** Rocks sit on the ground as bodies (placed half sunk, they'd jump out when hit). */
 function onGround(kind: MovableKind) {
@@ -40,7 +39,7 @@ function onGround(kind: MovableKind) {
 
 export default function Districts() {
   const vc = mat("#ffffff", { r: 0.8, vc: true });
-  const props = useMemo(() => ({ lantern: propGeometry(LANTERN), light: propGeometry(LANTERN_LIGHT), bench: propGeometry(BENCH), crate: new RoundedBoxGeometry(1, 1, 1, 2, 0.08), slab: new RoundedBoxGeometry(1, 1, 1, 2, 0.3), flower: flowerGeometry(), rock: new THREE.IcosahedronGeometry(1, 0), fence: propGeometry(FENCE), tuft: tuftGeometry(), reed: reedGeometry(), pad: padGeometry() }), []);
+  const props = useMemo(() => ({ lantern: lanternGeo(), light: lanternLightGeo(), bench: benchGeo(), crate: new RoundedBoxGeometry(1, 1, 1, 2, 0.08), slab: new RoundedBoxGeometry(1, 1, 1, 2, 0.3), flower: flowerGeometry(), rock: new THREE.IcosahedronGeometry(1, 0), fence: fenceGeo(), tuft: tuftGeometry(), reed: reedGeometry(), pad: padGeometry() }), []);
   const lilies = useMemo(() => ({ m: WATERSIDE.flowers }), []);
   const fences = useMemo(() => ({ m: [...DUNES.fences, ...PARK.fences] }), []);
   const lanterns = useMemo(() => ({ m: [...OLD_TOWN.lanterns, ...HARBOUR.lanterns, ...PARK.lanterns] }), []);
@@ -59,7 +58,7 @@ export default function Districts() {
     ];
   }, [props, lanterns, benches, vc]);
   useFrame(() => {
-    glass.emissiveIntensity = 0.1 + dayNight.night * 1.7;
+    glass.emissiveIntensity = dayNight.night * 1.8;
   });
   return (
     <group name="districts">

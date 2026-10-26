@@ -1,4 +1,4 @@
-// The harbour quays: the original benches facing the water, its lanterns along the
+// The harbour quays: benches facing the water, lanterns along the
 // land side, and stacks of crates and barrels between them. Pure data, read by
 // ./index.tsx.
 import * as THREE from "three";
@@ -9,7 +9,8 @@ import { BENCH, LANTERN } from "../models/props/propModels";
 import { PROP_SCALE, propFoot } from "../models/props/kit";
 
 const TOP = QUAY_Y + 0.13; // the coping's top
-const WOOD = ["#b98a62", "#a8784f", "#c79a70"].map((c) => new THREE.Color(c));
+// crates in concrete tones and graphite, barrels ink with the odd orange one
+const CRATES = ["#cfccc4", "#b8b4a9", "#2b2c2e"].map((c) => new THREE.Color(c));
 
 export const HARBOUR = (() => {
   const r = rng(5150);
@@ -38,13 +39,13 @@ export const HARBOUR = (() => {
             const up = i === 2;
             const ox = up ? 0.1 : (i - 0.5) * 0.7;
             crates.m.push(compose(sx + rz * ox, TOP + s / 2 + (up ? 0.6 : 0), sz - rx * ox, water + (r() - 0.5) * 0.5, s, s, s));
-            crates.c.push(WOOD[Math.floor(r() * WOOD.length)]);
+            crates.c.push(CRATES[Math.floor(r() * CRATES.length)]);
           }
           const [ux, uz] = at(2.45); // behind the crates, on the land side
           for (let i = 0; i < 1 + Math.floor(r() * 2); i++) {
             const ox = (i - 0.5) * 0.62;
             barrels.m.push(compose(ux + rz * ox, TOP + 0.4, uz - rx * ox, 0, 0.27, 0.8, 0.27));
-            barrels.c.push(r() < 0.5 ? new THREE.Color("#5d7891") : new THREE.Color("#8f5a44"));
+            barrels.c.push(new THREE.Color(r() < 0.85 ? "#151515" : "#ff4f00"));
           }
         }
       }

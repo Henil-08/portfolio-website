@@ -17,7 +17,7 @@ export const KERB_H = 0.14;
 const SLAB = 1.2;
 const MIN_DEPTH = 1.8;
 const MAX_DEPTH = 3.0;
-const SLAB_TONES = ["#d9cdb8", "#cfc2ab", "#e2d7c4"].map((c) => new THREE.Color(c));
+const SLAB_TONES = ["#d3d0c8", "#cac7be", "#dcd9d2"].map((c) => new THREE.Color(c));
 
 function toWorld(b: Bld, lx: number, lz: number) {
   const c = Math.cos(b.yaw);

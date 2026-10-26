@@ -6,7 +6,7 @@
 //   instrument plinth: (6.0, 1.0, -3.0)    2.8 x 2.0 x 1.6
 //   agent-ops base:    cylinder r 2.5 h 0.15 at (10.3, -5.6); racks: (10.3, 1.2, -5.4) 3.2 x 2.4 x 2.6
 //   front planter:     (-8.8, 0.4, -1.7)   6.6 x 0.8 x 1.0
-//   trees:             cylinder r 0.25 h 2 at (3.3, -7.2) and (3.4, -1.7)
+//   tree:              cylinder r 0.25 h 2 at (3.3, -7.2), behind the instrument (one in front crowded its plinth)
 "use client";
 
 import { RoundedBox } from "@react-three/drei";
@@ -168,7 +168,6 @@ export function WatersSector(props: GroupProps) {
       <RoundedBox args={[6.6, 0.55, 1.0]} radius={0.04} smoothness={2} position={[-8.8, 0.3, -1.7]} material={mat(C.greyLight, { r: 0.55 })} castShadow receiveShadow />
       <Inst geometry={geo("waters-hedge", () => new RoundedBoxGeometry(1, 1, 1, 3, 0.22))} material={mat(C.leafDark, { r: 0.7 })} items={HEDGE} />
       <Tree variant="round" seed={4} position={[3.3, 0.06, -7.2]} />
-      <Tree variant="round" seed={9} position={[3.4, 0.06, -1.7]} scale={0.85} />
 
       {/* ===== instrument on a plinth ===== */}
       <group position={[6.0, 0.06, -3.0]}>

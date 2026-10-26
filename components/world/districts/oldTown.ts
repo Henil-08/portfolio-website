@@ -14,7 +14,8 @@ const SLAB = 0.9; // slab pitch
 const GAP = 0.07; // joint between slabs
 const DEPTH = 3.4; // forecourt depth in front of the facade
 const SIDE = 1.4; // forecourt overhang past each side wall
-const TONES = ["#c9ab8a", "#d8c3a2", "#bf9c7f", "#e0cfb2"].map((c) => new THREE.Color(c));
+// concrete paving (W09 town)
+const TONES = ["#cfccc4", "#c4c0b6", "#d8d5ce", "#bdb9ae"].map((c) => new THREE.Color(c));
 
 const old = BUILDINGS.filter((b) => b.old);
 
