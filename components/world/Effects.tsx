@@ -60,8 +60,8 @@ export function Weather() {
     const pos = geo.getAttribute("position") as THREE.BufferAttribute;
     const fall = weather === "rain" ? 26 : 3;
     for (let i = 0; i < WEATHER_N; i++) {
-      let y = pos.getY(i) - fall * dt;
-      if (y < 0) y += 30;
+      // wrapped, not stepped once: a long frame would otherwise drop them below the box for good
+      const y = (((pos.getY(i) - fall * dt) % 30) + 30) % 30;
       pos.setY(i, y);
       if (weather === "snow") pos.setX(i, pos.getX(i) + Math.sin(y + i) * dt * 0.6);
     }
@@ -73,10 +73,10 @@ export function Weather() {
   return (
     <points ref={ref} geometry={geo} frustumCulled={false} userData={{ noMap: true }}>
       <pointsMaterial
-        color={weather === "rain" ? "#b8c8d8" : "#ffffff"}
-        size={weather === "rain" ? 0.08 : 0.18}
+        color={weather === "rain" ? "#8f949a" : "#ffffff"}
+        size={weather === "rain" ? 0.14 : 0.18}
         transparent
-        opacity={weather === "rain" ? 0.6 : 0.9}
+        opacity={weather === "rain" ? 0.7 : 0.9}
         depthWrite={false}
       />
     </points>
