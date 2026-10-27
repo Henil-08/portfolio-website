@@ -1,7 +1,7 @@
 // The owner's LinkedIn banner (picked 2026-10-27). /docs/brand/banner draws it first, and
-// `?export=chosen` draws it alone at 1584 x 396 for the JPG (linkedin-banner.jpg at the repo root).
+// `?export=chosen` draws it alone at 1584 x 396 for the JPG (exported at 3x: 4752 x 1188, quality 100, linkedin-banner.jpg at the repo root).
 // Re-export after any change:
-//   node scripts/shoot.mjs ./linkedin-banner "wait:4000|shot:x" 1584 396 "http://localhost:3100/docs/brand/banner?export=chosen"
+//   DPR=3 QUALITY=100 node scripts/shoot.mjs ./linkedin-banner "wait:5000|shot:x" 1584 396 "http://localhost:3100/docs/brand/banner?export=chosen"
 //   then rename linkedin-banner-x.jpg to linkedin-banner.jpg
 export const CHOSEN = {
   design: "E", // Telemetry

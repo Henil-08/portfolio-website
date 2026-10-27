@@ -3,6 +3,7 @@
 // steps are |-separated, each op:arg — wait:ms | shot:name | down:Code | up:Code | key:Code (tap) | eval:js | media:print
 // e.g. node scripts/shoot.mjs /tmp/shots/a "wait:16000|shot:spawn" 1400 850 "http://localhost:3100/?skip"
 // Shots land at <outPrefix>-<name>.jpg. Physics runs slow here (low fps): judge looks, not speed.
+// Env DPR (pixel ratio, default 1) and QUALITY (jpeg 0-100, default 72) for sharp exports.
 import { spawn } from "node:child_process";
 import { writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -26,7 +27,7 @@ ws.addEventListener("message", (e) => { const m = JSON.parse(e.data);
   if (pending.has(m.id)) { pending.get(m.id)(m.result); pending.delete(m.id); } });
 const send = (method, params = {}) => new Promise((r) => { const id = ++n; pending.set(id, r); ws.send(JSON.stringify({ id, method, params })); });
 await send("Runtime.enable");
-await send("Emulation.setDeviceMetricsOverride", { width: +w, height: +h, deviceScaleFactor: 1, mobile: +w < 600 });
+await send("Emulation.setDeviceMetricsOverride", { width: +w, height: +h, deviceScaleFactor: +(process.env.DPR ?? 1), mobile: +w < 600 });
 if (+w < 600) await send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
 await send("Page.enable");
 await send("Page.navigate", { url });
@@ -43,7 +44,7 @@ for (const step of script.split("|")) {
   if (op === "eval") { const r = await send("Runtime.evaluate", { expression: arg, returnByValue: true }); console.log("eval", JSON.stringify(r.result?.value ?? r.exceptionDetails?.text)); }
   if (op === "shot") {
     await send("Runtime.evaluate", { expression: "document.querySelectorAll('nextjs-portal').forEach(e=>e.remove())" });
-    const r = await send("Page.captureScreenshot", { format: "jpeg", quality: 72 });
+    const r = await send("Page.captureScreenshot", { format: "jpeg", quality: +(process.env.QUALITY ?? 72) });
     writeFileSync(`${out}-${arg}.jpg`, Buffer.from(r.data, "base64"));
   }
 }
