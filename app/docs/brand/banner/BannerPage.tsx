@@ -10,6 +10,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, 
 import { profile, stats } from "@/content/profile";
 import { Lockup, Mark } from "@/components/brand/mark";
 import { TRACK_D } from "./track";
+import { CHOSEN } from "./chosen";
 
 const W = 1584;
 const H = 396;
@@ -54,7 +55,8 @@ const rng = (seed: number) => () => ((seed = (seed * 16807) % 2147483647) - 1) /
 function Headline({ line, t, size = 56, width = 600 }: { line: string; t: Theme; size?: number; width?: number }) {
   return (
     <p className="font-semibold tracking-[-0.025em]" style={{ fontFamily: "var(--hl)", fontSize: size, lineHeight: 1.06, maxWidth: width, color: t.fg }}>
-      {line}
+      {line.replace(/\.$/, "")}
+      {line.endsWith(".") && <span style={{ color: ORANGE }}>.</span>}
     </p>
   );
 }
@@ -244,7 +246,7 @@ function Prompt({ line, t }: { line: string; t: Theme }) {
 }
 
 /** E · Telemetry: a full lap of data like an F1 timing screen: speed, throttle and brake, sectors. */
-function Telemetry({ line, t }: { line: string; t: Theme }) {
+function Telemetry({ line, t, contacts = [] }: { line: string; t: Theme; contacts?: readonly string[] }) {
   const cw = 540;
   const ch = 170;
   const x0 = W - 56 - 72 - cw;
@@ -315,6 +317,11 @@ function Telemetry({ line, t }: { line: string; t: Theme }) {
           <p className="mt-2 font-mono text-[15px]" style={{ color: t.sub }}>
             {profile.role} · {profile.location}
           </p>
+          {contacts.map((c) => (
+            <p key={c} className="font-mono text-[15px]" style={{ color: t.sub }}>
+              {c}
+            </p>
+          ))}
         </div>
       </div>
     </>
@@ -425,9 +432,9 @@ function PitBoard({ line, t }: { line: string; t: Theme }) {
   );
 }
 
-type Design = { id: string; name: string; note: string; bg: Pattern; font: Font; draw: (line: string, t: Theme) => ReactNode; clear?: [number, number, number, number] };
+type Design = { id: string; name: string; note: string; bg: Pattern; font: Font; draw: (line: string, t: Theme, contacts: readonly string[]) => ReactNode; clear?: [number, number, number, number] };
 const DESIGNS: Design[] = [
-  { id: "E", name: "Telemetry", note: "A whole lap of data like an F1 timing screen: speed with the top speed in orange, throttle and brake, sector times.", bg: "grid", font: "sans", draw: (l, t) => <Telemetry line={l} t={t} /> },
+  { id: "E", name: "Telemetry", note: "A whole lap of data like an F1 timing screen: speed with the top speed in orange, throttle and brake, sector times.", bg: "grid", font: "sans", draw: (l, t, c) => <Telemetry line={l} t={t} contacts={c} /> },
   { id: "B", name: "Attention", note: "The mark grown to an 8 × 8 attention map: one square block, heavy on the diagonal, one orange cell.", bg: "pixels", font: "sans", draw: (l, t) => <Attention line={l} t={t} />, clear: [W - 64 - 272 - 24, 62 - 24, W - 40, 334 + 24] },
   { id: "A", name: "Datasheet", note: "The part-number sheet: header row, the headline, contacts on the right.", bg: "grid", font: "sans", draw: (l, t) => <Datasheet line={l} t={t} /> },
   { id: "G", name: "Context", note: "Your real facts as a model's context window, rows lit by attention. Pairs with T01.", bg: "none", font: "sans", draw: (l, t) => <Context line={l} t={t} /> },
@@ -440,12 +447,12 @@ const DESIGNS: Design[] = [
 type Look = { theme: "dark" | "light"; bg: Pattern; font: Font };
 
 /** One banner at its real size. */
-function Banner({ d, line, look }: { d: Design; line: string; look: Look }) {
+function Banner({ d, line, look, contacts = [] }: { d: Design; line: string; look: Look; contacts?: readonly string[] }) {
   const t = look.theme === "light" ? LIGHT : DARK;
   return (
     <div className="relative overflow-hidden" style={{ width: W, height: H, background: t.bg, color: t.fg, "--hl": FONTS[look.font] } as CSSProperties}>
       <Backdrop kind={look.bg} t={t} clear={d.clear} />
-      {d.draw(line, t)}
+      {d.draw(line, t, contacts)}
     </div>
   );
 }
@@ -531,6 +538,9 @@ export default function BannerPage() {
   const [pick, setPick] = useState(0);
   const [safe, setSafe] = useState(false);
 
+  const chosen = DESIGNS.find((x) => x.id === CHOSEN.design)!;
+  const chosenLook: Look = { theme: CHOSEN.theme, bg: CHOSEN.bg, font: CHOSEN.font };
+  if (q.get("export") === "chosen") return <Banner d={chosen} line={LINES[CHOSEN.line]} look={chosenLook} contacts={CHOSEN.contacts} />;
   const exp = DESIGNS.find((x) => x.id === q.get("export"));
   if (exp) {
     const n = Math.min(LINES.length - 1, Math.max(0, Number(q.get("t") ?? 0)));
@@ -565,7 +575,23 @@ export default function BannerPage() {
           crop the sides (dashed lines).
         </p>
 
-        <section className="mt-10 border-2 border-ink bg-white">
+        <section className="mt-10">
+          <div className="mb-3 flex flex-wrap items-baseline gap-3">
+            <span className="font-mono text-[13px] text-signal">00</span>
+            <h2 className="text-[26px] font-semibold tracking-[-0.02em]">Your banner</h2>
+            <p className="text-[14px] text-graphite">
+              {chosen.id} · {chosen.name}, {CHOSEN.theme === "light" ? "white" : "black"}, {CHOSEN.bg}, {FONT_NAME[CHOSEN.font]}. Saved in chosen.ts; exported to linkedin-banner.jpg.
+            </p>
+            <a href="?export=chosen" target="_blank" className="ml-auto font-mono text-[12px] underline underline-offset-4 hover:text-signal">
+              Open at full size ↗
+            </a>
+          </div>
+          <Frame safe={safe}>
+            <Banner d={chosen} line={LINES[CHOSEN.line]} look={chosenLook} contacts={CHOSEN.contacts} />
+          </Frame>
+        </section>
+
+        <section className="mt-12 border-2 border-ink bg-white">
           <div className="flex items-center gap-3 bg-ink px-3 py-2 font-mono text-[12px] text-white">
             01 · Headline
             <label className="ml-auto flex cursor-pointer items-center gap-2 text-white/70">
