@@ -39,6 +39,8 @@ const SW = 1.04;
 const SH = 0.65;
 const GAP = 0.14;
 const WALL_Z = BACK_Z + 0.06;
+/** A garage with four projects or fewer has one row, at this height. */
+const ROW1 = 2.3;
 /** How far the lit screen steps out of the wall. */
 const POP = 0.22;
 
@@ -62,7 +64,7 @@ function slots(n: number) {
     const r = Math.floor(i / cols);
     const inRow = r === rows - 1 ? n - r * cols : cols;
     const c = i - r * cols;
-    return new THREE.Vector3((c - (inRow - 1) / 2) * (SW + GAP), rows === 1 ? 2.45 : 2.88 - r * (SH + GAP), WALL_Z);
+    return new THREE.Vector3((c - (inRow - 1) / 2) * (SW + GAP), rows === 1 ? ROW1 : 2.88 - r * (SH + GAP), WALL_Z);
   });
 }
 
@@ -320,21 +322,23 @@ export default function CockpitWall({ v, livery, domain, list, sel, dir, inside,
 
     // the wall lights as you arrive; then the lit screen follows the stage
     const on = inOut(seg(k, 0.72, 0.95));
+    let fTo = 0;
+    let fFrom = 0;
     screens.current.forEach((g, i) => {
       if (!g) return;
       let f = 0;
-      if (i === to) f = first ? 1 : inOut(seg(sk, 0.25, 1));
-      else if (i === from && !first) f = 1 - inOut(seg(sk, 0, 0.5));
-      f *= on;
+      if (i === to) f = fTo = (first ? 1 : inOut(seg(sk, 0.25, 1))) * on;
+      else if (i === from && !first) f = fFrom = (1 - inOut(seg(sk, 0, 0.5))) * on;
       g.position.set(at[i].x, at[i].y, at[i].z + POP * f);
       g.scale.setScalar(1 + 0.06 * f);
       const m = faces.current[i];
       if (m) m.color.copy(tmp.c.setScalar(lerp(0.62, 1, Math.max(f, 1 - on))));
     });
-    // the orange frame rides along the wall from the old screen to the new one
+    // the orange frame rides along the wall from the old screen to the new one, at their depth
     const fp = first ? at[to] : tmp.a.lerpVectors(at[from], at[to], es);
-    cursor.current.position.set(fp.x, fp.y, fp.z + POP + 0.02);
-    cursor.current.scale.setScalar((1 + 0.06) * lerp(0.6, 1, on));
+    const pop = first ? fTo : lerp(fFrom, fTo, es);
+    cursor.current.position.set(fp.x, fp.y, fp.z + POP * pop + 0.02);
+    cursor.current.scale.setScalar((1 + 0.06 * pop) * lerp(0.6, 1, on));
     cursor.current.visible = on > 0.01;
 
     // the scan square climbs the new object as it lands
@@ -349,7 +353,7 @@ export default function CockpitWall({ v, livery, domain, list, sel, dir, inside,
       <BayScene domain={domain} lamp={9} />
 
       {/* the pit wall: an ink board behind the screens, one screen per project */}
-      <mesh position={[0, at.length > 4 ? 2.46 : 2.45, BACK_Z + 0.02]}>
+      <mesh position={[0, at.length > 4 ? 2.46 : ROW1, BACK_Z + 0.02]}>
         <boxGeometry args={[Math.min(7.6, Math.ceil(at.length > 4 ? at.length / 2 : at.length) * (SW + GAP) + 0.3), at.length > 4 ? 2 * SH + GAP + 0.3 : SH + 0.3, 0.03]} />
         <meshStandardMaterial color={CI.graphite} roughness={0.9} />
       </mesh>
