@@ -109,5 +109,245 @@
       "at": "2026-11-04T17:06:24.428Z",
       "credits": 30
     }
+  },
+  "tree-cypress": {
+    "concept": {
+      "task": "01a1a791-3024-7726-b4d2-f81bcc4dab4d",
+      "prompt": "A tall slender cypress tree for a modern landscaped motorsport circuit park, faceted low-poly crown made of a few large flat planes in muted sage green #5c6a4b and #73805c, a short straight matte black ink trunk, sitting on a small square concrete tree pit",
+      "credits": 6,
+      "at": "2026-11-04T17:18:09.434Z"
+    }
+  },
+  "tree-round": {
+    "concept": {
+      "task": "01a1a791-7465-7675-aafa-90650e545b27",
+      "prompt": "A round-crown deciduous tree for a modern landscaped motorsport park, a faceted geodesic crown of large flat planes in muted sage green #73805c and #5c6a4b, a straight matte black ink trunk, a small square concrete tree pit at its base",
+      "credits": 6,
+      "at": "2026-11-04T17:18:26.951Z"
+    }
+  },
+  "bush": {
+    "concept": {
+      "task": "01a1a791-b954-7459-a53d-65f700d3070f",
+      "prompt": "A low cluster of three clipped faceted shrubs of different sizes, large flat planes, muted sage greens, sitting on gravel #cdc4b0 inside a thin concrete edging strip",
+      "credits": 6,
+      "at": "2026-11-04T17:18:40.534Z"
+    }
+  },
+  "grasses": {
+    "concept": {
+      "task": "01a1a791-ed98-7145-84d1-63d2757969ea",
+      "prompt": "A clump of tall ornamental grasses and reeds made of crisp flat blades and a few hard four-sided seed spikes, muted sage and dry beige tones, in a low concrete planter",
+      "credits": 6,
+      "at": "2026-11-04T17:18:58.213Z"
+    }
+  },
+  "rocks": {
+    "concept": {
+      "task": "01a1a792-32d9-74c0-8ee8-f18e3d837792",
+      "prompt": "A set of three faceted landscape boulders with large flat planes, warm grey concrete tones #d9d6ce and #b8b4a9, arranged on gravel",
+      "credits": 6,
+      "at": "2026-11-04T17:19:19.863Z"
+    }
+  },
+  "town-low": {
+    "concept": {
+      "task": "01a1a792-873c-7134-ad1f-18a622c5c0fd",
+      "prompt": "A two-storey modern concrete city block building, plain warm grey concrete walls #d9d6ce, a grid of recessed dark glass windows #1f262b, a glazed ground floor shop front, a thin matte black ink roof parapet, one orange door",
+      "credits": 6,
+      "at": "2026-11-04T17:19:41.416Z"
+    }
+  },
+  "town-mid": {
+    "concept": {
+      "task": "01a1a792-dba1-75c5-a1cd-d3ffe7560153",
+      "prompt": "A five-storey modern concrete apartment block, warm grey concrete, deep recessed dark windows in a strict grid, a set-back top floor with a black roof plant box, flat roof, one orange accent",
+      "credits": 6,
+      "at": "2026-11-04T17:19:54.791Z"
+    }
+  },
+  "town-tower": {
+    "concept": {
+      "task": "01a1a793-0ff4-7461-bc5f-af40795f50ec",
+      "prompt": "A slender twelve-storey modern landmark tower, warm grey concrete frame with dark glass, a glass crown at the top with a thin black ink cap, one orange aircraft light",
+      "credits": 6,
+      "at": "2026-11-04T17:20:16.448Z"
+    }
+  },
+  "pit-building": {
+    "concept": {
+      "task": "01a1a793-645a-727a-8157-ddba01aa833e",
+      "prompt": "A long modern Formula 1 pit building: a concrete block with five tall glazed garage bays side by side, each with a black ink frame and a small paper name plate with one orange square, a set-back upper floor with a dark glass band, a thin black ink roof canopy on slim columns",
+      "credits": 6,
+      "at": "2026-11-04T17:20:29.869Z"
+    }
+  },
+  "boston": {
+    "concept": {
+      "task": "01a1a793-98bd-7764-a7c4-92ddc3610baa",
+      "prompt": "A row of three Boston brownstone townhouses reimagined in warm grey concrete and paper white, stoops with black railings, bay windows, flat black ink cornices, next to a domed academic hall with columns, one orange accent on a spire",
+      "credits": 6,
+      "at": "2026-11-04T17:20:47.379Z"
+    }
+  },
+  "ahmedabad": {
+    "concept": {
+      "task": "01a1a793-dd30-73e8-b919-6c82880249ee",
+      "prompt": "An Indian heritage arcade building reimagined in warm grey concrete and paper white: pointed arches along a colonnade, a central dome in matte black ink, carved jali screens simplified into a square grid, one orange accent",
+      "credits": 6,
+      "at": "2026-11-04T17:21:04.909Z"
+    }
+  },
+  "hyperlab": {
+    "concept": {
+      "task": "01a1a794-21ce-7026-9264-62c9ac760d57",
+      "prompt": "A modern startup studio building with a sawtooth roof of black ink and dark glass, warm grey concrete walls, a big glazed front, one orange sign blank panel",
+      "credits": 6,
+      "at": "2026-11-04T17:21:18.286Z"
+    }
+  },
+  "waters": {
+    "concept": {
+      "task": "01a1a794-5609-714b-8a92-3350248f3826",
+      "prompt": "A modern laboratory research building: long low concrete volume, a strip of dark glass windows, rooftop ventilation units in black ink, a clean entrance canopy with one orange accent line",
+      "credits": 6,
+      "at": "2026-11-04T17:21:35.846Z"
+    }
+  },
+  "grandstand": {
+    "concept": {
+      "task": "01a1a794-9aa1-770d-b72c-38062e390ee4",
+      "prompt": "A modern motorsport grandstand: stepped concrete tiers with graphite seats and one row of paper white seats, a thin black ink roof on a steel frame with a paper white fascia band, a debris fence in front",
+      "credits": 6,
+      "at": "2026-11-04T17:21:49.229Z"
+    }
+  },
+  "floodlight": {
+    "concept": {
+      "task": "01a1a794-cec3-730d-ac4a-046156c44a20",
+      "prompt": "A tall slim motorsport floodlight tower: square matte black ink mast on a concrete foot, a tilted rectangular head with a grid of eight lamps, one orange marker light",
+      "credits": 6,
+      "at": "2026-11-04T17:22:02.438Z"
+    }
+  },
+  "gantry": {
+    "concept": {
+      "task": "01a1a795-0290-73b9-b985-79ddd966c755",
+      "prompt": "A modern Formula 1 start gantry spanning a track: two black ink pillars on concrete feet, a black beam with a row of five start light pods and a long dark LED board, one orange light lit",
+      "credits": 6,
+      "at": "2026-11-04T17:22:20.069Z"
+    }
+  },
+  "tecpro": {
+    "concept": {
+      "task": "01a1a795-47a0-74b0-a7d9-c0f226f5e994",
+      "prompt": "A modular motorsport crash barrier: a row of rounded rectangular blocks in alternating matte black ink and paper white, each with a graphite strap, two rows stacked, one orange block",
+      "credits": 6,
+      "at": "2026-11-04T17:22:33.407Z"
+    }
+  },
+  "marshal": {
+    "concept": {
+      "task": "01a1a795-7b69-70ee-a2a7-8231ec4b3230",
+      "prompt": "A trackside marshal post: a small concrete booth with a flat black roof, a paper white light panel, a flag holder, one orange flag",
+      "credits": 6,
+      "at": "2026-11-04T17:22:59.010Z"
+    }
+  },
+  "pitwall": {
+    "concept": {
+      "task": "01a1a795-df50-713b-b4f7-49730638c220",
+      "prompt": "A modern pit wall section: a long concrete wall with a paper white top stripe and a tall black ink debris fence on slim posts, a small timing stand with screens",
+      "credits": 6,
+      "at": "2026-11-04T17:23:12.516Z"
+    }
+  },
+  "lamp": {
+    "concept": {
+      "task": "01a1a796-14d2-7792-9460-cf2bf8a5cc4c",
+      "prompt": "A modern minimalist street lamp: square matte black ink pole on a small concrete foot, a paper white rectangular light box at the top under a thin black cap",
+      "credits": 6,
+      "at": "2026-11-04T17:23:34.245Z"
+    }
+  },
+  "bench": {
+    "concept": {
+      "task": "01a1a796-68f8-70e5-a134-4d1b73fcb8df",
+      "prompt": "A minimalist public bench: a solid concrete block seat with a black ink slatted top and back, one small orange tag",
+      "credits": 6,
+      "at": "2026-11-04T17:23:51.640Z"
+    }
+  },
+  "bollard": {
+    "concept": {
+      "task": "01a1a796-ad13-708f-91e1-0a274905fc04",
+      "prompt": "A set of three square concrete bollards with black ink caps, one with an orange band",
+      "credits": 6,
+      "at": "2026-11-04T17:24:09.092Z"
+    }
+  },
+  "kiosk": {
+    "concept": {
+      "task": "01a1a796-f1a5-765d-a289-5f99fe864698",
+      "prompt": "A small modern street kiosk: a black ink box with a paper white awning and a dark glass service window, one orange sign panel blank",
+      "credits": 6,
+      "at": "2026-11-04T17:24:30.735Z"
+    }
+  },
+  "busstop": {
+    "concept": {
+      "task": "01a1a797-45b5-76c1-b418-23cf6874e93d",
+      "prompt": "A modern bus shelter: a black ink frame, dark glass back panel, a paper white roof, a concrete bench, one orange route marker blank",
+      "credits": 6,
+      "at": "2026-11-04T17:24:52.364Z"
+    }
+  },
+  "cafe": {
+    "concept": {
+      "task": "01a1a797-9a1b-75a0-ac7a-f772bc52a224",
+      "prompt": "A café table set: a square black ink table and four minimalist chairs on a concrete slab, one orange cup",
+      "credits": 6,
+      "at": "2026-11-04T17:25:22.180Z"
+    }
+  },
+  "boat": {
+    "concept": {
+      "task": "01a1a798-0eee-7059-9f40-387e371e6a54",
+      "prompt": "A small modern harbour motorboat with a hard-chined faceted hull, paper white topsides, black ink deck, one orange strake",
+      "credits": 6,
+      "at": "2026-11-04T17:25:35.730Z"
+    }
+  },
+  "pier": {
+    "concept": {
+      "task": "01a1a798-437f-75a7-80c1-498b0d62a250",
+      "prompt": "A section of a modern harbour pier: precast concrete deck slabs on graphite piles, black ink rails with a paper white top rail, one orange marker post",
+      "credits": 6,
+      "at": "2026-11-04T17:25:57.298Z"
+    }
+  },
+  "goal": {
+    "concept": {
+      "task": "01a1a798-9800-7424-88c9-7b9804197f6a",
+      "prompt": "A minimalist football goal: square paper white posts and crossbar, black ink back frame, a graphite net made of a simple grid",
+      "credits": 6,
+      "at": "2026-11-04T17:26:14.931Z"
+    }
+  },
+  "stumps": {
+    "concept": {
+      "task": "01a1a798-dccf-7349-a3aa-821342a58775",
+      "prompt": "Cricket stumps and bails reimagined minimal: three square paper white stumps on a concrete crease slab, black ink bails, one orange bail",
+      "credits": 6,
+      "at": "2026-11-04T17:26:32.371Z"
+    }
+  },
+  "podium": {
+    "concept": {
+      "task": "01a1a799-20d4-72dd-a4aa-3bef8ba1a925",
+      "prompt": "A three-step winners podium in concrete with black ink tops and engraved numbers 1 2 3, one orange stripe on the top step",
+      "credits": 6,
+      "at": "2026-11-04T17:26:49.899Z"
+    }
   }
 }
