@@ -1,22 +1,25 @@
 "use client";
 
 // The waterfront along the south bay, in Concrete & Ink: a concrete promenade with
-// an ink railing (paper top rail) on the sea side, lamps with a paper light box that
-// glows after dark and the district benches facing the water; a concrete pier on
-// graphite piles you can drive out onto, with one orange marker at its head; and
-// faceted boats bobbing in the bay. Instanced or merged per material, so it stays a
+// an ink railing (paper top rail) on the sea side, the kit lamps (their paper cube
+// glows after dark) and the district benches facing the water; the kit pier (concrete
+// deck slabs on ink cap beams and piles, ink railings) you can drive out onto, with an
+// orange bollard near its head; and kit launches bobbing in the bay. Instanced or merged per material, so it stays a
 // handful of draw calls.
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
-import { ConvexGeometry } from "three/examples/jsm/geometries/ConvexGeometry.js";
 import { SEA_FLOOR, SEA_Y, coastR } from "../layout";
 import { PIER, PIER_I, PIER_LAMP, PROMENADE, PROM_LAMPS, PROM_W, frame } from "./layout";
 import { heightAt } from "../terrain";
 import { dayNight } from "../daynight";
 import { C } from "../palette";
-import { geo, mat, unitBox } from "../models/props/shared";
+import { mat, unitBox } from "../models/props/shared";
+import { KitModel } from "../kit/KitModel";
+import { bake, model, part } from "../kit/shared";
+import { lampModel } from "../kit/street";
+import { BOAT, addPierBollard, addPierHead, addPierSegment, boatModel } from "../kit/water";
 import { compose } from "../street/common";
 import { PROP_SCALE } from "../models/props/kit";
 import { batch, Instances } from "../street/Instances";
@@ -115,92 +118,50 @@ function Promenade() {
 
 // ------------------------------------------------------------ lamps
 
-const LAMP_H = 3.4;
-/** Owned here, so it is safe to animate: a paper box, dim by day, glowing at night. */
-const globeMat = new THREE.MeshStandardMaterial({ color: C.paper, emissive: new THREE.Color("#fff3dc"), emissiveIntensity: 0.15, roughness: 0.5, toneMapped: false });
+/** Owned here, so it is safe to animate: the kit lamp's paper cube, dim by day, glowing at night. */
+const globeMat = new THREE.MeshStandardMaterial({ color: C.paper, emissive: new THREE.Color("#fff3dc"), emissiveIntensity: 0.15, roughness: 0.5, toneMapped: false, flatShading: true });
 
+/** The promenade lamps and the one at the pier's end: the kit street lamp. */
 function Lamps() {
   const parts = useMemo(() => {
-    // a concrete foot, a square ink pole, a paper light box under a thin ink cap
-    const feet = batch();
-    const poles = batch();
-    const globes = batch();
-    const lamp = (x: number, y: number, z: number) => {
-      feet.m.push(compose(x, y + 0.12, z, 0, 0.34, 0.24, 0.34));
-      poles.m.push(compose(x, y + LAMP_H / 2, z, 0, 0.1, LAMP_H, 0.1));
-      poles.m.push(compose(x, y + LAMP_H + 0.4, z, 0, 0.36, 0.05, 0.36));
-      globes.m.push(compose(x, y + LAMP_H + 0.2, z, 0, 0.28, 0.34, 0.28));
-    };
-    for (const [x, z] of PROM_LAMPS) lamp(x, heightAt(x, z) + 0.05, z);
-    // and one at the end of the pier
-    lamp(PIER_LAMP[0], PIER.y, PIER_LAMP[1]);
-    return { feet, poles, globes };
+    const at = batch();
+    for (const [x, z] of PROM_LAMPS) at.m.push(compose(x, heightAt(x, z) + 0.05, z, 0, 1, 1, 1));
+    at.m.push(compose(PIER_LAMP[0], PIER.y, PIER_LAMP[1], 0, 1, 1, 1));
+    return { at, post: bake(lampModel(), { skip: ["glow"] }), head: part(lampModel(), "glow")! };
   }, []);
   useFrame(() => {
     globeMat.emissiveIntensity = 0.15 + dayNight.night * 2.8;
   });
   return (
     <>
-      <Instances geometry={unitBox()} material={mat(C.concreteDark, { r: 0.9 })} batch={parts.feet} />
-      <Instances geometry={unitBox()} material={mat(C.ink, { r: 0.6 })} batch={parts.poles} />
-      <Instances geometry={unitBox()} material={globeMat} batch={parts.globes} shadow={false} />
+      <Instances geometry={parts.post} material={mat("#ffffff", { r: 0.8, vc: true, flat: true })} batch={parts.at} />
+      <Instances geometry={parts.head} material={globeMat} batch={parts.at} shadow={false} />
     </>
   );
 }
 
 // ------------------------------------------------------------ pier
 
+/** Pile foot below the sea floor; the kit pier is built up from here to the deck. */
+const PILE_FOOT = SEA_FLOOR - 0.2;
+const SEG = PIER.len / 4;
+
+/** The kit pier (the approved concept) along local +x, its deck top at PIER.y, an orange bollard near the head. */
+const pierModel = () =>
+  model("world-pier", (k) => {
+    const o = { h: PIER.y - PILE_FOOT, w: PIER.w, seg: SEG };
+    for (let i = 0; i < 4; i++) addPierSegment(k, i * SEG, o);
+    addPierHead(k, PIER.len - 0.1, o);
+    addPierBollard(k, PIER.len - 1.4, PIER.w / 2 - 0.5, o.h);
+  });
+
 function Pier() {
-  const parts = useMemo(() => {
-    const planks = batch();
-    const piles = batch();
-    const rails = batch();
-    const tops = batch();
-    const marker = batch();
-    const yaw = Math.atan2(-PIER.dz, PIER.dx); // local +x along the pier
-    // precast concrete deck slabs with a dark joint between them
-    const SLAB = 2;
-    for (let k = 0; k < PIER.len / SLAB; k++) {
-      const d = SLAB / 2 + k * SLAB;
-      const x = PIER.x + PIER.dx * d;
-      const z = PIER.z + PIER.dz * d;
-      planks.m.push(compose(x, PIER.y, z, yaw, SLAB - 0.06, 0.14, PIER.w));
-      planks.c.push(new THREE.Color(k % 2 ? C.concrete : "#cfccc3"));
-    }
-    const sx = -PIER.dz;
-    const sz = PIER.dx;
-    for (let d = 1; d <= PIER.len; d += 3) {
-      for (const s of [-1, 1]) {
-        const x = PIER.x + PIER.dx * d + sx * s * (PIER.w / 2 - 0.1);
-        const z = PIER.z + PIER.dz * d + sz * s * (PIER.w / 2 - 0.1);
-        const bottom = SEA_FLOOR - 0.2;
-        piles.m.push(compose(x, (PIER.y + bottom) / 2, z, yaw, 0.26, PIER.y - bottom, 0.26));
-        rails.m.push(compose(x, PIER.y + 0.5, z, yaw, 0.08, 1, 0.08));
-      }
-    }
-    for (const s of [-1, 1]) {
-      const cx = PIER.x + PIER.dx * (PIER.len / 2 + 0.5) + sx * s * (PIER.w / 2 - 0.1);
-      const cz = PIER.z + PIER.dz * (PIER.len / 2 + 0.5) + sz * s * (PIER.w / 2 - 0.1);
-      tops.m.push(compose(cx, PIER.y + 1.0, cz, yaw, PIER.len - 1, 0.07, 0.14));
-      rails.m.push(compose(cx, PIER.y + 0.55, cz, yaw, PIER.len - 1, 0.05, 0.05));
-    }
-    // the pier head: an ink rail across the end with one orange marker board on it
-    const hx = PIER.x + PIER.dx * (PIER.len - 0.1);
-    const hz = PIER.z + PIER.dz * (PIER.len - 0.1);
-    tops.m.push(compose(hx, PIER.y + 1.0, hz, yaw, 0.14, 0.07, PIER.w - 0.1));
-    rails.m.push(compose(hx, PIER.y + 0.55, hz, yaw, 0.05, 0.05, PIER.w - 0.1));
-    marker.m.push(compose(hx + PIER.dx * 0.06, PIER.y + 0.78, hz + PIER.dz * 0.06, yaw, 0.04, 0.34, 0.7));
-    return { planks, piles, rails, tops, marker, yaw };
-  }, []);
+  const yaw = Math.atan2(-PIER.dz, PIER.dx); // local +x along the pier
   const mid = { x: PIER.x + PIER.dx * (PIER.len / 2), z: PIER.z + PIER.dz * (PIER.len / 2) };
   return (
     <>
-      <Instances geometry={unitBox()} material={mat("#ffffff", { r: 0.9 })} batch={parts.planks} />
-      <Instances geometry={unitBox()} material={mat(C.charcoal, { r: 0.8 })} batch={parts.piles} />
-      <Instances geometry={unitBox()} material={mat(C.ink, { r: 0.6 })} batch={parts.rails} />
-      <Instances geometry={unitBox()} material={mat(C.paper, { r: 0.8 })} batch={parts.tops} />
-      <Instances geometry={unitBox()} material={mat(C.red, { r: 0.6 })} batch={parts.marker} />
-      <RigidBody type="fixed" colliders={false} position={[mid.x, PIER.y - 0.05, mid.z]} rotation={[0, parts.yaw, 0]}>
+      <KitModel model={pierModel()} position={[PIER.x, PILE_FOOT, PIER.z]} rotation={[0, yaw, 0]} />
+      <RigidBody type="fixed" colliders={false} position={[mid.x, PIER.y - 0.05, mid.z]} rotation={[0, yaw, 0]}>
         <CuboidCollider args={[PIER.len / 2, 0.08, PIER.w / 2]} friction={1} />
         <CuboidCollider args={[PIER.len / 2, 0.5, 0.06]} position={[0, 0.55, PIER.w / 2 - 0.1]} />
         <CuboidCollider args={[PIER.len / 2, 0.5, 0.06]} position={[0, 0.55, -(PIER.w / 2 - 0.1)]} />
@@ -214,41 +175,20 @@ function Pier() {
 
 // ------------------------------------------------------------ boats
 
-type Boat = { x: number; z: number; yaw: number; hull: string; top: string; sail: boolean; s: number; phase: number };
+type Boat = { x: number; z: number; yaw: number; s: number; phase: number };
 
+/** Three kit launches (the approved boat concept): two moored either side of the pier, one out in the bay. */
 const BOATS: Boat[] = (() => {
   const out: Boat[] = [];
   const sx = -PIER.dz;
   const sz = PIER.dx;
-  out.push({ x: PIER.x + PIER.dx * 9 + sx * 3.4, z: PIER.z + PIER.dz * 9 + sz * 3.4, yaw: Math.atan2(-PIER.dz, PIER.dx), hull: C.paper, top: C.ink, sail: false, s: 1, phase: 0.6 });
-  out.push({ x: PIER.x + PIER.dx * 14 - sx * 3.6, z: PIER.z + PIER.dz * 14 - sz * 3.6, yaw: Math.atan2(-PIER.dz, PIER.dx) + 0.2, hull: C.ink, top: C.paper, sail: true, s: 1.1, phase: 2.3 });
+  out.push({ x: PIER.x + PIER.dx * 9 + sx * 3.4, z: PIER.z + PIER.dz * 9 + sz * 3.4, yaw: Math.atan2(-PIER.dz, PIER.dx), s: 0.8, phase: 0.6 });
+  out.push({ x: PIER.x + PIER.dx * 14 - sx * 3.6, z: PIER.z + PIER.dz * 14 - sz * 3.6, yaw: Math.atan2(-PIER.dz, PIER.dx) + 0.2, s: 0.8, phase: 2.3 });
   const a = (70 * Math.PI) / 180;
   const r = coastR(a) + 16;
-  out.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, yaw: 1.2, hull: C.charcoal, top: C.paper, sail: true, s: 1.4, phase: 4.1 });
+  out.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, yaw: 1.2, s: 1, phase: 4.1 });
   return out;
 })();
-
-/** A hard-chined hull: the deck outline with a pointed bow over a narrower flat keel, flat shaded. */
-const hullGeo = () =>
-  geo("boat-hull-ci", () => {
-    const deck: [number, number][] = [[-1.7, 0.68], [-0.4, 0.78], [0.8, 0.7], [1.95, 0]];
-    const keel: [number, number][] = [[-1.55, 0.42], [0.5, 0.42], [1.45, 0]];
-    const pts: THREE.Vector3[] = [];
-    for (const [x, z] of deck) pts.push(new THREE.Vector3(x, 0, z), new THREE.Vector3(x, 0, -z));
-    for (const [x, z] of keel) pts.push(new THREE.Vector3(x, -0.5, z), new THREE.Vector3(x, -0.5, -z));
-    const g = new ConvexGeometry(pts);
-    g.deleteAttribute("uv");
-    return g;
-  });
-const sailGeo = () =>
-  geo("boat-sail", () => {
-    const s = new THREE.Shape();
-    s.moveTo(0, 0);
-    s.lineTo(1.5, 0);
-    s.lineTo(0, 2.6);
-    s.closePath();
-    return new THREE.ShapeGeometry(s);
-  });
 
 function BoatModel({ b }: { b: Boat }) {
   const ref = useRef<THREE.Group>(null);
@@ -256,28 +196,14 @@ function BoatModel({ b }: { b: Boat }) {
     const g = ref.current;
     if (!g) return;
     const t = clock.elapsedTime + b.phase;
-    g.position.y = SEA_Y + 0.4 + Math.sin(t * 1.1) * 0.05;
+    g.position.y = SEA_Y - BOAT.waterline * b.s + Math.sin(t * 1.1) * 0.05;
     g.rotation.z = Math.sin(t * 0.9) * 0.04;
     g.rotation.x = Math.sin(t * 0.7 + 1) * 0.03;
   });
   return (
-    <group position={[b.x, SEA_Y, b.z]} rotation={[0, b.yaw, 0]}>
+    <group position={[b.x, 0, b.z]} rotation={[0, b.yaw, 0]}>
       <group ref={ref} scale={b.s}>
-        <mesh geometry={hullGeo()} material={mat(b.hull, { r: 0.6, flat: true })} castShadow />
-        {/* the one orange: a rubbing strake round the gunwale */}
-        <mesh geometry={hullGeo()} position={[0, 0.005, 0]} scale={[1.02, 0.12, 1.05]} material={mat(C.red, { r: 0.5, flat: true })} />
-        <mesh geometry={hullGeo()} position={[0, 0.05, 0]} scale={[0.92, 0.06, 0.86]} material={mat(C.concrete, { r: 0.9, flat: true })} />
-        {b.sail ? (
-          <>
-            <mesh position={[0.15, 1.6, 0]} scale={[0.06, 3.1, 0.06]} geometry={unitBox()} material={mat(C.ink, { r: 0.6 })} castShadow />
-            <mesh geometry={sailGeo()} position={[0.2, 0.35, 0]} material={mat(b.top, { r: 0.8, side: THREE.DoubleSide })} castShadow />
-          </>
-        ) : (
-          <>
-            <mesh position={[-0.35, 0.38, 0]} scale={[1.0, 0.6, 0.9]} geometry={unitBox()} material={mat(b.top, { r: 0.6 })} castShadow />
-            <mesh position={[0.16, 0.44, 0]} scale={[0.04, 0.26, 0.76]} geometry={unitBox()} material={mat(C.glass, { r: 0.2, m: 0.3 })} />
-          </>
-        )}
+        <KitModel model={boatModel()} />
       </group>
     </group>
   );

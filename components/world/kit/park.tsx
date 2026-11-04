@@ -24,9 +24,9 @@ function netQuad(a: V3, b: V3, c: V3, d: V3, cell = 0.1) {
 }
 
 /** Goal: a chamfered paper front frame with an orange band, an ink back frame and a fine ink cord net. Mouth faces +Z. */
-export function goalModel() {
-  return model("kit-goal", (k) => {
-    const { w, h, d, dTop, post } = GOAL;
+export function goalModel(dims: typeof GOAL = GOAL) {
+  return model(`kit-goal-${JSON.stringify(dims)}`, (k) => {
+    const { w, h, d, dTop, post } = dims;
     const x = w / 2;
     const zf = 0;
     const zb = -d;
@@ -57,24 +57,29 @@ export function goalModel() {
 /** Wicket: stump height above the slab, centre spacing and the slab's top. */
 export const WICKET = { h: 0.71, gap: 0.115, slab: 0.06 };
 
-/** One stump: a slender paper post, slightly flared at its foot, with a chamfered tip and an ink pin line. */
-function addStump(k: Kit, x: number) {
-  const { h, slab } = WICKET;
-  const sq = (hw: number, hd: number, y: number, c = 0.008): V3[] => [
-    [x - hw + c, y, -hd],
-    [x + hw, y, -hd],
-    [x + hw, y, hd],
-    [x - hw, y, hd],
-    [x - hw, y, -hd + c],
+/** One stump at x on a foot at y0: a slender paper post `h` tall, `hw` half wide, slightly flared at its foot, with a chamfered tip and an ink pin line. */
+function addStump(k: Kit, x: number, y0: number, h: number, hw = 0.025) {
+  const f = hw / 0.025;
+  const sq = (a: number, b: number, y: number, c = 0.008 * f): V3[] => [
+    [x - a + c, y, -b],
+    [x + a, y, -b],
+    [x + a, y, b],
+    [x - a, y, b],
+    [x - a, y, -b + c],
   ];
-  const y0 = slab;
-  const yk = slab + 0.2;
-  const yt = slab + h;
-  k.add("paper", hull([...sq(0.03, 0.026, y0), ...sq(0.024, 0.022, yk)]));
-  k.add("paper", hull([...sq(0.024, 0.022, yk), ...sq(0.024, 0.022, yt - 0.02), ...sq(0.012, 0.012, yt, 0.004)]));
+  const yk = y0 + h * 0.28;
+  const yt = y0 + h;
+  k.add("paper", hull([...sq(0.03 * f, 0.026 * f, y0), ...sq(0.024 * f, 0.022 * f, yk)]));
+  k.add("paper", hull([...sq(0.024 * f, 0.022 * f, yk), ...sq(0.024 * f, 0.022 * f, yt - 0.02 * f), ...sq(0.012 * f, 0.012 * f, yt, 0.004 * f)]));
   // pin line down the front face
-  k.add("ink", box(0.003, yt - yk - 0.03, 0.002), { p: [x - 0.01, (yk + yt - 0.03) / 2, 0.0225] });
-  k.add("ink", bar([x - 0.01, yk, 0.0235], [x - 0.004, y0, 0.0275], 0.003, 0.002));
+  k.add("ink", box(0.003 * f, yt - yk - 0.03 * f, 0.002), { p: [x - 0.01 * f, (yk + yt - 0.03 * f) / 2, 0.0225 * f] });
+  k.add("ink", bar([x - 0.01 * f, yk, 0.0235 * f], [x - 0.004 * f, y0, 0.0275 * f], 0.003 * f, 0.002));
+}
+
+/** A bail centred on the origin along X, `len` from spigot tip to tip: an orange hexagonal barrel on thin spigots. */
+function addBail(k: Kit, cx: number, y: number, len: number, f = 1) {
+  k.add("orange", prism(0.022 * f, 0.022 * f, 0.056 * f, 6), { p: [cx - 0.028 * f, y, 0], r: [0, 0, -Math.PI / 2] });
+  k.add("orange", rod([cx - len / 2, y, 0], [cx + len / 2, y, 0], 0.009 * f, 6));
 }
 
 /** Stumps: three slender paper stumps on a thin concrete crease slab, two orange bails. 0.62 m wide, 0.79 m. */
@@ -82,23 +87,30 @@ export function stumpsModel() {
   return model("kit-stumps", (k) => {
     const { h, gap, slab } = WICKET;
     k.add("concrete", cbox(0.62, slab, 0.36, 0.015), { p: [0, slab / 2, 0] });
-    for (const x of [-gap, 0, gap]) addStump(k, x);
+    for (const x of [-gap, 0, gap]) addStump(k, x, slab, h);
     const y = slab + h + 0.016;
-    for (const sx of [-1, 1]) {
-      const cx = (sx * gap) / 2;
-      k.add("orange", prism(0.022, 0.022, 0.056, 6), { p: [cx - 0.028, y, 0], r: [0, 0, -Math.PI / 2] });
-      k.add("orange", rod([cx - gap / 2 - 0.016, y, 0], [cx + gap / 2 + 0.016, y, 0], 0.009, 6));
-    }
+    for (const sx of [-1, 1]) addBail(k, (sx * gap) / 2, y, gap + 0.032);
     k.add("orange", prism(0.004, 0.004, 0.002, 8), { p: [gap + 0.008, slab + h - 0.04, 0.022], r: [Math.PI / 2, 0, 0] });
   });
 }
 
+/** One stump on its own (origin at its foot), for wickets that fall apart. */
+export function stumpModel(h = WICKET.h, hw = 0.025) {
+  return model(`kit-stump-${h}-${hw}`, (k) => addStump(k, 0, 0, h, hw));
+}
+
+/** One bail on its own, centred, along X. */
+export function bailModel(len = WICKET.gap + 0.032, f = 1) {
+  return model(`kit-bail-${len}-${f}`, (k) => addBail(k, 0, 0, len, f));
+}
+
 /** Podium step: x centre, height. Width and depth are shared. */
 export const PODIUM = { w: 1.0, d: 1.15, steps: [{ n: "2", x: -1.0, h: 0.5 }, { n: "1", x: 0, h: 0.82 }, { n: "3", x: 1.0, h: 0.36 }] };
+export type PodiumDims = typeof PODIUM;
 
 /** Podium mass: the stepped front silhouette extruded with a chamfer on every edge. */
-function podiumMass() {
-  const { w, d, steps } = PODIUM;
+function podiumMass(dims: PodiumDims) {
+  const { w, d, steps } = dims;
   const c = 0.035;
   const s = new THREE.Shape();
   const l = steps[0].x - w / 2 + c;
@@ -118,24 +130,26 @@ function podiumMass() {
 }
 
 /** Podium: a stepped chamfered concrete mass with ink tops, an orange stripe across first place. 3 m wide. */
-export function podiumModel() {
-  return model("kit-podium", (k) => {
-    k.add("concrete", podiumMass());
-    for (const st of PODIUM.steps) k.add("ink", box(PODIUM.w - 0.12, 0.016, PODIUM.d - 0.12), { p: [st.x, st.h + 0.008, 0] });
-    k.add("orange", box(0.16, 0.018, PODIUM.d - 0.12), { p: [0.14, PODIUM.steps[1].h + 0.009, 0] });
+export function podiumModel(dims: PodiumDims = PODIUM) {
+  return model(`kit-podium-${JSON.stringify(dims)}`, (k) => {
+    const { w, d, steps } = dims;
+    k.add("concrete", podiumMass(dims));
+    for (const st of steps) k.add("ink", box(w - 0.12, 0.016, d - 0.12), { p: [st.x, st.h + 0.008, 0] });
+    k.add("orange", box(w * 0.16, 0.018, d - 0.12), { p: [w * 0.14, steps[1].h + 0.009, 0] });
   });
 }
 
 /** Podium with its place numbers set into the ink tops. */
-export function KitPodium(props: ThreeElements["group"]) {
+export function KitPodium({ dims = PODIUM, numbers = true, ...props }: ThreeElements["group"] & { dims?: PodiumDims; numbers?: boolean }) {
   return (
     <group {...props}>
-      <KitModel model={podiumModel()} />
-      {PODIUM.steps.map((st) => (
-        <Label key={st.n} position={[st.x - 0.24, st.h + 0.018, 0.22]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.26} color="#2b2c2e">
-          {st.n}
-        </Label>
-      ))}
+      <KitModel model={podiumModel(dims)} />
+      {numbers &&
+        dims.steps.map((st) => (
+          <Label key={st.n} position={[st.x - dims.w * 0.24, st.h + 0.018, dims.d * 0.19]} rotation={[-Math.PI / 2, 0, 0]} fontSize={dims.w * 0.26} color="#2b2c2e">
+            {st.n}
+          </Label>
+        ))}
     </group>
   );
 }

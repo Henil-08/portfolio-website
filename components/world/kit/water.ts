@@ -63,19 +63,24 @@ export function boatModel() {
 /** Pier dimensions: deck top height, width and one module's length. */
 export const PIER = { h: 2.0, w: 3.2, seg: 4.0 };
 
-/** One pier module from x0 to x0 + seg: concrete deck slab, ink cap beam and two ink piles, ink railings with a paper handrail. */
-export function addPierSegment(k: Kit, x0: number, rails: [boolean, boolean] = [true, true]) {
-  const { h, w, seg } = PIER;
+export type PierOpts = { h?: number; w?: number; seg?: number; rails?: [boolean, boolean] };
+
+/** One pier module from x0 to x0 + seg along +X: concrete deck slab, ink cap beam and two ink piles, ink railings with a paper handrail. Deck top at h. */
+export function addPierSegment(k: Kit, x0: number, o: PierOpts = {}) {
+  const { h = PIER.h, w = PIER.w, seg = PIER.seg, rails = [true, true] } = o;
   const t = 0.36;
   k.add("concrete", cbox(seg - 0.04, t, w, 0.05), { p: [x0 + seg / 2, h - t / 2, 0] });
   const xb = x0 + 0.5;
-  k.add("ink", cbox(0.62, 0.5, w - 0.2, 0.14), { p: [xb, h - t - 0.25, 0] });
-  for (const z of [-1.05, 1.05]) k.add("ink", vbox(0.5, h - t - 0.5, 0.5, 0.09), { p: [xb, (h - t - 0.5) / 2, z] });
+  const capH = Math.min(0.5, (h - t) * 0.4);
+  k.add("ink", cbox(0.62, capH, w - 0.2, 0.14), { p: [xb, h - t - capH / 2, 0] });
+  const pile = h - t - capH;
+  for (const z of [-(w / 2 - 0.55), w / 2 - 0.55]) k.add("ink", vbox(0.5, pile, 0.5, 0.09), { p: [xb, pile / 2, z] });
   rails.forEach((on, i) => {
     if (!on) return;
     const z = (i === 0 ? -1 : 1) * (w / 2 - 0.12);
-    for (let j = 0; j < 3; j++) {
-      const x = x0 + 0.3 + j * (seg / 3);
+    const n = Math.max(1, Math.round(seg / 1.35));
+    for (let j = 0; j < n; j++) {
+      const x = x0 + 0.3 + j * (seg / n);
       k.add("ink", box(0.06, 1.0, 0.06), { p: [x, h + 0.5, z] });
       k.add("ink", box(0.12, 0.03, 0.12), { p: [x, h + 0.015, z] });
     }
@@ -84,11 +89,24 @@ export function addPierSegment(k: Kit, x0: number, rails: [boolean, boolean] = [
   });
 }
 
+/** A rail across the pier's end at x. */
+export function addPierHead(k: Kit, x: number, o: PierOpts = {}) {
+  const { h = PIER.h, w = PIER.w } = o;
+  for (const z of [-(w / 2 - 0.12), 0, w / 2 - 0.12]) k.add("ink", box(0.06, 1.0, 0.06), { p: [x, h + 0.5, z] });
+  for (const y of [0.32, 0.62]) k.add("ink", rod([x, h + y, -(w / 2 - 0.12)], [x, h + y, w / 2 - 0.12], 0.025, 6));
+  k.add("paper", cbox(0.11, 0.07, w - 0.13, 0.015), { p: [x, h + 1.03, 0] });
+}
+
+/** The orange octagonal mooring bollard on the deck at (x, z). */
+export function addPierBollard(k: Kit, x: number, z: number, h = PIER.h) {
+  k.add("orange", prism(0.14, 0.14, 0.48, 8), { p: [x, h, z] });
+}
+
 /** Pier: three modules, the near one with an orange mooring bollard and its rail set back. 12 m. */
 export function pierModel() {
   return model("kit-pier", (k) => {
     const { seg, h, w } = PIER;
     for (let i = 0; i < 3; i++) addPierSegment(k, -1.5 * seg + i * seg);
-    k.add("orange", prism(0.14, 0.14, 0.48, 8), { p: [-1.5 * seg + 1.2, h, w / 2 - 0.45] });
+    addPierBollard(k, -1.5 * seg + 1.2, w / 2 - 0.45, h);
   });
 }
