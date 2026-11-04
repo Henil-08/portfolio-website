@@ -1,12 +1,39 @@
 "use client";
 
 // Loads a Meshy model from public/models and paints it in the brand colours (see catalog.ts).
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import * as THREE from "three";
-import { useGLTF } from "@react-three/drei";
+import { useAnimations, useGLTF } from "@react-three/drei";
 import type { MeshyModel as Def } from "./catalog";
 
-export function MeshyModel({ def, castShadow = true }: { def: Def; castShadow?: boolean }) {
+/** A rigged Meshy character: its own texture, its first animation on a loop. */
+function Animated({ def }: { def: Def }) {
+  const { scene, animations } = useGLTF(`/models/${def.id}.glb`);
+  const root = useMemo(() => {
+    scene.traverse((o) => {
+      if (o instanceof THREE.Mesh) o.castShadow = true;
+    });
+    const bb = new THREE.Box3().setFromObject(scene);
+    return { s: def.height / (bb.max.y - bb.min.y), y: -bb.min.y };
+  }, [scene, def]);
+  const { actions, names } = useAnimations(animations, scene);
+  useEffect(() => {
+    const a = names[0] ? actions[names[0]] : null;
+    a?.reset().play();
+    return () => void a?.stop();
+  }, [actions, names]);
+  return (
+    <group scale={root.s} position={[0, root.y * root.s, 0]}>
+      <primitive object={scene} />
+    </group>
+  );
+}
+
+export function MeshyModel(props: { def: Def; castShadow?: boolean }) {
+  return props.def.animated ? <Animated def={props.def} /> : <Static {...props} />;
+}
+
+function Static({ def, castShadow = true }: { def: Def; castShadow?: boolean }) {
   const { scene } = useGLTF(`/models/${def.id}.glb`);
   const geo = useMemo(() => {
     let g: THREE.BufferGeometry | null = null;
@@ -50,6 +77,9 @@ export function MeshyModel({ def, castShadow = true }: { def: Def; castShadow?: 
   const raw = useMemo(() => {
     if (!def.textured) return null;
     const g = scene.clone(true);
+    g.traverse((o) => {
+      if (o instanceof THREE.Mesh) o.castShadow = o.receiveShadow = true;
+    });
     const bb = new THREE.Box3().setFromObject(g);
     const s = def.height / (bb.max.y - bb.min.y);
     g.scale.setScalar(s);

@@ -5,9 +5,10 @@
 //   node scripts/meshy.mjs balance
 //   node scripts/meshy.mjs img <id> "<subject>"      concept image (nano-banana-2, 6 credits), brand art direction added;
 //                                                    saved to public/models/concepts/<id>.png for /docs/brand/models
-//   node scripts/meshy.mjs mesh <id> [image.png]     image -> 3D, shape only (meshy 7.1, 2k geometry, 25 credits),
-//                                                    from the concept unless an image is given
+//   node scripts/meshy.mjs mesh <id> [image.png] [--tex] [--apose]   image -> 3D from the concept (or the image given):
+//                                                    shape only at 2k geometry (25 credits), or --tex textured (30); --apose for rigging
 //   node scripts/meshy.mjs multi <id> <front> [side back three]   multi-image -> 3D, textured (30 credits)
+//   node scripts/meshy.mjs rig <id> | moves <search> | anim <id> <action_id> <name>   humanoid rig (5), library (free), one animation (3)
 //   node scripts/meshy.mjs gen <id> "<prompt>"       text -> 3D shape only (20 credits), the old route
 //   node scripts/meshy.mjs get <id>                  re-download a finished task by its logged id
 // Raw GLBs land in assets/meshy/<id>.glb; a centred (base at y = 0), welded copy in public/models/<id>.glb.
@@ -92,12 +93,25 @@ else if (cmd === "img") {
 } else if (cmd === "mesh") {
   if (!id) throw new Error("mesh <id> [image.png]");
   if (log[id]?.mesh) throw new Error(`${id} already meshed (task ${log[id].mesh.task}); delete log entry to redo`);
-  const src = prompt ?? `public/models/concepts/${id}.png`;
+  const flags = process.argv.slice(4);
+  const tex = flags.includes("--tex");
+  const pose = flags.includes("--apose") ? "a-pose" : "";
+  const src = prompt && !prompt.startsWith("--") ? prompt : `public/models/concepts/${id}.png`;
   const uri = `data:image/png;base64,${readFileSync(src).toString("base64")}`;
   const before = await balance();
   const { result: task } = await call("/v1/image-to-3d", {
     method: "POST",
-    body: JSON.stringify({ image_url: uri, ai_model: "latest", geometry_resolution: "2k", should_texture: false, should_remesh: true, topology: "triangle", target_polycount: 20000 }),
+    body: JSON.stringify({
+      image_url: uri,
+      ai_model: "latest",
+      geometry_resolution: tex ? "standard" : "2k",
+      should_texture: tex,
+      ...(tex ? { texture_resolution: "2k", remove_lighting: true } : {}),
+      pose_mode: pose,
+      should_remesh: true,
+      topology: "triangle",
+      target_polycount: 20000,
+    }),
   });
   save(id, { mesh: { task, src, at: new Date().toISOString() } });
   await fetchModel(id, task, "v1/image-to-3d");
@@ -121,6 +135,30 @@ else if (cmd === "multi") {
   const spent = before - (await balance());
   save(id, { mesh: { ...log[id].mesh, credits: spent } });
   console.log(`${spent} credits`);
+}
+else if (cmd === "rig") {
+  // rig a meshed humanoid (5 credits); the rigged GLB replaces public/models/<id>.glb's source as <id>-rig.glb
+  if (!log[id]?.mesh) throw new Error(`mesh ${id} first`);
+  const before = await balance();
+  const { result: task } = await call("/v1/rigging", { method: "POST", body: JSON.stringify({ input_task_id: log[id].mesh.task, height_meters: 1.78 }) });
+  const t = await poll(`/v1/rigging/${task}`, `${id} rig`);
+  writeFileSync(`public/models/${id}-rig.glb`, Buffer.from(await (await fetch(t.result.rigged_character_glb_url)).arrayBuffer()));
+  save(id, { rig: { task, credits: before - (await balance()) } });
+  console.log(`saved public/models/${id}-rig.glb`);
+} else if (cmd === "moves") {
+  // free: search the animation library, e.g. moves wave
+  const r = await call(`/v1/animations/library?search=${encodeURIComponent(id ?? "")}`);
+  for (const a of (r.result ?? r).slice?.(0, 30) ?? []) console.log(a.id ?? a.action_id, a.name, a.category ?? "");
+} else if (cmd === "anim") {
+  // anim <id> <action_id> <name>: one animation on the rig (3 credits) -> public/models/<id>-<name>.glb
+  const [, , , , action, name = "anim"] = process.argv;
+  if (!log[id]?.rig) throw new Error(`rig ${id} first`);
+  const before = await balance();
+  const { result: task } = await call("/v1/animations", { method: "POST", body: JSON.stringify({ rig_task_id: log[id].rig.task, action_id: Number(action) }) });
+  const t = await poll(`/v1/animations/${task}`, `${id} ${name}`);
+  writeFileSync(`public/models/${id}-${name}.glb`, Buffer.from(await (await fetch(t.result.animation_glb_url)).arrayBuffer()));
+  save(id, { [`anim-${name}`]: { task, action, credits: before - (await balance()) } });
+  console.log(`saved public/models/${id}-${name}.glb`);
 }
 else if (cmd === "gen") {
   if (!id || !prompt) throw new Error('gen <id> "<prompt>"');

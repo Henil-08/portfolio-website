@@ -11,6 +11,12 @@
       "prompt": "A small public monument for a modern motorsport circuit park, one of a matching series of seven contact monuments, each standing on the same tall square stepped concrete plinth with a recessed blank plaque panel on its front: a large crisp envelope sculpture lying HORIZONTAL in landscape orientation, wider than it is tall, resting on its long bottom edge on top of the plinth and slightly wider than the plinth, made of folded flat panels, the flap folded open at the top, matte off-white with black ink edge bands, the one orange accent is a small square seal at the point of the flap",
       "credits": 6,
       "at": "2026-11-04T17:03:26.323Z"
+    },
+    "mesh": {
+      "task": "01a1a7af-badf-71d0-9ff5-e13411b3306b",
+      "src": "public/models/concepts/mail.png",
+      "at": "2026-11-04T17:51:15.060Z",
+      "credits": 30
     }
   },
   "linkedin": {
@@ -19,6 +25,12 @@
       "prompt": "A small public monument for a modern motorsport circuit park, one of a matching series of seven contact monuments, each standing on the same tall square stepped concrete plinth with a recessed blank plaque panel on its front: a network sculpture of five matte off-white spheres joined by straight matte black ink rods in a balanced 3D lattice, the one orange accent is one small sphere",
       "credits": 6,
       "at": "2026-11-04T17:00:50.352Z"
+    },
+    "mesh": {
+      "task": "01a1a7b0-ac99-74d8-b4be-0910e41f1283",
+      "src": "public/models/concepts/linkedin.png",
+      "at": "2026-11-04T17:52:16.936Z",
+      "credits": 30
     }
   },
   "github": {
@@ -27,6 +39,12 @@
       "prompt": "A small public monument for a modern motorsport circuit park, one of a matching series of seven contact monuments, each standing on the same tall square stepped concrete plinth with a recessed blank plaque panel on its front: a branching sculpture like a git commit graph, square-section matte black ink tubes rising and splitting into three branches that merge back, off-white cube nodes at each commit, one node is orange",
       "credits": 6,
       "at": "2026-11-04T17:01:03.724Z"
+    },
+    "mesh": {
+      "task": "01a1a7b1-c6ec-743a-892d-96fc6f744c2d",
+      "src": "public/models/concepts/github.png",
+      "at": "2026-11-04T17:53:29.413Z",
+      "credits": 30
     }
   },
   "resume": {
@@ -35,6 +53,12 @@
       "prompt": "A small public monument for a modern motorsport circuit park, one of a matching series of seven contact monuments, each standing on the same tall square stepped concrete plinth with a recessed blank plaque panel on its front: a single giant sheet of paper standing upright and slightly leaning, one corner folded, thin black engraved text lines across it, the one orange accent is a small tab on its edge",
       "credits": 6,
       "at": "2026-11-04T17:01:17.089Z"
+    },
+    "mesh": {
+      "task": "01a1a7b3-0dd1-71e9-a8ff-344e727a7a8f",
+      "src": "public/models/concepts/resume.png",
+      "at": "2026-11-04T17:54:52.978Z",
+      "credits": 30
     }
   },
   "scholar": {
@@ -43,6 +67,12 @@
       "prompt": "A small public monument for a modern motorsport circuit park, one of a matching series of seven contact monuments, each standing on the same tall square stepped concrete plinth with a recessed blank plaque panel on its front: a stack of four thick books in off-white and black, slightly offset, a crisp faceted graduation cap on top with an orange tassel",
       "credits": 6,
       "at": "2026-11-04T17:01:30.462Z"
+    },
+    "mesh": {
+      "task": "01a1a7b4-3e2c-7285-86ea-5f98a19548cd",
+      "src": "public/models/concepts/scholar.png",
+      "at": "2026-11-04T17:56:10.798Z",
+      "credits": 30
     }
   },
   "huggingface": {
@@ -51,6 +81,12 @@
       "prompt": "A small public monument for a modern motorsport circuit park, one of a matching series of seven contact monuments, each standing on the same tall square stepped concrete plinth with a recessed blank plaque panel on its front: an abstract faceted sculpture of two arms curving round into a hug around an empty space, matte off-white with black ink seams, one orange accent band",
       "credits": 6,
       "at": "2026-11-04T17:01:51.998Z"
+    },
+    "mesh": {
+      "task": "01a1a7b5-2d81-77f6-8f84-6d143a23752e",
+      "src": "public/models/concepts/huggingface.png",
+      "at": "2026-11-04T17:57:12.159Z",
+      "credits": 30
     }
   },
   "medium": {
@@ -59,6 +95,12 @@
       "prompt": "A small public monument for a modern motorsport circuit park, one of a matching series of seven contact monuments, each standing on the same tall square stepped concrete plinth with a recessed blank plaque panel on its front: a minimalist typewriter sculpture in matte black with off-white keys, one sheet of off-white paper rising from it, the one orange accent is a single key",
       "credits": 6,
       "at": "2026-11-04T17:02:05.204Z"
+    },
+    "mesh": {
+      "task": "01a1a7b6-09b7-700d-a30d-b47eb863d31d",
+      "src": "public/models/concepts/medium.png",
+      "at": "2026-11-04T17:58:08.555Z",
+      "credits": 30
     }
   },
   "driver": {
@@ -67,6 +109,26 @@
       "prompt": "A racing driver figure standing in A-pose, full-body, front three-quarter view, stylised but realistic proportions, closed helmet with a dark visor, a matte black race suit with off-white side panels and one orange stripe down the helmet, gloves, boots, no logos",
       "credits": 6,
       "at": "2026-11-04T17:02:18.679Z"
+    },
+    "mesh": {
+      "task": "01a1a7b7-0237-703b-9337-d19edec68061",
+      "src": "public/models/concepts/driver.png",
+      "at": "2026-11-04T17:59:12.448Z",
+      "credits": 30
+    },
+    "rig": {
+      "task": "01a1a7b8-d74c-7589-9618-bd359e004f21",
+      "credits": 5
+    },
+    "anim-wave": {
+      "task": "01a1a7b9-6ac4-71eb-a144-01d643bc309d",
+      "action": "290",
+      "credits": 3
+    },
+    "anim-idle": {
+      "task": "01a1a7b9-9023-7009-ab02-bb91db2235f0",
+      "action": "0",
+      "credits": 3
     }
   },
   "trophy": {

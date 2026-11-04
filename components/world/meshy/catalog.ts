@@ -17,9 +17,20 @@ export type MeshyModel = {
   span?: number;
   /** show Meshy's own texture instead of our paint (tests only) */
   textured?: boolean;
+  /** the GLB carries animations: play the first one on a loop */
+  animated?: boolean;
 };
 
 export const MESHY: MeshyModel[] = [
+  { id: "mail", name: "C01 · Email monument", height: 3.2, base: 0, body: "#f3f2ed", plinth: "#b8b4a9", textured: true, span: 3.2 },
+  { id: "linkedin", name: "C02 · LinkedIn monument", height: 3.2, base: 0, body: "#f3f2ed", plinth: "#b8b4a9", textured: true, span: 3.2 },
+  { id: "github", name: "C03 · GitHub monument", height: 3.2, base: 0, body: "#f3f2ed", plinth: "#b8b4a9", textured: true, span: 3.2 },
+  { id: "resume", name: "C04 · Résumé monument", height: 3.2, base: 0, body: "#f3f2ed", plinth: "#b8b4a9", textured: true, span: 3.2 },
+  { id: "scholar", name: "C05 · Scholar monument", height: 3.2, base: 0, body: "#f3f2ed", plinth: "#b8b4a9", textured: true, span: 3.2 },
+  { id: "huggingface", name: "C06 · Hugging Face monument", height: 3.2, base: 0, body: "#f3f2ed", plinth: "#b8b4a9", textured: true, span: 3.2 },
+  { id: "medium", name: "C07 · Medium monument", height: 3.2, base: 0, body: "#f3f2ed", plinth: "#b8b4a9", textured: true, span: 3.2 },
+  { id: "driver-wave", name: "Driver · wave (rigged)", height: 1.78, base: 0, body: "#151515", plinth: "#151515", textured: true, animated: true },
+  { id: "driver-idle", name: "Driver · idle (rigged)", height: 1.78, base: 0, body: "#151515", plinth: "#151515", textured: true, animated: true },
   { id: "trophy", name: "Trophy", height: 0.9, base: 0.3, body: "#f3f2ed", plinth: "#151515" },
   { id: "mercury", name: "Mercury solar car", height: 1.1, base: 0.0, body: "#f3f2ed", plinth: "#151515", top: { above: 0.55, color: "#1d2129" }, span: 4.6 },
   { id: "v01", name: "TH-18 test (Meshy, from our renders)", height: 1.0, base: 0, body: "#f3f2ed", plinth: "#151515", textured: true, span: 5.6 },
