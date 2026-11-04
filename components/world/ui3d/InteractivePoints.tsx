@@ -18,6 +18,7 @@ import { useEffect, useRef } from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import { getState, openZone, subscribe } from "../store";
+import { garageView } from "../garage/state";
 import { zones, type ZoneId } from "../layout";
 import { heightAt } from "../terrain";
 import { LINKS, LINK_SPOTS, openLink } from "../social";
@@ -300,7 +301,8 @@ export default function InteractivePoints() {
     if (s.revealed) for (const it of list) if (it.state === HIDDEN) conceal(it);
     // the open one: the medallion the car is at, else the place
     // a place's card is open (or the garage shot): the prompt steps back
-    const want = !s.revealed || s.zone ? null : s.nearLink ? `link-${s.nearLink}` : s.near;
+    // and stays back for the whole garage sequence, back-out included, until you can drive again
+    const want = !s.revealed || s.zone || garageView.dom !== null ? null : s.nearLink ? `link-${s.nearLink}` : s.near;
     const next = want ? (list.find((it) => it.id === want) ?? null) : null;
     if (next !== active.current) {
       if (active.current && active.current.state === OPEN) conceal(active.current);
@@ -334,7 +336,8 @@ export default function InteractivePoints() {
       diamondMat.uniforms.uOffset.value = it.v.offset;
       labelMat.uniforms.uOffset.value = it.v.label;
       it.key.scale.setScalar(it.v.key);
-      it.group.visible = it.v.threshold > 0.001;
+      // the garage in use hides its point outright: the cockpit camera passes right by it
+      it.group.visible = it.v.threshold > 0.001 && !(garageView.dom && it.id === `garage-${garageView.dom}`);
     }
   });
 

@@ -13,6 +13,8 @@ import { GARAGES, GRANDSTAND, PIT } from "../layout";
 import { TREES } from "../street/common";
 import { heightAt } from "./ground";
 import { seeded } from "./noise";
+import { garageBusy, garageView } from "../garage/state";
+import { getState } from "../store";
 import { updateWind, windAt } from "./wind";
 
 const FLOCKS = 5;
@@ -20,12 +22,15 @@ const PER_FLOCK = 6;
 const COUNT = FLOCKS * PER_FLOCK;
 const SCARE = 15;
 const QUIET = 26;
+/** The pit building's roof top over the bay floor (kit/builtTown.tsx: ground floor 6.2, upper floor 3.0, roof slab). */
+const ROOF_Y = 9.45;
 
 export type Perch = { x: number; y: number; z: number; spread: number };
 
 function perches(): Perch[] {
   const out: Perch[] = [];
-  for (const g of GARAGES) out.push({ x: g.x, y: heightAt(g.x, PIT.garageZ) + 4.5, z: PIT.garageZ - 0.5, spread: 2.6 });
+  // on the pit building's roof (its top is about 9.4 m up), never inside a bay where the garage camera rides
+  for (const g of GARAGES) out.push({ x: g.x, y: heightAt(g.x, PIT.garageZ) + ROOF_Y, z: PIT.garageZ - 1.5, spread: 2.6 });
   out.push({ x: GRANDSTAND.pos[0], y: heightAt(GRANDSTAND.pos[0], GRANDSTAND.pos[1]) + 5.2, z: GRANDSTAND.pos[1] - 0.5, spread: 3.5 });
   // On the grass beside the trees
   const r = seeded(77);
@@ -322,6 +327,10 @@ export function Birds({ perches: custom }: { perches?: Perch[] }) {
   useFrame(({ clock }, dt) => {
     const s = sys.current;
     if (!s) return;
+    // out of the picture while a garage holds the camera (garage/GarageShow.tsx)
+    const busy = garageView.dom !== null || garageBusy(getState().zone);
+    if (mesh.current) mesh.current.visible = !busy;
+    if (busy) return;
     updateWind(clock.elapsedTime, dt);
     step(s, dt, clock);
   });
