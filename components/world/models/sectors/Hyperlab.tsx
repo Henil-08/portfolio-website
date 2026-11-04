@@ -2,7 +2,7 @@
 // Footprint 26 x 18 (x -13..13, z -9..9). Everything sits in z -9..-0.9; the 9 m band
 // z 0..9 along the +Z edge is left clear for the track.
 // Colliders (cuboids, centre + full size):
-//   warehouse HQ:      (-7.6, 3.2, -6.5)   10.4 x 6.4 x 5.0
+//   studio:            (-7.6, 1.9, -6.15)  8.2 x 3.8 x 5.7
 //   studio stage:      (6.4, 0.2, -5.1)    12.8 x 0.4 x 7.4   (low; screen truss sits on it)
 //   screen + truss:    (6.4, 2.8, -8.45)   8.2 x 5.6 x 0.6
 //   table tennis:      (-8.2, 0.4, -2.3)   2.8 x 0.8 x 1.6
@@ -16,61 +16,15 @@ import { C } from "../../palette";
 import { CI } from "../../buildings/concrete";
 import { Label } from "../props/Label";
 import { geo, mat, unitBox, unitCyl, type GroupProps } from "../props/shared";
-import { Inst, at, mBox, type T9 } from "./kit";
+import { Built } from "../../kit/builtShared";
+import { hyperlabParts } from "../../kit/builtSectors";
+import { Inst, at, type T9 } from "./kit";
 
 // Concrete & Ink: a concrete sawtooth works shed with ink roofs and one orange neon
-const GLASS = CI.glass;
-
-// ---- warehouse ----
+// ---- the studio ----
 const WX = -7.6;
-const WW = 10.4;
-const WD = 5;
-const ZF = -4;
-const HW = 5.0; // eaves
-const HT = 6.4; // sawtooth ridge
-const TW = WW / 3;
-
-function sawtoothGeo() {
-  return geo("hyper-sawtooth", () => {
-    const L = -WW / 2;
-    const R = WW / 2;
-    const s = new THREE.Shape();
-    s.moveTo(L, 0);
-    s.lineTo(R, 0);
-    s.lineTo(R, HT);
-    for (let i = 2; i >= 0; i--) {
-      const xl = L + i * TW;
-      s.lineTo(xl, HW);
-      if (i > 0) s.lineTo(xl, HT);
-    }
-    s.lineTo(L, 0);
-    const g = new THREE.ExtrudeGeometry(s, { depth: 0.3, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 1 });
-    g.translate(0, 0, -0.3);
-    return g;
-  });
-}
-
-const SLOPE = Math.hypot(TW, HT - HW);
-const ANG = Math.atan2(HT - HW, TW);
-const ROOF: T9[] = [0, 1, 2].map((i) => [WX - WW / 2 + (i + 0.5) * TW, (HW + HT) / 2 + 0.05, ZF - WD / 2, SLOPE + 0.04, 0.1, WD - 0.2, 0, 0, ANG]);
-const SEAMS: T9[] = [0, 1, 2].flatMap((i) =>
-  Array.from({ length: 7 }, (_, k) => [WX - WW / 2 + (i + 0.5) * TW, (HW + HT) / 2 + 0.11, ZF - 0.5 - k * 0.68, SLOPE, 0.03, 0.04, 0, 0, ANG] as T9),
-);
-const ROOF_GLASS: T9[] = [1, 2, 3].map((i) => [WX - WW / 2 + i * TW - 0.06, (HW + HT) / 2, ZF - WD / 2, 0.06, HT - HW - 0.1, WD - 0.5]);
-
-// steel windows: [cx, bottom, w, h, cols, rows]
-const WINS: [number, number, number, number, number, number][] = [
-  [WX - TW, 0.7, 2.5, 3.0, 4, 4],
-  [WX + TW, 0.7, 2.5, 3.0, 4, 4],
-  [WX, 2.75, 2.3, 0.85, 4, 1],
-  [WX, 0.06, 1.9, 2.5, 2, 2],
-];
-const WIN_GLASS: T9[] = WINS.map(([x, y, w, h]) => [x, y + h / 2, ZF + 0.02, w, h, 0.04]);
-const WIN_BARS: T9[] = WINS.flatMap(([x, y, w, h, c, r]) => [
-  ...Array.from({ length: c + 1 }, (_, i) => [x - w / 2 + (i * w) / c, y + h / 2, ZF + 0.05, 0.06, h + 0.06, 0.06] as T9),
-  ...Array.from({ length: r + 1 }, (_, i) => [x, y + (i * h) / r, ZF + 0.05, w + 0.06, 0.06, 0.06] as T9),
-]);
-const SILLS: T9[] = WINS.slice(0, 2).map(([x, y, w]) => [x, y - 0.06, ZF + 0.12, w + 0.3, 0.1, 0.26]);
+/** The approved halls (12 x 17 m) turned gables-to-track and scaled to the old warehouse plot. */
+export const HQ_S = 0.475;
 
 // ---- studio ----
 const SX = 6.4;
@@ -134,9 +88,7 @@ const STARS: T9[] = Array.from({ length: 5 }, (_, i) => [-0.36 + i * 0.18, 0.02,
 
 /** Sector 2: converted brick-warehouse startup HQ with neon sign, a pitch-show studio set, table tennis with ball tracking and a giant phone. Faces +Z. */
 export function HyperlabSector(props: GroupProps) {
-  const brick = mat(CI.concrete, { r: 0.92 });
   const steel = mat(CI.ink, { r: 0.45, m: 0.3 });
-  const glass = mat(GLASS, { r: 0.08, m: 0.4 });
   const ink = mat(C.ink, { r: 0.4, m: 0.1 });
   const gloss = mat(CI.graphite, { r: 0.6, m: 0.2 });
   const white = mat(CI.paper, { r: 0.6 });
@@ -150,32 +102,10 @@ export function HyperlabSector(props: GroupProps) {
       {/* polished concrete yard */}
       <RoundedBox args={[25.6, 0.06, 8.6]} radius={0.025} smoothness={2} position={[0, 0.03, -4.7]} material={mat(CI.concreteDark, { r: 0.95 })} receiveShadow />
 
-      {/* ===== warehouse HQ ===== */}
-      <mesh geometry={mBox(WW - 0.04, HW, WD - 0.5)} position={[WX, HW / 2, ZF - WD / 2]} material={brick} castShadow receiveShadow />
-      <mesh geometry={sawtoothGeo()} position={[WX, 0, ZF]} material={brick} castShadow receiveShadow />
-      <mesh geometry={sawtoothGeo()} position={[WX, 0, ZF - WD + 0.3]} material={brick} castShadow receiveShadow />
-      <Inst geometry={unitBox()} material={mat(CI.ink, { r: 0.55, m: 0.2 })} items={ROOF} />
-      <Inst geometry={unitBox()} material={mat(CI.graphite, { r: 0.6 })} items={SEAMS} cast={false} />
-      <Inst geometry={unitBox()} material={glass} items={ROOF_GLASS} />
-      {/* black steel factory windows, glazed door, stone sills, plinth */}
-      <Inst geometry={unitBox()} material={glass} items={WIN_GLASS} cast={false} />
-      <Inst geometry={unitBox()} material={steel} items={WIN_BARS} />
-      <Inst geometry={unitBox()} material={cream} items={SILLS} />
-      <mesh geometry={unitBox()} scale={[WW + 0.1, 0.35, 0.1]} position={[WX, 0.17, ZF + 0.05]} material={mat(CI.concreteDark, { r: 0.9 })} receiveShadow />
-      {/* canopy over the door */}
-      <mesh geometry={unitBox()} scale={[2.9, 0.08, 1.1]} position={[WX, 2.62, ZF + 0.55]} material={steel} castShadow />
-      {[-1, 1].map((s) => (
-        <mesh key={s} geometry={unitCyl()} scale={[0.015, 1.3, 0.015]} position={[WX + s * 1.3, 3.15, ZF + 0.5]} rotation={[-0.75, 0, 0]} material={steel} />
-      ))}
-      {/* neon HYPERLAB sign on a charcoal backer */}
-      <mesh geometry={unitBox()} scale={[5.6, 0.95, 0.1]} position={[WX, 4.2, ZF + 0.06]} material={ink} castShadow />
-      <Label position={[WX, 4.24, ZF + 0.13]} fontSize={0.62} color={C.red} material={neon} letterSpacing={0.04}>
-        HYPERLAB
-      </Label>
-      <mesh geometry={unitBox()} scale={[5.2, 0.03, 0.03]} position={[WX, 3.84, ZF + 0.12]} material={neon} />
-      <Label mono position={[WX + TW, 5.25, ZF + 0.03]} fontSize={0.16} color={CI.ink} letterSpacing={0.1}>
-        STARTUP HQ · 2022
-      </Label>
+      {/* ===== the studio: the approved model (kit/builtSectors.tsx, concept hyperlab), its gables to the track ===== */}
+      <group position={[WX, 0.06, -6.15]} rotation={[0, Math.PI / 2, 0]} scale={HQ_S}>
+        <Built parts={hyperlabParts()} />
+      </group>
 
       {/* ===== pitch-show studio set ===== */}
       <mesh geometry={unitBox()} scale={[SW, SH, SD]} position={[SX, SH / 2, SZ]} material={gloss} castShadow receiveShadow />

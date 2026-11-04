@@ -2,7 +2,7 @@
 // Footprint 26 x 18 (x -13..13, z -9..9). Everything sits in z -9..-0.6; the 9 m band
 // z 0..9 along the +Z edge is left clear for the track.
 // Colliders (cuboids, centre + full size):
-//   university block:  (-5.5, 4.0, -6.5)    15.0 x 8.0 x 5.0
+//   school:            (-5.5, 3.6, -6.0)    12.1 x 7.2 x 6.1
 //   courtyard wall:    (8.0, 0.45, -8.75)   10.4 x 0.9 x 0.5
 //   courtyard wall R:  (12.95, 0.45, -6.0)  0.5 x 0.9 x 6.0
 //   neem otla + trunk: (7.8, 1.5, -6.0)     3.2 x 3.0 x 3.2
@@ -18,113 +18,20 @@ import { CI } from "../../buildings/concrete";
 import { Cone } from "../props/Cone";
 import { Label } from "../props/Label";
 import { geo, mat, unitBox, unitCyl, type GroupProps } from "../props/shared";
-import { Inst, dome, halfCyl, type T9 } from "./kit";
+import { Built } from "../../kit/builtShared";
+import { ahmedabadParts } from "../../kit/builtSectors";
+import { Inst, type T9 } from "./kit";
 
 // ---- palette (derived only from the world palette) ----
 // Concrete & Ink: the arcades and jharokhas keep it Ahmedabad, in concrete and paper
 const STONE = CI.concrete;
-const STONE_DEEP = CI.concreteDark;
-const STONE_SHADE = "#a9a59b";
 const TRIM = CI.paper;
 
-// ---- university block ----
-const BW = 15; // width
-const BD = 5; // depth
+// ---- the school: the approved model, fitted in behind the forecourt ----
 const BX = -5.5; // centre x
-const ZF = -4; // facade front
-const FD = 0.45; // facade thickness
-const H1 = 3.6; // ground floor (arcade) height
-const HT = 7; // roof level
-const N = 7; // bays
-const BAY = BW / N;
-
-/** Pointed (Mughal-style) arch from (xr, y) over to (xl, y). */
-function arch(p: THREE.Path, xr: number, xl: number, y: number, rise: number) {
-  const xc = (xr + xl) / 2;
-  p.quadraticCurveTo(xr, y + rise * 0.55, xc, y + rise);
-  p.quadraticCurveTo(xl, y + rise * 0.55, xl, y);
-}
-
-function facadeGeo() {
-  return geo("ahd-facade", () => {
-    const s = new THREE.Shape();
-    const L = -BW / 2;
-    const R = BW / 2;
-    s.moveTo(L, 0);
-    s.lineTo(L, HT);
-    s.lineTo(R, HT);
-    s.lineTo(R, 0);
-    // arcade: arched openings cut up from the ground, right to left
-    for (let i = N - 1; i >= 0; i--) {
-      const pier = i === 0 || i === N - 1 ? 0.62 : 0.5;
-      const xr = L + (i + 1) * BAY - (i === N - 1 ? 0.75 : pier / 2);
-      const xl = L + i * BAY + (i === 0 ? 0.75 : pier / 2);
-      const spring = i === 3 ? 2.35 : 2.0;
-      const rise = i === 3 ? 1.0 : 0.82;
-      s.lineTo(xr, 0);
-      s.lineTo(xr, spring);
-      arch(s, xr, xl, spring, rise);
-      s.lineTo(xl, 0);
-    }
-    s.lineTo(L, 0);
-    // upper floor: arched windows
-    for (let i = 0; i < N; i++) {
-      const xc = L + (i + 0.5) * BAY;
-      const hw = 0.42;
-      const h = new THREE.Path();
-      h.moveTo(xc - hw, 4.45);
-      h.lineTo(xc + hw, 4.45);
-      h.lineTo(xc + hw, 5.55);
-      arch(h, xc + hw, xc - hw, 5.55, 0.55);
-      h.lineTo(xc - hw, 4.45);
-      s.holes.push(h);
-    }
-    const g = new THREE.ExtrudeGeometry(s, { depth: FD, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 1, curveSegments: 10 });
-    g.translate(0, 0, -FD);
-    return g;
-  });
-}
-
-// Jharokha (projecting balcony) parts, origin at the facade face at balcony floor level.
-const JH_SLAB: T9[] = [[0, 0, 0.42, 1.7, 0.16, 0.9]];
-const JH_CORBEL: T9[] = [
-  [-0.55, -0.28, 0.2, 0.22, 0.4, 0.4],
-  [0.55, -0.28, 0.2, 0.22, 0.4, 0.4],
-  [0, -0.16, 0.25, 0.9, 0.16, 0.5],
-];
-const JH_PANEL: T9[] = [
-  [0, 0.4, 0.8, 1.6, 0.66, 0.08],
-  [-0.78, 0.4, 0.42, 0.08, 0.66, 0.76],
-  [0.78, 0.4, 0.42, 0.08, 0.66, 0.76],
-];
-const JH_POST: T9[] = [
-  [-0.74, 1.2, 0.78, 0.09, 0.95, 0.09],
-  [0.74, 1.2, 0.78, 0.09, 0.95, 0.09],
-  [-0.74, 1.2, 0.1, 0.09, 0.95, 0.09],
-  [0.74, 1.2, 0.1, 0.09, 0.95, 0.09],
-];
-const JH_EAVE: T9[] = [[0, 1.72, 0.45, 1.9, 0.08, 1.05]];
-const JH_ROOF: T9[] = [[0, 1.76, 0.45, 0.36, 1.66, 0.46, 0, 0, Math.PI / 2]];
-const JH_BACK: T9[] = [[0, 0.95, 0.03, 1.3, 1.5, 0.04]];
-const JH_AT: T9[] = [1, 3, 5].map((i) => [BX - BW / 2 + (i + 0.5) * BAY, 4.2, ZF, 1, 1, 1, 0, 0, 0]);
-
-// Chhatri (domed rooftop kiosk), origin at roof level.
-const CH_BASE: T9[] = [[0, 0.15, 0, 1.4, 0.3, 1.4]];
-const CH_POST: T9[] = [
-  [-0.5, 0.85, -0.5, 0.11, 1.1, 0.11],
-  [0.5, 0.85, -0.5, 0.11, 1.1, 0.11],
-  [-0.5, 0.85, 0.5, 0.11, 1.1, 0.11],
-  [0.5, 0.85, 0.5, 0.11, 1.1, 0.11],
-];
-const CH_SLAB: T9[] = [[0, 1.47, 0, 1.55, 0.14, 1.55]];
-const CH_DOME: T9[] = [[0, 1.54, 0, 0.62, 0.66, 0.62]];
-const CH_FIN: T9[] = [[0, 2.28, 0, 0.07, 0.2, 0.07]];
-const CH_AT: T9[] = [-1, 1].map((s) => [BX + s * (BW / 2 - 0.9), HT, ZF - 0.95, 1, 1, 1, 0, 0, 0]);
-
-// Parapet merlons (kangura) along the front.
-const MERLONS: T9[] = Array.from({ length: 22 }, (_, i) => [BX - BW / 2 + 0.55 + (i * (BW - 1.1)) / 21, HT + 0.92, ZF - 0.16, 0.26, 0.2, 0.26]);
-// Doors in the recessed arcade wall.
-const DOORS: T9[] = [0, 2, 4, 6].map((i) => [BX - BW / 2 + (i + 0.5) * BAY, 1.1, ZF - 2.18, 1.0, 2.2, 0.06]);
+const ZB = -9; // back of the set
+/** 10 x 5 bays (27.5 x 13.75 m) scaled to 12.1 x 6 m, clear of Mercury's pad. */
+export const SCHOOL_S = 0.44;
 
 // ---- courtyard + neem ----
 const facetGeo = () => geo("ahd-facet", () => new THREE.IcosahedronGeometry(1, 0));
@@ -252,71 +159,19 @@ function Mercury(props: GroupProps) {
 
 /** Sector 1: concrete engineering school with arcade, jharokhas and chhatris; neem courtyard; solar car Mercury at a cone slalom. Faces +Z. */
 export function AhmedabadSector(props: GroupProps) {
-  // the upper windows are dark by day and warm at night (shared.ts nightGlow)
-  const litWindows = mat(CI.glass, { e: "#fff3dc", nightGlow: 1.6 });
   const stone = mat(STONE, { r: 0.92 });
-  const stoneDeep = mat(STONE_DEEP, { r: 0.92 });
-  const shade = mat(STONE_SHADE, { r: 0.92 });
   const trim = mat(TRIM, { r: 0.6 });
   const wood = mat(CI.ink, { r: 0.6 });
-  const dark = mat(CI.ink, { r: 0.5, m: 0.1 });
   return (
     <group {...props}>
       {/* stone forecourt and courtyard paving */}
       <RoundedBox args={[25.6, 0.06, 8.6]} radius={0.025} smoothness={2} position={[0, 0.03, -4.7]} material={mat(CI.concreteDark, { r: 0.95 })} receiveShadow />
       <mesh geometry={unitBox()} scale={[10, 0.03, 5.6]} position={[TX, 0.07, -6.0]} material={mat("#cdc9bf", { r: 0.95 })} receiveShadow />
 
-      {/* ===== university block ===== */}
-      <group position={[BX, 0, 0]}>
-        {/* body: upper storey full depth, ground floor recessed behind the arcade */}
-        <mesh geometry={unitBox()} scale={[BW - 0.1, HT - H1, BD - FD]} position={[0, H1 + (HT - H1) / 2, ZF - FD - (BD - FD) / 2]} material={stone} castShadow receiveShadow />
-        <mesh geometry={unitBox()} scale={[BW - 0.1, H1, BD - 2.2]} position={[0, H1 / 2, ZF - 2.2 - (BD - 2.2) / 2]} material={shade} castShadow receiveShadow />
-        {/* window backs behind the arched upper openings */}
-        <mesh geometry={unitBox()} scale={[BW - 0.6, 1.8, 0.04]} position={[0, 5.0, ZF - FD + 0.03]} material={litWindows} />
-        {/* arcade floor plinth and ceiling shade */}
-        <mesh geometry={unitBox()} scale={[BW, 0.16, 2.4]} position={[0, 0.08, ZF - 1.0]} material={stoneDeep} receiveShadow />
-        <mesh geometry={unitBox()} scale={[BW + 0.3, 0.12, 0.5]} position={[0, 0.06, ZF + 0.22]} material={trim} receiveShadow castShadow />
+      {/* ===== the school: the approved model (kit/builtSectors.tsx, concept ahmedabad), 10 x 5 bays ===== */}
+      <group position={[BX, 0.06, ZB + (5 * 2.75 * SCHOOL_S) / 2]} scale={SCHOOL_S}>
+        <Built parts={ahmedabadParts(10, 5)} />
       </group>
-      <mesh geometry={facadeGeo()} position={[BX, 0, ZF]} material={stone} castShadow receiveShadow />
-      <Inst geometry={unitBox()} material={wood} items={DOORS} cast={false} />
-      <group position={[BX, 0, 0]}>
-        {/* chhajja (stone eave) over the arcade, string course, cornice */}
-        <mesh geometry={unitBox()} scale={[BW + 0.4, 0.14, 0.75]} position={[0, H1 + 0.05, ZF + 0.3]} rotation={[0.08, 0, 0]} material={trim} castShadow receiveShadow />
-        <mesh geometry={unitBox()} scale={[BW + 0.2, 0.1, 0.18]} position={[0, 4.25, ZF + 0.07]} material={stoneDeep} castShadow />
-        <mesh geometry={unitBox()} scale={[BW + 0.5, 0.22, BD + 0.5]} position={[0, HT + 0.08, ZF - BD / 2 + 0.05]} material={trim} castShadow receiveShadow />
-        {/* parapet walls round the flat roof */}
-        <mesh geometry={unitBox()} scale={[BW + 0.2, 0.7, 0.3]} position={[0, HT + 0.52, ZF - 0.16]} material={stone} castShadow receiveShadow />
-        <mesh geometry={unitBox()} scale={[BW + 0.2, 0.7, 0.3]} position={[0, HT + 0.52, ZF - BD + 0.2]} material={stone} castShadow receiveShadow />
-        {[-1, 1].map((s) => (
-          <mesh key={s} geometry={unitBox()} scale={[0.3, 0.7, BD - 0.6]} position={[s * (BW / 2 - 0.05), HT + 0.52, ZF - BD / 2 + 0.02]} material={stone} castShadow receiveShadow />
-        ))}
-        {/* sign plate on the parapet */}
-        <RoundedBox args={[6.4, 0.56, 0.06]} radius={0.02} smoothness={2} position={[0, HT + 0.52, ZF + 0.02]} material={trim} />
-        <Label position={[0, HT + 0.52, ZF + 0.06]} fontSize={0.34} color={C.ink} letterSpacing={0.04}>
-          SCHOOL OF ENGINEERING
-        </Label>
-        {/* roof: water tank and a small solar rig, readable from above */}
-        <mesh geometry={unitBox()} scale={[BW - 0.4, 0.04, BD - 0.8]} position={[0, HT + 0.2, ZF - BD / 2 - 0.05]} material={stoneDeep} receiveShadow />
-        <RoundedBox args={[1.4, 0.9, 1.2]} radius={0.05} smoothness={2} position={[-3.4, HT + 0.65, ZF - 3.3]} material={mat(CI.graphite, { r: 0.7 })} castShadow receiveShadow />
-        {[0.8, 2.6].map((x) => (
-          <mesh key={x} geometry={unitBox()} scale={[1.6, 0.05, 1.1]} position={[x, HT + 0.6, ZF - 3.0]} rotation={[0.35, 0, 0]} material={mat(CI.glass, { r: 0.15, m: 0.4 })} castShadow />
-        ))}
-      </group>
-      <Inst geometry={unitBox()} material={stoneDeep} items={MERLONS} />
-      {/* jharokhas */}
-      <Inst geometry={unitBox()} material={trim} items={JH_SLAB} at={JH_AT} />
-      <Inst geometry={unitBox()} material={stoneDeep} items={JH_CORBEL} at={JH_AT} />
-      <Inst geometry={unitBox()} material={stone} items={JH_PANEL} at={JH_AT} />
-      <Inst geometry={unitBox()} material={trim} items={JH_POST} at={JH_AT} />
-      <Inst geometry={unitBox()} material={trim} items={JH_EAVE} at={JH_AT} />
-      <Inst geometry={halfCyl()} material={dark} items={JH_ROOF} at={JH_AT} />
-      <Inst geometry={unitBox()} material={dark} items={JH_BACK} at={JH_AT} cast={false} />
-      {/* chhatris on the roof corners */}
-      <Inst geometry={unitBox()} material={stoneDeep} items={CH_BASE} at={CH_AT} />
-      <Inst geometry={unitBox()} material={trim} items={CH_POST} at={CH_AT} />
-      <Inst geometry={unitBox()} material={trim} items={CH_SLAB} at={CH_AT} />
-      <Inst geometry={dome()} material={dark} items={CH_DOME} at={CH_AT} />
-      <Inst geometry={unitCyl()} material={mat(CI.ink, { r: 0.5 })} items={CH_FIN} at={CH_AT} />
 
       {/* ===== courtyard ===== */}
       <mesh geometry={unitBox()} scale={[10.4, 0.8, 0.45]} position={[TX, 0.4, -8.75]} material={stone} castShadow receiveShadow />

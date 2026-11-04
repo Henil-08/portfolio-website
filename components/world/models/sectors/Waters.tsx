@@ -2,7 +2,7 @@
 // Footprint 26 x 18 (x -13..13, z -9..9). Everything sits in z -9..-0.9; the 9 m band
 // z 0..9 along the +Z edge is left clear for the track.
 // Colliders (cuboids, centre + full size):
-//   campus building:   (-5.3, 4.1, -6.2)   15.4 x 8.2 x 6.4
+//   campus building:   (-5.3, 1.6, -6.6)   14.4 x 3.2 x 4.8, its canopy (-4.6, 0.65, -3.4) 3.0 x 1.3 x 1.6
 //   instrument plinth: (6.0, 1.0, -3.0)    2.8 x 2.0 x 1.6
 //   agent-ops base:    cylinder r 2.5 h 0.15 at (10.3, -5.6); racks: (10.3, 1.2, -5.4) 3.2 x 2.4 x 2.6
 //   front planter:     (-8.8, 0.4, -1.7)   6.6 x 0.8 x 1.0
@@ -15,30 +15,15 @@ import { C } from "../../palette";
 import { CI } from "../../buildings/concrete";
 import { Label } from "../props/Label";
 import { Tree } from "../props/Tree";
-import { geo, mat, unitBox, unitCyl, type GroupProps } from "../props/shared";
-import { Inst, mix, plainTextMat, unitPlane, type T9 } from "./kit";
+import { geo, mat, unitBox, type GroupProps } from "../props/shared";
+import { Built } from "../../kit/builtShared";
+import { watersParts } from "../../kit/builtSectors";
+import { Inst, plainTextMat, unitPlane, type T9 } from "./kit";
 
 const BX = -5.3;
-const BW = 15;
-const ZB = -6.2; // building centre z
-const BD = 6.2;
-const ZF = ZB + BD / 2; // upper volume front (-3.1)
-const LOBBY_F = ZF - 0.7; // recessed lobby glass line
-const L1 = 3.7; // underside of the upper volume
-const L2 = 7.6; // roof
+/** The approved lab (30 x 13.4 m with its canopy) scaled to the old building's plot. */
+export const LAB_S = 0.48;
 
-const GLASS = mix(C.glass, C.ink, 0.55);
-
-const LOBBY_FINS: T9[] = Array.from({ length: 11 }, (_, i) => [BX - 4.6 + i * 1.1, 0.3 + (L1 - 0.3) / 2, LOBBY_F + 0.04, 0.06, L1 - 0.3, 0.12]);
-const RIBBON_FINS: T9[] = Array.from({ length: 12 }, (_, i) => [BX - 4.5 + i * 0.95, 5.5, ZF + 0.05, 0.05, 1.3, 0.06]);
-const PILOTIS: T9[] = [-3.2, 1.4, 6.0].map((dx) => [BX + dx, 0.3 + (L1 - 0.3) / 2, ZF - 0.35, 0.16, L1 - 0.3, 0.16]);
-const ROOF_PLANT: T9[] = [
-  [BX - 2.6, L2 + 0.45, ZB - 1.0, 2.2, 0.7, 1.6],
-  [BX + 0.4, L2 + 0.35, ZB - 1.4, 1.4, 0.5, 1.0],
-];
-const GREEN_ROOF: T9[] = [
-  [BX + 3.6, L2 + 0.12, ZB + 0.4, 5.4, 0.1, 3.2],
-];
 const HEDGE: T9[] = [-11.5, -10.15, -8.8, -7.45, -6.1].map((x, i) => [x, 0.72, -1.7, 1.2, 0.42 + (i % 2) * 0.08, 0.66]);
 
 // ---- instrument ----
@@ -128,10 +113,7 @@ const octGeo = () => geo("waters-oct", () => new THREE.CylinderGeometry(1, 1, 1,
 /** Sector 4: concrete-and-glass Waters lab campus with a single orange accent line, a mass-spec instrument on a plinth and the agent-ops (MCP) server sculpture. Faces +Z. */
 export function WatersSector(props: GroupProps) {
   const white = mat(CI.concrete, { r: 0.9 });
-  const glass = mat(GLASS, { r: 0.06, m: 0.45 });
-  const fin = mat(CI.paper, { r: 0.6 });
   const ink = mat(C.ink, { r: 0.35, m: 0.1 });
-  const blue = mat(CI.orange, { glow: 1.15 }); // the one accent line, orange in Concrete & Ink
   // agent ops: the links between the servers are its one orange, the rest ink and paper
   const linkGlow = mat(C.orange, { glow: 2.0 });
   const paperGlow = mat(C.paper, { glow: 1.4 });
@@ -144,30 +126,10 @@ export function WatersSector(props: GroupProps) {
         <mesh key={x} geometry={unitBox()} scale={[0.03, 0.005, 8.4]} position={[x, 0.062, -4.7]} material={mat(C.greyLight, { r: 0.8 })} />
       ))}
 
-      {/* ===== campus building ===== */}
-      <RoundedBox args={[BW + 0.4, 0.3, BD + 0.2]} radius={0.04} smoothness={2} position={[BX, 0.15, ZB]} material={mat(CI.concreteDark, { r: 0.9 })} castShadow receiveShadow />
-      {/* recessed glass lobby */}
-      <mesh geometry={unitBox()} scale={[BW - 1.6, L1 - 0.3, BD - 1.4]} position={[BX + 0.6, 0.3 + (L1 - 0.3) / 2, ZB - 0.35 + 0.0]} material={glass} castShadow receiveShadow />
-      <Inst geometry={unitBox()} material={fin} items={LOBBY_FINS} />
-      <Inst geometry={unitCyl()} material={white} items={PILOTIS} />
-      {/* entrance doors */}
-      <mesh geometry={unitBox()} scale={[2.0, 2.4, 0.05]} position={[BX + 0.6, 0.3 + 1.2, LOBBY_F + 0.07]} material={mat(mix(C.glass, C.ink, 0.25), { r: 0.05, m: 0.4 })} />
-      <mesh geometry={unitBox()} scale={[2.1, 0.08, 0.1]} position={[BX + 0.6, 0.3 + 2.44, LOBBY_F + 0.08]} material={mat(C.metal, { r: 0.3, m: 0.6 })} />
-      <mesh geometry={unitBox()} scale={[0.04, 2.4, 0.08]} position={[BX + 0.6, 0.3 + 1.2, LOBBY_F + 0.1]} material={mat(C.metal, { r: 0.3, m: 0.6 })} />
-      {/* solid stair core on the left */}
-      <RoundedBox args={[2.4, L2 + 0.9 - 0.3, BD]} radius={0.08} smoothness={3} position={[BX - BW / 2 + 1.2, 0.3 + (L2 + 0.6) / 2, ZB]} material={white} castShadow receiveShadow />
-      {/* cantilevered upper volume with ribbon window */}
-      <RoundedBox args={[BW - 2.2, L2 - L1, BD]} radius={0.1} smoothness={4} position={[BX + 1.1, (L1 + L2) / 2, ZB]} material={white} castShadow receiveShadow />
-      <mesh geometry={unitBox()} scale={[BW - 3.2, 1.3, BD + 0.04]} position={[BX + 1.1, 5.5, ZB]} material={glass} />
-      <Inst geometry={unitBox()} material={fin} items={RIBBON_FINS} cast={false} />
-      {/* the single blue accent line, wrapping the soffit edge */}
-      <mesh geometry={unitBox()} scale={[BW - 2.18, 0.13, BD + 0.03]} position={[BX + 1.1, L1 + 0.16, ZB]} material={blue} />
-      {/* WATERS wordmark, plain type */}
-      <mesh geometry={unitPlane()} scale={[3.4, 0.64, 1]} position={[BX + 4.4, 6.75, ZF + 0.012]} material={plainTextMat("WATERS", C.ink, { weight: 600, spacing: 0.22 })} />
-      {/* roof: parapet line, plant, green roof */}
-      <mesh geometry={unitBox()} scale={[BW - 2.2, 0.12, BD]} position={[BX + 1.1, L2 + 0.02, ZB]} material={mat(CI.ink, { r: 0.55 })} receiveShadow />
-      <Inst geometry={unitBox()} material={mat(CI.graphite, { r: 0.7 })} items={ROOF_PLANT} />
-      <Inst geometry={unitBox()} material={mat(C.leaf, { r: 0.8 })} items={GREEN_ROOF} />
+      {/* ===== campus building: the approved model (kit/builtSectors.tsx, concept waters) ===== */}
+      <group position={[BX, 0.06, -6.6]} scale={LAB_S}>
+        <Built parts={watersParts()} />
+      </group>
       {/* front planter with clipped hedges */}
       <mesh geometry={unitBox()} scale={[6.6, 0.55, 1.0]} position={[-8.8, 0.3, -1.7]} material={mat(CI.concreteDark, { r: 0.9 })} castShadow receiveShadow />
       <Inst geometry={unitBox()} material={mat(C.leafDark, { r: 0.9 })} items={HEDGE} />

@@ -171,54 +171,66 @@ function jali(k: Kit, p: V3, w: number, h: number, n = 5, m = 5) {
 }
 
 /** A square pavilion: a concrete-framed colonnade of paper pointed arches (one orange) round a taller core with jali screens, under an ink dome. */
-export const ahmedabadParts = once(() => {
+const ahdCache = new Map<string, ReturnType<Kit["build"]>>();
+/** `nx` x `nz` colonnade bays of 2.75 m (8 x 8 is the concept's square; the game's sector set is wider than deep). */
+export function ahmedabadParts(nx = 8, nz = 8) {
+  const key = `${nx}x${nz}`;
+  const hit = ahdCache.get(key);
+  if (hit) return hit;
   const k = new Kit();
-  const W = 22, RING = 2.8, H = 6, BAYS = 8;
-  const bw = W / BAYS;
-  k.box("concreteDark", [W + 0.4, 0.2, W + 0.4], [0, 0.1, 0]);
-  for (let s = 0; s < 4; s++)
-    k.at([0, 0, 0], (s * Math.PI) / 2, () => {
-      const z = W / 2;
-      for (let i = 0; i < BAYS; i++) {
-        const x = -W / 2 + bw * (i + 0.5);
-        const orange = s === 0 && i === 5;
+  const bw = 2.75, RING = 2.8, H = 6;
+  const W = nx * bw, D = nz * bw;
+  k.box("concreteDark", [W + 0.4, 0.2, D + 0.4], [0, 0.1, 0]);
+  // a face of the plan: its length, how far out it is, how many bays, and the turn to it
+  const faces: [number, number, number, number][] = [[W, D / 2, nx, 0], [D, W / 2, nz, Math.PI / 2], [W, D / 2, nx, Math.PI], [D, W / 2, nz, -Math.PI / 2]];
+  faces.forEach(([len, z, n, rot], s) =>
+    k.at([0, 0, 0], rot, () => {
+      const inner = (len - 2 * RING) / len;
+      for (let i = 0; i < n; i++) {
+        const x = -len / 2 + bw * (i + 0.5);
+        const orange = s === 0 && i === n - 3;
         archPanel(k, orange ? "orange" : "paper", bw - 0.5, H - 0.7, bw - 1.2, H * 0.48, H - 1.4, 0.2, [x, 0.2, z - 0.25]);
       }
-      for (const x of spread(-W / 2, W / 2, BAYS)) {
+      for (const x of spread(-len / 2, len / 2, n)) {
         k.box("concrete", [0.5, H - 0.5, 0.55], [x, 0.2 + (H - 0.5) / 2, z - 0.28]);
-        k.box("concrete", [0.4, H - 0.5, 0.4], [x * ((W - 2 * RING) / W), 0.2 + (H - 0.5) / 2, z - RING + 0.1]);
+        k.box("concrete", [0.4, H - 0.5, 0.4], [x * inner, 0.2 + (H - 0.5) / 2, z - RING + 0.1]);
       }
-      k.box("concrete", [W + 0.1, 0.55, 0.6], [0, H - 0.05, z - 0.3]);
-    });
-  // colonnade roof and floor
-  const ringRoof = new THREE.Shape(chamferRect(W - 0.4, W - 0.4, 0).map(([x, z]) => new THREE.Vector2(x, z)));
-  ringRoof.holes.push(new THREE.Path(chamferRect(W - 2 * RING, W - 2 * RING, 0).map(([x, z]) => new THREE.Vector2(x, z))));
+      k.box("concrete", [len + 0.1, 0.55, 0.6], [0, H - 0.05, z - 0.3]);
+    }),
+  );
+  // colonnade roof
+  const ringRoof = new THREE.Shape(chamferRect(W - 0.4, D - 0.4, 0).map(([x, z]) => new THREE.Vector2(x, z)));
+  ringRoof.holes.push(new THREE.Path(chamferRect(W - 2 * RING, D - 2 * RING, 0).map(([x, z]) => new THREE.Vector2(x, z))));
   k.add("concrete", extrudeGeo(ringRoof, 0.3), [0, H - 0.05, 0], [Math.PI / 2, 0, 0]);
   // the core: lower arches with jali in the colonnade, an upper tier of small arches with jali
-  const C = W - 2 * RING - 0.6, CH = 10.2, cb = C / 5;
-  k.box("concreteDark", [C - 0.4, H, C - 0.4], [0, 0.2 + H / 2, 0]);
-  k.box("paper", [C - 0.4, CH - H, C - 0.4], [0, 0.2 + H + (CH - H) / 2, 0]);
-  for (let s = 0; s < 4; s++)
-    k.at([0, 0, 0], (s * Math.PI) / 2, () => {
-      const z = C / 2;
-      for (let i = 0; i < 5; i++) {
-        const x = -C / 2 + cb * (i + 0.5);
+  const CX = W - 2 * RING - 0.6, CZ = D - 2 * RING - 0.6, CH = 10.2;
+  k.box("concreteDark", [CX - 0.4, H, CZ - 0.4], [0, 0.2 + H / 2, 0]);
+  k.box("paper", [CX - 0.4, CH - H, CZ - 0.4], [0, 0.2 + H + (CH - H) / 2, 0]);
+  const core: [number, number, number][] = [[CX, CZ / 2, 0], [CZ, CX / 2, Math.PI / 2], [CX, CZ / 2, Math.PI], [CZ, CX / 2, -Math.PI / 2]];
+  for (const [len, z, rot] of core)
+    k.at([0, 0, 0], rot, () => {
+      const n = Math.max(1, Math.round(len / 3.2)), cb = len / n;
+      for (let i = 0; i < n; i++) {
+        const x = -len / 2 + cb * (i + 0.5);
         if (i % 2 === 0) jali(k, [x, 0.2 + 2.1, z - 0.1], cb - 1.2, 1.5);
         else k.box("graphite", [cb - 1.0, 3.4, 0.05], [x, 0.2 + 1.7, z - 0.12]);
         jali(k, [x, H + 1.5, z - 0.1], cb - 1.3, 1.1, 4, 3);
         archPanel(k, "paper", cb - 0.3, CH - H - 0.6, cb - 1.0, (CH - H) * 0.32, CH - H - 1.3, 0.15, [x, H + 0.25, z + 0.05]);
       }
-      for (const x of spread(-C / 2, C / 2, 5)) k.box("concrete", [0.45, CH - H, 0.4], [x, H + (CH - H) / 2 + 0.2, z]);
-      k.box("concrete", [C + 0.4, 0.5, 0.5], [0, CH + 0.2, z]);
+      for (const x of spread(-len / 2, len / 2, n)) k.box("concrete", [0.45, CH - H, 0.4], [x, H + (CH - H) / 2 + 0.2, z]);
+      k.box("concrete", [len + 0.4, 0.5, 0.5], [0, CH + 0.2, z]);
     });
   // the ink dome on its square base
-  k.cbox("ink", [11, 0.8, 11], [0, CH + 0.85, 0], 0.05);
-  k.cyl("ink", 4.5, 4.5, 0.4, [0, CH + 1.45, 0], 32);
-  k.add("ink", new THREE.SphereGeometry(4.5, 32, 14, 0, Math.PI * 2, 0, Math.PI / 2), [0, CH + 1.6, 0], undefined, [1, 0.95, 1]);
-  k.cyl("ink", 0.6, 1.1, 0.5, [0, CH + 5.9, 0], 16);
-  k.cyl("ink", 0.3, 0.6, 0.35, [0, CH + 6.3, 0], 12);
-  return k.build();
-});
+  const base = Math.min(11, CX - 1, CZ + 2), r = base * 0.41;
+  k.cbox("ink", [base, 0.8, base], [0, CH + 0.85, 0], 0.05);
+  k.cyl("ink", r, r, 0.4, [0, CH + 1.45, 0], 32);
+  k.add("ink", new THREE.SphereGeometry(r, 32, 14, 0, Math.PI * 2, 0, Math.PI / 2), [0, CH + 1.6, 0], undefined, [1, 0.95, 1]);
+  k.cyl("ink", r * 0.13, r * 0.24, 0.5, [0, CH + 1.6 + r * 0.95, 0], 16);
+  k.cyl("ink", r * 0.07, r * 0.13, 0.35, [0, CH + 2.0 + r * 0.95, 0], 12);
+  const out = k.build();
+  ahdCache.set(key, out);
+  return out;
+}
 
 export function AhmedabadBuilt(props: G) {
   return (
