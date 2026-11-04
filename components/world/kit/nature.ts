@@ -106,12 +106,12 @@ function bushBody(R: number, H: number, rot: number) {
 }
 
 /** Three faceted bushes on gravel in a rounded concrete tray with a paper label strip and an orange tab. 2.6 x 2.1 m. */
-export function bushModel() {
-  return model("kit-bush", (k) => {
+export function bushModel(chips = 650) {
+  return model(`kit-bush-${chips}`, (k) => {
     const out = roundRect(2.6, 2.1, 0.28, 4);
     k.add("concrete", ring(out, inset(out, 0.09), 0, 0.14));
     k.add("gravel", slab(inset(out, 0.085), 0, 0.08));
-    gravel(k, ["gravel", "concreteDark", "paper"], 2.35, 1.85, 0.085, 650, 4, 0.024);
+    gravel(k, ["gravel", "concreteDark", "paper"], 2.35, 1.85, 0.085, chips, 4, 0.024 * Math.sqrt(650 / chips));
     // label strip on the front-left rim: paper with an ink rule and an ink dot
     k.add("paper", box(1.0, 0.012, 0.085), { p: [-0.65, 0.146, 1.005] });
     k.add("ink", box(1.0, 0.014, 0.012), { p: [-0.65, 0.147, 1.04] });

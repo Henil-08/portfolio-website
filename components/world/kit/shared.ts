@@ -333,3 +333,41 @@ export function gravel(k: Kit, paints: Paint[], w: number, d: number, y: number,
     k.add(paints[i % paints.length], chip, { p: [x, y, z], r: [r() * 3, r() * 3, r() * 3], s: [s, s * 0.55, s * 0.9] });
   }
 }
+
+/**
+ * One vertex-coloured geometry from a model's paints (colours in linear, like THREE.Color),
+ * for pipelines that draw a kind with a single `vertexColors` material. `only` limits the
+ * paints (e.g. leave out "glow" or "glass" to give them their own material).
+ */
+export function bake(m: Model, opts: { only?: Paint[]; skip?: Paint[]; xf?: Xf } = {}) {
+  const parts: THREE.BufferGeometry[] = [];
+  const c = new THREE.Color();
+  for (const { paint, geometry } of m) {
+    if (opts.only && !opts.only.includes(paint)) continue;
+    if (opts.skip?.includes(paint)) continue;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", geometry.attributes.position.clone());
+    g.setAttribute("normal", geometry.attributes.normal.clone());
+    c.set(PAINTS[paint].c);
+    const col = new Float32Array(g.attributes.position.count * 3);
+    for (let i = 0; i < col.length; i += 3) col.set([c.r, c.g, c.b], i);
+    g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    parts.push(g);
+  }
+  const out = parts.length === 1 ? parts[0] : mergeGeometries(parts, false);
+  if (!out) throw new Error("kit: bake failed");
+  place(out, opts.xf);
+  out.computeBoundingBox();
+  out.computeBoundingSphere();
+  return out;
+}
+
+/** One paint of a model as its own geometry (or null), placed like `bake`. */
+export function part(m: Model, paint: Paint, xf?: Xf) {
+  const p = m.find((x) => x.paint === paint);
+  if (!p) return null;
+  const g = place(p.geometry.clone(), xf);
+  g.computeBoundingBox();
+  g.computeBoundingSphere();
+  return g;
+}
