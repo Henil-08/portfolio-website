@@ -3,7 +3,7 @@
 // The infield garden, a modern landscaped garden in Concrete & Ink: gravel paths with a
 // concrete kerb linking the places, clipped hedges with chamfered tops, raised concrete
 // planters of gravel with muted planting (faceted shrubs, tall grasses, paper blooms), a
-// pond in a concrete surround, the district benches and square ink garden lamps with a
+// pond in a concrete surround, the district benches and the kit lamps at garden size with a
 // paper light box that glows after dark. Everything is instanced or merged so the whole
 // garden stays around a dozen draw calls. Paths, beds and the pond are drivable; hedges,
 // benches and lamps have small colliders.
@@ -21,6 +21,8 @@ import { batch, Instances } from "../street/Instances";
 import { Movables, kindFromMatrices } from "../Movables";
 import { seeded } from "../alive/noise";
 import { benchGeo } from "../districts/furniture";
+import { bake, part } from "../kit/shared";
+import { LAMP_H as LAMP_H_KIT, lampModel } from "../kit/street";
 import { BEDS, BENCHES, HEDGE, HEDGES, LAMPS_GARDEN, PATHS, POND, clearOfRoad, pathDist, pathSamples, type Bed } from "./layout";
 
 const SAND = C.gravel; // gravel paths, with the gravel ground
@@ -313,36 +315,32 @@ function Benches() {
   return <Instances geometry={benchGeo()} material={mat("#ffffff", { r: 0.8, vc: true })} batch={parts} />;
 }
 
-const LAMP_H = 1.1 * PROP_SCALE; // low square garden bollard lamps
-const LS = PROP_SCALE;
-/** Owned by the garden, so it is safe to animate: a paper box, dim by day, glowing at night. */
+/** Garden lamps: the kit street lamp (the approved concept) at garden size. */
+const LAMP_S = 0.55;
+const LAMP_H = LAMP_H_KIT * LAMP_S;
+/** Owned by the garden, so it is safe to animate: the lamp's paper cube, dim by day, glowing at night. */
 const lampHeadMat = new THREE.MeshStandardMaterial({
   color: C.paper,
   emissive: new THREE.Color("#fff3dc"),
   emissiveIntensity: 0.15,
   roughness: 0.5,
   toneMapped: false,
+  flatShading: true,
 });
 
 function Lamps() {
   const parts = useMemo(() => {
-    const posts = batch();
-    const heads = batch();
-    for (const [x, z] of LAMPS_GARDEN) {
-      const y = heightAt(x, z);
-      posts.m.push(compose(x, y + LAMP_H / 2, z, 0, 0.16 * LS, LAMP_H, 0.16 * LS));
-      heads.m.push(compose(x, y + LAMP_H + 0.12 * LS, z, 0, 0.17 * LS, 0.24 * LS, 0.17 * LS));
-      posts.m.push(compose(x, y + LAMP_H + 0.26 * LS, z, 0, 0.22 * LS, 0.04 * LS, 0.22 * LS));
-    }
-    return { posts, heads };
+    const at = batch();
+    for (const [x, z] of LAMPS_GARDEN) at.m.push(compose(x, heightAt(x, z), z, 0, LAMP_S, LAMP_S, LAMP_S));
+    return { at, post: bake(lampModel(), { skip: ["glow"] }), head: part(lampModel(), "glow")! };
   }, []);
   useFrame(() => {
     lampHeadMat.emissiveIntensity = 0.15 + dayNight.night * 2.6;
   });
   return (
     <>
-      <Instances geometry={unitBox()} material={mat(C.ink, { r: 0.6 })} batch={parts.posts} />
-      <Instances geometry={unitBox()} material={lampHeadMat} batch={parts.heads} shadow={false} />
+      <Instances geometry={parts.post} material={mat("#ffffff", { r: 0.8, vc: true, flat: true })} batch={parts.at} />
+      <Instances geometry={parts.head} material={lampHeadMat} batch={parts.at} shadow={false} />
     </>
   );
 }
@@ -356,7 +354,7 @@ function Colliders() {
         <CuboidCollider key={`b${i}`} args={[0.85 * PROP_SCALE, 0.45 * PROP_SCALE, 0.3 * PROP_SCALE]} position={[b.x, heightAt(b.x, b.z) + 0.45 * PROP_SCALE, b.z]} rotation={[0, b.yaw, 0]} />
       ))}
       {LAMPS_GARDEN.map(([x, z], i) => (
-        <CuboidCollider key={`l${i}`} args={[0.1 * PROP_SCALE, LAMP_H / 2, 0.1 * PROP_SCALE]} position={[x, heightAt(x, z) + LAMP_H / 2, z]} />
+        <CuboidCollider key={`l${i}`} args={[0.06, LAMP_H / 2, 0.06]} position={[x, heightAt(x, z) + LAMP_H / 2, z]} />
       ))}
     </RigidBody>
   );

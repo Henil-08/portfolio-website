@@ -1,7 +1,7 @@
 "use client";
 
-// The start by the name, in Concrete & Ink (positions in ./start.ts): two low square
-// concrete planters of gravel and tall grasses framing the path behind the car (no tree:
+// The start by the name, in Concrete & Ink (positions in ./start.ts): two concrete troughs of
+// grasses (the kit's approved concept) framing the path behind the car (no tree:
 // nothing tall may hide the car at spawn), faceted bushes, the district bench, and strips
 // of grasses with paper blooms. The way to the circuit
 // is a garden path (garden/layout.ts).
@@ -17,13 +17,13 @@ import { compose, rng } from "./street/common";
 import { Instances } from "./street/Instances";
 import { Movables, kindFromMatrices } from "./Movables";
 import { heightAt } from "./terrain";
+import { KitInstances } from "./kit/KitModel";
+import { grassesModel } from "./kit/nature";
 import { C } from "./palette";
 import { START_BENCH, START_BUSHES, START_FLOWERS, START_PLANTERS } from "./start";
 
 const BLOOMS = [C.paper, C.paper, C.cream, C.concrete].map((c) => new THREE.Color(c));
 const GRASSES = ["#8b9270", C.leaf, "#8b9270"].map((c) => new THREE.Color(c));
-const SURROUND = 1.6; // planter, outer size (m)
-const WALL = 0.16;
 
 export default function StartGarden() {
   const parts = useMemo(() => {
@@ -46,38 +46,17 @@ export default function StartGarden() {
         blooms.c.push(BLOOMS[Math.floor(r() * BLOOMS.length)]);
       }
     }
-    // the planters: four low concrete walls round a gravel square, grasses in it
-    const walls = { m: [] as THREE.Matrix4[] };
-    const gravel = { m: [] as THREE.Matrix4[] };
-    const h = SURROUND / 2 - WALL / 2;
-    const inner = SURROUND - WALL * 2;
-    for (const [px, pz] of START_PLANTERS) {
-      const py = heightAt(px, pz);
-      for (const [dx, dz, sx, sz] of [
-        [0, -h, SURROUND, WALL],
-        [0, h, SURROUND, WALL],
-        [-h, 0, WALL, inner],
-        [h, 0, WALL, inner],
-      ])
-        walls.m.push(compose(px + dx, py + 0.12, pz + dz, 0, sx, 0.3, sz));
-      gravel.m.push(compose(px, py + 0.2, pz, 0, inner, 0.02, inner));
-      for (let j = 0; j < 14; j++) {
-        const gx = px + (r() - 0.5) * (inner - 0.15);
-        const gz = pz + (r() - 0.5) * (inner - 0.15);
-        grasses.m.push(compose(gx, py + 0.2, gz, r() * 6, 0.05, 0.5 + r() * 0.35, 0.05));
-        grasses.c.push(GRASSES[Math.floor(r() * GRASSES.length)]);
-      }
-    }
+    // the planters: the kit grasses trough (the approved concept)
+    const planters = { m: START_PLANTERS.map(([px, pz]) => compose(px, heightAt(px, pz), pz, 0, 1, 1, 1)) };
     const k = 0.72 * PROP_SCALE;
     const b = START_BENCH;
     const bench = { m: [compose(b.x, heightAt(b.x, b.z) + 0.78 * k, b.z, b.yaw, k, k, k)] };
     const benchKind = kindFromMatrices(bench.m, [{ geometry: benchGeo(), material: mat("#ffffff", { r: 0.8, vc: true }) }], { mass: 0.6 });
-    return { grasses, blooms, walls, gravel, benchKind };
+    return { grasses, blooms, planters, benchKind };
   }, []);
   return (
     <group name="start-garden">
-      <Instances geometry={unitBox()} material={mat(C.concrete, { r: 0.9 })} batch={parts.walls} />
-      <Instances geometry={unitBox()} material={mat(C.gravel, { r: 1 })} batch={parts.gravel} shadow={false} />
+      <KitInstances model={grassesModel()} batch={parts.planters} />
       {START_BUSHES.map(([x, z, s], i) => (
         <Bush key={i} seed={30 + i} position={[x, heightAt(x, z), z]} scale={s} rotation={[0, i * 1.7, 0]} />
       ))}
