@@ -224,10 +224,10 @@
   },
   "floodlight": {
     "concept": {
-      "task": "01a1a7ab-9b73-73aa-9841-81139ee952ed",
-      "prompt": "A big modern motorsport floodlight tower, tall but sturdy and wide: a thick square matte black ink mast on a large concrete foot, a large wide tilted rectangular lamp head much wider than the mast, a grid of sixteen lamps in four rows of four, a service ladder up the mast, one orange marker light",
+      "task": "01a1a7ae-00b8-7573-8115-67962809ca01",
+      "prompt": "A very tall modern motorsport floodlight tower, the mast about eight times taller than the lamp head is wide, a thick square matte black ink mast on a large concrete foot, at the very top a big wide tilted rectangular lamp head with a grid of twenty-four lamps in a paper white frame and black housing, a service ladder up the full mast and a small platform under the head, one orange marker light, whole tower in frame, seen from a low three-quarter view",
       "credits": 6,
-      "at": "2026-11-04T17:47:00.837Z"
+      "at": "2026-11-04T17:49:34.144Z"
     }
   },
   "gantry": {
@@ -240,10 +240,10 @@
   },
   "tecpro": {
     "concept": {
-      "task": "01a1a7ab-df88-76c4-a04f-f94375db8a5b",
-      "prompt": "A modular motorsport crash barrier: a row of rounded rectangular blocks in alternating matte black ink and international orange #ff4f00 blocks (no white blocks), each with a graphite strap, two rows stacked",
+      "task": "01a1a7ae-3671-734d-8c43-9489679ca7cb",
+      "prompt": "A modular motorsport crash barrier: two stacked rows of rounded rectangular blocks, the blocks alternate matte black ink and paper white, each with a graphite strap, and exactly ONE single block in the whole barrier is international orange #ff4f00 instead of white, all other light blocks stay paper white",
       "credits": 6,
-      "at": "2026-11-04T17:47:14.150Z"
+      "at": "2026-11-04T17:49:51.601Z"
     }
   },
   "marshal": {
@@ -256,10 +256,10 @@
   },
   "pitwall": {
     "concept": {
-      "task": "01a1a7ac-139b-7702-8035-c7132f9f28e9",
-      "prompt": "A modern Formula 1 pit wall section: a long concrete wall with a paper white top stripe and a tall black ink debris fence on slim posts, behind it a long timing stand with four seats in a row, each seat at its own screen console, a black ink canopy over the stand",
+      "task": "01a1a7ae-7aa7-766b-b488-866ad06e5fa5",
+      "prompt": "A modern Formula 1 pit wall seen from the pit lane side: a long concrete wall with a paper white top stripe and a tall black ink debris fence on top facing the race track behind it; on the pit lane side in front of the wall, four separate individual pit wall compartments in a row, each its own small booth with a black ink canopy roof, its own seat facing the track over the wall, its own screen console, separated by thin concrete partitions, each booth with a small paper number plate, one orange accent per booth",
       "credits": 6,
-      "at": "2026-11-04T17:47:31.846Z"
+      "at": "2026-11-04T17:50:13.544Z"
     }
   },
   "lamp": {
@@ -336,10 +336,10 @@
   },
   "stumps": {
     "concept": {
-      "task": "01a1a7ac-595a-7430-8d91-932ff72e9476",
-      "prompt": "Cricket stumps and bails reimagined minimal: exactly three square paper white stumps standing in a single row on a concrete crease slab, two international orange bails resting across the top of the three stumps",
+      "task": "01a1a7ae-d09a-730d-9bd5-fe96e5d177f8",
+      "prompt": "Cricket stumps and bails reimagined minimal, true to real proportions: exactly three tall slender square paper white stumps in a single row, about four times taller than the gap between them is wide, standing on a thin concrete crease slab, two short international orange bails resting across the tops of the three stumps",
       "credits": 6,
-      "at": "2026-11-04T17:47:45.392Z"
+      "at": "2026-11-04T17:50:35.214Z"
     }
   },
   "podium": {
