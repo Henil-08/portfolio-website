@@ -51,7 +51,8 @@ function hemisphere(n: number) {
 
 /** Meshes that occlude and receive: visible, opaque enough, not alpha-cut wire. */
 function bakeable(o: THREE.Object3D): o is THREE.Mesh {
-  if (!(o instanceof THREE.Mesh) || !o.visible) return false;
+  // skinned meshes move: their bind pose is not what is drawn, so they get no baked AO
+  if (!(o instanceof THREE.Mesh) || o instanceof THREE.SkinnedMesh || o.geometry instanceof THREE.InstancedBufferGeometry || !o.visible) return false;
   const m = (Array.isArray(o.material) ? o.material[0] : o.material) as THREE.Material;
   if (m.transparent && m.opacity < 0.6) return false;
   if (m.alphaTest > 0) return false;

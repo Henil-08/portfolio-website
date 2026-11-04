@@ -2,10 +2,10 @@
 
 // Models for review, each beside its approved concept: the code-built kit and the Meshy models,
 // in the current look and in the Studio look (components/world/studio), which aims at the
-// concept renders. Canvases mount only on screen. ?view=studio|current|both, ?still, ?ssao=1.
+// concept renders. Canvases mount only on screen. ?view=studio|current|both|match, ?still, ?ssao=1, ?wipe=0..100.
 import Link from "next/link";
 import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { OrbitControls } from "@react-three/drei";
 import { profile } from "@/content/profile";
@@ -16,6 +16,7 @@ import { Lights } from "../world/models";
 import { StudioSet, STUDIO_TONE } from "@/components/world/studio/StudioStage";
 import { Studify } from "@/components/world/studio/Studify";
 import type { Build } from "./builds/types";
+import { MATCH, type Match } from "./match";
 import { BUILDS as NATURE } from "./builds/nature";
 import { BUILDS as BUILT } from "./builds/built";
 
@@ -25,13 +26,14 @@ const BUILDS: Build[] = [...NATURE, ...BUILT];
 const FLAT = new Set(["tree-cypress", "tree-round", "bush", "grasses", "rocks", "bollard"]);
 
 /** One thing to compare: its concept, the current look and the studio look. */
-type Subject = { id: string; name: string; concept?: string; height: number; span: number; crease: number; draw: () => ReactNode };
+type Subject = { id: string; dom?: string; name: string; concept?: string; height: number; span: number; crease: number; draw: () => ReactNode };
 
 const conceptOf = (id: string) => (id.startsWith("driver") ? "driver" : CONCEPTS.some((c) => c.id === id) ? id : undefined);
 
 const FROM_BUILDS: Subject[] = BUILDS.map((b) => ({ id: b.id, name: b.name, concept: b.id, height: b.height, span: b.span, crease: FLAT.has(b.id) ? 12 : 35, draw: () => <b.Model /> }));
 const FROM_MESHY: Subject[] = MESHY.map((m) => ({
   id: m.id,
+  dom: `meshy-${m.id}`,
   name: m.name,
   concept: conceptOf(m.id),
   height: m.height,
@@ -50,7 +52,7 @@ function bakeLog(id: string, ms: number) {
   (w.__studioMs ??= {})[id] = Math.round(ms);
 }
 
-type View = "both" | "current" | "studio";
+type View = "both" | "current" | "studio" | "match";
 type Opts = { turn: boolean; ssao: boolean };
 
 /** Mounts its canvas only while on screen, so the page never holds more WebGL contexts than the browser allows. */
@@ -112,6 +114,131 @@ function StudioTable({ s, turn, ssao }: { s: Subject } & Opts) {
   );
 }
 
+/** Fit result: the model's width over the concept's at matched height (1 = same proportions). */
+type Fit = { w: number };
+
+/**
+ * Puts the camera at the concept's angle and fov, then fits distance and aim so the model's
+ * projected height and centre fill the concept's silhouette box (match.ts).
+ */
+function MatchCamera({ id, m, ready, onFit }: { id: string; m: Match; ready: number; onFit: (f: Fit) => void }) {
+  const get = useThree((st) => st.get);
+  useEffect(() => {
+    const { scene, invalidate } = get();
+    const camera = get().camera as THREE.PerspectiveCamera;
+    const root = scene.getObjectByName("subject");
+    if (!root) return;
+    root.updateMatrixWorld(true);
+    const pts: THREE.Vector3[] = [];
+    root.traverse((o) => {
+      if (!(o instanceof THREE.Mesh) || o instanceof THREE.InstancedMesh) return;
+      const pos = o.geometry.attributes.position;
+      const step = Math.max(1, Math.floor(pos.count / 6000));
+      for (let i = 0; i < pos.count; i += step) pts.push(o.getVertexPosition(i, new THREE.Vector3()).applyMatrix4(o.matrixWorld));
+    });
+    if (!pts.length) return;
+    const box = new THREE.Box3().setFromPoints(pts);
+    const c = box.getCenter(new THREE.Vector3());
+    const r = box.getBoundingSphere(new THREE.Sphere()).radius;
+    const az = THREE.MathUtils.degToRad(m.az);
+    const el = THREE.MathUtils.degToRad(m.el);
+    const dir = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
+    camera.fov = m.fov;
+    camera.aspect = 1;
+    camera.near = r * 0.05;
+    camera.far = r * 60;
+    camera.updateProjectionMatrix();
+    const t = Math.tan(THREE.MathUtils.degToRad(m.fov / 2));
+    let dist = r / Math.sin(THREE.MathUtils.degToRad(m.fov / 2));
+    const [x0, y0, x1, y1] = m.box;
+    const want = { cx: (x0 + x1) - 1, cy: 1 - (y0 + y1), h: (y1 - y0) * 2, w: (x1 - x0) * 2 };
+    const v = new THREE.Vector3();
+    const right = new THREE.Vector3();
+    const up = new THREE.Vector3();
+    let got = { cx: 0, cy: 0, h: 1, w: 1 };
+    for (let k = 0; k < 12; k++) {
+      camera.position.copy(c).addScaledVector(dir, dist);
+      camera.lookAt(c);
+      camera.updateMatrixWorld(true);
+      let a = Infinity, b = -Infinity, e = Infinity, f = -Infinity;
+      for (const p of pts) {
+        v.copy(p).project(camera);
+        a = Math.min(a, v.x); b = Math.max(b, v.x); e = Math.min(e, v.y); f = Math.max(f, v.y);
+      }
+      got = { cx: (a + b) / 2, cy: (e + f) / 2, h: f - e, w: b - a };
+      dist *= got.h / want.h;
+      right.setFromMatrixColumn(camera.matrixWorld, 0);
+      up.setFromMatrixColumn(camera.matrixWorld, 1);
+      c.addScaledVector(right, (got.cx - want.cx) * dist * t).addScaledVector(up, (got.cy - want.cy) * dist * t);
+    }
+    camera.position.copy(c).addScaledVector(dir, dist);
+    camera.lookAt(c);
+    camera.updateMatrixWorld(true);
+    invalidate();
+    onFit({ w: got.w / want.w });
+    const w = window as unknown as { __fitW?: Record<string, number> };
+    (w.__fitW ??= {})[id] = +(got.w / want.w).toFixed(2);
+  }, [get, id, m, ready, onFit]);
+  return null;
+}
+
+/** The studio render at the concept's camera, under its concept: a wipe slider and a 50% onion-skin. */
+function MatchCell({ s }: { s: Subject }) {
+  const m = MATCH[s.concept ?? ""] ?? null;
+  const [wipe, setWipe] = useState(50);
+  const [onion, setOnion] = useState(false);
+  const [ready, setReady] = useState(0);
+  const [fit, setFit] = useState<Fit | null>(null);
+  useEffect(() => {
+    const w = new URLSearchParams(window.location.search).get("wipe");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- read once from the URL after hydration
+    if (w !== null) setWipe(+w);
+  }, []);
+  if (!m || !s.concept) return <div className="p-4 font-mono text-[12px] text-graphite">No concept to match.</div>;
+  const size = Math.max(s.span, s.height);
+  return (
+    <div className="grid grid-cols-[1fr_1fr]">
+      <div className="relative aspect-square border-r-2 border-ink">
+        <Lazy>
+          <Canvas shadows="variance" dpr={[1, 2]} camera={{ fov: m.fov }} gl={STUDIO_TONE}>
+            <StudioSet key={ready} size={size} camDistance={size * 4} />
+            <group name="subject">
+              <Studify crease={s.crease} onReady={(ms) => (bakeLog(s.id, ms), setReady((r) => r + 1))}>
+                {s.draw()}
+              </Studify>
+            </group>
+            <MatchCamera id={s.dom ?? s.id} m={m} ready={ready} onFit={setFit} />
+          </Canvas>
+        </Lazy>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`/models/concepts/${s.concept}.png`}
+          alt=""
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          style={onion ? { opacity: 0.5 } : { clipPath: `inset(0 ${100 - wipe}% 0 0)` }}
+        />
+        {!onion && <div className="pointer-events-none absolute inset-y-0 w-[2px] bg-signal" style={{ left: `${wipe}%` }} />}
+        <span className="absolute left-2 top-2 bg-white px-1 font-mono text-[11px]">Concept</span>
+        <span className="absolute right-2 top-2 bg-ink px-1 font-mono text-[11px] text-paper">Studio</span>
+      </div>
+      <div className="flex flex-col gap-3 p-3 font-mono text-[12px]">
+        <label className="flex items-center gap-2">
+          Wipe
+          <input type="range" min={0} max={100} value={wipe} onChange={(e) => setWipe(+e.target.value)} className="w-full accent-[#ff4f00]" disabled={onion} />
+        </label>
+        <span>
+          <Seg value={onion ? "onion" : "wipe"} options={[["wipe", "Wipe"], ["onion", "Onion 50%"]]} onChange={(v) => setOnion(v === "onion")} />
+        </span>
+        <span className="text-graphite">
+          camera az {m.az}° el {m.el}° fov {m.fov}° · fitted to the concept&apos;s height
+        </span>
+        <span>{fit ? `width vs concept ×${fit.w.toFixed(2)}` : "fitting…"}</span>
+        <span className="text-graphite">Concept on the left of the line, our model on the right.</span>
+      </div>
+    </div>
+  );
+}
+
 function Seg<T extends string>({ value, options, onChange }: { value: T; options: [T, string][]; onChange: (v: T) => void }) {
   return (
     <span className="inline-flex border-2 border-ink font-mono text-[12px]">
@@ -128,6 +255,7 @@ const VIEWS: [View, string][] = [
   ["both", "Both"],
   ["current", "Current"],
   ["studio", "Studio"],
+  ["match", "Match"],
 ];
 
 /** Concept | current | studio, with its own view switch (follows the page's until used). */
@@ -140,8 +268,7 @@ function Row({ s, view: pageView, opts }: { s: Subject; view: View; opts: Opts }
   }
   const view = own ?? pageView;
   const cells = view === "both" ? "grid-cols-3" : "grid-cols-[1fr_2fr]";
-  return (
-    <div id={`m-${s.id}`} className="border-2 border-ink bg-white">
+  const header = (
       <div className="flex items-center gap-3 border-b-2 border-ink px-2 py-1.5 font-mono text-[12px]">
         {s.name}
         <span className="text-graphite">{s.id}</span>
@@ -149,6 +276,17 @@ function Row({ s, view: pageView, opts }: { s: Subject; view: View; opts: Opts }
           <Seg value={view} options={VIEWS} onChange={setOwn} />
         </span>
       </div>
+  );
+  if (view === "match")
+    return (
+      <div id={`m-${s.dom ?? s.id}`} className="border-2 border-ink bg-white">
+        {header}
+        <MatchCell s={s} />
+      </div>
+    );
+  return (
+    <div id={`m-${s.dom ?? s.id}`} className="border-2 border-ink bg-white">
+      {header}
       <div className={`grid ${cells}`}>
         <figure className="relative border-r-2 border-ink">
           {s.concept ? (
@@ -187,7 +325,7 @@ export default function ModelsPage() {
     const q = new URLSearchParams(window.location.search);
     const v = q.get("view");
     // eslint-disable-next-line react-hooks/set-state-in-effect -- read once from the URL after hydration
-    if (v === "both" || v === "current" || v === "studio") setView(v);
+    if (v === "both" || v === "current" || v === "studio" || v === "match") setView(v);
     setOpts({ turn: !q.has("still"), ssao: q.get("ssao") === "1" });
   }, []);
   return (

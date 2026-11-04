@@ -66,13 +66,15 @@ export function Studify({ children, onReady, crease = 50, grain = "auto", ao = t
     for (const m of meshes) {
       if (saved.current.has(m)) continue;
       saved.current.set(m, { geometry: m.geometry, material: m.material });
-      if (m instanceof THREE.InstancedMesh) continue;
+      // instanced draws and custom geometries (troika text) keep theirs
+      if (m instanceof THREE.InstancedMesh || m.geometry instanceof THREE.InstancedBufferGeometry) continue;
       const mat = (Array.isArray(m.material) ? m.material[0] : m.material) as THREE.MeshStandardMaterial;
       const textured = !!mat.map;
       m.geometry = crease > 0 && !textured ? creaseNormals(m.geometry.index ? m.geometry : m.geometry.clone(), crease) : m.geometry.clone();
     }
     if (ao) bakeAO(gl, g, ao === true ? {} : ao);
     for (const m of meshes) {
+      if (m.geometry instanceof THREE.InstancedBufferGeometry) continue;
       const orig = saved.current.get(m)!;
       const one = (x: THREE.Material) =>
         studioMaterial(x, {
