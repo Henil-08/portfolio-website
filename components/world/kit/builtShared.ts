@@ -225,11 +225,11 @@ export function partMeshes(parts: Parts) {
   return (Object.keys(parts) as MatKey[]).map((k) => ({ key: k, geometry: parts[k]!, material: bm(k), cast: !SHADOW_FREE.includes(k) }));
 }
 
-/** Built parts as one group of meshes (cast and receive shadows; glass and lamps don't cast). */
-export function Built({ parts }: { parts: Parts }) {
+/** Built parts as one group of meshes (cast and receive shadows; glass and lamps don't cast). `material` swaps a key's shared material. */
+export function Built({ parts, material }: { parts: Parts; material?: (k: MatKey) => THREE.Material }) {
   return createElement(
     "group",
     null,
-    partMeshes(parts).map((m) => createElement("mesh", { key: m.key, geometry: m.geometry, material: m.material, castShadow: m.cast, receiveShadow: true })),
+    partMeshes(parts).map((m) => createElement("mesh", { key: m.key, geometry: m.geometry, material: material ? material(m.key) : m.material, castShadow: m.cast, receiveShadow: true })),
   );
 }

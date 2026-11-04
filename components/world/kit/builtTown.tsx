@@ -222,8 +222,8 @@ export function TownTower(props: G) {
 
 /** A garage bay: centre x, code (Z05...) and its name on the plate. */
 export type PitBay = { x: number; code: string; name?: string };
-/** `bay` door width (default: bay spacing less a 1.4 m pier), `depth` of the block, `end` solid wall past the outer bays. */
-export type PitOpts = { bay?: number; depth?: number; end?: number };
+/** `bay` door width (default: bay spacing less a 1.4 m pier), `depth` of the block, `end` solid wall past the outer bays, `apron` concrete in front. */
+export type PitOpts = { bay?: number; depth?: number; end?: number; apron?: number };
 
 export const PIT = { H1: 6.2, OPEN: 4.8, HEAD: 5.6, UP: 3.0 };
 
@@ -236,6 +236,7 @@ function pitSpan(bays: PitBay[], o: PitOpts) {
 }
 
 /** The solid walls a car can hit (ends, piers, back wall) as [size, centre] boxes, for colliders. */
+/** (the apron is flat, so it isn't one) */
 export function pitBuildingSolids(bays: PitBay[], o: PitOpts = {}): [V3, V3][] {
   const { bay, D, x0, x1, w, cx } = pitSpan(bays, o);
   const out: [V3, V3][] = [[[w, PIT.H1, 0.4], [cx, PIT.H1 / 2, -D / 2 + 0.2]]];
@@ -259,6 +260,7 @@ export function pitBuildingParts(bays: PitBay[], o: PitOpts = {}) {
   const { bay, D, x0, x1, w, cx } = pitSpan(bays, o);
   const { H1, OPEN, HEAD, UP } = PIT;
   const zf = D / 2, cv = 0.9, ct = 1.0;
+  if (o.apron) k.box("concreteDark", [w + 1, 0.04, o.apron], [cx, 0.01, zf + o.apron / 2]);
   // header: the full length over the doors, chamfered on top front and back and at the ends
   const ring = (y: number, iw: number, iz: number, c: number): V3[] => chamferRect(w - 2 * iw, D - 2 * iz, c).map(([x, z]) => [x + cx, y, z]);
   k.hull("concrete", [...ring(OPEN, 0, 0, cv), ...ring(H1 - ct, 0, 0, cv), ...ring(H1, ct * 0.7, ct, cv * 0.6)]);
@@ -342,12 +344,12 @@ export const DEMO_BAYS: PitBay[] = [
 ];
 const NO_OPTS: PitOpts = {};
 
-export function PitBuildingBuilt({ bays = DEMO_BAYS, opts = NO_OPTS, ...props }: G & { bays?: PitBay[]; opts?: PitOpts }) {
+export function PitBuildingBuilt({ bays = DEMO_BAYS, opts = NO_OPTS, material, ...props }: G & { bays?: PitBay[]; opts?: PitOpts; material?: (k: MatKey) => THREE.Material }) {
   const { bay, D } = pitSpan(bays, opts);
   const parts = pitBuildingParts(bays, opts);
   return (
     <group {...props}>
-      <Built parts={parts} />
+      <Built parts={parts} material={material} />
       {bays.map((b) => (
         <mesh key={b.code} position={[b.x, (PIT.OPEN + PIT.HEAD) / 2, D / 2 + 0.13]} material={bayPlate(b.code, b.name)}>
           <planeGeometry args={[Math.min(bay * 0.62, 4.2), Math.min(bay * 0.62, 4.2) * 0.156]} />
