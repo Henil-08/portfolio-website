@@ -1,8 +1,15 @@
 // Meshy text-to-3D for the world's models (docs/research/meshy-models.md).
+// The route that works: design the model as a concept image first (cheap, easy to redo), then turn
+// the approved image into a mesh.
 // usage:
 //   node scripts/meshy.mjs balance
-//   node scripts/meshy.mjs gen <id> "<prompt>"   shape-only preview (20 credits), the brand style suffix appended
-//   node scripts/meshy.mjs get <id>              re-download a finished task by its logged id
+//   node scripts/meshy.mjs img <id> "<subject>"      concept image (nano-banana-2, 6 credits), brand art direction added;
+//                                                    saved to public/models/concepts/<id>.png for /docs/brand/models
+//   node scripts/meshy.mjs mesh <id> [image.png]     image -> 3D, shape only (meshy 7.1, 2k geometry, 25 credits),
+//                                                    from the concept unless an image is given
+//   node scripts/meshy.mjs multi <id> <front> [side back three]   multi-image -> 3D, textured (30 credits)
+//   node scripts/meshy.mjs gen <id> "<prompt>"       text -> 3D shape only (20 credits), the old route
+//   node scripts/meshy.mjs get <id>                  re-download a finished task by its logged id
 // Raw GLBs land in assets/meshy/<id>.glb; a centred (base at y = 0), welded copy in public/models/<id>.glb.
 // Every task is logged in assets/meshy/log.json (id, task, prompt, credits) so nothing is paid for twice.
 // The key is MESHY_API_KEY in .env.local (gitignored).
@@ -12,6 +19,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const API = "https://api.meshy.ai/openapi";
+/** Art direction for concept images: the world's design language (docs/BRAND.md World). */
+const ART =
+  "Product design render, three-quarter view, whole object in frame, plain light warm-grey studio background, soft even studio light, no text, no logos, no people unless asked. Design language: Dieter Rams / Swiss industrial design, crisp hard-surface faceted forms with sharp chamfered edges and flat planes, matte surfaces only: off-white paper #f3f2ed, matte black ink #151515, warm grey concrete #d9d6ce, and exactly one small international-orange #ff4f00 accent. Precise, calm, premium, architectural-model quality, not cartoony, not toy-like.";
 const STYLE =
   "low-poly faceted hard-surface model, flat planar faces, crisp chamfered edges, no fillets, no organic noise, matte, single solid light grey colour, untextured, architectural maquette look, clean silhouette, centred on a flat base, no text, no logos";
 const KEY = (readFileSync(".env.local", "utf8").match(/^MESHY_API_KEY=(.+)$/m) ?? [])[1]?.trim();
@@ -29,10 +39,23 @@ const call = async (path, init = {}) => {
 const balance = async () => (await call("/v1/balance")).balance;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function fetchModel(id, task) {
+async function poll(path, id) {
   let t;
   for (;;) {
-    t = await call(`/v2/text-to-3d/${task}`);
+    t = await call(path);
+    if (["SUCCEEDED", "FAILED", "CANCELED"].includes(t.status)) break;
+    process.stdout.write(`\r${id} ${t.status} ${t.progress ?? 0}%   `);
+    await sleep(4000);
+  }
+  console.log(`\r${id} ${t.status}          `);
+  if (t.status !== "SUCCEEDED") throw new Error(JSON.stringify(t.task_error));
+  return t;
+}
+
+async function fetchModel(id, task, kind = "v2/text-to-3d") {
+  let t;
+  for (;;) {
+    t = await call(`/${kind}/${task}`);
     if (["SUCCEEDED", "FAILED", "CANCELED"].includes(t.status)) break;
     process.stdout.write(`\r${id} ${t.status} ${t.progress ?? 0}%   `);
     await sleep(5000);
@@ -49,8 +72,56 @@ async function fetchModel(id, task) {
   console.log(`saved public/models/${id}.glb`);
 }
 
+const save = (id, entry) => {
+  log[id] = { ...log[id], ...entry };
+  writeFileSync(LOG, JSON.stringify(log, null, 2) + "\n");
+};
+
 const [cmd, id, prompt] = process.argv.slice(2);
 if (cmd === "balance") console.log(await balance());
+else if (cmd === "img") {
+  if (!id || !prompt) throw new Error('img <id> "<subject>"');
+  const before = await balance();
+  const { result: task } = await call("/v1/text-to-image", { method: "POST", body: JSON.stringify({ ai_model: "nano-banana-2", prompt: `${prompt}. ${ART}`, aspect_ratio: "1:1" }) });
+  const t = await poll(`/v1/text-to-image/${task}`, id);
+  mkdirSync("public/models/concepts", { recursive: true });
+  writeFileSync(`public/models/concepts/${id}.png`, Buffer.from(await (await fetch(t.image_urls[0])).arrayBuffer()));
+  const spent = before - (await balance());
+  save(id, { concept: { task, prompt, credits: spent, at: new Date().toISOString() } });
+  console.log(`saved public/models/concepts/${id}.png · ${spent} credits`);
+} else if (cmd === "mesh") {
+  if (!id) throw new Error("mesh <id> [image.png]");
+  if (log[id]?.mesh) throw new Error(`${id} already meshed (task ${log[id].mesh.task}); delete log entry to redo`);
+  const src = prompt ?? `public/models/concepts/${id}.png`;
+  const uri = `data:image/png;base64,${readFileSync(src).toString("base64")}`;
+  const before = await balance();
+  const { result: task } = await call("/v1/image-to-3d", {
+    method: "POST",
+    body: JSON.stringify({ image_url: uri, ai_model: "latest", geometry_resolution: "2k", should_texture: false, should_remesh: true, topology: "triangle", target_polycount: 20000 }),
+  });
+  save(id, { mesh: { task, src, at: new Date().toISOString() } });
+  await fetchModel(id, task, "v1/image-to-3d");
+  const spent = before - (await balance());
+  save(id, { mesh: { ...log[id].mesh, credits: spent } });
+  console.log(`${spent} credits`);
+}
+else if (cmd === "multi") {
+  // up to 4 reference images (first = front), textured so the colour-coded parts survive
+  const imgs = process.argv.slice(4);
+  if (!id || !imgs.length) throw new Error("multi <id> <front.jpg> [more.jpg ...]");
+  if (log[id]?.mesh) throw new Error(`${id} already meshed (task ${log[id].mesh.task})`);
+  const uris = imgs.slice(0, 4).map((f) => `data:image/${f.endsWith(".png") ? "png" : "jpeg"};base64,${readFileSync(f).toString("base64")}`);
+  const before = await balance();
+  const { result: task } = await call("/v1/multi-image-to-3d", {
+    method: "POST",
+    body: JSON.stringify({ image_urls: uris, ai_model: "latest", should_texture: true, texture_resolution: "2k", should_remesh: true, topology: "triangle", target_polycount: 30000, remove_lighting: true }),
+  });
+  save(id, { mesh: { task, src: imgs, at: new Date().toISOString() } });
+  await fetchModel(id, task, "v1/multi-image-to-3d");
+  const spent = before - (await balance());
+  save(id, { mesh: { ...log[id].mesh, credits: spent } });
+  console.log(`${spent} credits`);
+}
 else if (cmd === "gen") {
   if (!id || !prompt) throw new Error('gen <id> "<prompt>"');
   if (log[id]) throw new Error(`${id} already generated (task ${log[id].task}); use get, or delete it from the log to re-roll`);

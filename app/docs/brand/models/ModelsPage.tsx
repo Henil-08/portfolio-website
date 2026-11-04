@@ -8,7 +8,7 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { profile } from "@/content/profile";
 import { Lockup } from "@/components/brand/mark";
-import { MESHY, type MeshyModel as Def } from "@/components/world/meshy/catalog";
+import { CONCEPTS, MESHY, type MeshyModel as Def } from "@/components/world/meshy/catalog";
 import { MeshyModel } from "@/components/world/meshy/MeshyModel";
 import { Lights } from "../world/models";
 
@@ -55,7 +55,28 @@ export default function ModelsPage() {
         <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-graphite">
           Meshy makes the shape; the paint, codes and the orange accent are ours. Drag to turn. Plan and prompts: docs/research/meshy-models.md.
         </p>
-        <div className="mt-10 grid gap-6 md:grid-cols-2">
+        {[...new Set(CONCEPTS.map((c) => c.group))].map((g, gi) => (
+          <section key={g} className="mt-12">
+            <h2 className="mb-3 flex items-baseline gap-3 text-[24px] font-semibold tracking-[-0.02em]">
+              <span className="font-mono text-[13px] text-signal">{String(gi + 1).padStart(2, "0")}</span>
+              {g} <span className="font-mono text-[12px] font-normal text-graphite">concepts, before 3D</span>
+            </h2>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              {CONCEPTS.filter((c) => c.group === g).map((c) => (
+                <figure key={c.id} className="border-2 border-ink bg-white">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`/models/concepts/${c.id}.png`} alt={c.name} className="aspect-square w-full object-cover" />
+                  <figcaption className="flex border-t-2 border-ink px-2 py-1.5 font-mono text-[12px]">
+                    {c.name}
+                    <span className="ml-auto text-graphite">{MESHY.some((m) => m.id === c.id) ? "3D ✓" : "concept"}</span>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </section>
+        ))}
+        <h2 className="mt-14 mb-3 text-[24px] font-semibold tracking-[-0.02em]">In 3D</h2>
+        <div className="grid gap-6 md:grid-cols-2">
           {MESHY.map((m) => (
             <section key={m.id} className="border-2 border-ink bg-white">
               <div className="flex items-center bg-ink px-3 py-2 font-mono text-[12px] text-white">

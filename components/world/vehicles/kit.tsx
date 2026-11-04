@@ -82,7 +82,7 @@ export const useRig = () => useContext(RigContext);
 export function WheelSlot({ i, p, children, fixed }: { i: number; p: V3; children: ReactNode; fixed?: ReactNode }) {
   const rig = useRig();
   return (
-    <group position={p}>
+    <group position={p} name="wheel">
       <group ref={rig?.steer(i)}>
         <group ref={rig?.swap(i)}>
           <group ref={rig?.spin(i)}>{children}</group>
