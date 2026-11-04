@@ -4,5 +4,110 @@
     "prompt": "a large folded paper envelope standing upright on its edge on a low square stepped plinth, flap half open, sharp origami folds",
     "at": "2026-11-04T16:52:00.000Z",
     "credits": 20
+  },
+  "mail": {
+    "concept": {
+      "task": "01a1a783-b5e4-773c-abfb-f93ef096e3cb",
+      "prompt": "A small public monument for a modern motorsport circuit park, one of a matching series of seven contact monuments, each standing on the same tall square stepped concrete plinth with a recessed blank plaque panel on its front: a large crisp envelope sculpture lying HORIZONTAL in landscape orientation, wider than it is tall, resting on its long bottom edge on top of the plinth and slightly wider than the plinth, made of folded flat panels, the flap folded open at the top, matte off-white with black ink edge bands, the one orange accent is a small square seal at the point of the flap",
+      "credits": 6,
+      "at": "2026-11-04T17:03:26.323Z"
+    }
+  },
+  "linkedin": {
+    "concept": {
+      "task": "01a1a781-5558-7379-8101-2748eeccffa8",
+      "prompt": "A small public monument for a modern motorsport circuit park, one of a matching series of seven contact monuments, each standing on the same tall square stepped concrete plinth with a recessed blank plaque panel on its front: a network sculpture of five matte off-white spheres joined by straight matte black ink rods in a balanced 3D lattice, the one orange accent is one small sphere",
+      "credits": 6,
+      "at": "2026-11-04T17:00:50.352Z"
+    }
+  },
+  "github": {
+    "concept": {
+      "task": "01a1a781-9969-7176-9ee4-48b09bcef2ec",
+      "prompt": "A small public monument for a modern motorsport circuit park, one of a matching series of seven contact monuments, each standing on the same tall square stepped concrete plinth with a recessed blank plaque panel on its front: a branching sculpture like a git commit graph, square-section matte black ink tubes rising and splitting into three branches that merge back, off-white cube nodes at each commit, one node is orange",
+      "credits": 6,
+      "at": "2026-11-04T17:01:03.724Z"
+    }
+  },
+  "resume": {
+    "concept": {
+      "task": "01a1a781-cd9f-73c7-ba4e-8242a42cf161",
+      "prompt": "A small public monument for a modern motorsport circuit park, one of a matching series of seven contact monuments, each standing on the same tall square stepped concrete plinth with a recessed blank plaque panel on its front: a single giant sheet of paper standing upright and slightly leaning, one corner folded, thin black engraved text lines across it, the one orange accent is a small tab on its edge",
+      "credits": 6,
+      "at": "2026-11-04T17:01:17.089Z"
+    }
+  },
+  "scholar": {
+    "concept": {
+      "task": "01a1a782-01db-7618-889f-3804ad893792",
+      "prompt": "A small public monument for a modern motorsport circuit park, one of a matching series of seven contact monuments, each standing on the same tall square stepped concrete plinth with a recessed blank plaque panel on its front: a stack of four thick books in off-white and black, slightly offset, a crisp faceted graduation cap on top with an orange tassel",
+      "credits": 6,
+      "at": "2026-11-04T17:01:30.462Z"
+    }
+  },
+  "huggingface": {
+    "concept": {
+      "task": "01a1a782-35ff-72c2-b9eb-75637351117a",
+      "prompt": "A small public monument for a modern motorsport circuit park, one of a matching series of seven contact monuments, each standing on the same tall square stepped concrete plinth with a recessed blank plaque panel on its front: an abstract faceted sculpture of two arms curving round into a hug around an empty space, matte off-white with black ink seams, one orange accent band",
+      "credits": 6,
+      "at": "2026-11-04T17:01:51.998Z"
+    }
+  },
+  "medium": {
+    "concept": {
+      "task": "01a1a782-89fe-7786-bcde-328b805c11ae",
+      "prompt": "A small public monument for a modern motorsport circuit park, one of a matching series of seven contact monuments, each standing on the same tall square stepped concrete plinth with a recessed blank plaque panel on its front: a minimalist typewriter sculpture in matte black with off-white keys, one sheet of off-white paper rising from it, the one orange accent is a single key",
+      "credits": 6,
+      "at": "2026-11-04T17:02:05.204Z"
+    }
+  },
+  "driver": {
+    "concept": {
+      "task": "01a1a782-bdcb-77d7-944f-8f3bfbf78b7c",
+      "prompt": "A racing driver figure standing in A-pose, full-body, front three-quarter view, stylised but realistic proportions, closed helmet with a dark visor, a matte black race suit with off-white side panels and one orange stripe down the helmet, gloves, boots, no logos",
+      "credits": 6,
+      "at": "2026-11-04T17:02:18.679Z"
+    }
+  },
+  "trophy": {
+    "concept": {
+      "task": "01a1a782-f270-70df-bad2-4fad12b60156",
+      "prompt": "A modern motorsport trophy: a faceted two-handled cup on a square stepped base, matte off-white cup with black ink base, the one orange accent is a thin band on the base",
+      "credits": 6,
+      "at": "2026-11-04T17:02:40.361Z"
+    },
+    "mesh": {
+      "task": "01a1a784-b5af-70a4-960c-eeb141702eb6",
+      "src": "public/models/concepts/trophy.png",
+      "at": "2026-11-04T17:04:15.783Z",
+      "credits": 25
+    }
+  },
+  "mercury": {
+    "concept": {
+      "task": "01a1a783-4722-7303-8f32-55c66332d5d7",
+      "prompt": "A single-seat student solar electric race car, very low and flat, a wide flat top deck covered in dark blue-black solar cells, a small tinted bubble canopy near the front, three wheels with fairings, off-white body, black ink trim, one orange stripe",
+      "credits": 6,
+      "at": "2026-11-04T17:02:57.859Z"
+    },
+    "mesh": {
+      "task": "01a1a785-bb14-72de-b3b8-c359635f4663",
+      "src": "public/models/concepts/mercury.png",
+      "at": "2026-11-04T17:05:22.639Z",
+      "credits": 25
+    }
+  },
+  "v01": {
+    "mesh": {
+      "task": "01a1a786-aa31-7501-8b56-b5f1ef65ad03",
+      "src": [
+        "assets/meshy/ref/V01-front.jpg",
+        "assets/meshy/ref/V01-side.jpg",
+        "assets/meshy/ref/V01-back.jpg",
+        "assets/meshy/ref/V01-three.jpg"
+      ],
+      "at": "2026-11-04T17:06:24.428Z",
+      "credits": 30
+    }
   }
 }

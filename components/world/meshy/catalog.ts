@@ -11,10 +11,18 @@ export type MeshyModel = {
   base: number;
   body: string;
   plinth: string;
+  /** upward-facing faces above this fraction of the height take this colour (a solar deck, a cap) */
+  top?: { above: number; color: string };
+  /** largest extent in metres, for framing (defaults to height) */
+  span?: number;
+  /** show Meshy's own texture instead of our paint (tests only) */
+  textured?: boolean;
 };
 
 export const MESHY: MeshyModel[] = [
-  { id: "contact-mail", name: "C01 · Email statue", height: 3.2, base: 0.1, body: "#f3f2ed", plinth: "#b8b4a9" },
+  { id: "trophy", name: "Trophy", height: 0.9, base: 0.3, body: "#f3f2ed", plinth: "#151515" },
+  { id: "mercury", name: "Mercury solar car", height: 1.1, base: 0.0, body: "#f3f2ed", plinth: "#151515", top: { above: 0.55, color: "#1d2129" }, span: 4.6 },
+  { id: "v01", name: "TH-18 test (Meshy, from our renders)", height: 1.0, base: 0, body: "#f3f2ed", plinth: "#151515", textured: true, span: 5.6 },
 ];
 
 /** Concept images (public/models/concepts/<id>.png): designed first, meshed once approved. */

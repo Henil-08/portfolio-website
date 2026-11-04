@@ -27,10 +27,18 @@ export function MeshyModel({ def, castShadow = true }: { def: Def; castShadow?: 
     const body = new THREE.Color(def.body);
     const plinth = new THREE.Color(def.plinth);
     const cut = def.base * def.height;
+    const top = def.top ? new THREE.Color(def.top.color) : null;
+    const topY = (def.top?.above ?? 1) * def.height;
+    const a = new THREE.Vector3();
+    const b = new THREE.Vector3();
+    const n = new THREE.Vector3();
     for (let i = 0; i < pos.count; i += 3) {
-      // paint whole triangles, by their centre, so the band edge stays crisp
+      // paint whole triangles, by their centre and face normal, so band edges stay crisp
       const y = (pos.getY(i) + pos.getY(i + 1) + pos.getY(i + 2)) / 3;
-      const c = y < cut ? plinth : body;
+      a.set(pos.getX(i + 1) - pos.getX(i), pos.getY(i + 1) - pos.getY(i), pos.getZ(i + 1) - pos.getZ(i));
+      b.set(pos.getX(i + 2) - pos.getX(i), pos.getY(i + 2) - pos.getY(i), pos.getZ(i + 2) - pos.getZ(i));
+      n.crossVectors(a, b).normalize();
+      const c = top && y > topY && n.y > 0.8 ? top : y < cut ? plinth : body;
       for (let k = 0; k < 3; k++) c.toArray(col, (i + k) * 3);
     }
     out.setAttribute("color", new THREE.BufferAttribute(col, 3));
@@ -39,6 +47,16 @@ export function MeshyModel({ def, castShadow = true }: { def: Def; castShadow?: 
     return out;
   }, [scene, def]);
   const mat = useMemo(() => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, flatShading: true }), []);
+  const raw = useMemo(() => {
+    if (!def.textured) return null;
+    const g = scene.clone(true);
+    const bb = new THREE.Box3().setFromObject(g);
+    const s = def.height / (bb.max.y - bb.min.y);
+    g.scale.setScalar(s);
+    g.position.y = -bb.min.y * s;
+    return g;
+  }, [scene, def]);
+  if (raw) return <primitive object={raw} />;
   if (!geo) return null;
   return <mesh geometry={geo} material={mat} castShadow={castShadow} receiveShadow />;
 }

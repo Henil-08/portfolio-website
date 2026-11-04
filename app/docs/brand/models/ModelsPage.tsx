@@ -13,13 +13,14 @@ import { MeshyModel } from "@/components/world/meshy/MeshyModel";
 import { Lights } from "../world/models";
 
 function Turntable({ def }: { def: Def }) {
-  const d = def.height * 2.6;
+  const span = Math.max(def.height, def.span ?? 0);
+  const d = Math.max(def.height * 2.6, span * 1.35);
   return (
-    <Canvas shadows dpr={[1, 2]} camera={{ position: [d * 0.75, def.height * 0.9, d], fov: 30 }}>
+    <Canvas shadows dpr={[1, 2]} camera={{ position: [d * 0.75, def.height * 0.9 + span * 0.25, d], fov: 30 }}>
       <color attach="background" args={["#ebe9e3"]} />
       <Lights size={8} />
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <circleGeometry args={[def.height * 1.6, 64]} />
+        <circleGeometry args={[span * 1.6, 64]} />
         <meshStandardMaterial color="#e1ded6" roughness={1} />
       </mesh>
       <Suspense fallback={null}>
