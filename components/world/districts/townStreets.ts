@@ -111,11 +111,11 @@ export const STREETS = (() => {
         }
       }
     }
-    // the first deep, long frontage gets the bus stop, the next the kiosk
-    if (depth >= 2.6 && b.w >= 7) {
+    // the first deep, long frontage gets the bus stop, the next deep one (a kiosk is short) the kiosk
+    if (depth >= 2.6 && b.w >= 5.8) {
       const [sx, sz] = toWorld(b, 0, fz + b.front * (depth - 1.0));
-      const ok = !blocked(sx, sz, 2) && distToTrack(sx, sz) > HALF + 1.6;
-      if (ok && !busStop) busStop = { x: sx, z: sz, y, yaw: yawOut };
+      const ok = !blocked(sx, sz, 2) && distToTrack(sx, sz) > HALF + 1.6 && !inBuilding(sx, sz, 0.6);
+      if (ok && !busStop && b.w >= 7) busStop = { x: sx, z: sz, y, yaw: yawOut };
       else if (ok && !kiosk && Math.hypot(sx - (busStop?.x ?? 1e9), sz - (busStop?.z ?? 1e9)) > 30) kiosk = { x: sx, z: sz, y, yaw: yawOut };
     }
   }

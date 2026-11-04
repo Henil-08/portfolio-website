@@ -6,7 +6,7 @@ import { AWAY, FRAMES, RUNOFF, barrierOffset, distToTrack, farSign, inSectorScen
 import { FLOODS } from "./layoutStreet";
 import { nearPromenade } from "../waterfront/layout";
 import { STAND_SPOTS } from "./standSpots";
-import { TOWER, TOWN_LOW, TOWN_MID } from "../kit/builtTown";
+import { TOWER, TOWN_LOW, TOWN_MID } from "../kit/builtDims";
 
 // The town is the three approved blocks (../kit/builtTown.tsx: town-low, town-mid and the
 // landmark tower), each scaled to its footprint. Kept low so buildings read only a little

@@ -5,7 +5,10 @@
 // `*Parts()` builder (cached, merged per material, safe to instance) and a component.
 import * as THREE from "three";
 import type { ThreeElements } from "@react-three/fiber";
+import { TOWER, TOWN_LOW, TOWN_MID } from "./builtDims";
 import { B, Built, Kit, chamferRect, once, revealGeo, type MatKey } from "./builtShared";
+
+export { TOWER, TOWN_LOW, TOWN_MID };
 
 type G = ThreeElements["group"];
 type V3 = [number, number, number];
@@ -38,7 +41,6 @@ const spread = (a: number, b: number, n: number) => Array.from({ length: n + 1 }
 
 /* ------------------------------------------------------------------ town-low */
 
-export const TOWN_LOW = { w: 14, d: 14, h: 12 };
 
 /** Three storeys: a glass shop floor with an orange door under two floors of deep coffers and an ink roof. */
 export const townLowParts = once(() => {
@@ -86,7 +88,6 @@ export function TownLow(props: G) {
 
 /* ------------------------------------------------------------------ town-mid */
 
-export const TOWN_MID = { w: 15, d: 15, h: 22 };
 
 /** Six storeys of a chamfered concrete frame: ink infill and windows on the front, balconies and blind panels on the side, a glass penthouse with a planter. */
 export const townMidParts = once(() => {
@@ -170,7 +171,6 @@ export function TownMid(props: G) {
 
 /* ------------------------------------------------------------------ town-tower */
 
-export const TOWER = { w: 11.5, d: 11.5, h: 44, floors: 12 };
 
 /** The landmark tower: chamfered slabs and pilasters round a dark glass core, a flared glass crown, an orange beacon. */
 export const towerParts = once(() => {
