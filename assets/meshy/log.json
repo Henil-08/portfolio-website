@@ -224,10 +224,10 @@
   },
   "floodlight": {
     "concept": {
-      "task": "01a1a794-cec3-730d-ac4a-046156c44a20",
-      "prompt": "A tall slim motorsport floodlight tower: square matte black ink mast on a concrete foot, a tilted rectangular head with a grid of eight lamps, one orange marker light",
+      "task": "01a1a7ab-9b73-73aa-9841-81139ee952ed",
+      "prompt": "A big modern motorsport floodlight tower, tall but sturdy and wide: a thick square matte black ink mast on a large concrete foot, a large wide tilted rectangular lamp head much wider than the mast, a grid of sixteen lamps in four rows of four, a service ladder up the mast, one orange marker light",
       "credits": 6,
-      "at": "2026-11-04T17:22:02.438Z"
+      "at": "2026-11-04T17:47:00.837Z"
     }
   },
   "gantry": {
@@ -240,10 +240,10 @@
   },
   "tecpro": {
     "concept": {
-      "task": "01a1a795-47a0-74b0-a7d9-c0f226f5e994",
-      "prompt": "A modular motorsport crash barrier: a row of rounded rectangular blocks in alternating matte black ink and paper white, each with a graphite strap, two rows stacked, one orange block",
+      "task": "01a1a7ab-df88-76c4-a04f-f94375db8a5b",
+      "prompt": "A modular motorsport crash barrier: a row of rounded rectangular blocks in alternating matte black ink and international orange #ff4f00 blocks (no white blocks), each with a graphite strap, two rows stacked",
       "credits": 6,
-      "at": "2026-11-04T17:22:33.407Z"
+      "at": "2026-11-04T17:47:14.150Z"
     }
   },
   "marshal": {
@@ -256,10 +256,10 @@
   },
   "pitwall": {
     "concept": {
-      "task": "01a1a795-df50-713b-b4f7-49730638c220",
-      "prompt": "A modern pit wall section: a long concrete wall with a paper white top stripe and a tall black ink debris fence on slim posts, a small timing stand with screens",
+      "task": "01a1a7ac-139b-7702-8035-c7132f9f28e9",
+      "prompt": "A modern Formula 1 pit wall section: a long concrete wall with a paper white top stripe and a tall black ink debris fence on slim posts, behind it a long timing stand with four seats in a row, each seat at its own screen console, a black ink canopy over the stand",
       "credits": 6,
-      "at": "2026-11-04T17:23:12.516Z"
+      "at": "2026-11-04T17:47:31.846Z"
     }
   },
   "lamp": {
@@ -336,10 +336,10 @@
   },
   "stumps": {
     "concept": {
-      "task": "01a1a798-dccf-7349-a3aa-821342a58775",
-      "prompt": "Cricket stumps and bails reimagined minimal: three square paper white stumps on a concrete crease slab, black ink bails, one orange bail",
+      "task": "01a1a7ac-595a-7430-8d91-932ff72e9476",
+      "prompt": "Cricket stumps and bails reimagined minimal: exactly three square paper white stumps standing in a single row on a concrete crease slab, two international orange bails resting across the top of the three stumps",
       "credits": 6,
-      "at": "2026-11-04T17:26:32.371Z"
+      "at": "2026-11-04T17:47:45.392Z"
     }
   },
   "podium": {
