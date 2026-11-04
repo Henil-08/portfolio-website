@@ -1,0 +1,94 @@
+// Waterfront kit (concepts boat, pier). Builders return cached Models (see ./shared).
+import { cbox, hull, inset, model, prism, ring, rod, vbox, box, type Kit, type V2, type V3 } from "./shared";
+
+/** Boat deck outline in plan (bow +X), counter-clockwise. */
+const DECK: V2[] = [
+  [3.3, 0],
+  [3.0, 0.48],
+  [2.2, 0.98],
+  [0.6, 1.24],
+  [-3.2, 1.14],
+  [-3.2, -1.14],
+  [0.6, -1.24],
+  [2.2, -0.98],
+  [3.0, -0.48],
+];
+
+/** Deck height, gunwale top and the waterline height to sink the boat to. */
+export const BOAT = { deck: 0.95, top: 1.42, waterline: 0.4, length: 6.6, beam: 2.5 };
+
+/** Centre-console launch: a faceted paper hull with an ink gunwale, an orange rubbing strake, a paper cabin frame with glass and an ink T-top. 6.6 m, bow +X. */
+export function boatModel() {
+  return model("kit-boat", (k) => {
+    const { deck, top } = BOAT;
+    const pts: V3[] = DECK.map(([x, z]): V3 => [x, deck, z]);
+    const chine: V2[] = [
+      [2.95, 0],
+      [2.4, 0.62],
+      [0.6, 1.12],
+      [-3.1, 1.06],
+    ];
+    for (const [x, z] of chine) pts.push([x, 0.42, z], [x, 0.42, -z]);
+    pts.push([-3.0, 0, 0.3], [-3.0, 0, -0.3], [1.8, 0, 0.22], [1.8, 0, -0.22], [2.7, 0.22, 0]);
+    k.add("paper", hull(pts));
+    // bulwark, strake and the ink gunwale cap
+    k.add("paper", ring(DECK, inset(DECK, 0.09), deck - 0.01, top));
+    k.add("orange", ring(inset(DECK, -0.025), inset(DECK, 0.02), top - 0.2, top - 0.14));
+    k.add("ink", ring(inset(DECK, -0.02), inset(DECK, 0.2), top, top + 0.05));
+    // swim platform
+    k.add("paper", cbox(0.34, 0.08, 1.9, 0.02), { p: [-3.36, 0.62, 0] });
+    // seats: stern bench and a bow seat
+    k.add("ink", cbox(0.5, 0.3, 1.8, 0.03), { p: [-2.7, deck + 0.15, 0] });
+    k.add("ink", cbox(0.6, 0.26, 0.9, 0.03), { p: [2.1, deck + 0.13, 0] });
+    // cabin frame: lower side walls, four posts, glass, console and an ink T-top
+    const xb = -0.75;
+    const xf = 0.55;
+    const zc = 0.78;
+    for (const sz of [-1, 1]) {
+      k.add("paper", box(xf - xb, 0.62, 0.07), { p: [(xb + xf) / 2, deck + 0.31, sz * zc] });
+      k.add("glass", box(xf - xb - 0.1, 0.62, 0.02), { p: [(xb + xf) / 2, deck + 0.95, sz * zc] });
+      k.add("paper", box(0.08, 1.38, 0.08), { p: [xb, deck + 0.69, sz * zc] });
+      k.add("paper", box(0.08, 1.38, 0.08), { p: [xf, deck + 0.69, sz * zc] });
+      k.add("paper", box(xf - xb, 0.08, 0.08), { p: [(xb + xf) / 2, deck + 1.3, sz * zc] });
+    }
+    k.add("paper", box(0.08, 0.62, zc * 2), { p: [xf, deck + 0.31, 0] });
+    k.add("glass", box(0.02, 0.66, zc * 2 - 0.1), { p: [xf + 0.08, deck + 0.98, 0], r: [0, 0, -0.25] });
+    k.add("paper", cbox(0.55, 0.9, 0.6, 0.03), { p: [0.15, deck + 0.45, 0.2] });
+    k.add("ink", cbox(0.4, 0.36, 0.5, 0.02), { p: [-0.35, deck + 0.4, 0.2] });
+    k.add("ink", prism(0.12, 0.12, 0.02, 10), { p: [0.3, deck + 1.0, 0.2], r: [0, 0, 1.1] });
+    k.add("ink", cbox(1.75, 0.1, 1.8, 0.05), { p: [(xb + xf) / 2, deck + 1.43, 0] });
+  });
+}
+
+/** Pier dimensions: deck top height, width and one module's length. */
+export const PIER = { h: 2.0, w: 3.2, seg: 4.0 };
+
+/** One pier module from x0 to x0 + seg: concrete deck slab, ink cap beam and two ink piles, ink railings with a paper handrail. */
+export function addPierSegment(k: Kit, x0: number, rails: [boolean, boolean] = [true, true]) {
+  const { h, w, seg } = PIER;
+  const t = 0.36;
+  k.add("concrete", cbox(seg - 0.04, t, w, 0.05), { p: [x0 + seg / 2, h - t / 2, 0] });
+  const xb = x0 + 0.5;
+  k.add("ink", cbox(0.62, 0.5, w - 0.2, 0.14), { p: [xb, h - t - 0.25, 0] });
+  for (const z of [-1.05, 1.05]) k.add("ink", vbox(0.5, h - t - 0.5, 0.5, 0.09), { p: [xb, (h - t - 0.5) / 2, z] });
+  rails.forEach((on, i) => {
+    if (!on) return;
+    const z = (i === 0 ? -1 : 1) * (w / 2 - 0.12);
+    for (let j = 0; j < 3; j++) {
+      const x = x0 + 0.3 + j * (seg / 3);
+      k.add("ink", box(0.06, 1.0, 0.06), { p: [x, h + 0.5, z] });
+      k.add("ink", box(0.12, 0.03, 0.12), { p: [x, h + 0.015, z] });
+    }
+    for (const y of [0.32, 0.62]) k.add("ink", rod([x0, h + y, z], [x0 + seg, h + y, z], 0.025, 6));
+    k.add("paper", cbox(seg, 0.07, 0.11, 0.015), { p: [x0 + seg / 2, h + 1.03, z] });
+  });
+}
+
+/** Pier: three modules, the near one with an orange mooring bollard and its rail set back. 12 m. */
+export function pierModel() {
+  return model("kit-pier", (k) => {
+    const { seg, h, w } = PIER;
+    for (let i = 0; i < 3; i++) addPierSegment(k, -1.5 * seg + i * seg);
+    k.add("orange", prism(0.14, 0.14, 0.48, 8), { p: [-1.5 * seg + 1.2, h, w / 2 - 0.45] });
+  });
+}
