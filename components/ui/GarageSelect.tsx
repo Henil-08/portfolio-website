@@ -199,9 +199,9 @@ function Select({ aligning, back }: { aligning: boolean; back: boolean }) {
             <VehicleCard key={o.code} v={o} on={i === sel} onClick={() => pick(i)} className="dsa-wipe max-md:odd:border-r-2 max-md:[&:nth-child(-n+2)]:border-b-2 md:border-r-2" style={d(380 + i * 90)} />
           ))}
         </div>
-        {/* the drive prompt: exactly the spec column's width, under it */}
+        {/* the drive prompt: its cell is the spec column's width, the button at its own size in the middle (the mock's) */}
         <div className={`pointer-events-auto relative z-[25] flex min-h-0 items-center justify-center border-t-2 border-ink bg-white px-3 ${out("ss-down")}`}>
-          <button type="button" onClick={go} className="x-btn x-primary dsa-flicker max-md:w-full max-md:justify-center" style={d(800)}>
+          <button type="button" onClick={go} className="x-btn x-primary dsa-flicker" style={d(800)}>
             <span className="pointer-coarse:hidden">Press {key("Enter", "Enter")} to drive</span>
             <span className="hidden pointer-coarse:inline">Drive</span> <span className="x-arrow">→</span>
           </button>

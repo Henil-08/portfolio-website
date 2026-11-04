@@ -30,6 +30,43 @@ export const FLOOR_SELECT = -0.15;
 export const FLOOR = { paper: "#ebe9e3", dot: "#b9b6ab", cell: 3, dotSize: 3 * (6 / 64), half: 450, fogNear: 160, fogFar: 440 } as const;
 
 /**
+ * The studio sweep (owner, 2026-11-05: dots on the entire screen): round the spot the dot floor
+ * runs flat to `r0`, bends up through a quarter circle of radius `bend` and rises as a wall, all
+ * dotted on the same 3 m pitch, so whatever the camera sees in the garage is dotted floor, edge to
+ * edge, with no horizon. It sinks into the floor as the bloom starts (Opening.tsx).
+ */
+export const SWEEP = { r0: 30, bend: 12, height: 70, segments: 160 } as const;
+const ARC = (Math.PI / 2) * SWEEP.bend;
+/** A point on the sweep's profile at arc length `s` from where it leaves the floor: radius, height, and the profile's direction. */
+export function sweepAt(s: number) {
+  if (s <= ARC) {
+    const a = s / SWEEP.bend;
+    return { r: SWEEP.r0 + SWEEP.bend * Math.sin(a), y: SWEEP.bend * (1 - Math.cos(a)), dr: Math.cos(a), dy: Math.sin(a) };
+  }
+  return { r: SWEEP.r0 + SWEEP.bend, y: SWEEP.bend + (s - ARC), dr: 0, dy: 1 };
+}
+export const SWEEP_LENGTH = ARC + SWEEP.height - SWEEP.bend;
+/**
+ * The sweep's dots, round the spot (y up from the floor): rows every 3 m along the profile, each row
+ * as many dots as fit its circumference at 3 m. Each is [x, y, z, ux, uz, vx, vy, vz]: its centre, the
+ * row's direction (horizontal) and the profile's.
+ */
+export function sweepDots() {
+  const out: number[][] = [];
+  for (let s = FLOOR.cell / 2; s < SWEEP_LENGTH; s += FLOOR.cell) {
+    const p = sweepAt(s);
+    const n = Math.round((2 * Math.PI * p.r) / FLOOR.cell);
+    for (let i = 0; i < n; i++) {
+      const a = ((i + 0.5) / n) * Math.PI * 2;
+      const c = Math.cos(a);
+      const sn = Math.sin(a);
+      out.push([c * p.r, p.y, sn * p.r, -sn, c, c * p.dr, p.dy, sn * p.dr]);
+    }
+  }
+  return out;
+}
+
+/**
  * The garage box (owner, 2026-10-26: "the normal small size and the box in the background"):
  * at most 1100 x 640, centred, with the dotted floor all round it. Below 768 px wide it fills the
  * screen inside a 12 px margin and stacks. Heights are fixed so the cell is known before the
@@ -127,9 +164,9 @@ export function drawFloor(g: CanvasRenderingContext2D, W: number, H: number, dpr
   const j0 = Math.ceil((sz0 - reach - 1.5) / FLOOR.cell);
   const j1 = Math.floor((sz0 + reach - 1.5) / FLOOR.cell);
   const pt = [0, 0];
-  const project = (x: number, z: number) => {
+  const project = (x: number, z: number, py = y) => {
     const dx = x - cx;
-    const dy = y - cy;
+    const dy = py - cy;
     const dz = z - cz;
     const zc = dx * fx + dy * fy + dz * fz;
     if (zc < 0.3) return -1;
@@ -145,6 +182,8 @@ export function drawFloor(g: CanvasRenderingContext2D, W: number, H: number, dpr
       if (Math.abs(wz) > FLOOR.half) continue;
       const x = wx - sx0;
       const z = wz - sz0;
+      // past r0 the sweep stands in front of the flat floor
+      if (Math.hypot(x, z) > SWEEP.r0 - h) continue;
       const zc = project(x, z);
       if (zc < 0 || zc > FLOOR.fogFar) continue;
       if (pt[0] < -20 || pt[0] > W + 20 || pt[1] < -20 || pt[1] > H + 20) continue;
@@ -174,10 +213,32 @@ export function drawFloor(g: CanvasRenderingContext2D, W: number, H: number, dpr
       p.closePath();
     }
   }
+  // the sweep's dots (solid, no texture filtering in the 3D either)
+  for (const [x, dy, z, ux2, uz2, vx, vy, vz] of sweepDots()) {
+    const q: number[] = [];
+    for (const [a, b] of [
+      [-h, -h],
+      [h, -h],
+      [h, h],
+      [-h, h],
+    ])
+      if (project(x + ux2 * a + vx * b, z + uz2 * a + vz * b, y + dy + vy * b) > 0) q.push(pt[0], pt[1]);
+    if (q.length < 8) continue;
+    const xs = [q[0], q[2], q[4], q[6]];
+    const ys = [q[1], q[3], q[5], q[7]];
+    if (Math.max(...xs) < -2 || Math.min(...xs) > W + 2 || Math.max(...ys) < -2 || Math.min(...ys) > H + 2) continue;
+    const p = paths[0];
+    used[0] = true;
+    p.moveTo(q[0], q[1]);
+    p.lineTo(q[2], q[3]);
+    p.lineTo(q[4], q[5]);
+    p.lineTo(q[6], q[7]);
+    p.closePath();
+  }
   g.fillStyle = FLOOR.dot;
   for (let b = 0; b < BANDS; b++) {
     if (!used[b]) continue;
-    g.globalAlpha = 1 - (b + 0.5) / BANDS;
+    g.globalAlpha = b === 0 ? 1 : 1 - (b + 0.5) / BANDS;
     g.fill(paths[b]);
   }
   g.globalAlpha = 1;

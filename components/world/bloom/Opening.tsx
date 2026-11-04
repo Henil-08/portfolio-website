@@ -20,7 +20,7 @@ import { liveryOf, vehicleByCode, type Livery, type VehicleCode } from "../vehic
 import { revealSound } from "../sound";
 import { ALIGN, STUDIO_OUT, boot, opening, setStage, skipping, stageTime, studio, useOpening } from "./state";
 import { ISLAND, PLAN, buildDots, reachFrom, type Bloom } from "./plan";
-import { FLOOR_SELECT, GAME_OFFSET as GAME_OFFSET_V, SELECT_AZ, SELECT_CAM, SELECT_EL, SELECT_FOV, SELECT_TARGET_Y, TABLE_SCALE, kOf, selectLens } from "./view";
+import { FLOOR, FLOOR_SELECT, SWEEP, SWEEP_LENGTH, sweepAt, GAME_OFFSET as GAME_OFFSET_V, SELECT_AZ, SELECT_CAM, SELECT_EL, SELECT_FOV, SELECT_TARGET_Y, TABLE_SCALE, kOf, selectLens } from "./view";
 import { U, bloomOff, bloomOn, bloomStats, scan, warmOwn } from "./patch";
 
 const S = VEHICLE_SCALE;
@@ -127,6 +127,55 @@ const floorMat = (() => {
   m.customProgramCacheKey = () => "bloom-floor";
   return m;
 })();
+
+/** The studio sweep round the spot (view.ts SWEEP): paper, with the floor's dots drawn in its
+ * shader at the positions view.ts `sweepDots` gives (the boot's still, Boot.tsx, draws the same),
+ * so the garage view is dotted floor edge to edge. The profile is sampled evenly along its length,
+ * so the lathe's v is the arc length. */
+const sweepGeo = (() => {
+  const N = 64;
+  const pts = Array.from({ length: N + 1 }, (_, i) => {
+    const p = sweepAt((i / N) * SWEEP_LENGTH);
+    return new THREE.Vector2(p.r, p.y);
+  });
+  return new THREE.LatheGeometry(pts, SWEEP.segments);
+})();
+const glsl = (n: number) => n.toFixed(5);
+const sweepMat = new THREE.ShaderMaterial({
+  side: THREE.DoubleSide,
+  polygonOffset: true,
+  polygonOffsetFactor: -1,
+  polygonOffsetUnits: -1,
+  uniforms: { uPaper: { value: new THREE.Color(FLOOR.paper) }, uDot: { value: new THREE.Color(FLOOR.dot) } },
+  vertexShader: `
+    varying vec2 vUv; varying vec3 vL;
+    void main() { vUv = uv; vL = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `
+    uniform vec3 uPaper; uniform vec3 uDot; varying vec2 vUv; varying vec3 vL;
+    const float PI2 = 6.28318531;
+    float profileR(float s) {
+      float arc = ${glsl((Math.PI / 2) * SWEEP.bend)};
+      return s <= arc ? ${glsl(SWEEP.r0)} + ${glsl(SWEEP.bend)} * sin(s / ${glsl(SWEEP.bend)}) : ${glsl(SWEEP.r0 + SWEEP.bend)};
+    }
+    void main() {
+      float cell = ${glsl(FLOOR.cell)};
+      float h = ${glsl(FLOOR.dotSize / 2)};
+      float s = vUv.y * ${glsl(SWEEP_LENGTH)};
+      float sc = (floor(s / cell) + 0.5) * cell;
+      float n = floor(PI2 * profileR(sc) / cell + 0.5);
+      float a = fract(atan(vL.z, vL.x) / PI2 + 1.0);
+      float r = length(vL.xz);
+      float da = (fract(a * n) - 0.5) * PI2 * r / n;
+      float ds = s - sc;
+      // anti-aliased square: a pixel's worth of soft edge
+      vec2 d = vec2(abs(da), abs(ds));
+      // (from the position, not the angle: atan wraps once round)
+      vec2 w = vec2(max(length(fwidth(vL)), 1e-4));
+      vec2 k = 1.0 - smoothstep(vec2(h) - w * 0.5, vec2(h) + w * 0.5, d);
+      gl_FragColor = vec4(mix(uPaper, uDot, k.x * k.y), 1.0);
+      #include <colorspace_fragment>
+    }`,
+});
 
 /* ------------------------------------------------------------------ the dots */
 
@@ -468,11 +517,12 @@ export function Opening() {
   const stage = useOpening((s) => s.stage);
   const [dots, setDots] = useState<THREE.BufferGeometry | null>(null);
   const floor = useRef<THREE.Mesh>(null);
+  const sweep = useRef<THREE.Group>(null);
   const w = useRef({ step: 0, frames: 0, t: 0, planned: 1, el: SELECT_EL });
 
   useEffect(() => {
     opening.restore = bloomOff;
-    if (process.env.NODE_ENV !== "production") (window as unknown as { __bloom: object }).__bloom = { stats: bloomStats, opening, boot, warm: () => ({ ...w.current }), where: () => (readSpot(scene), { ...spot }) };
+    if (process.env.NODE_ENV !== "production") (window as unknown as { __bloom: object }).__bloom = { stats: bloomStats, opening, boot, warm: () => ({ ...w.current }), where: () => (readSpot(scene), { ...spot }), sweep: () => { const o = scene.getObjectByName("studio-sweep"); return o && { visible: o.visible, p: o.position.toArray(), sy: o.scale.y, parentVisible: o.parent?.visible, kids: o.children.length }; } };
   }, [scene]);
 
   useEffect(() => () => dots?.dispose(), [dots]);
@@ -564,6 +614,14 @@ export function Opening() {
       // the one dot floor: at the plinth's foot, rising to just under the vehicle on Enter
       const kf = stg === "align" ? power2InOut(clamp01(stageTime(window.__alignT) / ALIGN)) : stg === "build" ? 1 : 0;
       if (floor.current) floor.current.position.y = spot.y + lerp(FLOOR_SELECT * kOf(g.vehicle), FLOOR_BUILD, kf);
+      // the sweep stands on the floor round the spot, and folds down into it as the bloom starts
+      const sw = sweep.current;
+      if (sw && floor.current) {
+        const kd = stg === "build" ? power2InOut(clamp01(stageTime(window.__buildT) / 0.9)) : 0;
+        sw.position.set(spot.x, floor.current.position.y, spot.z);
+        sw.scale.set(1, Math.max(1e-3, 1 - kd), 1);
+        sw.visible = kd < 1;
+      }
     }
 
     // the camera: the select view and the align in table units, then the bloom's path in metres
@@ -645,6 +703,9 @@ export function Opening() {
           <mesh ref={floor} rotation={[-Math.PI / 2, 0, 0]} material={floorMat} renderOrder={-0.5}>
             <planeGeometry args={[900, 900]} />
           </mesh>
+          <group ref={sweep} name="studio-sweep">
+            <mesh geometry={sweepGeo} material={sweepMat} />
+          </group>
           {dots && <points geometry={dots} material={dotMat} frustumCulled={false} renderOrder={4} />}
         </group>
       )}
