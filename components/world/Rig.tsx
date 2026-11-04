@@ -11,13 +11,15 @@ import { sceneParams } from "./Effects";
 import { dayNight } from "./daynight";
 import { studio } from "./bloom/state";
 import { zones, type Zone } from "./layout";
-import { garageShot } from "./garageShots";
-import type { Domain } from "@/content/projects";
+import { garageView } from "./garage/state";
+import { blendCamera } from "./garage/anim";
 
-// Garage experience: the camera dollies in through the door to the project on show
-// and back out when the garage closes (power2.inOut, DOLLY s).
-const DOLLY = 1.3;
-const power2InOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+// The world camera's lens (World.tsx), which the garage's cockpit shot borrows and gives back.
+const FOV = 34;
+const NEAR = 0.5;
+/** The garage's sheet on the right from 640 px (Hud.tsx Sheet, 440 px at right 20 px), or the bottom 62 % below. */
+const SHEET_W = 440 + 20 + 12;
+const SHEET_H = 0.62;
 
 const OFFSET = new THREE.Vector3(10.5, 12.5, 14);
 const look = new THREE.Vector3();
@@ -35,9 +37,9 @@ export function CameraRig() {
   const zoomS = useRef(0);
   const shot = useRef<{ id: number; style: string; t: number } | null>(null);
   const idle = useRef(0);
-  const garage = useRef({ t: 0, pos: new THREE.Vector3(), look: new THREE.Vector3(), has: false });
+  const garageLens = useRef({ on: false });
 
-  useFrame((_, dt) => {
+  useFrame((state, dt) => {
     const phase = getState().phase;
     const portrait = size.height > size.width;
     const zoom = portrait ? 1.45 : 1;
@@ -79,26 +81,38 @@ export function CameraRig() {
       return;
     }
 
-    // Garage open: dolly in to the project on show; closed: ease back to the chase camera.
+    // Garage experience (garage/GarageShow.tsx): from the chase pose behind the stand-in as it
+    // drives into the bay, into the driver's eye. The picture is framed in the part of the screen
+    // the garage's sheet leaves free (a view offset), and the lens goes back when it is over.
     {
-      const g = garage.current;
-      const z = getState().zone;
-      const dom = z && z.startsWith("garage-") ? (z.slice(7) as Domain) : null;
-      g.t = THREE.MathUtils.clamp(g.t + (dom ? dt : -dt) / DOLLY, 0, 1);
-      if (dom) {
-        const want = garageShot(dom, portrait);
-        const kk = g.has ? Math.min(1, dt * 3) : 1; // snap on first open
-        g.pos.lerp(want.position, kk);
-        g.look.lerp(want.target, kk);
-        g.has = true;
-      } else if (g.t === 0) g.has = false;
-      if (g.t > 0) {
-        const k = power2InOut(g.t);
-        camera.position.lerpVectors(followPos, g.pos, k);
-        look.lerpVectors(target.current, g.look, k);
+      const lens = garageLens.current;
+      if (garageView.car) {
+        const fov = blendCamera(garageView.poses, followPos, target.current, FOV, camera.position, look);
         camera.lookAt(look);
+        const cam = state.camera as THREE.PerspectiveCamera;
+        const b = garageView.poses.b;
+        const W = size.width;
+        const H = size.height;
+        const side = W >= 640;
+        const rw = side ? THREE.MathUtils.lerp(W, Math.max(W * 0.4, W - SHEET_W), b) : W;
+        const rh = side ? H : THREE.MathUtils.lerp(H, H * (1 - SHEET_H) - 12, b);
+        cam.fov = fov;
+        cam.near = THREE.MathUtils.lerp(NEAR, 0.04, b);
+        cam.aspect = rw / rh;
+        cam.setViewOffset(rw, rh, 0, 0, W, H);
+        cam.updateProjectionMatrix();
+        lens.on = true;
         orbit.copy(camera.position);
         return;
+      }
+      if (lens.on) {
+        const cam = state.camera as THREE.PerspectiveCamera;
+        cam.clearViewOffset();
+        cam.fov = FOV;
+        cam.near = NEAR;
+        cam.aspect = size.width / size.height;
+        cam.updateProjectionMatrix();
+        lens.on = false;
       }
     }
 

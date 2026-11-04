@@ -59,14 +59,14 @@ export const SECTOR_PLACES: Place[] = SECTORS.map((s, i) => {
 
 export const GARAGE_PLACES: Place[] = GARAGES.map((g) =>
   zonePlace(`garage-${g.domain}` as ZoneId, {
-    parts: "buildings/PitBuilding.tsx PitBuilding + Plinth, Places.tsx GarageCarousel, models/projects ProjectObject",
+    parts: "buildings/PitBuilding.tsx PitBuilding + Plinth, garage/Bay.tsx GarageBay (pit wall of screens, stage), garage/GarageShow.tsx, models/projects ProjectObject",
     view: { x: g.x, z: PIT.garageZ - 2.4, lift: 1.1, off: [3, 2.6, 13] },
     trigger: `Park on the apron in front of the ${garageLabel[g.domain]} bay (${hotspot(`garage-${g.domain}` as ZoneId)}). E, Enter or a click opens the garage.`,
     interact: [
-      "The camera dollies in through the open door (garageShots.ts garageShot).",
-      "The project on show slides to the centre plinth, scales up and glows: a halo, a showroom beam and an orange rim.",
-      "← → step along the plinths; the others slide along and the one that wraps shrinks out and grows back in.",
-      "The wide sheet (640 px) is the project's datasheet card: features, key specs, built with, source.",
+      "A stand-in for your vehicle, in your livery, drives from where you parked into the bay, wheels turning; the camera follows it in and settles at the driver's eye (garage/GarageShow.tsx, Rig.tsx).",
+      "The back wall is a pit wall of datasheet screens, one per project; the one on the stage lights and steps out in an orange frame.",
+      "← →, the card's footer or a click on a screen slide the stage object off and the next one on; the frame rides along the wall in step.",
+      "The sheet (440 px) is the project's datasheet card: features, key specs, built with, source. Esc backs out to where you were.",
     ],
   })
 );

@@ -14,7 +14,7 @@ type State = {
   ready: boolean; // physics and scene mounted
   revealed: boolean; // the opening has landed on the chase camera (bloom/Opening.tsx)
   zone: ZoneId | null; // the card that is open
-  garageSel: number; // the project on show in an open garage (garageShots.ts)
+  garageSel: number; // the project on the stage in an open garage (garage/GarageShow.tsx)
   near: ZoneId | null; // the place the car is parked at, if any
   nearLink: string | null; // the contact medallion the car is next to (social/index.tsx LINKS key)
   found: ZoneId[];

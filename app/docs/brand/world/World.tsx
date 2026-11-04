@@ -345,8 +345,8 @@ export default function World() {
             <h2 className="text-[30px] font-semibold leading-none tracking-tight sm:text-[40px]">Garage experience</h2>
           </div>
           <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-[#5d5d58]">
-            Cockpit + pit wall: the owner&rsquo;s cockpit idea with the pit wall screens behind the stage, as one move. Pick a vehicle, a livery and a garage, then press Enter to drive in, ← → to change
-            project (or click a screen) and Esc to back out. A mock to try; not in the game yet.
+            Cockpit + pit wall, approved and in the game (2026-11-05), built from the same code. Pick a vehicle, a livery and a garage, then press Enter to drive in, ← → to change project
+            (or click a screen) and Esc to back out.
           </p>
           <div className="mt-6">
             <GarageExperience />

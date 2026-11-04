@@ -3,7 +3,7 @@
 // Garage experience · Cockpit + pit wall (owner, approved 2026-11-05): the clocks and the bay's
 // layout, shared by the game (GarageShow.tsx) and the docs mock (/docs/brand/world#garage).
 // Bay frame: x across the door, y up, +z out of the door; floor y = 0, door at z = +3.5, back
-// wall's inner face at z = -3.2. In the game the frame's origin is (garage x, pit y, PIT.garageZ - 1).
+// wall's inner face at z = -3.08. In the game the frame's origin is (garage x, pit y, PIT.garageZ - 1).
 import { useRef } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
@@ -86,7 +86,8 @@ export function garageList(domain: Domain): Item[] {
 
 export const S = VEHICLE_SCALE;
 export const DOOR_Z = 3.5;
-export const BACK_Z = -3.2;
+/** The back wall's inner face: the game's 7 m deep pit building lines its bays 0.41 m in from the back (kit/builtTown.tsx). */
+export const BACK_Z = -3.08;
 /** Where the mock's vehicle waits outside, on the pit lane. */
 export const OUT_Z = 8.8;
 
@@ -107,7 +108,7 @@ export const PLINTH_H = 0.5;
 export const EYE_Z = 1.9;
 /** Where the eye looks once parked: between the stage object and the wall above it. */
 export const TARGET = new THREE.Vector3(0, 1.5, -2.2);
-export const FOV = 54;
+export const FOV = 58;
 
 /** The screens: 16:10 datasheets, up to four across, two rows. */
 export const SW = 1.04;

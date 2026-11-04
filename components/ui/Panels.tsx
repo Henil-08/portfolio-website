@@ -208,8 +208,9 @@ function Compound({ c }: { c: string }) {
   return <span className={`grid h-[30px] w-[30px] place-items-center border-2 border-ink font-mono text-[12px] font-semibold ${soft ? "border-signal bg-signal text-white" : c === "hard" ? "bg-white" : "bg-ink text-white"}`}>{c[0].toUpperCase()}</span>;
 }
 
-// Garage: the camera dollies in to one project at a time (world/Rig.tsx) and this is its
-// datasheet card (components/brand/sheets.tsx). ← → or the card's footer move along the plinths.
+// Garage: you sit in the cockpit facing the bay's pit wall and stage (world/garage/GarageShow.tsx)
+// and this is the datasheet of the project on the stage (components/brand/sheets.tsx). ← →, the
+// card's footer or a click on a screen switch project.
 function GarageSheet({ domain }: { domain: Domain }) {
   const list = projects.map((p, i) => [p, i] as const).filter(([p]) => p.domain === domain);
   const sel = Math.min(useWorld((s) => s.garageSel), list.length - 1);

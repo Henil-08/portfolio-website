@@ -12,6 +12,7 @@ import {
 } from "@react-three/rapier";
 import * as THREE from "three";
 import { VEHICLE_SCALE } from "./vehicles/scale";
+import { garageBusy, garageView } from "./garage/state";
 import { RigContext, liveryOf, vehicleByCode, type VehicleDef, type VehicleRig } from "./vehicles";
 import { input } from "./input";
 import { carState, ticker } from "./carState";
@@ -351,7 +352,8 @@ function Drive({ def }: { def: VehicleDef }) {
   useBeforePhysicsStep(() => {
     const v = controller.current;
     if (!v) return;
-    const driving = getState().phase === "world";
+    // a garage holds the car still while its stand-in drives in and out (garage/GarageShow.tsx)
+    const driving = getState().phase === "world" && !garageBusy(getState().zone);
     const dts = ticker.deltaScaled;
     const b = body.current;
     const touching = input.forward || input.back || input.steer || input.handbrake || power.active !== null;
@@ -458,6 +460,7 @@ function Drive({ def }: { def: VehicleDef }) {
     const v = controller.current;
     const b = body.current;
     if (!v || !b) return;
+    if (model.current) model.current.visible = !garageView.car;
 
     // Post-physics measures, the original's style: speed from how far the body moved this step.
     const t = b.translation();

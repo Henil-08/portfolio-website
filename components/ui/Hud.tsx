@@ -141,7 +141,7 @@ function ZoneCard() {
   }, [zone]);
   if (!zone) return null;
   return (
-    <Sheet key={zone} code={zoneCode(zone)} kicker={zoneMeta[zone].kicker} title={zoneMeta[zone].title} onClose={closeZone} wide={zone.startsWith("garage-")}>
+    <Sheet key={zone} code={zoneCode(zone)} kicker={zoneMeta[zone].kicker} title={zoneMeta[zone].title} onClose={closeZone}>
       <PanelBody zone={zone} />
     </Sheet>
   );
@@ -265,7 +265,7 @@ function InteractKey() {
       if ((e.code === "KeyE" || e.code === "Enter") && s.nearLink && !s.zone) openLink(s.nearLink);
       else if ((e.code === "KeyE" || e.code === "Enter") && s.near && !s.zone) openZone(s.near);
       if (e.code === "Escape" && s.zone) closeZone();
-      // garage open: the arrow keys move along its plinths (the camera follows, Rig.tsx)
+      // garage open: the arrow keys switch the project on the stage (world/garage/GarageShow.tsx)
       if (s.zone?.startsWith("garage-") && (e.code === "ArrowRight" || e.code === "ArrowLeft")) {
         const n = projects.filter((p) => `garage-${p.domain}` === s.zone).length;
         setState({ garageSel: (s.garageSel + (e.code === "ArrowRight" ? 1 : -1) + n) % n });
