@@ -1,6 +1,6 @@
 import type { Livery, VehicleDef } from "@/components/world/vehicles";
 import type { Domain } from "@/content/projects";
-import type { Item } from "./common";
+import type { Item } from "@/components/world/garage/anim";
 
 /** What the scene gets from the mock. */
 export type SceneProps = {
