@@ -1,23 +1,30 @@
 "use client";
 
 import * as THREE from "three";
-import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { heightAt } from "../terrain";
 import { geo } from "../models/props/shared";
+import { Kit, bm, cboxGeo, sliceGeo } from "../kit/builtShared";
 import { Movables, type MovableItem, type MovableKind } from "../Movables";
 import { BLOCK, BLOCK_D, BLOCK_H, TYRE_WALLS } from "./layoutStreet";
 import { K, km } from "./ink";
 
 // No walls round the circuit: open run-off past the kerbs and a short TecPro barrier
-// (W03) on the outside of each tight corner: two rows of rounded blocks, ink and paper
-// in turn, the top row set half a block along, a graphite strap round each block and
-// one orange block per wall. Every block is its own light body, so the car can scatter
+// on the outside of each tight corner, after the approved concept (tecpro): two rows of
+// chamfered blocks, ink and paper in turn, the top row set half a block along, a graphite
+// strap and buckle round each block near its end, and one orange block per wall. Every block is its own light body, so the car can scatter
 // a wall; Movables puts them back once the car is well away.
 
-const blockGeo = () =>
-  geo("tecpro-block", () => new RoundedBoxGeometry(BLOCK, BLOCK_H, BLOCK_D, 2, 0.12));
-/** The strap: a thin band round the middle, just proud of the faces. */
-const strapGeo = () => geo("tecpro-strap", () => new THREE.BoxGeometry(BLOCK - 0.04, 0.06, BLOCK_D + 0.012));
+const C = 0.17; // chamfer
+const blockGeo = () => geo("tecpro-block-v2", () => cboxGeo(BLOCK, BLOCK_H, BLOCK_D, C));
+/** The strap: an upright band round the block near its end, just proud, and its buckle on the front. */
+const strapGeo = () =>
+  geo("tecpro-strap-v2", () => {
+    const k = new Kit();
+    const x = BLOCK / 2 - 0.24;
+    k.add("strap", sliceGeo(0.07, BLOCK_H + 0.016, BLOCK_D + 0.016, C), [x, 0, 0]);
+    k.cbox("strap", [0.16, 0.2, 0.05], [x, 0, BLOCK_D / 2 + 0.02], 0.015);
+    return k.build().strap!;
+  });
 
 const INK = new THREE.Color(K.ink);
 const PAPER = new THREE.Color(K.paper);
@@ -39,7 +46,7 @@ const KIND = (() => {
     items,
     parts: [
       { geometry: blockGeo(), material: km.painted(), colors },
-      { geometry: strapGeo(), material: km.graphite(), shadow: false },
+      { geometry: strapGeo(), material: bm("strap"), shadow: false },
     ],
     shape: { type: "box", hx: BLOCK / 2, hy: BLOCK_H / 2, hz: BLOCK_D / 2, round: 0.1 },
     mass: 0.3,

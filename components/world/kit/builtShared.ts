@@ -100,6 +100,7 @@ export function hullGeo(pts: V3[]) {
 /** Corners of a w x d rectangle with its corners cut by c, as [x, z] around the centre. */
 export function chamferRect(w: number, d: number, c: number): [number, number][] {
   const x = w / 2, z = d / 2;
+  c = Math.min(c, x, z);
   if (c <= 0) return [[-x, -z], [x, -z], [x, z], [-x, z]];
   return [[-x + c, -z], [x - c, -z], [x, -z + c], [x, z - c], [x - c, z], [-x + c, z], [-x, z - c], [-x, -z + c]];
 }
@@ -117,6 +118,13 @@ export function cboxGeo(w: number, h: number, d: number, c = 0, top = c, bot = c
   ring(h / 2 - top, 0);
   if (bot > 0) ring(-h / 2, bot);
   if (top > 0) ring(h / 2, top);
+  return hullGeo(pts);
+}
+
+/** A thin slice across a chamfered block: its y-z profile (h x d, corners cut by c), `w` thick along x. For straps and bands. */
+export function sliceGeo(w: number, h: number, d: number, c: number) {
+  const pts: V3[] = [];
+  for (const x of [-w / 2, w / 2]) for (const [z, y] of chamferRect(d, h, c)) pts.push([x, y, z]);
   return hullGeo(pts);
 }
 

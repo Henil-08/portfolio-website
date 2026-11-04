@@ -5,7 +5,7 @@
 // builder (merged per material, ready for InstancedMesh) and a component. Front faces +z.
 import * as THREE from "three";
 import type { ThreeElements } from "@react-three/fiber";
-import { B, Built, Kit, cboxGeo, chamferRect, once, panelGeo, type MatKey } from "./builtShared";
+import { B, Built, Kit, cboxGeo, chamferRect, once, panelGeo, sliceGeo, type MatKey } from "./builtShared";
 
 type G = ThreeElements["group"];
 type V3 = [number, number, number];
@@ -245,7 +245,7 @@ export const tecproBodyGeo = once(() => cboxGeo(TECPRO.l, TECPRO.h, TECPRO.t, TE
 export const tecproStrapParts = once(() => {
   const k = new Kit();
   const { l, h, t, c } = TECPRO;
-  k.add("strap", cboxGeo(0.08, h + 0.02, t + 0.02, c, c, c), [l / 2 - 0.3, h / 2, 0], [0, 0, 0]);
+  k.add("strap", sliceGeo(0.08, h + 0.02, t + 0.02, c), [l / 2 - 0.3, h / 2, 0]);
   k.cbox("strap", [0.2, 0.26, 0.06], [l / 2 - 0.3, h / 2, t / 2 + 0.03], 0.02);
   k.box("graphite", [0.12, 0.04, 0.03], [l / 2 - 0.3, h / 2 + 0.05, t / 2 + 0.07]);
   return k.build().strap!;
