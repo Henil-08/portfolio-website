@@ -10,6 +10,7 @@ import { profile } from "@/content/profile";
 import { pad } from "@/components/brand/tokens";
 import { Lockup } from "@/components/brand/mark";
 import StartSequence from "./StartSequence";
+import GarageExperience from "./garage/GarageExperience";
 import { Car, Diorama, Lights, Floodlight, Gantry, Garage, Grandstand, KerbEdge, TecPro, Town, Trees, W, WallFence } from "./models";
 
 /** One turntable: its own camera, lights and a plinth. */
@@ -334,6 +335,21 @@ export default function World() {
           </ol>
           <div className="mt-6">
             <StartSequence />
+          </div>
+        </section>
+
+        {/* 05 · garage experience */}
+        <section id="garage" className="pt-16">
+          <div className="flex items-baseline gap-4 border-b-[3px] border-[#111] pb-3">
+            <span className={`font-mono text-[15px] text-[#ff4f00]`}>05</span>
+            <h2 className="text-[30px] font-semibold leading-none tracking-tight sm:text-[40px]">Garage experience</h2>
+          </div>
+          <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-[#5d5d58]">
+            What happens when you drive into a garage. Four ways to show its projects, one at a time, with the datasheet beside each. Pick an option, a vehicle and a garage, then
+            press Enter to drive in, ← → to change project and Esc to back out. Not approved yet.
+          </p>
+          <div className="mt-6">
+            <GarageExperience />
           </div>
         </section>
       </div>
