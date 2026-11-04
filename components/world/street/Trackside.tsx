@@ -11,32 +11,32 @@ import { BARRIER_H, compose, farSpot, inSectorScene, nearPlace, nearTree, rng, y
 import { Instances } from "./Instances";
 import { BOARDS, FENCES, FENCE_H, MARSHALS } from "./layoutStreet";
 import { STAND_SPOTS } from "./standSpots";
-import { lensMat } from "./Floodlights";
 import { boardTexture, loadBoardFonts } from "./boardArt";
 import { K, debrisFenceMat, km } from "./ink";
+import { BuiltInstances } from "../kit/builtInstances";
+import { STAND_GAME, STAND_SCALE, STAND_Z, grandstandFrame, grandstandParts, marshalParts, standSeats } from "../kit/builtTrackside";
 
 // ------------------------------------------------------------ painted parts (one draw call)
 
 const col = (c: string) => new THREE.Color(c);
-const WHITE = col(C.white);
 const ORANGE = col(K.orange);
-const CONCRETE = col(K.concrete);
 const CONCRETE_DARK = col(K.concreteDark);
 const PAPER = col(K.paper);
-const GRAPHITE = col(K.graphite);
 const KINK = col(K.ink);
 
 // a restrained crowd: paper, ink and greys (the marshals wear the orange)
 const SHIRTS = [K.paper, K.paper, K.paper, K.ink, K.ink, K.graphite, K.concrete, K.concreteDark, "#4d5a61"].map(col);
 const SKINS = [C.skin, C.skinShade, "#e3b48f", "#a8714f", "#7c5038"].map(col);
 
-// grandstand dimensions, matched to props/Grandstand
-const W = 10;
-const ROWS = 4;
-const STEP_H = 0.5;
-const STEP_D = 0.95;
-const Z0 = 1.6;
-const PER_ROW = 16;
+// grandstands: the game's stand (STAND_GAME at STAND_SCALE, as props/Grandstand), its front at FRONT
+const W = (STAND_GAME.w ?? 13.3) * STAND_SCALE;
+const FRONT = grandstandFrame(STAND_GAME).front * STAND_SCALE + STAND_Z;
+const BACK = grandstandFrame(STAND_GAME).back * STAND_SCALE + STAND_Z - 0.3;
+const SEATS = standSeats(STAND_GAME);
+/** The marshal post at the world's scale (2 x 2.6 x 1.8 m). */
+const MARSHAL_SCALE = 0.8;
+const MARSHAL_MATRICES = MARSHALS.map((m) => compose(m.x, heightAt(m.x, m.z), m.z, m.yaw, MARSHAL_SCALE, MARSHAL_SCALE, MARSHAL_SCALE));
+const STAND_MATRICES = STAND_SPOTS.map((s) => compose(s.x, heightAt(s.x, s.z), s.z, s.yaw).multiply(new THREE.Matrix4().compose(new THREE.Vector3(0, s.raise, STAND_Z), new THREE.Quaternion(), new THREE.Vector3(STAND_SCALE, STAND_SCALE, STAND_SCALE))));
 
 type Put = (x: number, y: number, z: number, sx: number, sy: number, sz: number, c: THREE.Color, rx?: number) => void;
 
@@ -50,66 +50,28 @@ function placer(list: { m: THREE.Matrix4[]; c: THREE.Color[] }, x0: number, z0: 
 
 const PAINT = (() => {
   const paint = { m: [] as THREE.Matrix4[], c: [] as THREE.Color[] };
-  const steel = { m: [] as THREE.Matrix4[], c: [] as THREE.Color[] };
-  const glow = { m: [] as THREE.Matrix4[] };
   const bodies = { m: [] as THREE.Matrix4[], c: [] as THREE.Color[] };
   const heads = { m: [] as THREE.Matrix4[], c: [] as THREE.Color[] };
   const r = rng(91);
 
-  // ---- grandstands (W06): concrete tiers, graphite seats with one paper row, an ink frame
-  // and cantilever roof with a paper fascia, a darker concrete back wall
+  // ---- grandstands: the approved model (kit/builtTrackside.tsx) instanced below; here the
+  // podium under a raised stand and the crowd on its seats
   for (const s of STAND_SPOTS) {
     const put = placer(paint, s.x, s.z, s.yaw);
-    const pst = placer(steel, s.x, s.z, s.yaw);
     const R = s.raise;
-    const backZ = Z0 - ROWS * STEP_D;
-    const roofY = R + ROWS * STEP_H + 2.7;
-    const ROOF_TILT = 0.12;
     if (R > 0) {
       // podium: a darker concrete plinth with a glazed concourse band
-      put(0, R / 2, Z0 - (ROWS * STEP_D) / 2 - 0.1, W + 0.8, R, ROWS * STEP_D + 0.9, CONCRETE_DARK);
-      put(0, R * 0.45, Z0 + 0.36, W - 0.6, R * 0.5, 0.02, col(K.glass));
+      put(0, R / 2, (FRONT + BACK) / 2, W + 0.8, R, FRONT - BACK + 0.2, CONCRETE_DARK);
+      put(0, R * 0.45, FRONT + 0.11, W - 0.6, R * 0.5, 0.02, col(K.glass));
     }
-    for (let row = 0; row < ROWS; row++) {
-      const h = (row + 1) * STEP_H;
-      put(0, R + h / 2, Z0 - row * STEP_D - STEP_D / 2, W, h, STEP_D + 0.02, CONCRETE);
-      put(0, R + h + 0.16, Z0 - row * STEP_D - STEP_D * 0.62, W - 0.6, 0.32, 0.4, row === 2 ? PAPER : GRAPHITE);
-    }
-    if (s.open) {
-      // back to the camera: the back wall stops at the top tier, the frame posts carry the roof
-      const top = R + ROWS * STEP_H + 0.3;
-      put(0, top / 2, backZ - 0.12, W + 0.4, top, 0.25, CONCRETE_DARK);
-    } else {
-      put(0, roofY / 2, backZ - 0.12, W + 0.4, roofY, 0.25, CONCRETE_DARK);
-    }
-    // side walls in concrete
-    for (const sx of [-1, 1]) put(sx * (W / 2 + 0.06), R + (ROWS * STEP_H + 0.4) / 2, Z0 - (ROWS * STEP_D) / 2 + 0.1, 0.12, ROWS * STEP_H + 0.4, ROWS * STEP_D + 0.4, CONCRETE);
-    put(0, R + 0.25, Z0 + 0.1, W, 0.5, 0.08, CONCRETE);
-    // named stands carry a printed board on the front (Boards below); the rest an ink line
-    if (!s.label) put(0, R + 0.47, Z0 + 0.145, W, 0.05, 0.01, KINK);
-    // the ink frame: three posts at the back, a beam over each, the roof slab and a paper fascia
-    const span = roofY - R;
-    for (const sx of [-W / 2 + 0.3, 0, W / 2 - 0.3]) {
-      pst(sx, R + span / 2, backZ - 0.2, 0.25, span, 0.25, KINK);
-      pst(sx, roofY - 0.12, backZ + 1.3, 0.2, 0.25, 3.2, KINK, -ROOF_TILT);
-    }
-    pst(0, roofY + 0.05, backZ + 1.3, W + 0.6, 0.18, 3.4, KINK, -ROOF_TILT);
-    put(0, roofY + 0.06, backZ + 3.0, W + 0.6, 0.5, 0.1, PAPER, -ROOF_TILT);
-    const g = placer({ m: glow.m, c: [] }, s.x, s.z, s.yaw);
-    g(0, roofY - 0.1, backZ + 2.4, W, 0.02, 0.1, WHITE);
-    // crowd
     const pb = placer(bodies, s.x, s.z, s.yaw);
     const ph = placer(heads, s.x, s.z, s.yaw);
-    for (let row = 0; row < ROWS; row++)
-      for (let i = 0; i < PER_ROW; i++) {
-        if (r() < 0.1) continue;
-        const x = -W / 2 + 0.45 + (i + 0.5) * ((W - 0.9) / PER_ROW);
-        const y = R + (row + 1) * STEP_H;
-        const z = Z0 - row * STEP_D - STEP_D * 0.45;
-        const sc = 0.95 + r() * 0.1;
-        pb(x, y, z, sc, sc, sc, SHIRTS[Math.floor(r() * SHIRTS.length)]);
-        ph(x, y, z, sc, sc, sc, SKINS[Math.floor(r() * SKINS.length)]);
-      }
+    for (const [x, y, z] of SEATS) {
+      if (r() < 0.1) continue;
+      const sc = 0.95 + r() * 0.1;
+      pb(x * STAND_SCALE, R + y * STAND_SCALE, z * STAND_SCALE + STAND_Z, sc, sc, sc, SHIRTS[Math.floor(r() * SHIRTS.length)]);
+      ph(x * STAND_SCALE, R + y * STAND_SCALE, z * STAND_SCALE + STAND_Z, sc, sc, sc, SKINS[Math.floor(r() * SKINS.length)]);
+    }
   }
 
   // ---- sponsor boards on two legs at the edge of the run-off (local +Z faces the road)
@@ -120,15 +82,11 @@ const PAINT = (() => {
     for (const sx of [-1.7, 1.7]) put(sx, (BARRIER_H + 0.1) / 2, -0.08, 0.1, BARRIER_H + 0.1, 0.1, KINK);
   }
 
-  // ---- marshal posts: concrete booth, thin ink roof, glazed front, two marshals in orange
+  // ---- marshal posts: the approved post (kit/builtTrackside.tsx) instanced below; here
+  // the pad in front and two marshals in orange
   for (const m of MARSHALS) {
     const put = placer(paint, m.x, m.z, m.yaw);
-    put(0, 1.1, 0, 1.9, 2.2, 1.5, CONCRETE);
-    put(0, 1.55, 0.755, 1.6, 0.62, 0.02, col(K.glass));
-    put(0, 2.28, 0.05, 2.2, 0.14, 1.8, KINK);
-    put(0, 0.05, 1.3, 2.6, 0.1, 1.2, CONCRETE_DARK);
-    put(0.95, 2.6, 0.6, 0.05, 0.6, 0.05, KINK);
-    put(1.25, 2.75, 0.6, 0.55, 0.36, 0.02, col(C.yellow));
+    put(0, 0.05, 1.45, 2.6, 0.1, 1.0, CONCRETE_DARK);
     const pb = placer(bodies, m.x, m.z, m.yaw);
     const ph = placer(heads, m.x, m.z, m.yaw);
     for (const sx of [-0.5, 0.45]) {
@@ -136,7 +94,7 @@ const PAINT = (() => {
       ph(sx, 0.1, 1.35, 1.1, 1.1, 1.1, SKINS[Math.floor(r() * SKINS.length)]);
     }
   }
-  return { paint, steel, glow, bodies, heads };
+  return { paint, bodies, heads };
 })();
 
 const bodyGeo = () =>
@@ -160,7 +118,7 @@ const STAND_FENCES = STAND_SPOTS.map((s) => {
   const sn = Math.sin(s.yaw);
   const pts: THREE.Vector3[] = [];
   for (let lx = -W / 2 - 1; lx <= W / 2 + 1.01; lx += (W + 2) / 8) {
-    const lz = Z0 + 1.3;
+    const lz = FRONT + 0.9;
     pts.push(new THREE.Vector3(s.x + lx * c + lz * sn, 0, s.z - lx * sn + lz * c));
   }
   return { pts };
@@ -289,7 +247,7 @@ function Boards() {
         if (!made.has(key)) made.set(key, new THREE.MeshStandardMaterial({ map: boardTexture(parts(key), w, h, fonts), roughness: 0.55, metalness: 0.02 }));
       };
       for (const b of BOARDS) add(b.text, BOARD_W, BOARD_H);
-      for (const s of STAND_SPOTS) if (s.label) add(`HG-08   ${s.label}`, W, FASCIA_H);
+      for (const s of STAND_SPOTS) if (s.label) add(`HG-08   ${s.label}`, W - 0.6, FASCIA_H);
       setMats(made);
     });
     return () => {
@@ -310,7 +268,7 @@ function Boards() {
       ))}
       {STAND_SPOTS.filter((s) => s.label).map((s, i) => (
         <group key={i} position={[s.x, heightAt(s.x, s.z), s.z]} rotation={[0, s.yaw, 0]}>
-          <mesh geometry={boardPlane()} material={mats.get(`HG-08   ${s.label}`)} position={[0, s.raise + FASCIA_H / 2, Z0 + 0.15]} scale={[W, FASCIA_H, 1]} />
+          <mesh geometry={boardPlane()} material={mats.get(`HG-08   ${s.label}`)} position={[0, s.raise + 0.34, FRONT + 0.02]} scale={[W - 0.6, FASCIA_H, 1]} />
         </group>
       ))}
     </>
@@ -326,9 +284,9 @@ export function Trackside() {
   });
   return (
     <>
+      <BuiltInstances parts={grandstandParts(STAND_GAME)} matrices={STAND_MATRICES} />
+      <BuiltInstances parts={marshalParts()} matrices={MARSHAL_MATRICES} />
       <Instances geometry={unitBox()} material={km.painted()} batch={PAINT.paint} />
-      <Instances geometry={unitBox()} material={mat("#ffffff", { r: 0.55, m: 0.2 })} batch={PAINT.steel} />
-      <Instances geometry={unitBox()} material={lensMat} batch={PAINT.glow} shadow={false} />
       <Instances geometry={bodyGeo()} material={mat(C.white, { r: 0.45 })} batch={PAINT.bodies} />
       <Instances geometry={headGeo()} material={mat(C.white, { r: 0.45 })} batch={PAINT.heads} shadow={false} />
 
@@ -348,18 +306,18 @@ export function Trackside() {
         {STAND_SPOTS.map((s, i) => {
           const c = Math.cos(s.yaw);
           const sn = Math.sin(s.yaw);
-          const lz = -0.3 - (s.raise > 0 ? 0.1 : 0);
+          const lz = (FRONT + BACK) / 2;
           return (
             <CuboidCollider
               key={i}
-              args={[5.4, (2.4 + s.raise) / 2, 2.4]}
+              args={[W / 2 + 0.2, (2.4 + s.raise) / 2, (FRONT - BACK) / 2]}
               position={[s.x + lz * sn, heightAt(s.x, s.z) + (2.4 + s.raise) / 2, s.z + lz * c]}
               rotation={[0, s.yaw, 0]}
             />
           );
         })}
         {MARSHALS.map((m, i) => (
-          <CuboidCollider key={i} args={[0.95, 1.1, 0.75]} position={[m.x, heightAt(m.x, m.z) + 1.1, m.z]} rotation={[0, m.yaw, 0]} />
+          <CuboidCollider key={i} args={[1.0, 1.3, 0.92]} position={[m.x, heightAt(m.x, m.z) + 1.3, m.z]} rotation={[0, m.yaw, 0]} />
         ))}
         {FLAG_SPOTS.map((f, i) => (
           <CylinderCollider key={i} args={[1, 0.12]} position={[f.x, heightAt(f.x, f.z) + 1, f.z]} />

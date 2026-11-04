@@ -24,19 +24,32 @@ function seat(k: Kit, mat: MatKey, x: number, y: number, z: number) {
   k.box("graphite", [0.08, 0.32, 0.08], [x, y + 0.16, z - 0.25]);
 }
 
-/** Concrete tiers of ink seats (one paper row), stairs up the right, a wedge side wall, a paper roof on an ink frame, a mesh fence. */
-export const grandstandParts = once(() => {
-  const k = new Kit();
-  const { w: W, rows: N } = GRANDSTAND;
+export type StandOpts = { w?: number; rows?: number; fence?: boolean };
+const standCache = new Map<string, ReturnType<Kit["build"]>>();
+/** Where the stand's tiers sit (local, unscaled): front of the platform, back wall, top tier, seat rows. */
+export function grandstandFrame({ w = GRANDSTAND.w, rows = GRANDSTAND.rows }: StandOpts = {}) {
   const R = 0.85, RISE = 0.5, Y0 = 0.9, ZF = 3.2;
-  const x0 = -W / 2 + 0.6, x1 = W / 2 - 2.4; // seating between the left wall and the stairs
+  return { w, rows, R, RISE, Y0, ZF, front: ZF + 2.2, back: ZF - rows * R - 0.4, top: Y0 + rows * RISE, x0: -w / 2 + 0.6, x1: w / 2 - 2.4 };
+}
+
+/**
+ * Concrete tiers of ink seats (one paper row), stairs up the right, a wedge side wall, a paper
+ * roof on an ink frame and, with `fence`, a mesh fence across the front left. Cached per option set.
+ */
+export function grandstandParts(o: StandOpts = {}) {
+  const key = JSON.stringify(o);
+  const hit = standCache.get(key);
+  if (hit) return hit;
+  const k = new Kit();
+  const { w: W, rows: N } = grandstandFrame(o);
+  const { R, RISE, Y0, ZF, x0, x1 } = grandstandFrame(o); // seating between the left wall and the stairs
   // front platform and the tiers
   k.box("concrete", [W, Y0, 2.2], [0, Y0 / 2, ZF + 1.1]);
   for (let i = 0; i < N; i++) {
     const zf = ZF - i * R, y = Y0 + i * RISE;
     k.box("concrete", [W - 1.2, y + RISE, R], [-0.6, (y + RISE) / 2, zf - R / 2]);
     for (let s = 0; s < 2; s++) k.box("concrete", [1.6, y + RISE * (s + 1) * 0.5, R / 2], [W / 2 - 1.6, (y + RISE * (s + 1) * 0.5) / 2, zf - (R / 2) * (s + 0.5)]);
-    const paper = i === 3;
+    const paper = i === Math.min(3, N - 2);
     for (const x of spread(x0 + 0.3, x1 - 0.3, Math.round((x1 - x0) / 0.58))) seat(k, paper && x > x0 + 4 ? "paper" : "inkMatte", x, y + RISE, zf - 0.05);
   }
   const zb = ZF - N * R, ytop = Y0 + N * RISE;
@@ -54,7 +67,7 @@ export const grandstandParts = once(() => {
   // the roof: a paper sheet on an ink frame, front posts with V braces, one orange box
   const ry = ytop + 4.2, rz0 = zb - 0.6, rz1 = ZF + 1.2;
   k.add("paper", cboxGeo(W + 0.4, 0.2, rz1 - rz0, 0, 0.05, 0), [0, ry + 0.3, (rz0 + rz1) / 2], [0.06, 0, 0]);
-  const posts = [-W / 2 + 1.2, -W / 2 + 6.4, W / 2 - 6.0, W / 2 - 1.0];
+  const posts = spread(-W / 2 + 1.2, W / 2 - 1.0, Math.max(2, Math.round(W / 5.3)));
   for (const x of posts) {
     const zp = ZF - 1.6, yb = Y0 + 2 * RISE;
     k.box("ink", [0.18, ry - yb, 0.18], [x, (ry + yb) / 2, zp]);
@@ -66,16 +79,34 @@ export const grandstandParts = once(() => {
   for (const z of [rz1 - 0.2, ZF - 1.6, zb - 0.3]) k.box("ink", [W + 0.2, 0.16, 0.16], [0, ry + 0.02, z]);
   k.box("orange", [0.35, 0.35, 0.3], [posts[2] + 0.15, ry - 0.5, ZF - 1.4]);
   // mesh fence along the front left
-  const fz = ZF + 2.0, fh = 2.0;
-  const fx = spread(-W / 2, 0.2, 4);
-  for (const x of fx) k.box("ink", [0.1, fh + 0.1, 0.1], [x, Y0 * 0 + fh / 2, fz]);
-  for (let i = 0; i < 4; i++) {
-    const a = fx[i], b = fx[i + 1];
-    k.add("wire", panelGeo(b - a - 0.1, fh - 0.2, 0.12), [(a + b) / 2, fh / 2, fz]);
-    for (const y of [0.1, fh * 0.42, fh]) k.box("ink", [b - a, 0.07, 0.07], [(a + b) / 2, y, fz]);
+  if (o.fence !== false) {
+    const fz = ZF + 2.0, fh = 2.0;
+    const fx = spread(-W / 2, 0.2, 4);
+    for (const x of fx) k.box("ink", [0.1, fh + 0.1, 0.1], [x, fh / 2, fz]);
+    for (let i = 0; i < 4; i++) {
+      const a = fx[i], b = fx[i + 1];
+      k.add("wire", panelGeo(b - a - 0.1, fh - 0.2, 0.12), [(a + b) / 2, fh / 2, fz]);
+      for (const y of [0.1, fh * 0.42, fh]) k.box("ink", [b - a, 0.07, 0.07], [(a + b) / 2, y, fz]);
+    }
   }
-  return k.build();
-});
+  const out = k.build();
+  standCache.set(key, out);
+  return out;
+}
+
+/** Every seat's tread point (local, unscaled), front row first: where a fan sits. */
+export function standSeats(o: StandOpts = {}): V3[] {
+  const { rows, R, RISE, Y0, ZF, x0, x1 } = grandstandFrame(o);
+  const out: V3[] = [];
+  for (let i = 0; i < rows; i++) for (const x of spread(x0 + 0.3, x1 - 0.3, Math.round((x1 - x0) / 0.58))) out.push([x, Y0 + (i + 1) * RISE, ZF - i * R - 0.32]);
+  return out;
+}
+
+/** The stands in the game: a 13.3 m, five-row stand without its own fence (the track has a catch fence), at 0.75. */
+export const STAND_GAME: StandOpts = { w: 13.3, rows: 5, fence: false };
+export const STAND_SCALE = 0.75;
+/** The game stand's z offset that puts its front at local z = 2.0 (where the old stands' front was). */
+export const STAND_Z = 2.0 - grandstandFrame(STAND_GAME).front * STAND_SCALE;
 
 export function GrandstandBuilt(props: G) {
   return (
