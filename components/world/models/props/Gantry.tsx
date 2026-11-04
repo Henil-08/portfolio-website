@@ -1,27 +1,20 @@
-// Static. Start/finish gantry (W08 in the approved world, docs/BRAND.md): ink pillars on
-// concrete feet, an ink beam with an LED board and five start lights that glow orange.
-// 8 m clear span between the pillars, ~7 m tall. Faces +Z (the road runs along Z, through the arch).
-// The beam is at y = 5.4..7.0 (overhead, no collider needed).
+// Static. Start/finish gantry: the approved model (kit/builtTrackside.tsx, concept gantry) at
+// the game's size: ink posts on concrete feet ~9 m apart, a mitred beam, the LED board under it
+// and five start lights on top that glow orange. Faces +Z (the road runs along Z, through the
+// arch). The beam is at y = 4..4.6 (overhead, no collider needed).
 "use client";
 
 import { useEffect, useState } from "react";
 import * as THREE from "three";
-import { K, km } from "../../street/ink";
+import { K } from "../../street/ink";
 import { loadBoardFonts } from "../../street/boardArt";
-import { mat, unitBox, unitCyl, type GroupProps } from "./shared";
+import { Built } from "../../kit/builtShared";
+import { GANTRY_BOARD, GANTRY_LENSES, gantryParts } from "../../kit/builtTrackside";
+import { mat, unitCyl, type GroupProps } from "./shared";
 
-const SPAN = 8;
-const PX = SPAN / 2 + 0.35;
-const PILLAR_H = 6.4;
-const BEAM_Y = 6.2;
-const BEAM_H = 1.6;
-const BEAM_L = SPAN + 1.7;
-const BOARD = { x: -2.25, w: 4.6, h: 1.2 };
-const LIGHT_X = 0.6;
-
-const Part = ({ s, p, m, shadow = true }: { s: [number, number, number]; p: [number, number, number]; m: THREE.Material; shadow?: boolean }) => (
-  <mesh geometry={unitBox()} scale={s} position={p} material={m} castShadow={shadow} receiveShadow />
-);
+/** The concept's 15 m span at the world's scale. */
+const S = 0.65;
+const BOARD = { w: GANTRY_BOARD.w, h: GANTRY_BOARD.h };
 
 /** The LED board: orange mono text on near-black, drawn once the fonts are in. */
 function useBoard(text: string) {
@@ -57,40 +50,28 @@ function useBoard(text: string) {
   return m;
 }
 
-/** Start gantry (W08): `lights` = how many of the five start lights are lit. */
+/** Start gantry: `lights` = how many of the five start lights are lit. */
 export function Gantry({ lights = 0, ...props }: GroupProps & { lights?: number }) {
-  const ink = km.ink();
   const lit = mat(K.ink, { e: K.orange, glow: 2.4, r: 0.3 }); // dark base so only the emissive orange shows
+  const off = mat("#2b2c2e", { r: 0.6, m: 0.3 });
   const board = useBoard("HG-08  LAP 1");
   return (
     <group {...props}>
-      {[-1, 1].map((s) => (
-        <group key={s} position={[s * PX, 0, 0]}>
-          <Part s={[1.2, 0.3, 1.2]} p={[0, 0.15, 0]} m={km.concrete()} />
-          <Part s={[0.6, PILLAR_H, 0.6]} p={[0, PILLAR_H / 2, 0]} m={ink} />
-        </group>
-      ))}
-      <Part s={[BEAM_L, BEAM_H, 0.7]} p={[0, BEAM_Y, 0]} m={ink} />
-      {/* both faces: the LED board on the left and five start lights on the right */}
-      {[1, -1].map((f) => (
-        <group key={f} position={[0, BEAM_Y, f * 0.36]} rotation={[0, f > 0 ? 0 : Math.PI, 0]}>
-          {board && (
-            <mesh position={[BOARD.x, 0, 0]} material={board}>
+      <group scale={S}>
+        <Built parts={gantryParts(false)} />
+        {/* the board reads from both ways along the straight */}
+        {board &&
+          [1, -1].map((f) => (
+            <mesh key={f} position={[0, GANTRY_BOARD.p[1], f > 0 ? GANTRY_BOARD.p[2] : -0.06]} rotation={[0, f > 0 ? 0 : Math.PI, 0]} material={board}>
               <planeGeometry args={[BOARD.w, BOARD.h]} />
             </mesh>
-          )}
-          {Array.from({ length: 5 }, (_, i) => (
-            <group key={i} position={[LIGHT_X + i * 0.9, 0, 0]}>
-              <Part s={[0.7, 1.2, 0.1]} p={[0, 0, 0]} m={km.graphite()} shadow={false} />
-              {[0.25, -0.25].map((y) => (
-                <mesh key={y} geometry={unitCyl()} rotation={[Math.PI / 2, 0, 0]} scale={[0.2, 0.03, 0.2]} position={[0, y, 0.06]} material={y > 0 && i < lights ? lit : km.inkMatte()} />
-              ))}
-            </group>
           ))}
-        </group>
-      ))}
+        {GANTRY_LENSES.map((p, i) => (
+          <mesh key={i} geometry={unitCyl()} rotation={[Math.PI / 2, 0, 0]} scale={[0.3, 0.06, 0.3]} position={p} material={i < lights ? lit : off} />
+        ))}
+      </group>
       {/* always mounted so toggling lights never recompiles shaders */}
-      <pointLight color={K.orange} intensity={Math.max(0, Math.min(5, lights)) * 1.5} distance={8} position={[2.4, BEAM_Y - 1, 1.2]} />
+      <pointLight color={K.orange} intensity={Math.max(0, Math.min(5, lights)) * 1.5} distance={8} position={[0, 4.4, 1.2]} />
     </group>
   );
 }

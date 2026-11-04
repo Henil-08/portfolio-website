@@ -181,7 +181,16 @@ export function FloodlightBuilt(props: G) {
 export const GANTRY = { span: 15, h: 8.4 };
 
 /** The start gantry: chamfered ink posts on concrete feet, a beam with mitred corners, an LED board under it, five start lights on top (the middle one lit). */
-export const gantryParts = once(() => {
+/** The five start lights' lens centres (local, unscaled), left to right. */
+export const GANTRY_LENSES: V3[] = Array.from({ length: 5 }, (_, i) => [(i - 2) * 1.1, 6.2 + 0.9 + 0.55 - 0.05, 0.57]);
+/** The LED board's face: centre and size (local, unscaled). */
+export const GANTRY_BOARD = { p: [0, 6.2 - 0.72, 0.445] as V3, w: 7.0, h: 0.9 };
+
+const gantryCache = new Map<boolean, ReturnType<Kit["build"]>>();
+/** `lenses` false leaves the start lights' lenses out, for a game that lights them itself. */
+export function gantryParts(lenses = true) {
+  const hit = gantryCache.get(lenses);
+  if (hit) return hit;
   const k = new Kit();
   const X = GANTRY.span / 2, P = 0.9, PH = 6.2, BH = 0.9;
   for (const s of [-1, 1]) {
@@ -209,10 +218,12 @@ export const gantryParts = once(() => {
     const x = (i - 2) * 1.1, y = PH + BH + 0.55;
     k.cbox("ink", [0.95, 1.15, 0.75], [x, y, 0.15], 0.28, 0.1, 0.25);
     k.hull("ink", [[x - 0.42, y + 0.55, 0.55], [x + 0.42, y + 0.55, 0.55], [x - 0.42, y + 0.42, 0.85], [x + 0.42, y + 0.42, 0.85], [x - 0.42, y + 0.6, 0.5], [x + 0.42, y + 0.6, 0.5]]);
-    k.cyl(i === 2 ? "lit" : "graphite", 0.3, 0.3, 0.06, [x, y - 0.05, 0.54], 14, [Math.PI / 2, 0, 0]);
+    if (lenses) k.cyl(i === 2 ? "lit" : "graphite", 0.3, 0.3, 0.06, [x, y - 0.05, 0.54], 14, [Math.PI / 2, 0, 0]);
   }
-  return k.build();
-});
+  const out = k.build();
+  gantryCache.set(lenses, out);
+  return out;
+}
 
 export function GantryBuilt(props: G) {
   return (
