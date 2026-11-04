@@ -23,7 +23,7 @@ import { BOAT, addPierBollard, addPierHead, addPierSegment, boatModel } from "..
 import { compose } from "../street/common";
 import { PROP_SCALE } from "../models/props/kit";
 import { batch, Instances } from "../street/Instances";
-import { benchGeo } from "../districts/furniture";
+import { benchParts } from "../districts/furniture";
 
 // ------------------------------------------------------------ promenade
 
@@ -111,7 +111,9 @@ function Promenade() {
       <Instances geometry={unitBox()} material={mat(C.ink, { r: 0.6 })} batch={parts.posts} />
       <Instances geometry={unitBox()} material={mat(C.ink, { r: 0.6 })} batch={parts.rails} />
       <Instances geometry={unitBox()} material={mat(C.paper, { r: 0.8 })} batch={parts.tops} />
-      <Instances geometry={benchGeo()} material={mat("#ffffff", { r: 0.8, vc: true })} batch={parts.benches} />
+      {benchParts().map((b, i) => (
+        <Instances key={i} geometry={b.geometry} material={b.material} batch={parts.benches} />
+      ))}
     </>
   );
 }

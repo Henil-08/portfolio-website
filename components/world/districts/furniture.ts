@@ -5,7 +5,8 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { CI } from "../buildings/concrete";
 import { geo } from "../models/props/shared";
-import { bake, part } from "../kit/shared";
+import { bake, kitMat, part, type Paint } from "../kit/shared";
+import { studioMaterial } from "../studio/materials";
 import { benchModel, lampModel } from "../kit/street";
 
 type B = [sx: number, sy: number, sz: number, x: number, y: number, z: number, color: string];
@@ -40,8 +41,22 @@ export const lanternGeo = () => geo("kit-lantern", () => bake(lampModel(), { ski
 /** The lantern's lit paper cube (its own glowing material). */
 export const lanternLightGeo = () => geo("kit-lantern-light", () => part(lampModel(), "glow", { s: 1 / PLACED, p: [0, LANTERN_FOOT, 0] })!);
 
-/** Bench: the kit bench (concrete block, ink slats, back toward -z), vertex coloured. */
-export const benchGeo = () => geo("kit-bench", () => bake(benchModel(), { xf: { s: 1 / 1.1, p: [0, BENCH_FOOT, 0] } }));
+const BENCH_XF = { s: 1 / 1.1, p: [0, BENCH_FOOT, 0] as [number, number, number] };
+
+let benchList: { geometry: THREE.BufferGeometry; material: THREE.Material }[] | null = null;
+/**
+ * Bench: the kit bench (back toward -z) as one part per paint with the kit's materials, so the
+ * slats keep their grain and the block its concrete grain. The block comes first (Movables
+ * takes its collider from the first part).
+ */
+export function benchParts() {
+  if (!benchList) {
+    const m = benchModel();
+    const order = ["concrete", ...m.map((x) => x.paint).filter((p) => p !== "concrete")] as Paint[];
+    benchList = order.map((p) => ({ geometry: part(m, p, BENCH_XF)!, material: p === "concrete" ? studioMaterial(kitMat(p), { grain: 1 }) : kitMat(p) }));
+  }
+  return benchList;
+}
 
 /** Fence bay, vertex coloured, x -1.07..1.07, y -1.04..0.2. */
 export const fenceGeo = () =>

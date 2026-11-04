@@ -12,7 +12,7 @@ import { PROP_SCALE } from "./models/props/kit";
 import { mat, unitBox } from "./models/props/shared";
 import { grassGeo } from "./garden";
 import { withWind } from "./alive/sway";
-import { benchGeo } from "./districts/furniture";
+import { benchParts } from "./districts/furniture";
 import { compose, rng } from "./street/common";
 import { Instances } from "./street/Instances";
 import { Movables, kindFromMatrices } from "./Movables";
@@ -51,7 +51,7 @@ export default function StartGarden() {
     const k = 0.72 * PROP_SCALE;
     const b = START_BENCH;
     const bench = { m: [compose(b.x, heightAt(b.x, b.z) + 0.78 * k, b.z, b.yaw, k, k, k)] };
-    const benchKind = kindFromMatrices(bench.m, [{ geometry: benchGeo(), material: mat("#ffffff", { r: 0.8, vc: true }) }], { mass: 0.6 });
+    const benchKind = kindFromMatrices(bench.m, benchParts(), { mass: 0.6 });
     return { grasses, blooms, planters, benchKind };
   }, []);
   return (

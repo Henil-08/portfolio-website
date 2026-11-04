@@ -20,7 +20,7 @@ import { PROP_SCALE } from "../models/props/kit";
 import { batch, Instances } from "../street/Instances";
 import { Movables, kindFromMatrices } from "../Movables";
 import { seeded } from "../alive/noise";
-import { benchGeo } from "../districts/furniture";
+import { benchParts } from "../districts/furniture";
 import { bake, part } from "../kit/shared";
 import { LAMP_H as LAMP_H_KIT, lampModel } from "../kit/street";
 import { BEDS, BENCHES, HEDGE, HEDGES, LAMPS_GARDEN, PATHS, POND, clearOfRoad, pathDist, pathSamples, type Bed } from "./layout";
@@ -312,7 +312,13 @@ function Benches() {
     for (const b of BENCHES) out.m.push(compose(b.x, heightAt(b.x, b.z) + 0.78 * BENCH_K, b.z, b.yaw, BENCH_K, BENCH_K, BENCH_K));
     return out;
   }, []);
-  return <Instances geometry={benchGeo()} material={mat("#ffffff", { r: 0.8, vc: true })} batch={parts} />;
+  return (
+    <>
+      {benchParts().map((b, i) => (
+        <Instances key={i} geometry={b.geometry} material={b.material} batch={parts} />
+      ))}
+    </>
+  );
 }
 
 /** Garden lamps: the kit street lamp (the approved concept) at garden size. */

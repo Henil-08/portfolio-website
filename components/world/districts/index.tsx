@@ -10,7 +10,7 @@ import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeom
 import { lowSphere, mat, unitCyl } from "../models/props/shared";
 import { C } from "../palette";
 import { withWind } from "../alive/sway";
-import { benchGeo, fenceGeo, lanternGeo, lanternLightGeo } from "./furniture";
+import { benchParts, fenceGeo, lanternGeo, lanternLightGeo } from "./furniture";
 import { boulderGeometry } from "../kit/nature";
 import { Instances } from "../street/Instances";
 import { Movables, kindFromMatrices, type MovableKind } from "../Movables";
@@ -40,7 +40,7 @@ function onGround(kind: MovableKind) {
 
 export default function Districts() {
   const vc = mat("#ffffff", { r: 0.8, vc: true });
-  const props = useMemo(() => ({ lantern: lanternGeo(), light: lanternLightGeo(), bench: benchGeo(), crate: new RoundedBoxGeometry(1, 1, 1, 2, 0.08), slab: new THREE.BoxGeometry(1, 1, 1), flower: flowerGeometry(), rock: boulderGeometry(11, 2, 1.45, 1.75), fence: fenceGeo(), tuft: tuftGeometry(), reed: reedGeometry(), pad: padGeometry() }), []);
+  const props = useMemo(() => ({ lantern: lanternGeo(), light: lanternLightGeo(), crate: new RoundedBoxGeometry(1, 1, 1, 2, 0.08), slab: new THREE.BoxGeometry(1, 1, 1), flower: flowerGeometry(), rock: boulderGeometry(11, 2, 1.45, 1.75), fence: fenceGeo(), tuft: tuftGeometry(), reed: reedGeometry(), pad: padGeometry() }), []);
   const lilies = useMemo(() => ({ m: WATERSIDE.flowers }), []);
   const fences = useMemo(() => ({ m: [...DUNES.fences, ...PARK.fences] }), []);
   const lanterns = useMemo(() => ({ m: [...OLD_TOWN.lanterns, ...HARBOUR.lanterns, ...PARK.lanterns] }), []);
@@ -53,7 +53,7 @@ export default function Districts() {
     return [
       onGround(kindFromMatrices(rocks, [{ geometry: props.rock, material: stone }], { mass: 1.4, shrink: 0.7, colors: rockColors, selfCollide: false })),
       kindFromMatrices(lanterns.m, [{ geometry: props.lantern, material: vc }, { geometry: props.light, material: glass, shadow: false }], { mass: 0.3 }),
-      kindFromMatrices(benches.m, [{ geometry: props.bench, material: vc }], { mass: 0.6 }),
+      kindFromMatrices(benches.m, benchParts(), { mass: 0.6 }),
       kindFromMatrices(HARBOUR.crates.m, [{ geometry: props.crate, material: mat("#ffffff", { r: 0.85 }) }], { mass: 0.25, shrink: 0.98, colors: HARBOUR.crates.c }),
       kindFromMatrices(HARBOUR.barrels.m, [{ geometry: unitCyl(), material: mat("#ffffff", { r: 0.6 }) }], { mass: 0.3, shrink: 0.95, colors: HARBOUR.barrels.c }),
     ];
