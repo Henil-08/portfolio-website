@@ -325,29 +325,35 @@ export const PITWALL = { booths: 4, pitch: 3.3, d: 3.8, h: 4.2 };
  * and four booths on the slab behind it, each with its own ink canopy, console and seat
  * facing the track. Number plates are separate meshes (`numberPlate`).
  */
-export const pitWallParts = once(() => {
+const pitWallCache = new Map<boolean, ReturnType<Kit["build"]>>();
+/** `wall` false leaves out the wall and fence (the game runs its own along the pit straight). */
+export function pitWallParts(wall = true) {
+  const hit = pitWallCache.get(wall);
+  if (hit) return hit;
   const k = new Kit();
   const { booths: N, pitch: P, d: D } = PITWALL;
   const L = N * P + 1.0;
   const zw = -D / 2 + 0.3;
   // slab with a raised edge at the left end, and the wall: a sloped foot, an upright and a paper cap
-  k.box("concrete", [L, 0.22, D], [0, 0.11, 0]);
-  k.cbox("concrete", [0.4, 0.5, D], [-L / 2 + 0.2, 0.25, 0], 0, 0.15, 0);
-  k.hull("concrete", [[-L / 2, 0, zw - 0.4], [L / 2, 0, zw - 0.4], [-L / 2, 0, zw + 0.35], [L / 2, 0, zw + 0.35], [-L / 2, 0.35, zw - 0.25], [L / 2, 0.35, zw - 0.25], [-L / 2, 0.35, zw + 0.25], [L / 2, 0.35, zw + 0.25], [-L / 2, 1.05, zw - 0.25], [L / 2, 1.05, zw - 0.25], [-L / 2, 1.05, zw + 0.25], [L / 2, 1.05, zw + 0.25]]);
-  k.cbox("paper", [L, 0.4, 0.55], [0, 1.25, zw], 0, 0.04, 0);
-  // the fence: posts kinked toward the track at the top, vertical bars
-  const fy = 1.45, fh = 2.3;
-  const posts = spread(-L / 2 + 0.1, L / 2 - 0.1, 4);
-  for (const x of posts) {
-    k.box("ink", [0.09, fh, 0.09], [x, fy + fh / 2, zw]);
-    k.bar("ink", [x, fy + fh, zw], [x, fy + fh + 0.45, zw - 0.3], 0.08);
-  }
-  for (let i = 0; i < 4; i++) {
-    const a = posts[i], b = posts[i + 1];
-    k.add("bars", panelGeo(b - a - 0.09, fh - 0.15, 0.09), [(a + b) / 2, fy + fh / 2, zw]);
-    for (const y of [fy + 0.06, fy + fh - 0.05]) k.box("ink", [b - a, 0.06, 0.06], [(a + b) / 2, y, zw]);
-    k.add("bars", panelGeo(b - a - 0.09, 0.5, 0.09), [(a + b) / 2, fy + fh + 0.22, zw - 0.15], [-0.59, 0, 0]);
-    k.box("ink", [b - a, 0.06, 0.06], [(a + b) / 2, fy + fh + 0.45, zw - 0.3]);
+  k.box("concrete", [L, 0.22, wall ? D : D - 0.6], [0, 0.11, wall ? 0 : 0.3]);
+  if (wall) {
+    k.cbox("concrete", [0.4, 0.5, D], [-L / 2 + 0.2, 0.25, 0], 0, 0.15, 0);
+    k.hull("concrete", [[-L / 2, 0, zw - 0.4], [L / 2, 0, zw - 0.4], [-L / 2, 0, zw + 0.35], [L / 2, 0, zw + 0.35], [-L / 2, 0.35, zw - 0.25], [L / 2, 0.35, zw - 0.25], [-L / 2, 0.35, zw + 0.25], [L / 2, 0.35, zw + 0.25], [-L / 2, 1.05, zw - 0.25], [L / 2, 1.05, zw - 0.25], [-L / 2, 1.05, zw + 0.25], [L / 2, 1.05, zw + 0.25]]);
+    k.cbox("paper", [L, 0.4, 0.55], [0, 1.25, zw], 0, 0.04, 0);
+    // the fence: posts kinked toward the track at the top, vertical bars
+    const fy = 1.45, fh = 2.3;
+    const posts = spread(-L / 2 + 0.1, L / 2 - 0.1, 4);
+    for (const x of posts) {
+      k.box("ink", [0.09, fh, 0.09], [x, fy + fh / 2, zw]);
+      k.bar("ink", [x, fy + fh, zw], [x, fy + fh + 0.45, zw - 0.3], 0.08);
+    }
+    for (let i = 0; i < 4; i++) {
+      const a = posts[i], b = posts[i + 1];
+      k.add("bars", panelGeo(b - a - 0.09, fh - 0.15, 0.09), [(a + b) / 2, fy + fh / 2, zw]);
+      for (const y of [fy + 0.06, fy + fh - 0.05]) k.box("ink", [b - a, 0.06, 0.06], [(a + b) / 2, y, zw]);
+      k.add("bars", panelGeo(b - a - 0.09, 0.5, 0.09), [(a + b) / 2, fy + fh + 0.22, zw - 0.15], [-0.59, 0, 0]);
+      k.box("ink", [b - a, 0.06, 0.06], [(a + b) / 2, fy + fh + 0.45, zw - 0.3]);
+    }
   }
   // the booths
   for (let i = 0; i < N; i++) {
@@ -382,8 +388,10 @@ export const pitWallParts = once(() => {
     k.box("ink", [0.09, cy - 1.15, 0.09], [x - cw / 2 + 0.15, 1.15 + (cy - 1.15) / 2, cz0 + 0.2]);
     k.bar("ink", [x - cw / 2 + 0.15, cy - 0.3, cz1 - 0.1], [x - 0.35, 0.22 + 0.9, zc + 0.75], 0.09);
   }
-  return k.build();
-});
+  const out = k.build();
+  pitWallCache.set(wall, out);
+  return out;
+}
 
 const plates = new Map<string, THREE.MeshStandardMaterial>();
 /** A small paper plate with an ink number (booths 1-4). */

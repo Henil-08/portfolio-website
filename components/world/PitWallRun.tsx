@@ -1,19 +1,20 @@
 "use client";
 
-// The pit wall between the pit lane and the main straight, in the W04 language: a
-// concrete wall (wide foot, slim upright) with a paper stripe along the top, and a tall
-// ink debris fence on ink posts above it. Each end stops on a short TecPro stack.
+// The pit wall between the pit lane and the main straight, after the approved concept
+// (pitwall): a concrete wall (wide foot, slim upright) under a paper cap, and a tall fence of
+// ink bars on ink posts above it, kinked toward the track at the top. Each end stops on a
+// short TecPro stack. The booths stand on the lane side (models/props/PitWall.tsx).
 // The line is layout.ts `PIT_WALL` (halfway between the lane and the straight).
 import { useMemo } from "react";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
-import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import * as THREE from "three";
 import { PIT, PIT_WALL } from "./layout";
 import { heightAt } from "./terrain";
 import { geo, unitBox } from "./models/props/shared";
 import { compose } from "./street/common";
 import { Instances } from "./street/Instances";
-import { K, WALL_FOOT, WALL_H, debrisFenceMat, km, wallGeo } from "./street/ink";
+import { K, WALL_FOOT, WALL_H, km, wallGeo } from "./street/ink";
+import { bm, cboxGeo } from "./kit/builtShared";
 
 const WALL_W = WALL_FOOT; // collider depth
 const FENCE_TOP = 4.4;
@@ -29,7 +30,9 @@ const yawAt = (i: number) => {
   return Math.atan2(-(b.z - a.z), b.x - a.x);
 };
 
-const endGeo = () => geo("pitwall-tecpro", () => new RoundedBoxGeometry(0.8, 0.8, 1.0, 2, 0.12));
+const KINK = 0.45; // the fence's top bends this far toward the track
+const KINK_H = 0.5;
+const endGeo = () => geo("pitwall-tecpro-v2", () => cboxGeo(0.8, 0.8, 1.0, 0.14));
 
 const B = (() => {
   const wall = { m: [] as THREE.Matrix4[] };
@@ -48,12 +51,18 @@ const B = (() => {
     const mz = (a.z + b.z) / 2;
     const y = (a.y + b.y) / 2;
     wall.m.push(compose(mx, y, mz, yaw, len + 0.02, 1, 1));
-    stripe.m.push(compose(mx, y + WALL_H, mz, yaw, len + 0.02, 0.06, 0.205));
+    stripe.m.push(compose(mx, y + WALL_H - 0.12, mz, yaw, len + 0.02, 0.3, 0.24));
     rails.m.push(compose(mx, y + FENCE_TOP, mz, yaw, len + 0.02, 0.05, 0.05));
+    // toward the track: local +z of the segment
+    const tx = Math.sin(yaw) * KINK, tz = Math.cos(yaw) * KINK;
+    rails.m.push(compose(mx + tx, y + FENCE_TOP + KINK_H, mz + tz, yaw, len + 0.02, 0.05, 0.05));
     // posts every POST_EVERY m along the line
     while (next <= acc + len) {
       const t = (next - acc) / len;
-      posts.m.push(compose(a.x + (b.x - a.x) * t, y + (WALL_H + FENCE_TOP) / 2, a.z + (b.z - a.z) * t, yaw, 0.08, FENCE_TOP - WALL_H + 0.05, 0.08));
+      const px = a.x + (b.x - a.x) * t, pz = a.z + (b.z - a.z) * t;
+      posts.m.push(compose(px, y + (WALL_H + FENCE_TOP) / 2, pz, yaw, 0.08, FENCE_TOP - WALL_H + 0.05, 0.08));
+      const kl = Math.hypot(KINK, KINK_H);
+      posts.m.push(compose(px + tx / 2, y + FENCE_TOP + KINK_H / 2, pz + tz / 2, yaw, 0.07, kl, 0.07, Math.atan2(KINK, KINK_H)));
       next += POST_EVERY;
     }
     acc += len;
@@ -75,19 +84,23 @@ const B = (() => {
   return { wall, stripe, posts, rails, ends };
 })();
 
-/** The fence mesh: one ribbon from the wall top to the top rail. */
+/** The fence mesh: a ribbon of bars from the wall top to the top rail, then the kinked top. */
 function fenceGeometry() {
   const pos: number[] = [];
   const uv: number[] = [];
   const idx: number[] = [];
+  const BAR = 0.09; // bar spacing, m
   let acc = 0;
   pts.forEach((p, i) => {
     if (i > 0) acc += p.distanceTo(pts[i - 1]);
-    pos.push(p.x, p.y + WALL_H + 0.05, p.z, p.x, p.y + FENCE_TOP, p.z);
-    uv.push(acc / 0.5, 0, acc / 0.5, (FENCE_TOP - WALL_H) / 0.5);
+    const yaw = yawAt(i);
+    const kx = Math.sin(yaw) * KINK, kz = Math.cos(yaw) * KINK;
+    pos.push(p.x, p.y + WALL_H + 0.05, p.z, p.x, p.y + FENCE_TOP, p.z, p.x + kx, p.y + FENCE_TOP + KINK_H, p.z + kz);
+    const v1 = (FENCE_TOP - WALL_H) / BAR;
+    uv.push(acc / BAR, 0, acc / BAR, v1, acc / BAR, v1 + Math.hypot(KINK, KINK_H) / BAR);
     if (i > 0) {
-      const k = (i - 1) * 2;
-      idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3);
+      const k = (i - 1) * 3;
+      idx.push(k, k + 3, k + 1, k + 1, k + 3, k + 4, k + 1, k + 4, k + 2, k + 2, k + 4, k + 5);
     }
   });
   const g = new THREE.BufferGeometry();
@@ -109,7 +122,7 @@ const COLLIDERS = (() => {
 })();
 
 export default function PitWallRun() {
-  const fence = useMemo(() => ({ g: fenceGeometry(), m: debrisFenceMat() }), []);
+  const fence = useMemo(() => ({ g: fenceGeometry(), m: bm("bars") }), []);
   if (pts.length < 2) return null;
   return (
     <group name="pit-wall">

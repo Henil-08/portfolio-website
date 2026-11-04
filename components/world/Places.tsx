@@ -415,13 +415,11 @@ function PitLane() {
           <planeGeometry args={[PIT.to - PIT.from + 10, 0.18]} />
         </mesh>
       ))}
-      {/* strategy stands on the lane side of the wall */}
-      {[-40, -18].map((x) => (
-        <RigidBody key={x} type="fixed" colliders={false} position={[x, pitY, (pitWallZ(x) ?? PIT.z + 4) - 0.8]}>
-          <PitWall />
-          <CuboidCollider args={[2.6, 0.6, 0.5]} position={[0, 0.6, 0]} />
-        </RigidBody>
-      ))}
+      {/* the pit wall stand on the lane side of the wall: four booths, one per vehicle */}
+      <RigidBody type="fixed" colliders={false} position={[-29, pitY, (pitWallZ(-29) ?? PIT.z + 4) - 0.8]}>
+        <PitWall />
+        <CuboidCollider args={[4.8, 0.6, 0.7]} position={[0, 0.6, -0.25]} />
+      </RigidBody>
 
       <RigidBody type="fixed" colliders={false} position={[0, pitY, PIT.garageZ - 1]}>
         <PitBuilding bays={BAYS} opts={PIT_OPTS} />
