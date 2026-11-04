@@ -11,6 +11,27 @@ import { Lockup } from "@/components/brand/mark";
 import { CONCEPTS, MESHY, type MeshyModel as Def } from "@/components/world/meshy/catalog";
 import { MeshyModel } from "@/components/world/meshy/MeshyModel";
 import { Lights } from "../world/models";
+import type { Build } from "./builds/types";
+import { BUILDS as NATURE } from "./builds/nature";
+import { BUILDS as BUILT } from "./builds/built";
+
+const BUILDS: Build[] = [...NATURE, ...BUILT];
+
+function BuildTable({ b }: { b: Build }) {
+  const d = Math.max(b.height * 2.6, b.span * 1.35);
+  return (
+    <Canvas shadows dpr={[1, 2]} camera={{ position: [d * 0.75, b.height * 0.9 + b.span * 0.25, d], fov: 30 }}>
+      <color attach="background" args={["#ebe9e3"]} />
+      <Lights size={Math.max(8, b.span)} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <circleGeometry args={[b.span * 1.6, 64]} />
+        <meshStandardMaterial color="#e1ded6" roughness={1} />
+      </mesh>
+      <b.Model />
+      <OrbitControls target={[0, b.height * 0.5, 0]} autoRotate autoRotateSpeed={1.2} enablePan={false} minPolarAngle={0.4} maxPolarAngle={1.5} />
+    </Canvas>
+  );
+}
 
 function Turntable({ def }: { def: Def }) {
   const span = Math.max(def.height, def.span ?? 0);
@@ -76,7 +97,28 @@ export default function ModelsPage() {
             </div>
           </section>
         ))}
-        <h2 className="mt-14 mb-3 text-[24px] font-semibold tracking-[-0.02em]">In 3D</h2>
+        {BUILDS.length > 0 && (
+          <section className="mt-14">
+            <h2 className="mb-3 text-[24px] font-semibold tracking-[-0.02em]">
+              Built in code <span className="font-mono text-[12px] font-normal text-graphite">concept left, our model right · drag to turn</span>
+            </h2>
+            <div className="space-y-4">
+              {BUILDS.map((b) => (
+                <div key={b.id} className="grid grid-cols-[1fr_2fr] border-2 border-ink bg-white">
+                  <figure className="border-r-2 border-ink">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/models/concepts/${b.id}.png`} alt={b.name} className="aspect-square w-full object-cover" />
+                    <figcaption className="border-t-2 border-ink px-2 py-1.5 font-mono text-[12px]">{b.name} · concept</figcaption>
+                  </figure>
+                  <div className="min-h-[320px]">
+                    <BuildTable b={b} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+        <h2 className="mt-14 mb-3 text-[24px] font-semibold tracking-[-0.02em]">Meshy 3D</h2>
         <div className="grid gap-6 md:grid-cols-2">
           {MESHY.map((m) => (
             <section key={m.id} className="border-2 border-ink bg-white">
