@@ -119,11 +119,14 @@ export default function PitWall({ v, livery, domain, list, sel, dir, inside, onP
     const first = from === to;
     // the camera's facing, so the picked screen squares up to it
     tq.current.setFromRotationMatrix(new THREE.Matrix4().lookAt(IN.pos, FULL, new THREE.Vector3(0, 1, 0)));
+    // backing out sends the picked screen home first
+    const gate = inOut(seg(drive.current, 0.7, 1));
     screens.current.forEach((g, i) => {
       if (!g) return;
       let f = 0;
       if (i === to) f = first ? inOut(seg(drive.current, 0.78, 1)) : inOut(seg(k, 0.3, 1));
       else if (i === from && !first) f = 1 - inOut(seg(k, 0, 0.55));
+      f *= gate;
       g.position.lerpVectors(at[i], FULL, f);
       g.position.z += Math.sin(f * Math.PI) * 0.6;
       g.scale.setScalar(lerp(1, FULL_SCALE, f));
@@ -135,8 +138,8 @@ export default function PitWall({ v, livery, domain, list, sel, dir, inside, onP
     objs.current.forEach((g, i) => {
       if (!g) return;
       const up = i === to ? (first ? seg(drive.current, 0.82, 1) : seg(k, 0.45, 1)) : i === from && !first ? 1 - seg(k, 0, 0.35) : 0;
-      g.visible = up > 0.001;
-      g.scale.setScalar(0.85 * backOut(up, 1.6));
+      g.visible = up * gate > 0.001;
+      g.scale.setScalar(0.85 * backOut(up, 1.6) * gate);
       g.rotation.y = Math.sin(s.clock.elapsedTime * 0.5) * 0.25;
     });
     const ks = first ? seg(drive.current, 0.86, 1) : seg(k, 0.55, 1);

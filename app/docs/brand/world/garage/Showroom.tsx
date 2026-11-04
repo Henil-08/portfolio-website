@@ -98,7 +98,7 @@ export default function Showroom({ v, livery, domain, list, sel, dir, inside, on
     items.current.forEach((g, i) => {
       if (!g) return;
       const front = i === sc.to;
-      const lift = front ? backOut(seg(sc.from === sc.to ? drive.current : sc.k, 0.55, 1), 2) : 0;
+      const lift = front ? backOut(seg(sc.from === sc.to ? drive.current : sc.k, 0.55, 1), 2) * inOut(seg(drive.current, 0.6, 1)) : 0;
       const obj = g.children[1] as THREE.Group;
       obj.scale.setScalar(OBJ * (1 + 0.55 * lift));
       obj.position.y = PL + 0.04 * lift;

@@ -95,7 +95,7 @@ export const DOMAIN_ORDER: Domain[] = GARAGES.map((g) => g.domain);
 export const DOOR_Z = 3.5;
 export const BACK_Z = -3.2;
 /** Where a vehicle waits outside, on the pit lane. */
-export const OUT_Z = 10.5;
+export const OUT_Z = 8.8;
 
 /**
  * The driver's eye, in each model's own frame (nose +z, ground 0, true metres), read off the
@@ -263,7 +263,7 @@ export function useCanvasTexture(w: number, h: number, draw: (g: CanvasRendering
 }
 
 /** The establishing shot outside the bay, where every option starts and backs out to. */
-export const OUTSIDE = { pos: new THREE.Vector3(3.6, 2.5, 13.5), look: new THREE.Vector3(0, 1.7, 0), fov: 34 };
+export const OUTSIDE = { pos: new THREE.Vector3(2.6, 3.2, 18), look: new THREE.Vector3(0, 1.2, 4), fov: 36 };
 
 /**
  * The camera glide from OUTSIDE to an option's inside shot, timed to the drive-in (it starts a
