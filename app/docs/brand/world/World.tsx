@@ -345,8 +345,8 @@ export default function World() {
             <h2 className="text-[30px] font-semibold leading-none tracking-tight sm:text-[40px]">Garage experience</h2>
           </div>
           <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-[#5d5d58]">
-            What happens when you drive into a garage. Four ways to show its projects, one at a time, with the datasheet beside each. Pick an option, a vehicle and a garage, then
-            press Enter to drive in, ← → to change project and Esc to back out. Not approved yet.
+            Cockpit + pit wall: the owner&rsquo;s cockpit idea with the pit wall screens behind the stage, as one move. Pick a vehicle, a livery and a garage, then press Enter to drive in, ← → to change
+            project (or click a screen) and Esc to back out. A mock to try; not in the game yet.
           </p>
           <div className="mt-6">
             <GarageExperience />

@@ -1,18 +1,17 @@
 "use client";
 
-// Garage experience mocks: the pieces every option shares. The real pit building (one bay at
+// Garage experience mock: the shared pieces. The real pit building (one bay at
 // the origin, the others either side as in the game), the real vehicles at the game's scale,
 // the real project objects, and the clocks that drive the drive-in and the project slides.
 // Bay frame: x across the door, y up, +z out of the door; floor y = 0, door at z = +3.5,
 // back wall's inner face at z = -3.2. Vehicles drive in nose first, facing -z.
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { PitBuilding, type Bay, type PitOpts } from "@/components/world/buildings/PitBuilding";
 import { CI } from "@/components/world/buildings/concrete";
 import { GARAGES, garageLabel, zones } from "@/components/world/layout";
 import { VEHICLE_SCALE } from "@/components/world/vehicles/scale";
-import type { Livery, VehicleCode, VehicleDef } from "@/components/world/vehicles";
 import { projects, type Domain, type Project } from "@/content/projects";
 
 export type V3 = [number, number, number];
@@ -23,7 +22,6 @@ export const clamp01 = (k: number) => Math.min(1, Math.max(0, k));
 export const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 export const inOut = (k: number) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
 export const out3 = (k: number) => 1 - Math.pow(1 - k, 3);
-export const backOut = (k: number, s = 1.70158) => 1 + (s + 1) * Math.pow(k - 1, 3) + s * Math.pow(k - 1, 2);
 /** k mapped from the window [a, b] to 0..1. */
 export const seg = (k: number, a: number, b: number) => clamp01((k - a) / (b - a));
 
@@ -96,26 +94,8 @@ export const DOOR_Z = 3.5;
 export const BACK_Z = -3.2;
 /** Where a vehicle waits outside, on the pit lane. */
 export const OUT_Z = 8.8;
-
-/**
- * The driver's eye, in each model's own frame (nose +z, ground 0, true metres), read off the
- * models: TH-18 under the halo just ahead of the headrest, E14 over the seat behind the wheel,
- * Atlas under the canopy, Apollo tucked in over the tank.
- */
-export const EYE: Record<VehicleCode, V3> = {
-  V01: [0, 0.98, -0.36],
-  V02: [0, 1.22, -0.2],
-  V03: [0, 0.98, -0.25],
-  V04: [0, 1.32, -0.12],
-};
+/** The vehicles' scale in the world (scale.ts). */
 export const S = VEHICLE_SCALE;
-
-/** A vehicle parked facing -z with its nose at `nose` (bay frame): its centre and the eye. */
-export function parkPose(v: VehicleDef, x: number, nose: number) {
-  const cz = nose + v.box.max[2] * S;
-  const e = EYE[v.code];
-  return { cz, eye: new THREE.Vector3(x - e[0] * S, e[1] * S, cz - e[2] * S) };
-}
 
 /* ------------------------------------------------------------------ scene pieces */
 
@@ -162,26 +142,6 @@ export function BayScene({ domain, lamp = 14 }: { domain: Domain; lamp?: number 
         <meshStandardMaterial color="#d3d0c7" roughness={1} />
       </mesh>
     </>
-  );
-}
-
-/**
- * The chosen vehicle on its way in: from the pit lane (OUT_Z) to its parking spot, eased, with
- * a little roll of the wheels implied by a bob. `drive` is the linear drive-in progress.
- */
-export function DrivingCar({ v, livery, x, nose, drive, from = 0 }: { v: VehicleDef; livery: Livery; x: number; nose: number; drive: RefObject<number>; from?: number }) {
-  const g = useRef<THREE.Group>(null!);
-  const { cz } = parkPose(v, x, nose);
-  useFrame(() => {
-    const k = inOut(seg(drive.current, 0, 0.82));
-    g.current.position.set(lerp(from, x, out3(seg(drive.current, 0, 0.6))), 0, lerp(OUT_Z, cz, k));
-  });
-  return (
-    <group ref={g} position={[from, 0, OUT_Z]} rotation={[0, Math.PI, 0]}>
-      <group scale={S}>
-        <v.Model livery={livery} />
-      </group>
-    </group>
   );
 }
 
@@ -264,18 +224,6 @@ export function useCanvasTexture(w: number, h: number, draw: (g: CanvasRendering
 
 /** The establishing shot outside the bay, where every option starts and backs out to. */
 export const OUTSIDE = { pos: new THREE.Vector3(2.6, 3.2, 18), look: new THREE.Vector3(0, 1.2, 4), fov: 36 };
-
-/**
- * The camera glide from OUTSIDE to an option's inside shot, timed to the drive-in (it starts a
- * beat after the car and lands with it), with a little lift on the way so it rides over the car.
- */
-export function glide(c: THREE.PerspectiveCamera, k: number, pos: THREE.Vector3, look: THREE.Vector3, fov: number, tmp: { p: THREE.Vector3; l: THREE.Vector3 }, lift = 0.6) {
-  const kc = inOut(seg(k, 0.12, 1));
-  tmp.p.lerpVectors(OUTSIDE.pos, pos, kc).y += Math.sin(kc * Math.PI) * lift;
-  tmp.l.lerpVectors(OUTSIDE.look, look, out3(kc));
-  setCam(c, tmp.p, tmp.l, lerp(OUTSIDE.fov, fov, kc));
-}
-export const useTmp = () => useState(() => ({ p: new THREE.Vector3(), l: new THREE.Vector3() }))[0];
 
 /** A spotlight aimed at a point in the same frame (its target joins the scene, so it follows). */
 export function Spot({ position, target, intensity, angle = 0.5, distance = 8 }: { position: V3; target: V3; intensity: number; angle?: number; distance?: number }) {

@@ -2,7 +2,7 @@ import type { Livery, VehicleDef } from "@/components/world/vehicles";
 import type { Domain } from "@/content/projects";
 import type { Item } from "./common";
 
-/** What every option's scene gets from the mock. */
+/** What the scene gets from the mock. */
 export type SceneProps = {
   v: VehicleDef;
   livery: Livery;
