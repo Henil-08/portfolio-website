@@ -6,39 +6,37 @@ import { AWAY, FRAMES, RUNOFF, barrierOffset, distToTrack, farSign, inSectorScen
 import { FLOODS } from "./layoutStreet";
 import { nearPromenade } from "../waterfront/layout";
 import { STAND_SPOTS } from "./standSpots";
-import { FH, G0, TONES, blockHeight } from "../buildings/townBlocks";
+import { TOWER, TOWN_LOW, TOWN_MID } from "../kit/builtTown";
 
-// Concrete town blocks (W09, ../buildings/townBlocks.ts). Kept low so buildings read only
-// a little taller than the car, like the original (4b-b).
-const WALLS = TONES;
-const bodyH = blockHeight;
+// The town is the three approved blocks (../kit/builtTown.tsx: town-low, town-mid and the
+// landmark tower), each scaled to its footprint. Kept low so buildings read only a little
+// taller than the car, like the original (4b-b).
 const MAX_TOP = 12;
+// storey heights the placement reasons with (ground floor, upper floors)
+const G0 = 3.0;
+const FH = 2.6;
 // Buildings this close to the track (m) stay at one or two storeys.
 const NEAR_TRACK = 30;
 
 // ------------------------------------------------------------ placement
 
-/** All flat: 0 and 2 plain, 1 with rooftop plant, 3 with a set-back top floor. */
-export type Roof = 0 | 1 | 2 | 3;
+/** Which approved block a building is: 1-2 storeys low, 3 mid, landmarks the tower. */
+export type TownKind = "low" | "mid" | "tower";
 export type Bld = {
   x: number;
   z: number;
   w: number;
   d: number;
+  /** top of the model above its floor */
   h: number;
   yaw: number;
-  /** 0 regular windows, 1 wide windows, 2 tall narrow windows (landmarks) */
-  style: number;
-  color: string;
+  kind: TownKind;
+  /** the model's scale on x, y, z */
+  s: [number, number, number];
   seed: number;
   /** +1 if local +z faces the road, else -1 */
   front: 1 | -1;
   floors: number;
-  roof: Roof;
-  /** height of the plant or top floor on the roof */
-  rh: number;
-  /** an orange door on the street face (one now and then) */
-  accent?: boolean;
   /** one of the old town's buildings round the crossover */
   old?: boolean;
 };
@@ -115,7 +113,7 @@ function blocksCamera(b: Bld) {
   const floor = footing(b).floor;
   for (const f of FRAMES) {
     if (Math.hypot(f.p.x - b.x, f.p.z - b.z) > 40) continue;
-    const top = floor - f.p.y + b.h + b.rh + 0.5; // roof above this bit of road
+    const top = floor - f.p.y + b.h + 0.5; // roof above this bit of road
     for (let k = 1; k <= 20; k++) {
       const t = k / 20;
       if (CAM.y * t > top) break; // the sight line is above the roof from here on
@@ -163,13 +161,29 @@ function frontOf(x: number, z: number, yaw: number): 1 | -1 {
   return Math.sin(yaw) * (f.p.x - x) + Math.cos(yaw) * (f.p.z - z) >= 0 ? 1 : -1;
 }
 
-function dress(r: () => number, b: Omit<Bld, "roof" | "rh" | "style" | "front">, styleBias = 0): Bld {
-  const roll = r();
-  const roof: Roof = roll < 0.45 ? 1 : roll < 0.75 ? 2 : roll < 0.85 ? 3 : 0;
-  const short = Math.min(b.w, b.d);
-  const rh = roof === 1 ? Math.min(1.2, MAX_TOP - b.h) : roof === 3 ? Math.min(short > 6 ? FH : 0, MAX_TOP - b.h) : 0;
-  const style = r() < 0.22 + styleBias ? 1 : 0;
-  return { ...b, roof, rh, style, front: frontOf(b.x, b.z, b.yaw), accent: b.seed % 9 < 1 };
+const DIMS = { low: TOWN_LOW, mid: TOWN_MID, tower: TOWER };
+const CAP = { low: 9, mid: MAX_TOP, tower: 18 };
+
+/** A block model fitted to a footprint (trimmed to at most 1.3 : 1 so its facades keep their proportions). */
+export function fitModel(kind: TownKind, w: number, d: number) {
+  const M = DIMS[kind];
+  let sx = Math.min(w, d * 1.3) / M.w;
+  let sz = Math.min(d, w * 1.3) / M.d;
+  let sy = Math.sqrt(sx * sz);
+  if (sy * M.h > CAP[kind]) {
+    const k = CAP[kind] / (sy * M.h);
+    sx *= k;
+    sy *= k;
+    sz *= k;
+  }
+  return { w: sx * M.w, d: sz * M.d, h: sy * M.h, s: [sx, sy, sz] as [number, number, number] };
+}
+
+function dress(r: () => number, b: Omit<Bld, "kind" | "s" | "h" | "front">, kind: TownKind = b.floors >= 3 ? "mid" : "low"): Bld {
+  r(); // the old roof and window rolls, kept so the placement stays where it was
+  r();
+  const f = fitModel(kind, b.w, b.d);
+  return { ...b, ...f, kind, front: frontOf(b.x, b.z, b.yaw) };
 }
 
 /** A continuous street wall on the far side, close enough to frame the chase camera. */
@@ -208,9 +222,9 @@ function frontage(out: Bld[]) {
     }
     const q = f.p.clone().addScaledVector(f.n, s * off);
     const floors = r() < 0.45 ? 1 : 2;
-    const color = WALLS[Math.floor(r() * WALLS.length)];
+    r();
     const yaw = Math.atan2(-f.tan.z, f.tan.x);
-    const b = dress(r, { x: q.x, z: q.z, w, d, h: bodyH(floors), yaw, color, seed: r() * 100, floors });
+    const b = dress(r, { x: q.x, z: q.z, w, d, yaw, seed: r() * 100, floors });
     if (clear(b, out)) {
       out.push(b);
       i += Math.max(2, Math.round(((w + 1.4) / LEN_M) * FRAMES.length));
@@ -243,8 +257,8 @@ function oldTown(out: Bld[]) {
       const w = 5 + r() * 3.5;
       const d = 5.5 + r() * 2.5;
       const floors = camSide ? 1 : 2;
-      const color = WALLS[Math.floor(r() * WALLS.length)];
-      const b = dress(r, { x, z, w, d, h: bodyH(floors), yaw, color, seed: r() * 100, floors }, 0.1);
+      r();
+      const b = dress(r, { x, z, w, d, yaw, seed: r() * 100, floors });
       if (clear(b, out, true)) out.push({ ...b, old: true });
     }
   }
@@ -289,21 +303,21 @@ export const BUILDINGS: Bld[] = (() => {
     let floors = 1 + Math.floor(Math.pow(r(), 1.3) * (1.5 + far01 * 1.5));
     if (dt < NEAR_TRACK) floors = Math.min(floors, 2);
     if (camSide) floors = Math.min(floors, Math.floor((4.3 + Math.max(0, dt - 13) * 0.55 - 0.7 - G0) / FH) + 1);
-    const color = WALLS[Math.floor(r() * WALLS.length)];
-    const b = dress(r, { x, z, w, d, h: bodyH(floors), yaw, color, seed: r() * 100, floors });
+    r();
+    const b = dress(r, { x, z, w, d, yaw, seed: r() * 100, floors });
     if (out.some((o) => overlaps(o, b, 1.1))) continue;
     if (footing(b).fall > MAX_FALL) continue;
     if (blocksCamera(b)) continue;
     out.push(b);
   }
-  // A few landmarks on the far side: slim towers with tall windows and a glass crown.
+  // A few landmarks on the far side: the landmark tower.
   let marks = 0;
   for (const b of out) {
     if (marks >= 4) break;
     const g = (b.x * AWAY.x + b.z * AWAY.z) / Math.hypot(b.x, b.z);
     if (g < 0.55 || b.floors < 3 || (marks && b.seed % 3 > 1)) continue;
-    const mark = { ...b, w: Math.min(b.w, b.d, 5.6), d: Math.min(b.w, b.d, 5.6), floors: 3, h: bodyH(3), roof: 1 as Roof, style: 2 };
-    mark.rh = Math.min(3.4, MAX_TOP - mark.h);
+    const side = Math.min(b.w, b.d, 5.6);
+    const mark: Bld = { ...b, ...fitModel("tower", side, side), kind: "tower", floors: 3 };
     if (blocksCamera(mark)) continue; // taller now: it mustn't hide the car
     Object.assign(b, mark);
     marks++;

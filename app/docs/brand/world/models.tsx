@@ -7,7 +7,7 @@ import { useMemo } from "react";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { PitBuilding, type Bay, type PitOpts } from "@/components/world/buildings/PitBuilding";
-import { TONES, blockHeight, facadeMaterial, townParts, type TownBlock } from "@/components/world/buildings/townBlocks";
+import { TownLow, TownMid, TownTower } from "@/components/world/kit/builtTown";
 import { kindGeometry, type TreeKind } from "@/components/world/foliage/species";
 
 export const W = {
@@ -403,21 +403,14 @@ export function Gantry({ night }: Night) {
 
 /* ------------------------------------------------------------------ W08 town */
 
-// Three of the game's town blocks (components/world/buildings/townBlocks.ts) on a slab.
-const TOWN = (() => {
-  const block = (x: number, z: number, w: number, d: number, floors: number, color: string, accent = false): TownBlock => ({
-    x, z, w, d, floors, color, accent, h: blockHeight(floors), yaw: 0, front: 1, seed: x + 20, style: 0, roof: 0, rh: 0, floor: 0.12, low: 0.12,
-  });
-  const parts = townParts([block(-8, 0, 8, 8, 5, TONES[0]), block(0, 1, 7, 8, 3, TONES[2], true), block(8, -0.5, 8, 9, 7, TONES[3])]);
-  return { ...parts, facade: facadeMaterial(), trim: new THREE.MeshStandardMaterial({ roughness: 0.8, vertexColors: true }) };
-})();
-
+// The game's three town blocks (components/world/kit/builtTown.tsx) on a slab, at the game's scale.
 export function Town() {
   return (
     <group>
       <Box s={[26, 0.12, 14]} p={[0, 0.06, 0]} m={M.concreteDark} />
-      <mesh geometry={TOWN.bodies} material={TOWN.facade} castShadow receiveShadow />
-      <mesh geometry={TOWN.trims} material={TOWN.trim} castShadow receiveShadow />
+      <TownLow position={[-8, 0.12, 0]} scale={0.55} />
+      <TownMid position={[0, 0.12, 0.5]} scale={0.5} />
+      <TownTower position={[8, 0.12, -0.5]} scale={0.42} />
     </group>
   );
 }
