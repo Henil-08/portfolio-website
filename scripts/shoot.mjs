@@ -12,7 +12,7 @@ const [out, script, w = "1280", h = "800", url = "http://localhost:3100/"] = pro
 const port = 9400 + Math.floor(Math.random() * 500);
 const prof = mkdtempSync(join(tmpdir(), "world-"));
 const chrome = spawn("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-  ["--headless=new", `--remote-debugging-port=${port}`, "--hide-scrollbars", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--autoplay-policy=no-user-gesture-required", `--user-data-dir=${prof}`, "about:blank"], { stdio: "ignore" });
+  ["--headless=new", `--remote-debugging-port=${port}`, "--hide-scrollbars", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--autoplay-policy=no-user-gesture-required", "--mute-audio", `--user-data-dir=${prof}`, "about:blank"], { stdio: "ignore" });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let ws;
 for (let i = 0; i < 60 && !ws; i++) {
