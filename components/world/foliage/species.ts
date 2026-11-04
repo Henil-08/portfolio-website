@@ -20,7 +20,7 @@ export const KINDS: Record<TreeKind, { build: () => THREE.BufferGeometry; /** se
   cypress: { build: () => bake(cypressModel(), { xf: { s: 1.3 } }), stretch: 0.1 },
   round: { build: () => bake(roundTreeModel(), { xf: { s: 1.05 } }), stretch: 0.04 },
   // the world's bushes carry fewer gravel chips than the review model
-  bush: { build: () => bake(bushModel(90), { xf: { s: 0.75 } }), stretch: 0.06 },
+  bush: { build: () => bake(bushModel(160), { xf: { s: 0.72 } }), stretch: 0.06 },
 };
 
 const built = new Map<TreeKind, THREE.BufferGeometry>();

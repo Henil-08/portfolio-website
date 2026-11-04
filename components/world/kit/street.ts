@@ -1,6 +1,6 @@
 // Street kit (concepts lamp, bench, bollard, kiosk, busstop, cafe). Builders return cached
 // Models (see ./shared). Fronts face +Z.
-import { bar, box, cbox, hull, model, prism, vbox, type Kit, type V3 } from "./shared";
+import { bar, block, box, cbox, hull, model, prism, vbox, type Kit, type V3 } from "./shared";
 
 /** Lamp post height and the lantern centre (for a night light). */
 export const LAMP_H = 3.68;
@@ -18,30 +18,53 @@ export function lampModel() {
   });
 }
 
-/** Bench: a long chamfered concrete block with ink seat slats set between its end caps and an ink slatted back on three posts; an orange tag on one end. 2.1 m. */
+/** Bench sizes: block length, depth, seat (slat top) height. */
+export const BENCH = { L: 2.1, D: 0.6, seat: 0.48 };
+
+/**
+ * Bench (concept "bench"): a long concrete block cut with a deep chamfer on its end edges and a
+ * plinth chamfer round its foot; sixteen charcoal seat slats running front to back, set between
+ * the block's raised ends and flush with them; a slatted back of sixteen narrow uprights on three
+ * flat posts and an end frame, leaning back a little, a clear gap above the seat; an orange tag
+ * on an ink clip at one end. 2.1 m.
+ */
 export function benchModel() {
-  return model("kit-bench", (k) => {
-    const L = 2.1;
-    const D = 0.62;
-    k.add("concrete", cbox(L, 0.44, D, 0.06), { p: [0, 0.22, 0] });
-    for (const sx of [-1, 1]) k.add("concrete", cbox(0.12, 0.1, D, 0.03), { p: [sx * (L / 2 - 0.06), 0.46, 0] });
-    const n = 17;
-    const span = L - 0.26;
-    const w = 0.08;
+  return model("kit-bench-v2", (k) => {
+    const { L, D, seat } = BENCH;
+    const blockH = 0.42;
+    k.add("concrete", block(L, blockH, D, 0.075, 0.07, 0.012), { p: [0, blockH / 2, 0] });
+    // the raised ends the slats sit between, flush with the slat tops
+    const capW = 0.13;
+    for (const sx of [-1, 1]) k.add("concrete", block(capW, seat - blockH + 0.012, D, 0.075, 0.012, 0.012), { p: [sx * (L / 2 - capW / 2), (blockH - 0.012 + seat) / 2, 0] });
+    // seat: 16 slats, 0.088 wide with ~0.02 gaps, front to back, ends square
+    const n = 16;
+    const w = 0.088;
+    const span = L - 2 * capW - 0.03;
+    const sh = 0.075;
     for (let i = 0; i < n; i++) {
       const x = -span / 2 + w / 2 + (i * (span - w)) / (n - 1);
-      k.add("ink", cbox(w, 0.06, D - 0.06, 0.008), { p: [x, 0.47, 0.02] });
+      k.add("slat", cbox(w, sh, D - 0.04, 0.006), { p: [x, seat - sh / 2, 0.005] });
     }
-    // back: three posts, a rail and sixteen upright slats, leaning back a little
-    const zb = -D / 2 + 0.06;
-    for (const x of [-0.62, 0, 0.62]) k.add("ink", box(0.05, 0.22, 0.04), { p: [x, 0.58, zb], r: [-0.06, 0, 0] });
-    k.add("ink", box(L - 0.2, 0.05, 0.03), { p: [0, 0.72, zb - 0.04] });
-    for (let i = 0; i < 16; i++) {
-      const x = -0.93 + (i * 1.86) / 15;
-      k.add("ink", cbox(0.095, 0.46, 0.04, 0.006), { p: [x, 0.84, zb - 0.02], r: [-0.08, 0, 0] });
+    // back: flat posts from the seat's back edge (three, plus an end frame at the right), a rail
+    // behind, and sixteen narrow uprights
+    const lean = -0.1;
+    const zb = -D / 2 + 0.07;
+    const y0 = seat + 0.1; // the uprights' foot: a clear gap above the seat
+    const bh = 0.44;
+    const posts = [-0.6, 0.02, 0.62];
+    for (const x of posts) k.add("ink", cbox(0.05, 0.36, 0.03, 0.006), { p: [x, seat + 0.16, zb - 0.1], r: [lean, 0, 0] });
+    k.add("ink", cbox(0.05, bh + 0.14, 0.04, 0.006), { p: [L / 2 - capW - 0.02, seat + 0.07 + (bh + 0.14) / 2 - 0.01, zb - 0.03], r: [lean, 0, 0] });
+    k.add("ink", box(L - 2 * capW - 0.1, 0.045, 0.025), { p: [-0.02, y0 + bh * 0.45, zb - 0.1], r: [lean, 0, 0] });
+    const m = 16;
+    const bw = 0.086;
+    const bspan = L - 2 * capW - 0.12;
+    for (let i = 0; i < m; i++) {
+      const x = -bspan / 2 - 0.02 + bw / 2 + (i * (bspan - bw)) / (m - 1);
+      k.add("slat", cbox(bw, bh, 0.035, 0.005), { p: [x, y0 + bh / 2, zb - 0.04 - Math.sin(-lean) * 0.2], r: [lean, 0, 0] });
     }
-    k.add("orange", box(0.012, 0.15, 0.075), { p: [L / 2 + 0.002, 0.3, 0.16] });
-    k.add("ink", box(0.016, 0.03, 0.02), { p: [L / 2 + 0.004, 0.385, 0.16] });
+    // the tag: an orange plate hanging from an ink clip on the right end, near the front
+    k.add("orange", box(0.012, 0.13, 0.065), { p: [L / 2 + 0.004, 0.31, D / 2 - 0.13] });
+    k.add("ink", box(0.018, 0.035, 0.018), { p: [L / 2 + 0.006, 0.39, D / 2 - 0.13] });
   });
 }
 

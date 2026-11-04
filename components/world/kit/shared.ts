@@ -10,8 +10,9 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 export const KIT = {
   paper: "#f3f2ed",
   ink: "#151515",
-  concrete: "#d9d6ce",
-  concreteDark: "#b8b4a9",
+  // the concepts' concrete reads as a warm mid grey, not the UI's light concrete (fidelity pass)
+  concrete: "#bfbab1",
+  concreteDark: "#a39e94",
   graphite: "#2b2c2e",
   glass: "#1f262b",
   gravel: "#cdc4b0",
@@ -20,13 +21,15 @@ export const KIT = {
   orange: "#ff4f00",
 } as const;
 
-type PaintDef = { c: string; r?: number; m?: number; glow?: number; o?: number; double?: boolean; net?: boolean };
+type PaintDef = { c: string; r?: number; m?: number; glow?: number; o?: number; double?: boolean; net?: boolean; /** fine streaks along each part's long axis (its own uvs) */ grain?: boolean };
 
 const PAINTS = {
   paper: { c: KIT.paper, r: 0.7 },
   ink: { c: KIT.ink, r: 0.6, m: 0.1 },
   concrete: { c: KIT.concrete, r: 0.95 },
   concreteDark: { c: KIT.concreteDark, r: 0.95 },
+  /** pale cast concrete (tray rims and kerbs that read near white in their concepts) */
+  concreteLight: { c: "#d9d6ce", r: 0.95 },
   graphite: { c: KIT.graphite, r: 0.7 },
   glass: { c: KIT.glass, r: 0.12, m: 0.4, o: 0.78 },
   gravel: { c: KIT.gravel, r: 1 },
@@ -43,6 +46,8 @@ const PAINTS = {
   paperBlade: { c: KIT.paper, r: 0.7, double: true },
   sageBlade: { c: "#9aa38c", r: 0.8, double: true },
   sandBlade: { c: "#c9bfa8", r: 0.8, double: true },
+  /** bench slats: charcoal with a fine streaked grain along each slat (keeps generated uvs) */
+  slat: { c: "#2a2a2a", r: 0.62, grain: true },
   /** cord net: an ink grid on a transparent sheet (keeps its uvs) */
   net: { c: KIT.ink, r: 0.8, double: true, net: true },
 } satisfies Record<string, PaintDef>;
@@ -64,6 +69,34 @@ function netTexture() {
   return netTex;
 }
 
+let grainTex: THREE.Texture | null = null;
+/** 128 px streaks: thin lighter and darker fibres running along u, a little uneven along it. */
+function grainTexture() {
+  if (grainTex) return grainTex;
+  const S = 128;
+  const cv = document.createElement("canvas");
+  cv.width = cv.height = S;
+  const g = cv.getContext("2d")!;
+  g.fillStyle = "#b4b4b4";
+  g.fillRect(0, 0, S, S);
+  const r = rng(808);
+  for (let i = 0; i < 70; i++) {
+    const y = r() * S;
+    const l = 30 + r() * 98;
+    const x = r() * S;
+    const light = r() < 0.5;
+    g.fillStyle = light ? `rgba(255,255,255,${0.3 + r() * 0.4})` : `rgba(0,0,0,${0.3 + r() * 0.4})`;
+    // wrap round so the tile repeats
+    g.fillRect(x, y, l, 0.6 + r() * 1.4);
+    g.fillRect(x - S, y, l, 0.6 + r() * 1.4);
+  }
+  grainTex = new THREE.CanvasTexture(cv);
+  grainTex.wrapS = grainTex.wrapT = THREE.RepeatWrapping;
+  grainTex.colorSpace = THREE.SRGBColorSpace;
+  grainTex.anisotropy = 4;
+  return grainTex;
+}
+
 const mats = new Map<Paint, THREE.MeshStandardMaterial>();
 
 /** One shared material per paint. Never dispose. */
@@ -81,6 +114,11 @@ export function kitMat(p: Paint) {
     m.transparent = true;
     m.opacity = d.o;
     m.depthWrite = false;
+  }
+  if (d.grain) {
+    // the map multiplies the paint: base colour lifted so the mean stays the paint's
+    m.map = grainTexture();
+    m.color.multiplyScalar(1 / 0.456); // the tile's mean, #b4b4b4, in linear
   }
   if (d.net) {
     m.map = netTexture();
@@ -115,6 +153,26 @@ function place(g: THREE.BufferGeometry, xf?: Xf) {
   return g;
 }
 
+/**
+ * UVs for a grained part, in its own frame before it's placed: u runs along its longest axis
+ * (one texture tile per 0.7 m), v across it (a tile per 0.12 m), so the streaks follow the slat.
+ */
+function grainUV(g: THREE.BufferGeometry) {
+  g.computeBoundingBox();
+  const size = g.boundingBox!.getSize(new THREE.Vector3());
+  const ax = size.x >= size.y && size.x >= size.z ? 0 : size.y >= size.z ? 1 : 2;
+  const p = g.attributes.position;
+  const uv = new Float32Array(p.count * 2);
+  for (let i = 0; i < p.count; i++) {
+    const c = [p.getX(i), p.getY(i), p.getZ(i)];
+    const along = c[ax];
+    const across = c[(ax + 1) % 3] + c[(ax + 2) % 3];
+    uv[i * 2] = along / 0.7;
+    uv[i * 2 + 1] = across / 0.12;
+  }
+  g.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+}
+
 /** Collects parts by paint and merges them. */
 export class Kit {
   private parts = new Map<Paint, THREE.BufferGeometry[]>();
@@ -123,6 +181,7 @@ export class Kit {
     if (paint !== "net") {
       for (const k of Object.keys(n.attributes)) if (k !== "position") n.deleteAttribute(k);
       n.computeVertexNormals();
+      if ((PAINTS[paint] as PaintDef).grain) grainUV(n);
     } else if (!n.attributes.normal) n.computeVertexNormals();
     n.clearGroups();
     n = place(n, xf);
@@ -180,6 +239,23 @@ export function cbox(w: number, h: number, d: number, c = 0.02) {
         pts.push([sx * (x - cc), sy * (y - cc), sz * z]);
       }
   return hull(pts);
+}
+
+/**
+ * Box w x h x d centred on the origin with its own chamfer per edge group: `cv` on the four
+ * vertical edges, `cb` round the bottom, `ct` round the top (a plinth-cut block).
+ */
+export function block(w: number, h: number, d: number, cv: number, cb: number, ct: number) {
+  const ring = (iw: number, id: number, c: number, y: number): V3[] =>
+    roundRect(iw, id, Math.max(0.001, c), 1).map(([x, z]): V3 => [x, y, z]);
+  const y0 = -h / 2;
+  const y1 = h / 2;
+  return hull([
+    ...ring(w - 2 * cb, d - 2 * cb, Math.max(0.001, cv - cb), y0),
+    ...ring(w, d, cv, y0 + cb),
+    ...ring(w, d, cv, y1 - ct),
+    ...ring(w - 2 * ct, d - 2 * ct, Math.max(0.001, cv - ct), y1),
+  ]);
 }
 
 /** Box chamfered on its four vertical edges only (top and bottom stay square). */
@@ -322,9 +398,10 @@ export function rng(seed: number) {
 }
 
 /** A gravel bed: small faceted chips scattered over a plan rectangle at height y. */
-export function gravel(k: Kit, paints: Paint[], w: number, d: number, y: number, n: number, seed: number, size = 0.035, keep?: (x: number, z: number) => boolean) {
+export function gravel(k: Kit, paints: Paint[], w: number, d: number, y: number, n: number, seed: number, size = 0.035, keep?: (x: number, z: number) => boolean, round = false) {
   const r = rng(seed);
-  const chip = new THREE.OctahedronGeometry(1, 0);
+  // round: twenty-faced pebbles (the review models); otherwise eight-faced chips (light, for the world)
+  const chip = round ? new THREE.IcosahedronGeometry(1, 0) : new THREE.OctahedronGeometry(1, 0);
   for (let i = 0; i < n; i++) {
     const x = (r() - 0.5) * w;
     const z = (r() - 0.5) * d;

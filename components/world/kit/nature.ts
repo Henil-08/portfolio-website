@@ -105,22 +105,37 @@ function bushBody(R: number, H: number, rot: number) {
   return hull(pts);
 }
 
-/** Three faceted bushes on gravel in a rounded concrete tray with a paper label strip and an orange tab. 2.6 x 2.1 m. */
-export function bushModel(chips = 650) {
-  return model(`kit-bush-${chips}`, (k) => {
-    const out = roundRect(2.6, 2.1, 0.28, 4);
-    k.add("concrete", ring(out, inset(out, 0.09), 0, 0.14));
-    k.add("gravel", slab(inset(out, 0.085), 0, 0.08));
-    gravel(k, ["gravel", "concreteDark", "paper"], 2.35, 1.85, 0.085, chips, 4, 0.024 * Math.sqrt(650 / chips));
-    // label strip on the front-left rim: paper with an ink rule and an ink dot
-    k.add("paper", box(1.0, 0.012, 0.085), { p: [-0.65, 0.146, 1.005] });
-    k.add("ink", box(1.0, 0.014, 0.012), { p: [-0.65, 0.147, 1.04] });
-    k.add("ink", prism(0.022, 0.022, 0.016, 10), { p: [-0.2, 0.142, 1.005] });
-    k.add("orange", box(0.07, 0.03, 0.11), { p: [0.55, 0.15, 1.005] });
-    k.add("orange", box(0.07, 0.07, 0.012), { p: [0.55, 0.115, 1.056] });
-    k.add("sage", bushBody(0.68, 1.2, 0.2), { p: [0.42, 0.06, -0.28] });
-    k.add("sage", bushBody(0.55, 0.95, 0.5), { p: [-0.62, 0.06, -0.12] });
-    k.add("sage", bushBody(0.32, 0.6, 0.1), { p: [-0.02, 0.06, 0.48] });
+/** Bush tray size (plan) and rim. */
+export const BUSH = { w: 2.7, d: 2.3, r: 0.3, rim: 0.1, rimH: 0.13, bed: 0.085 };
+
+/**
+ * Three faceted bushes (concept "bush") on a bed of real gravel: individual pebbles, mixed sizes
+ * and four stone colours, packed over a gravel-coloured bed, in a rounded concrete tray with a
+ * paper label strip (an ink rule and an ink dot) along the front-left and an orange clip on the
+ * front-right rim. `chips` sets the pebble count (the world's bushes carry fewer). 2.7 x 2.3 m.
+ */
+export function bushModel(chips = 3600) {
+  return model(`kit-bush-v2-${chips}`, (k) => {
+    const { w, d, r, rim, rimH, bed } = BUSH;
+    const out = roundRect(w, d, r, 5);
+    k.add("concreteLight", ring(out, inset(out, rim), 0, rimH));
+    k.add("gravel", slab(inset(out, rim - 0.005), 0, bed));
+    const inner = (x: number, z: number) => Math.abs(x) < w / 2 - rim - 0.02 && Math.abs(z) < d / 2 - rim - 0.02 && Math.hypot(Math.max(0, Math.abs(x) - (w / 2 - r)), Math.max(0, Math.abs(z) - (d / 2 - r))) < r - rim - 0.02;
+    const big = chips > 600;
+    gravel(k, ["gravel", "paper", "concrete", "gravel", "concreteLight", "concreteDark"], w - 2 * rim, d - 2 * rim, bed + 0.004, chips, 4, big ? 0.015 : 0.03, inner, big);
+    // label strip on the front-left rim: a paper plate with an ink rule along its outer edge,
+    // and an ink dot on the rim's face at its end
+    const zf = d / 2 - rim / 2;
+    k.add("paper", box(1.05, 0.012, rim - 0.01), { p: [-w / 2 + r + 0.48, rimH + 0.006, zf] });
+    k.add("ink", box(1.05, 0.014, 0.012), { p: [-w / 2 + r + 0.48, rimH + 0.007, d / 2 - 0.015] });
+    k.add("ink", prism(0.024, 0.024, 0.01, 12), { p: [-w / 2 + r + 0.97, rimH * 0.5, d / 2 + 0.002], r: [Math.PI / 2, 0, 0] });
+    // orange clip over the front-right rim
+    k.add("orange", box(0.07, 0.03, rim + 0.02), { p: [0.62, rimH + 0.012, zf] });
+    k.add("orange", box(0.07, 0.07, 0.012), { p: [0.62, rimH - 0.025, d / 2 + 0.008] });
+    // the bushes: big at the back right, a mid one to the left, a small one in front
+    k.add("sage", bushBody(0.7, 1.25, 0.2), { p: [0.45, bed - 0.02, -0.3] });
+    k.add("sage", bushBody(0.6, 1.02, 0.45), { p: [-0.72, bed - 0.02, 0.22] });
+    k.add("sage", bushBody(0.35, 0.66, 0.1), { p: [0.12, bed - 0.02, 0.62] });
   });
 }
 
