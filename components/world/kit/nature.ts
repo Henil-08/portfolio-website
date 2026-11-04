@@ -237,3 +237,24 @@ export function rocksModel() {
     k.add("orange", box(0.045, 0.1, 0.022), { p: [0.15, 0.6, 0.72], r: [0.5, 0, 0] });
   });
 }
+
+const boulders = new Map<string, THREE.BufferGeometry>();
+
+/**
+ * One loose boulder from the rocks concept (chamfered, corners pulled at random), w x h x d,
+ * centred on its middle (`foot`: origin at its foot instead). For instanced knock-about rocks.
+ */
+export function boulderGeometry(seed: number, w = 2, h = 1.4, d = 1.7, foot = false) {
+  const key = `${seed}|${w}|${h}|${d}|${foot}`;
+  let g = boulders.get(key);
+  if (!g) {
+    g = boulder(seed, w, h, d, Math.min(w, h, d) * 0.22);
+    if (!foot) g.translate(0, -h / 2, 0);
+    g.deleteAttribute("uv");
+    g.computeVertexNormals();
+    g.computeBoundingBox();
+    g.computeBoundingSphere();
+    boulders.set(key, g);
+  }
+  return g;
+}

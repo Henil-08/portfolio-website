@@ -8,8 +8,9 @@
 import { useLayoutEffect, useRef } from "react";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { C } from "../../palette";
-import { geo, mat, rng, type GroupProps } from "./shared";
+import type { GroupProps } from "./shared";
+import { boulderGeometry } from "../../kit/nature";
+import { kitMat } from "../../kit/shared";
 import { registerTree, type TreeKind } from "../../foliage/registry";
 
 /** An empty group whose world transform feeds the shared tree instances. */
@@ -34,38 +35,11 @@ export function Bush({ seed = 1, ...props }: GroupProps & { seed?: number }) {
   return <FoliageTree kind="bush" seed={seed} {...props} />;
 }
 
-function rockGeo(seed: number) {
-  return geo(`pebble-${seed}`, () => {
-    // smooth pebble: a squashed sphere with a couple of gentle, low-frequency dents
-    const g = new THREE.SphereGeometry(0.6, 36, 24);
-    const r = rng(seed + 11);
-    const dents = Array.from({ length: 3 }, () => ({
-      d: new THREE.Vector3(r() - 0.5, r() * 0.6, r() - 0.5).normalize(),
-      k: 0.06 + r() * 0.06,
-    }));
-    const p = g.getAttribute("position");
-    const v = new THREE.Vector3();
-    for (let i = 0; i < p.count; i++) {
-      v.fromBufferAttribute(p, i);
-      const n = v.clone().normalize();
-      let f = 1;
-      for (const dt of dents) f -= dt.k * Math.max(0, n.dot(dt.d)) ** 3;
-      v.multiplyScalar(f);
-      p.setXYZ(i, v.x, v.y, v.z);
-    }
-    g.scale(1, 0.55 + r() * 0.15, 0.8 + r() * 0.1);
-    g.computeVertexNormals();
-    g.computeBoundingBox();
-    g.translate(0, -g.boundingBox!.min.y - 0.04, 0);
-    return g;
-  });
-}
-
-/** Smooth pebble-form rock in warm stone grey. */
+/** A chamfered concrete boulder from the rocks concept (components/world/kit/nature.ts). */
 export function Rock({ seed = 1, ...props }: GroupProps & { seed?: number }) {
   return (
     <group {...props}>
-      <mesh geometry={rockGeo(Math.round(seed) % 4)} material={mat(C.rock, { r: 0.45 })} castShadow receiveShadow />
+      <mesh geometry={boulderGeometry(Math.round(seed) % 4, 1.2, 0.7, 1.0, true)} material={kitMat("concrete")} position={[0, -0.04, 0]} castShadow receiveShadow />
     </group>
   );
 }

@@ -80,7 +80,12 @@ export function addBollard(k: Kit, x: number, z: number, band: boolean) {
   k.add("ink", cbox(0.25, 0.13, 0.25, 0.02), { p: [x, yt + 0.065, z] });
 }
 
-/** A row of three bollards, the middle one with the orange collar (`addBollard` builds one). */
+/** One bollard, origin at its foot. */
+export function bollardModel(band: boolean) {
+  return model(`kit-bollard-${band}`, (k) => addBollard(k, 0, 0, band));
+}
+
+/** A row of three bollards, the middle one with the orange collar. */
 export function bollardsModel() {
   return model("kit-bollards", (k) => {
     addBollard(k, -0.5, 0, false);
@@ -176,15 +181,29 @@ function chair(k: Kit, x: number, z: number, yaw: number, y0: number) {
   k.add("paper", cbox(w, 0.3, 0.045, 0.012), { p: at(0, 0.71, -d / 2 + 0.03), r: [0, yaw, 0] });
 }
 
+/** Café table: an ink square top on four legs with an orange cup, origin at its foot. */
+export function cafeTableModel() {
+  return model("kit-cafe-table", (k) => addTable(k, 0));
+}
+
+function addTable(k: Kit, y0: number) {
+  k.add("ink", cbox(0.92, 0.05, 0.92, 0.025), { p: [0, y0 + 0.725, 0] });
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) k.add("ink", box(0.065, 0.7, 0.065), { p: [sx * 0.41, y0 + 0.35, sz * 0.41] });
+  k.add("orange", prism(0.042, 0.042, 0.09, 10), { p: [0.05, y0 + 0.75, -0.08] });
+  k.add("orange", box(0.035, 0.05, 0.012), { p: [0.1, y0 + 0.8, -0.08] });
+}
+
+/** Café chair in paper, origin at its foot, facing +Z (back toward -Z). */
+export function cafeChairModel() {
+  return model("kit-cafe-chair", (k) => chair(k, 0, 0, 0, 0));
+}
+
 /** Café set: an ink table with an orange cup and four paper chairs on a concrete slab. 2.8 m square. */
 export function cafeModel() {
   return model("kit-cafe", (k) => {
     const y0 = 0.12;
     k.add("concreteDark", cbox(2.8, y0, 2.8, 0.03), { p: [0, y0 / 2, 0] });
-    k.add("ink", cbox(0.92, 0.05, 0.92, 0.025), { p: [0, y0 + 0.725, 0] });
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) k.add("ink", box(0.065, 0.7, 0.065), { p: [sx * 0.41, y0 + 0.35, sz * 0.41] });
-    k.add("orange", prism(0.042, 0.042, 0.09, 10), { p: [0.05, y0 + 0.75, -0.08] });
-    k.add("orange", box(0.035, 0.05, 0.012), { p: [0.1, y0 + 0.8, -0.08] });
+    addTable(k, y0);
     chair(k, 0, 0.72, Math.PI, y0);
     chair(k, 0, -0.72, 0, y0);
     chair(k, 0.72, 0, -Math.PI / 2, y0);
