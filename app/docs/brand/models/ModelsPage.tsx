@@ -3,7 +3,7 @@
 // Meshy-made models for review: each on a turntable in the brand paint, before it goes in the world.
 // One canvas per card (there are few). Source list: components/world/meshy/catalog.ts.
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { profile } from "@/content/profile";
@@ -16,6 +16,24 @@ import { BUILDS as NATURE } from "./builds/nature";
 import { BUILDS as BUILT } from "./builds/built";
 
 const BUILDS: Build[] = [...NATURE, ...BUILT];
+
+/** Mounts its canvas only while on screen, so the page never holds more WebGL contexts than the browser allows. */
+function Lazy({ children }: { children: ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setOn(e.isIntersecting), { rootMargin: "200px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={box} className="h-full w-full">
+      {on && children}
+    </div>
+  );
+}
 
 function BuildTable({ b }: { b: Build }) {
   const d = Math.max(b.height * 2.6, b.span * 1.35);
@@ -111,7 +129,9 @@ export default function ModelsPage() {
                     <figcaption className="border-t-2 border-ink px-2 py-1.5 font-mono text-[12px]">{b.name} · concept</figcaption>
                   </figure>
                   <div className="min-h-[320px]">
-                    <BuildTable b={b} />
+                    <Lazy>
+                      <BuildTable b={b} />
+                    </Lazy>
                   </div>
                 </div>
               ))}
@@ -127,7 +147,9 @@ export default function ModelsPage() {
                 <span className="ml-auto text-white/60">{m.id}.glb</span>
               </div>
               <div className="aspect-[4/3]">
-                <Turntable def={m} />
+                <Lazy>
+                  <Turntable def={m} />
+                </Lazy>
               </div>
             </section>
           ))}
