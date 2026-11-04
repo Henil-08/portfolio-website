@@ -31,7 +31,7 @@ function perches(): Perch[] {
   const out: Perch[] = [];
   // on the pit building's roof (its top is about 9.4 m up), never inside a bay where the garage camera rides
   for (const g of GARAGES) out.push({ x: g.x, y: heightAt(g.x, PIT.garageZ) + ROOF_Y, z: PIT.garageZ - 1.5, spread: 2.6 });
-  out.push({ x: GRANDSTAND.pos[0], y: heightAt(GRANDSTAND.pos[0], GRANDSTAND.pos[1]) + 5.2, z: GRANDSTAND.pos[1] - 0.5, spread: 3.5 });
+  out.push({ x: GRANDSTAND.pos[0], y: heightAt(GRANDSTAND.pos[0], GRANDSTAND.pos[1]) + 6.0, z: GRANDSTAND.pos[1] + 0.8, spread: 3.5 });
   // On the grass beside the trees
   const r = seeded(77);
   for (const [x, z, rad] of TREES) {
