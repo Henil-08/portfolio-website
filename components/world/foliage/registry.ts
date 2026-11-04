@@ -47,6 +47,11 @@ function ensureMesh(kind: TreeKind, count: number) {
   const next = new THREE.InstancedMesh(kindGeometry(kind), treeMaterial(), cap);
   next.name = `trees-${kind}`;
   next.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  // the tint buffer exists before the first draw: added later (by setColorAt), the kind's
+  // geometry kept the attribute binding it was first drawn with and its vertex colours read as
+  // black (the kit cypress, 2026-11-05)
+  next.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3).fill(1), 3);
+  next.instanceColor.setUsage(THREE.DynamicDrawUsage);
   next.castShadow = true;
   next.receiveShadow = true;
   next.frustumCulled = false;
@@ -124,6 +129,7 @@ function sync(renderer: THREE.WebGLRenderer) {
     rebuild();
   }
   if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
+    (window as unknown as { __foliageMeshes?: object }).__foliageMeshes = meshes;
     (window as unknown as { __foliage?: object }).__foliage = { trees: entries.size, calls: renderer.info.render.calls, kinds: [...meshes].map(([k, m]) => `${k}:${m.count}:${!!m.parent}`) };
   }
 }
