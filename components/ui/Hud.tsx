@@ -3,8 +3,7 @@
 // The in-world HUD in the brand language (docs/BRAND.md S02): tabs top right, place sheets
 // on the right, toast top centre, hints and speed along the bottom, touch controls.
 
-import { LINKS, openLink } from "@/components/world/social";
-import { zoneById } from "@/components/world/layout";
+import { openLink } from "@/components/world/social";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { toggleGarage } from "@/components/world/bloom/state";
@@ -48,7 +47,6 @@ export default function Hud() {
       <Hints />
       <Power />
       <Joystick />
-      <TouchInteract />
       <Ask />
       <MapMenu />
       <Controls />
@@ -366,31 +364,6 @@ function Power() {
 
 function Key({ k }: { k: string }) {
   return <kbd className="x-key">{k}</kbd>;
-}
-
-// Touch has no E key: like the original's bottom interact button, a tap target for the
-// open prompt, as the zone sticker (I08).
-function TouchInteract() {
-  const near = useWorld((s) => s.near);
-  const link = useWorld((s) => s.nearLink);
-  const zone = useWorld((s) => s.zone);
-  const label = link ? LINKS.find((l) => l.key === link)?.name : near ? zoneById[near].label : null;
-  return (
-    <AnimatePresence>
-      {label && !zone && (
-        <motion.button
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1, transition: { duration: 0.6, ease: [0.4, 1.6, 0.65, 1] } }}
-          exit={{ y: 20, opacity: 0, transition: { duration: 0.3 } }}
-          onClick={() => (link ? openLink(link) : near && openZone(near))}
-          className="fixed bottom-36 left-1/2 z-30 flex -translate-x-1/2 items-stretch border-2 border-ink bg-white shadow-[3px_3px_0_var(--color-ink)] [@media(pointer:fine)]:hidden"
-        >
-          <span className="grid place-items-center bg-ink px-2.5 font-mono text-[12px] font-semibold text-white">Tap</span>
-          <span className="px-3 py-2 text-[14px] font-semibold">Open {label}</span>
-        </motion.button>
-      )}
-    </AnimatePresence>
-  );
 }
 
 // Touch: a thumb stick on the left, gas and brake on the right.
