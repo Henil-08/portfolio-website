@@ -2,9 +2,12 @@
 
 // The overpass where the circuit crosses itself: a deck slab under the upper
 // road and parapet walls with colliders (W04 concrete with a paper top, like the embankments); no piers (owner): the deck spans clear. The road surface and its collider come from Island's ribbon.
+// The deck and the walls are solid as drawn (a trimesh of the same slabs): only the road ribbon used
+// to be, so from below or beside the ramps a car drove into the slab and through it.
 import { useMemo } from "react";
 import * as THREE from "three";
-import { CuboidCollider, RigidBody } from "@react-three/rapier";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { CuboidCollider, RigidBody, TrimeshCollider } from "@react-three/rapier";
 import { C } from "./palette";
 import { BRIDGE_HALF, CROSSINGS, TRACK_WIDTH, trackCurve, trackPoint, trackTangent, type Crossing } from "./layout";
 import { mat } from "./models/props/shared";
@@ -75,7 +78,14 @@ function Span({ c }: { c: Crossing }) {
         cols.push({ p: a.clone().add(b).multiplyScalar(0.5), yaw: Math.atan2(-(b.z - a.z), b.x - a.x), len: a.distanceTo(b) });
       }
     }
-    return { deck, walls, caps, cols };
+    // the slab and the walls as drawn, one trimesh (its top is 5 cm under the road ribbon the wheels ride)
+    const solid = mergeGeometries([deck, ...walls].map((g) => {
+      const k = g.clone();
+      k.deleteAttribute("normal");
+      return k;
+    }));
+    const solidArgs = [solid.getAttribute("position").array as Float32Array, Uint32Array.from(solid.getIndex()!.array)] as const;
+    return { deck, walls, caps, cols, solidArgs };
   }, [c]);
 
   return (
@@ -88,6 +98,7 @@ function Span({ c }: { c: Crossing }) {
         <mesh key={i} geometry={g} castShadow material={mat(K.paper, { r: 0.6, side: THREE.DoubleSide })} />
       ))}
       <RigidBody type="fixed" colliders={false}>
+        <TrimeshCollider args={[parts.solidArgs[0], parts.solidArgs[1]]} />
         {parts.cols.map((k, i) => (
           <CuboidCollider key={i} args={[k.len / 2 + 0.05, PARAPET_H / 2 + 0.2, PARAPET_T / 2]} position={[k.p.x, k.p.y + PARAPET_H / 2, k.p.z]} rotation={[0, k.yaw, 0]} />
         ))}

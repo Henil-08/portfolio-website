@@ -89,12 +89,13 @@ function run(side: number, t: number[]): Run {
 /** The wall body (inner face down to the road, outer face down to the ground) and its cap. */
 function build() {
   const parts = { deck: { walls: [] as THREE.BufferGeometry[], caps: [] as THREE.BufferGeometry[] }, stone: { walls: [] as THREE.BufferGeometry[], caps: [] as THREE.BufferGeometry[] } };
-  const cols: { x: number; y: number; z: number; yaw: number; len: number; t: number; h: number }[] = [];
+  const cols: { x: number; y: number; z: number; yaw: number; len: number; t: number; h: number; low: number }[] = [];
   for (const r of runs()) {
     const { IN, OUT, TOP, CAP } = r.deck ? DECK : STONE;
     const into = r.deck ? parts.deck : parts.stone;
     const wall: [number, number, number][][] = [];
     const cope: [number, number, number][][] = [];
+    const lows: number[] = []; // the wall's foot below the road at each sample (its outer face reaches the ground)
     for (const t of r.t) {
       const fi = frame(t, r.side, IN);
       const fo = frame(t, r.side, OUT);
@@ -102,6 +103,7 @@ function build() {
       const co = frame(t, r.side, OUT + 0.06);
       const y = fi.p.y + TOP;
       const ground = Math.min(heightAt(fo.x, fo.z), fi.p.y) - 0.3;
+      lows.push(fi.p.y - ground);
       wall.push([
         [fi.x, y, fi.z],
         [fo.x, y, fo.z],
@@ -123,6 +125,10 @@ function build() {
       const e = Math.min(r.t.length - 1, k + per);
       const pa = frame(r.t[k], r.side, (IN + OUT) / 2);
       const pb = frame(r.t[e], r.side, (IN + OUT) / 2);
+      // solid from the top down to the wall's lowest foot along this piece, so from the low side
+      // nothing drives under it (the collider used to stop 0.2 m under the road)
+      let low = 0.2;
+      for (let j = k; j <= e; j++) low = Math.max(low, lows[j]);
       cols.push({
         x: (pa.x + pb.x) / 2,
         y: (pa.p.y + pb.p.y) / 2,
@@ -131,6 +137,7 @@ function build() {
         len: Math.hypot(pb.x - pa.x, pb.z - pa.z),
         t: OUT - IN,
         h: TOP,
+        low,
       });
     }
   }
@@ -184,7 +191,7 @@ export default function Embankments() {
       ))}
       <RigidBody type="fixed" colliders={false}>
         {parts.cols.map((k, i) => (
-          <CuboidCollider key={i} args={[k.len / 2 + 0.05, k.h / 2 + 0.2, k.t / 2]} position={[k.x, k.y + k.h / 2, k.z]} rotation={[0, k.yaw, 0]} />
+          <CuboidCollider key={i} args={[k.len / 2 + 0.05, (k.h + 0.2 + k.low) / 2, k.t / 2]} position={[k.x, k.y + (k.h + 0.2 - k.low) / 2, k.z]} rotation={[0, k.yaw, 0]} />
         ))}
       </RigidBody>
     </>

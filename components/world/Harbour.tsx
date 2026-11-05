@@ -3,9 +3,11 @@
 // The harbour bridge, in Concrete & Ink: where the track crosses the water, the road
 // runs on a concrete deck with open water underneath. A thick deck edge under the road,
 // low concrete parapets with a paper coping (they stop the car too), solid abutments
-// where it meets the banks and two slim piers in the channel.
+// where it meets the banks and two slim piers in the channel. The deck, the abutments and
+// the piers are solid too (they were only drawn: a car on the bank drove through them).
 import { useMemo } from "react";
-import { CuboidCollider, RigidBody } from "@react-three/rapier";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { CuboidCollider, RigidBody, TrimeshCollider } from "@react-three/rapier";
 import * as THREE from "three";
 import { CANALS, QUAY_Y, SEA_Y, TRACK_WIDTH, canalDist, nearestT, shoreDist, trackCurve, trackPoint, trackTangent, type Canal } from "./layout";
 import { C } from "./palette";
@@ -135,6 +137,17 @@ function build() {
 
 export default function Harbour() {
   const parts = useMemo(() => build(), []);
+  // the decks as drawn, one trimesh (their top is 2 cm under the road ribbon the wheels ride)
+  const deckArgs = useMemo(() => {
+    if (!parts.deck.length) return null;
+    const g = mergeGeometries(parts.deck.map((d) => {
+      const k = d.clone();
+      k.deleteAttribute("normal");
+      return k;
+    }));
+    const pos = g.getAttribute("position").array as Float32Array;
+    return [pos, Uint32Array.from({ length: pos.length / 3 }, (_, i) => i)] as const;
+  }, [parts]);
   const stone = mat(C.concreteDark, { r: 0.9 });
   const wall = mat(C.concrete, { r: 0.9 });
   const coping = mat(C.paper, { r: 0.85 });
@@ -164,6 +177,13 @@ export default function Harbour() {
       <RigidBody type="fixed" colliders={false}>
         {parts.cols.map((k, i) => (
           <CuboidCollider key={i} args={[k.len / 2 + 0.05, PARAPET_H / 2 + 0.2, PARAPET_T / 2]} position={[k.x, k.y + PARAPET_H / 2, k.z]} rotation={[0, k.yaw, 0]} />
+        ))}
+        {deckArgs && <TrimeshCollider args={[deckArgs[0], deckArgs[1]]} />}
+        {parts.abuts.map((a, i) => (
+          <CuboidCollider key={`a${i}`} args={[0.7, a.h / 2, HALF + 0.15]} position={[a.x, a.y + a.h / 2, a.z]} rotation={[0, a.yaw, 0]} />
+        ))}
+        {parts.piers.map((p, i) => (
+          <CuboidCollider key={`p${i}`} args={[0.45, (p.y - bottom) / 2, HALF - 0.6]} position={[p.x, (p.y + bottom) / 2, p.z]} rotation={[0, p.yaw, 0]} />
         ))}
       </RigidBody>
     </>
