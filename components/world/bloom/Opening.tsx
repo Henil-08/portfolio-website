@@ -6,6 +6,9 @@
 // blooms out round the car (bloom/patch.ts hides it, bloom/plan.ts times it) until the camera
 // lands on the game's chase view (Rig.tsx OFFSET) and driving starts.
 //
+// Exactly one vehicle is drawn at any moment: the turntable's until the align's last frame, the
+// player's own from the bloom on (`beforeRender`).
+//
 // Frames: the garage is drawn in "table" units (the mock's), in a group at the car's spot scaled
 // by k = VEHICLE_SCALE / the vehicle's turntable scale, so the handover onto the world is exact.
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -64,6 +67,9 @@ function endPose(portrait: boolean): Pose {
 }
 
 /* ------------------------------------------------------------------ the player's vehicle in the scene */
+
+/** The turntable's two vehicle slots (Garage), hidden from the frame the player's own vehicle takes over. */
+const slots: THREE.Object3D[] = [];
 
 /** The player's model group (Vehicle.tsx `PLAYER_MODEL`), cached while it stays in the scene. */
 let player: THREE.Object3D | null = null;
@@ -354,13 +360,15 @@ function Garage() {
   const spinRef = useRef(0);
   const anim = useRef<SwapAnim>({ n: -1, l: null, t0: -10, ts: -10, a0: 0, a1: 0, h: 1, dir: new THREE.Vector3(), plane: new THREE.Plane(new THREE.Vector3(0, -1, 0), 0), clips: [], fades: [] });
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    const mine = [slotA.current, slotB.current];
+    slots.push(...mine);
+    return () => {
       for (const c of clipCache.values()) c.dispose();
       clipCache.clear();
-    },
-    [],
-  );
+      for (const o of mine) slots.splice(slots.indexOf(o), 1);
+    };
+  }, []);
 
   useFrame((s, dt) => {
     const g = root.current;
@@ -509,6 +517,20 @@ const warm = !(process.env.NODE_ENV !== "production" && typeof window !== "undef
 const bloom: Bloom = { cx: SPAWN[0], cz: SPAWN[1], y: 0, R: 100 };
 
 /**
+ * Just before every render (the scene's onBeforeRender, so after every component's frame code):
+ * exactly one vehicle. The player's own is hidden until the align's last frame and the
+ * turntable's from then on (owner, 2026-11-05: the player's car stood beside the turntable's
+ * while loading, because Vehicle.tsx's frame code ran after ours and showed it again).
+ */
+function beforeRender(scene: THREE.Scene) {
+  const stg = opening.get().stage;
+  const p = findPlayer(scene);
+  const handed = stg === "build" || stg === "done";
+  if (p && !handed) p.visible = false;
+  if (handed) for (const s of slots) s.visible = false;
+}
+
+/**
  * Runs the whole opening. Mount it after <CameraRig /> (same frame priority, later in the
  * tree), so its camera writes land after the rig's.
  */
@@ -523,6 +545,18 @@ export function Opening() {
   useEffect(() => {
     opening.restore = bloomOff;
     if (process.env.NODE_ENV !== "production") (window as unknown as { __bloom: object }).__bloom = { stats: bloomStats, opening, boot, warm: () => ({ ...w.current }), where: () => (readSpot(scene), { ...spot }), sweep: () => { const o = scene.getObjectByName("studio-sweep"); return o && { visible: o.visible, p: o.position.toArray(), sy: o.scale.y, parentVisible: o.parent?.visible, kids: o.children.length }; } };
+  }, [scene]);
+
+  // exactly one vehicle: decided last, just before each render
+  useEffect(() => {
+    const prev = scene.onBeforeRender;
+    scene.onBeforeRender = function (this: THREE.Scene, ...a: Parameters<THREE.Scene["onBeforeRender"]>) {
+      prev.apply(this, a);
+      beforeRender(scene);
+    };
+    return () => {
+      scene.onBeforeRender = prev;
+    };
   }, [scene]);
 
   useEffect(() => () => dots?.dispose(), [dots]);
@@ -590,10 +624,6 @@ export function Opening() {
       st.step = 7;
       if (warm) warmOwn(() => gl.compileAsync(scene, camera));
     }
-
-    // the player's own vehicle hides while the garage shows its stand-in
-    const p = stg === "done" ? null : findPlayer(scene);
-    if (p) p.visible = stg === "build";
 
     const run = opening.get().run;
     if (stg === "select" && run > 1 && st.planned !== run) {
