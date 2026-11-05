@@ -15,8 +15,11 @@ import { Decode, Stage, d } from "@/components/brand/motion";
 
 /** A segment's length at rate 1 (ms); its rate sets the bar's speed. */
 const SEG = 10_000;
-/** It never moves slower than this while loading (per ms): 0.4% a second. */
-const CREEP = 0.004 / 1000;
+/**
+ * While a step is still running the bar never moves slower than the way left to the step's end
+ * over this (ms): it creeps toward the end and slows as it nears it, but never quite stops.
+ */
+const CREEP_MS = 6000;
 /**
  * Each segment eases out toward its step's end like an exponential (95% of the way at two thirds
  * of it, the rest ever slower), so with the script busy the bar slows on its own and can't pass a
@@ -109,6 +112,7 @@ export default function Boot() {
       seg = { a, k0, k1: Math.max(k0, k1) };
     };
     let rate = 0;
+    let touched = 0;
     let frames = 0;
     let raf = 0;
     let last = performance.now();
@@ -139,14 +143,17 @@ export default function Boot() {
       if (++frames > 2) {
         const h = heading();
         const k = at();
-        const v = loadDone() ? Math.max((1 - k) / 240, CREEP * 4) : Math.max((h.goal - k) / h.tau, CREEP);
+        const v = loadDone() ? Math.max((1 - k) / 240, 0.0004) : Math.max((h.goal - k) / h.tau, (h.cap - k) / CREEP_MS);
         if (!seg || Math.abs(h.cap - seg.k1) > 1e-4) {
           segment(h.cap, v);
           log(Math.round(now), "segment", +k.toFixed(3), +h.cap.toFixed(3), +rate.toFixed(2));
         } else {
+          // each change can show one frame of the page's stale view of the bar (a dip of a pixel
+          // or two), so the speed is only changed when it's well off, and not too often
           const want = rateFor(v, seg.k0, seg.k1, Math.min(1, Number(seg.a.currentTime ?? 0) / SEG));
-          if (Math.abs(want - rate) > 0.04 * Math.max(want, rate) + 1e-3) {
+          if (Math.abs(want - rate) > 0.2 * Math.max(want, rate) + 1e-3 && now - touched > 200) {
             rate = want;
+            touched = now;
             seg.a.updatePlaybackRate(rate);
             log(Math.round(now), "rate", +k.toFixed(3), +rate.toFixed(2));
           }

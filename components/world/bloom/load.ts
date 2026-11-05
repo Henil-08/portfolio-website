@@ -104,9 +104,11 @@ export function heading(now = performance.now()) {
   const exp = s.id === "intro" ? s.ms : s.ms * speed();
   const real = s.id === "intro" ? Math.min(1, e / s.ms) : live.sub;
   const r = Math.min(cap, a + s.share * real);
-  // the lead: half the way to the step's end at once, all but all of it as the expected time passes
+  // the lead: half the way to the step's end at once, all but all of it as the expected time
+  // passes; real progress reported inside the step takes over from it as it grows, so a step that
+  // runs long (a slow GPU compiling) shows its own progress rather than waiting at its end
   const lead = 1 - 0.55 * Math.exp(-e / exp);
-  return { goal: r + (cap - r) * lead * 0.94, tau: Math.min(2600, Math.max(160, exp * 0.42)), cap };
+  return { goal: r + (cap - r) * lead * 0.94 * (1 - real), tau: Math.min(2600, Math.max(160, exp * 0.42)), cap };
 }
 
 /**
