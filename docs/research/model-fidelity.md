@@ -124,3 +124,99 @@ Count: 8 match, 23 small diffs, 9 off (bush, grasses, rocks, pier, podium, town-
 huggingface, plus the gravel trays in general); Mercury has no concept. Fix order suggestion: bench and bush (owner-flagged), then the
 off list, then the paper-vs-concrete colour calls (lamp base, cafe slab, stumps base, pier deck, town
 façades), which are one-line paint changes.
+
+## World scale (2026-11-05)
+
+Owner: "everything is out of proportion, the grass is too big, the street lights are too big, bench
+is the same size as the bush, there are random benches in S3."
+
+**Why it happened.** The road is 8 m (layout.ts `TRACK_WIDTH`) and stands for a real 12 m road, so
+the vehicles drive at 2/3 of their size (vehicles/scale.ts `VEHICLE_SCALE` = 8/12) to keep the
+proposal's car-to-road proportion. The kit (components/world/kit/*) is modelled in real metres and
+went into the world at real size, or at a guess per object (town blocks fitted to their plots,
+sector buildings 0.42-0.54, floodlight 0.6, gantry 0.65, grandstand 0.75, marshal post 0.8, pit
+wall 0.7, lamps 0.55-1.02, benches 0.8-1.0). So the furniture stood 1.5x too big next to the car
+and nothing agreed with anything else: a 2.1 m bench beside a 2 m bush tray, a 3.7 m lamp as tall
+as the car is long, grass blades up to 1.2 m.
+
+**The rule.** components/world/scale.ts: `WORLD_SCALE` = `VEHICLE_SCALE` (2/3). Everything modelled
+in real metres goes into the world at its real size times WORLD_SCALE (`real(m)`). Buildings go by
+their storeys: a real 3.3 m storey times WORLD_SCALE (`storeyScale(modelStorey)`), so a three-storey
+block is about 10 m real, 6.6 m to its roof here. Never size anything by eye: write its real size in
+this table and multiply.
+
+**The check.** Dev only: `window.__lineup()` (components/world/ScaleLineup.tsx) parks the car at the
+head of a row on the pit lane's east end and stands the world's own pieces beside it, each drawn
+exactly as the world draws it: a person, the bench, a bush, the lamp, a bollard, a cypress and a
+round tree, over a 1 m grid, each with its real size written in front of it, and points the camera
+at it. `__lineup(false)` clears it. Read it like a photo: the lamp about twice the person, the bench
+knee-high, the bush waist-high, the car longer than the bench.
+
+World sizes in metres (real x 2/3). "Before" is what the world drew before this pass.
+
+| Object | Model (real m) | Real target | Before (world) | Now (world) | Where |
+|---|---|---|---|---|---|
+| Car TH-18 | 5.6 long, 1.0 tall | F1 car 5.6 | 3.73 | 3.73 (the reference) | vehicles/scale.ts |
+| Driver figure (contact area) | 1.75 | 1.75 | 1.75 | 1.17 | social/index.tsx |
+| Fans in the stands (seated) | figure 0.74 to the crown | crown 0.9 above the seat | 0.70-0.78 | 0.57-0.63 | Trackside.tsx, props/Grandstand.tsx |
+| Marshals (standing) | figure 0.74 | 1.75 | 0.81 | 1.17 | Trackside.tsx |
+| Lamp (kit) | 3.68 | 3.5-4 | 3.74 old town and park, 3.5 harbour, 3.68 waterfront, 2.0 garden | 2.45 everywhere | districts/furniture.ts, garden, waterfront |
+| Boston gas lamp | 4.3 | 3.5-4.5 | 4.3 | 2.85 | sectors/Boston.tsx |
+| Bench (kit) | 2.1 x 0.6, seat 0.48 | 1.8-2.1, seat 0.45 | 2.1 park and old town, 1.79 garden and start, 1.68 waterfront | 1.4 x 0.4, seat 0.32, everywhere | districts/furniture.ts |
+| Bush (kit tray) | bushes 0.66-1.25 tall in a 2.7 x 2.3 tray | 1-1.5 | tallest 0.9 x scatter 0.7-1.35; start 0.63-0.72 | tallest 0.83 x scatter 0.75-1.4 (real 0.9-1.75); start 0.83, 0.79 | foliage/species.ts, start.ts |
+| Cypress | 4.32 | 6-10 | 5.6 x scatter | 5.0 x scatter 0.8-1.4 (real 6-10.5) | foliage/species.ts |
+| Round tree | 4.95 | 5-8 | 5.2 x scatter | 4.3 x scatter 0.8-1.4 (real 5.2-9.1) | foliage/species.ts |
+| Street tree in its planter | round tree, planter 1.5 x 0.6 | 4-5 | 3.2, planter 1.0 | 2.8, planter 1.0 x 0.4 | districts/townStreets.ts |
+| Boulder (nature) | 1.2 x 0.7 x 1.0 | about 1 | 1.0-1.6 wide | 0.7-1.1 wide | props/Tree.tsx |
+| Bollard (kit) | 1.0 | 0.9-1.0 | 1.0 | 0.67 | districts/Streets.tsx |
+| Kiosk (kit) | 2.2 square, 2.5 | 2.5 | 2.5 | 1.67 | districts/Streets.tsx |
+| Bus stop (kit) | 3.45 x 1.66, 2.7 | 2.5-2.8 | 2.7 | 1.8 | districts/Streets.tsx |
+| Café table / chair (kit) | 0.75 / 0.86 | same | 0.75 / 0.86 | 0.5 / 0.57 | districts/Streets.tsx |
+| Grasses trough (kit, start) | 1.6 x 0.62 x 0.5 | same | 1.6 | 1.07 | StartGarden.tsx |
+| Lawn grass | | blades 5-38 cm, most 15-25 | 0.15-1.16, most about 0.5 | 0.03-0.25, most about 0.12 | Grass.tsx |
+| Marram tufts (dunes) | | 0.6-1.0 | 0.28-0.91 | 0.32-0.8 | districts/dunes.ts |
+| Reeds | 0.8-1.45 | 1.5-3 | 1.0-1.9 | unchanged (in range) | districts/waterside.ts |
+| Fence bay | 1.24 x 2.14 | 1.1 | 1.4-1.5 | 0.73, bays 1.43 | districts/furniture.ts, park.ts, dunes.ts |
+| Crate / drum | 0.55-0.7 / 0.88 | same | real size | 0.37-0.47 / 0.59 | districts/harbour.ts |
+| Launch (kit) | 6.6 | 6-7 | 5.3-6.6 | 4.4 | waterfront/index.tsx |
+| Pier rails (kit) | 1.03 | 1.0-1.1 | 1.03 | 0.69 (deck unchanged: 2.6 x 18) | waterfront/index.tsx |
+| Sea railing | | 1.1 | 1.0 | 0.73 | waterfront/index.tsx |
+| Floodlight (kit) | 28 to the head's top | 20-30 | 16.9 (0.6) | 18.7 | street/Floodlights.tsx |
+| Start gantry (kit) | span 15, 8.25 tall | spans the 12 m road | 9.75 span (0.65) | 10 span, posts 9.4 apart, 5.5 tall | props/Gantry.tsx |
+| Grandstand (kit, game cut) | 15.6 x 8.4 x 7.3 | | 0.75 | 0.667: 10.4 x 4.9 tall | kit/builtTrackside.tsx STAND_SCALE |
+| Marshal post (kit) | 3.45 x 2.6 x 3.25 | | 0.8 | 0.667 | street/Trackside.tsx |
+| Pit wall booths (kit) | 2.9 pitch, 3.4 tall | | 0.7 | 0.667 | props/PitWall.tsx |
+| TecPro block | built in world metres: 1.0 x 0.8 x 0.8 | 1.5 x 1.2 x 1.2 | same | unchanged (already at scale) | street/layoutStreet.ts |
+| Town-low | 13 x 10 x 13.6; 4.2 m shop floor and two floors, 4.17 m a storey | three storeys, 10.8 with parapet | 6.1-9.0, fitted to plots | 7.2 (storey scale 0.528; facades 0.8-1.25 of it to fit the plot) | street/town.ts |
+| Town-mid | 17 x 13.6 x 21; five storeys of 3.02 and a penthouse | about 23 | none placed (capped 12) | 15.3 (0.729); none fit the plots this time either | street/town.ts |
+| Tower | 12.5 core x 41; twelve storeys of 3.0 | about 45 | 17.2 (capped) | 30.7 (0.733), one on the far side | street/town.ts |
+| Boston row and state house | 31 x 13.6, storeys 3.1 | | 0.54 | 0.667, set back so the steps stop at the pavement | sectors/Boston.tsx |
+| Ahmedabad school | arcade 7.2 (double height), tier 3.2 | | 0.44 | 0.44 (left, below) | sectors/Ahmedabad.tsx |
+| Hyperlab halls | 13.5 x 17.4 x 8 | | 0.42 | 0.42 (left) | sectors/Hyperlab.tsx |
+| Waters lab | 23 x 13.4, 5.8 to the roof (two storeys) | | 0.48 | 0.48 (left) | sectors/Waters.tsx |
+| Football goal | kit 3 x 2; the pitch's 4 x 1.8 x 1.5 | 5-a-side 3 x 2 (the pitch is 24 x 19.5 real) | 4 x 1.8 | left (gameplay, see below) | props/Goal.tsx, Places.tsx |
+| Cricket stumps | 0.71 | 0.71 | 0.72 tall, 0.36 wide | left (gameplay) | props/Stumps.tsx, Places.tsx |
+| Podium | 1.72 x 1.6, steps 1.2 / 0.85 / 0.6 | top step 0.8-1.0 | as modelled | left (gameplay) | props/Podium.tsx, Places.tsx |
+| Tyre stack (playbook) | r 0.45, 0.32 wide | F1 tyre 0.72 across, 0.38 wide | as modelled | left (gameplay) | props/Tyre.tsx, Places.tsx |
+
+**Benches.** Every bench now faces something at a plausible spot (district benches are knock-about
+bodies, so their colliders follow the smaller bench):
+- S3 Boston: the bench jammed against the state house's portico steps is gone.
+- Garden: the two benches by the old pond stood on the edge of the circuit since the v5 track took
+  that corner of the garden (0.5 m and -0.2 m from the road edge); gone. The one in front of the
+  podium faced it from 0.6 m inside its place; it now stands beside the podium's signpost, just
+  outside its place, turned to the podium 8 m away. The east-path bench stood on a lamp; it moved 3 m along the path.
+- Park: each faces its slab path from 1.5 m (was 2.1 m); a bench never goes where a bush stands.
+- Old town: against a facade, a hand's width off it, seat to the forecourt. Waterfront: land side
+  of the walk, facing the sea. Start: facing the lane.
+
+**Left for a follow-up.**
+- Ahmedabad, Hyperlab and Waters sets: their buildings are still at 0.42-0.48 (storeys about 2 m
+  real) and their props (table tennis, giant phone, studio stage, Mercury, instrument, racks,
+  cones) at real size. At the storey rule the buildings are 23-59 % bigger and no longer fit their
+  set's 10 m depth with the props where they are, so each set needs a re-layout. The sector
+  hotspots (layout.ts `SECTOR_SPOTS`, built this week against today's sets) must move with it.
+- Gameplay pieces (goal, stumps, podium, tyres) are bigger than real for play, like the ball
+  (r 0.35, three times a real football). At the world's scale the goal is 2 x 1.33, the wicket
+  0.47 tall; their colliders and the goal and wicket checks live in Places.tsx. Owner's call.
+- The pit building belongs to the garage work; not touched here.
