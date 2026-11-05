@@ -3,9 +3,12 @@
 //
 //   boot -> select (garage) -> align (0.9 s, Enter) -> build (the Bloom) -> done (driving)
 //
-// The world store's `phase` stays "boot" until the build lands, then turns "world".
+// It runs once, from the boot. The world store's `phase` stays "boot" until the build lands,
+// then turns "world". In the world the garage is a quick picker over the running game
+// (`toggleGarage`, components/ui/garageParts.tsx) and a change swaps the vehicle in place
+// (bloom/swap.tsx).
 import { useSyncExternalStore } from "react";
-import { setState } from "../store";
+import { getState, setState } from "../store";
 
 export type Stage = "boot" | "select" | "align" | "build" | "done";
 
@@ -14,13 +17,11 @@ export const ALIGN = 0.9;
 
 type OpeningState = {
   stage: Stage;
-  /** bumps on every new select (a return to the garage replays everything) */
-  run: number;
   /** the build log rows [label, ms], once the bloom is planned */
   log: [string, number][];
 };
 
-let state: OpeningState = { stage: "boot", run: 0, log: [] };
+let state: OpeningState = { stage: "boot", log: [] };
 const listeners = new Set<() => void>();
 
 export const opening = {
@@ -35,13 +36,11 @@ export const opening = {
   cell: null as HTMLElement | null,
   /** drag to turn: radians of table yaw and camera elevation to add, consumed by the scene */
   drag: { yaw: 0, el: 0, held: false },
-  /** set by the canvas: puts every material back on its own program */
-  restore: () => {},
 };
 
 export function setStage(stage: Stage) {
   opening.t0 = performance.now();
-  opening.set({ stage, run: stage === "select" ? state.run + 1 : state.run });
+  opening.set({ stage });
 }
 
 export function useOpening<T>(select: (s: OpeningState) => T): T {
@@ -91,17 +90,11 @@ export function stageTime(freeze: number | undefined) {
   return (performance.now() - opening.t0) / 1000;
 }
 
-/** Back to the garage from the world (Intro.tsx, key G): the whole opening runs again from the select. */
-export function reenterGarage() {
+/**
+ * The garage in the world (G, the HUD's Garage tab, Settings): a quick picker over the running
+ * game, never the boot's garage again (owner, 2026-11-05). Opening it closes the other sheets.
+ */
+export function toggleGarage(open = !getState().garageOpen) {
   if (state.stage !== "done") return;
-  setState({ phase: "boot", revealed: false, zone: null, menuOpen: false, settingsOpen: false, controlsOpen: false });
-  setStage("select");
-}
-
-/** Leave a garage opened from the world without a new bloom (Esc). */
-export function leaveGarage() {
-  if (state.stage !== "select" || state.run < 2) return;
-  opening.restore();
-  setStage("done");
-  setState({ phase: "world", revealed: true });
+  setState(open ? { garageOpen: true, zone: null, menuOpen: false, settingsOpen: false, controlsOpen: false, askOpen: false } : { garageOpen: false });
 }

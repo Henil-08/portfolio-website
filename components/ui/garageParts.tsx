@@ -1,14 +1,15 @@
 "use client";
 
-// The garage's pieces, shared by the select screen (GarageSelect.tsx) and the vehicle section of
-// Settings (Hud.tsx): the vehicle cards with their icons, the livery swatches and the stat bars.
-// Choosing in either goes straight to the store (and so to localStorage); in the world the new
-// vehicle takes over where the old one stood (Vehicle.tsx).
-import type { CSSProperties } from "react";
-import { Count, d } from "@/components/brand/motion";
-import { setState, useWorld } from "@/components/world/store";
+// The garage's pieces, shared by the select screen (GarageSelect.tsx), the quick garage in the
+// world (`GaragePicker`) and the vehicle section of Settings (Hud.tsx): the vehicle cards with
+// their icons, the livery swatches and the stat bars. Choosing in any of them goes straight to
+// the store (and so to localStorage); in the world the new vehicle swaps in place where the old
+// one stood (Vehicle.tsx remounts it, bloom/swap.tsx scans it in).
+import { useEffect, type CSSProperties } from "react";
+import { Count, Decode, Stage, d } from "@/components/brand/motion";
+import { getState, setState, useWorld } from "@/components/world/store";
 import { LIVERY_NAMES, VEHICLES, liveryOf, vehicleByCode, type VehicleDef } from "@/components/world/vehicles";
-import { reenterGarage } from "@/components/world/bloom/state";
+import { toggleGarage } from "@/components/world/bloom/state";
 
 export const STATS = ["Speed", "Grip", "Handling"];
 
@@ -95,18 +96,11 @@ export function StatBars({ v }: { v: VehicleDef }) {
   );
 }
 
-/**
- * Settings' vehicle section: the four cards two by two, the chosen one's livery and stats, and the
- * way into the full garage (G). A card swaps the vehicle in place, where the car stands.
- */
-export function VehicleSettings({ n }: { n: number }) {
-  const code = useWorld((s) => s.vehicle);
+/** The four cards two by two, then the chosen one's livery and stats: Settings and the quick garage. */
+function VehiclePick({ code }: { code: VehicleDef["code"] }) {
   const v = vehicleByCode[code];
   return (
-    <div className="pt-4">
-      <p className="mb-2 flex items-baseline gap-3 border-b border-ink pb-1.5 text-[12.5px] font-semibold uppercase tracking-[0.06em]">
-        <span className="font-mono text-signal">{n}</span>Vehicle
-      </p>
+    <>
       <div className="grid grid-cols-2 border-2 border-ink">
         {VEHICLES.map((o, i) => (
           <VehicleCard key={o.code} v={o} on={o.code === code} onClick={() => setState({ vehicle: o.code })} className={`py-2 ${i % 2 === 0 ? "border-r-2" : ""} ${i < 2 ? "border-b-2" : ""}`} />
@@ -114,20 +108,115 @@ export function VehicleSettings({ n }: { n: number }) {
       </div>
       <div key={code} data-anim="" data-run="" className="mt-3 space-y-3">
         <LiverySwatches v={v} />
-        <div className="space-y-2.5 pt-1">
+        {/* three across on a phone, so the sheet stays short */}
+        <div className="grid grid-cols-3 gap-3 pt-1 sm:block sm:space-y-2.5">
           <StatBars v={v} />
         </div>
       </div>
-      <button
-        type="button"
-        onClick={() => {
-          setState({ settingsOpen: false });
-          reenterGarage();
-        }}
-        className="mt-4 flex w-full items-center gap-2 border-t border-rule pt-3 text-left text-[13.5px] hover:text-signal"
-      >
+    </>
+  );
+}
+
+/**
+ * Settings' vehicle section: the four cards two by two, the chosen one's livery and stats, and the
+ * way into the quick garage (G). A card swaps the vehicle in place, where the car stands.
+ */
+export function VehicleSettings({ n }: { n: number }) {
+  const code = useWorld((s) => s.vehicle);
+  return (
+    <div className="pt-4">
+      <p className="mb-2 flex items-baseline gap-3 border-b border-ink pb-1.5 text-[12.5px] font-semibold uppercase tracking-[0.06em]">
+        <span className="font-mono text-signal">{n}</span>Vehicle
+      </p>
+      <VehiclePick code={code} />
+      <button type="button" onClick={() => toggleGarage(true)} className="mt-4 flex w-full items-center gap-2 border-t border-rule pt-3 text-left text-[13.5px] hover:text-signal">
         <kbd className="x-key">G</kbd> Open the garage
       </button>
     </div>
+  );
+}
+
+const typing = (e: KeyboardEvent) => {
+  const t = e.target as HTMLElement | null;
+  return !!t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
+};
+
+/**
+ * The garage in the world (owner, 2026-11-05: "Make it simple"). G or the HUD's Garage tab opens
+ * it over the running game, where the place sheets open: the four cards, the livery swatches and
+ * the stats, compact. A pick swaps the vehicle in place, where the car stands (bloom/swap.tsx);
+ * the camera stays on the chase view. ← → choose; Esc, Enter or G close. The full garage (select,
+ * align, bloom) is the boot's only.
+ */
+export function GaragePicker() {
+  const open = useWorld((s) => s.garageOpen);
+  const code = useWorld((s) => s.vehicle);
+  const other = useWorld((s) => s.askOpen || s.menuOpen || !!s.zone || s.controlsOpen || s.settingsOpen);
+
+  // another sheet or modal takes the screen: the garage gives way
+  useEffect(() => {
+    if (other && getState().garageOpen) toggleGarage(false);
+  }, [other]);
+
+  // keys, caught before the driving keys (world/input.ts) so ← → choose instead of steering
+  useEffect(() => {
+    const onDown = (e: KeyboardEvent) => {
+      if (typing(e)) return;
+      const s = getState();
+      if (s.phase !== "world") return;
+      if (e.code === "KeyG") {
+        if (e.repeat || (!s.garageOpen && (s.askOpen || s.menuOpen || s.zone || s.controlsOpen || s.settingsOpen))) return;
+        toggleGarage();
+        return;
+      }
+      if (!s.garageOpen) return;
+      if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.repeat) return;
+        const i = VEHICLES.findIndex((o) => o.code === s.vehicle);
+        setState({ vehicle: VEHICLES[(i + (e.code === "ArrowRight" ? 1 : -1) + VEHICLES.length) % VEHICLES.length].code });
+      } else if (e.code === "Escape" || e.code === "Enter" || e.code === "NumpadEnter") {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleGarage(false);
+      }
+    };
+    window.addEventListener("keydown", onDown, true);
+    return () => window.removeEventListener("keydown", onDown, true);
+  }, []);
+
+  if (!open) return null;
+  const v = vehicleByCode[code];
+  return (
+    <Stage motion className="fixed inset-x-3 bottom-3 z-30 sm:inset-x-auto sm:bottom-auto sm:right-5 sm:top-[4.5rem] sm:w-[380px]">
+      {(run) => (
+        <aside aria-label="Garage" className="dsa-frame border-2 border-ink bg-white shadow-[4px_4px_0_var(--color-ink)]" style={d(0)}>
+          <div className="relative flex items-center gap-3 px-3 py-2 font-mono text-[12px] text-white">
+            <span className="dsa-x absolute inset-0 bg-ink" style={d(60)} />
+            <span className="relative min-w-0 truncate">
+              <Decode text="HG-08 / GARAGE" run={run} delay={160} /> · <span className="text-signal">Swap</span>
+            </span>
+            <span className="relative ml-auto hidden shrink-0 items-center gap-1.5 text-white/60 pointer-fine:flex">
+              <span className="border border-white/40 px-1">← →</span> Choose
+            </span>
+            <button type="button" onClick={() => toggleGarage(false)} aria-label="Close" className="relative flex shrink-0 items-center gap-1.5 transition hover:text-signal pointer-coarse:ml-auto">
+              <span className="bg-white px-1.5 text-ink">Esc</span> Close
+            </button>
+          </div>
+          <div className="no-scrollbar max-h-[56svh] overflow-y-auto px-4 pb-4 pt-3 sm:max-h-[calc(100svh-11rem)]">
+            <div key={code} data-anim="" data-run="" className="mb-3">
+              <p className="font-mono text-[12px] text-signal">
+                <Decode text={`${v.code} · ${v.kind}`} run delay={40} dur={260} />
+              </p>
+              <h2 className="mt-1 text-[24px] font-semibold leading-none tracking-tight">
+                <Decode text={v.name} run delay={80} dur={360} />
+              </h2>
+            </div>
+            <VehiclePick code={code} />
+          </div>
+        </aside>
+      )}
+    </Stage>
   );
 }

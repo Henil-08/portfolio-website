@@ -5,14 +5,15 @@
 // world/bloom/Opening.tsx, framed in `cell`), the spec column with livery swatches and stats on
 // the right, the four cards and Enter along the bottom. ← → choose, drag to turn, Enter drives.
 // The choice goes straight to the store (and so to localStorage). On Enter the chrome slides off
-// while the canvas aligns onto the bloom, then the build log ticks through the bloom.
+// while the canvas aligns onto the bloom, then the build log ticks through the bloom. It shows
+// once, after the boot; in the world the garage is the quick picker (garageParts.tsx).
 import { useEffect, useRef, useState } from "react";
 import { Decode, d } from "@/components/brand/motion";
 import { setState, useWorld } from "@/components/world/store";
 import { VEHICLES, vehicleByCode } from "@/components/world/vehicles";
 import { LiverySwatches, StatBars, VehicleCard } from "./garageParts";
 import { unlockAudio } from "@/components/world/sound";
-import { leaveGarage, opening, setStage, useOpening } from "@/components/world/bloom/state";
+import { opening, setStage, useOpening } from "@/components/world/bloom/state";
 import { BOX } from "@/components/world/bloom/view";
 
 
@@ -32,12 +33,11 @@ const CSS = `
 
 export default function GarageSelect() {
   const stage = useOpening((s) => s.stage);
-  const run = useOpening((s) => s.run);
   if (stage === "select" || stage === "align")
     return (
       <>
         <style>{CSS}</style>
-        <Select key={run} aligning={stage === "align"} back={run > 1} />
+        <Select aligning={stage === "align"} />
       </>
     );
   if (stage === "build")
@@ -50,7 +50,7 @@ export default function GarageSelect() {
   return null;
 }
 
-function Select({ aligning, back }: { aligning: boolean; back: boolean }) {
+function Select({ aligning }: { aligning: boolean }) {
   const code = useWorld((s) => s.vehicle);
   const v = vehicleByCode[code];
   const sel = VEHICLES.findIndex((o) => o.code === code);
@@ -64,7 +64,7 @@ function Select({ aligning, back }: { aligning: boolean; back: boolean }) {
     setStage("align");
   };
 
-  // keys: ← → choose, Enter drives, Esc goes back to driving when the garage was opened from the world
+  // keys: ← → choose, Enter drives
   const live = useRef({ sel, go, pick });
   useEffect(() => {
     live.current = { sel, go, pick };
@@ -80,8 +80,7 @@ function Select({ aligning, back }: { aligning: boolean; back: boolean }) {
       } else if (k === "Enter" || k === "NumpadEnter") {
         e.preventDefault();
         h.go();
-      } else if (k === "Escape") leaveGarage();
-      else return;
+      } else return;
       setDown(k === "NumpadEnter" ? "Enter" : k);
     };
     const onUp = () => setDown(null);
@@ -117,19 +116,9 @@ function Select({ aligning, back }: { aligning: boolean; back: boolean }) {
               HG-08 / GARAGE · <span className="text-signal">Select vehicle</span>
             </span>
             <span className="ml-auto hidden items-center gap-2 font-mono text-[11.5px] text-white/60 md:flex">
-              {back && (
-                <>
-                  <span className="border border-white/40 px-1.5">Esc</span> Back
-                </>
-              )}
-              <span className="ml-2 border border-white/40 px-1.5">← →</span> Choose
+              <span className="border border-white/40 px-1.5">← →</span> Choose
               <span className="ml-2 border border-white/40 px-1.5">Enter</span> Drive
             </span>
-            {back && (
-              <button type="button" onClick={leaveGarage} className="ml-auto font-mono text-[12px] text-white/70 md:hidden">
-                Back ✕
-              </button>
-            )}
           </div>
         </div>
 

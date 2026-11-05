@@ -2,32 +2,20 @@
 
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect } from "react";
-import { getState, useWorld } from "@/components/world/store";
-import { reenterGarage, useOpening } from "@/components/world/bloom/state";
+import { useWorld } from "@/components/world/store";
+import { useOpening } from "@/components/world/bloom/state";
 import Boot from "./Boot";
 
 // The start sequence (docs/BRAND.md, 2026-10-26): the boot (Boot.tsx) while the world loads and
 // warms its shaders, then the garage select (GarageSelect.tsx), the align and the Bloom
-// (world/bloom/*), and driving. ?skip goes straight in. G in the world opens the garage again.
+// (world/bloom/*), and driving. ?skip goes straight in. It runs once: G in the world opens the
+// quick garage over the game (garageParts.tsx `GaragePicker`).
 // The garage chrome loads with the world (it shares its modules), never during the boot.
 const GarageSelect = dynamic(() => import("./GarageSelect"), { ssr: false });
 
 export default function Intro() {
   const stage = useOpening((s) => s.stage);
   const ready = useWorld((s) => s.ready);
-
-  useEffect(() => {
-    const k = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement | null;
-      if (e.code !== "KeyG" || (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable))) return;
-      const s = getState();
-      if (s.phase !== "world" || s.askOpen || s.menuOpen || s.zone || s.controlsOpen || s.settingsOpen) return;
-      reenterGarage();
-    };
-    window.addEventListener("keydown", k);
-    return () => window.removeEventListener("keydown", k);
-  }, []);
 
   return (
     <>

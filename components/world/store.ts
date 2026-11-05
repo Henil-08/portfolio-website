@@ -34,6 +34,7 @@ type State = {
   voice: boolean; // race engineer speaks out loud
   vehicle: VehicleCode; // what you drive (vehicles/index.tsx VEHICLES), picked in the garage and remembered
   livery: LiveryName; // its paint, the same five names on every vehicle, remembered
+  garageOpen: boolean; // the quick garage over the running world (G): a change swaps the vehicle in place (bloom/swap.tsx)
   hallucinating: boolean;
   achievements: string[];
   radioMsg: { id: number; text: string } | null; // transient team-radio transcript
@@ -68,6 +69,7 @@ let state: State = {
   voice: true,
   vehicle: DEFAULT_VEHICLE,
   livery: DEFAULT_LIVERY,
+  garageOpen: false,
   hallucinating: false,
   achievements: [],
   radioMsg: null,

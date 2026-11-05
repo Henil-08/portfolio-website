@@ -7,7 +7,7 @@ import { LINKS, openLink } from "@/components/world/social";
 import { zoneById } from "@/components/world/layout";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { reenterGarage } from "@/components/world/bloom/state";
+import { toggleGarage } from "@/components/world/bloom/state";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { closeZone, getState, openZone, setState, useWorld } from "@/components/world/store";
@@ -26,8 +26,9 @@ import FitPanel, { LapChip } from "./FitPanel";
 import RadioMessages from "./RadioMessages";
 import EasterEggs from "./EasterEggs";
 
-// the vehicle section loads the vehicles' data (and their models) with the world, not before
+// the vehicle section and the quick garage load the vehicles' data (and their models) with the world, not before
 const VehicleSettings = dynamic(() => import("./garageParts").then((m) => m.VehicleSettings), { ssr: false });
+const GaragePicker = dynamic(() => import("./garageParts").then((m) => m.GaragePicker), { ssr: false });
 
 export default function Hud() {
   const phase = useWorld((s) => s.phase);
@@ -52,6 +53,7 @@ export default function Hud() {
       <MapMenu />
       <Controls />
       <Settings />
+      <GaragePicker />
     </>
   );
 }
@@ -72,7 +74,7 @@ function TopBar() {
       <Tab label="Map" k="M" onClick={() => setState((s) => ({ menuOpen: !s.menuOpen }))}>
         <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14" />
       </Tab>
-      <Tab label="Garage" k="G" onClick={reenterGarage}>
+      <Tab label="Garage" k="G" onClick={() => toggleGarage()}>
         <path d="M3 20V9l9-5 9 5v11M7 20v-7h10v7M7 16h10" />
       </Tab>
       {/* the keys sheet is for keyboards; on touch the bar keeps room for the garage */}

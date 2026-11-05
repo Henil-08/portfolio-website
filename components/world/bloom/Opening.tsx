@@ -4,7 +4,8 @@
 // app/docs/brand/world/StartSequence.tsx): the boot warms every shader, the garage turntable
 // stands on the car's own spot, Enter aligns it onto the bloom's first frame, and the real world
 // blooms out round the car (bloom/patch.ts hides it, bloom/plan.ts times it) until the camera
-// lands on the game's chase view (Rig.tsx OFFSET) and driving starts.
+// lands on the game's chase view (Rig.tsx OFFSET) and driving starts. It runs once; in the world
+// a new vehicle swaps in place (bloom/swap.tsx).
 //
 // Exactly one vehicle is drawn at any moment: the turntable's until the align's last frame, the
 // player's own from the bloom on (`beforeRender`).
@@ -25,6 +26,7 @@ import { ALIGN, STUDIO_OUT, boot, opening, setStage, skipping, stageTime, studio
 import { ISLAND, PLAN, buildDots, reachFrom, type Bloom } from "./plan";
 import { FLOOR, FLOOR_SELECT, SWEEP, SWEEP_LENGTH, sweepAt, GAME_OFFSET as GAME_OFFSET_V, SELECT_AZ, SELECT_CAM, SELECT_EL, SELECT_FOV, SELECT_TARGET_Y, TABLE_SCALE, kOf, selectLens } from "./view";
 import { U, bloomOff, bloomOn, bloomStats, scan, warmOwn } from "./patch";
+import { SwapScan, swapBeforeRender } from "./swap";
 
 const S = VEHICLE_SCALE;
 
@@ -520,7 +522,8 @@ const bloom: Bloom = { cx: SPAWN[0], cz: SPAWN[1], y: 0, R: 100 };
  * Just before every render (the scene's onBeforeRender, so after every component's frame code):
  * exactly one vehicle. The player's own is hidden until the align's last frame and the
  * turntable's from then on (owner, 2026-11-05: the player's car stood beside the turntable's
- * while loading, because Vehicle.tsx's frame code ran after ours and showed it again).
+ * while loading, because Vehicle.tsx's frame code ran after ours and showed it again). In the
+ * world, a new vehicle or livery swaps in place (swap.tsx).
  */
 function beforeRender(scene: THREE.Scene) {
   const stg = opening.get().stage;
@@ -528,6 +531,7 @@ function beforeRender(scene: THREE.Scene) {
   const handed = stg === "build" || stg === "done";
   if (p && !handed) p.visible = false;
   if (handed) for (const s of slots) s.visible = false;
+  if (stg === "done") swapBeforeRender(p);
 }
 
 /**
@@ -540,14 +544,13 @@ export function Opening() {
   const [dots, setDots] = useState<THREE.BufferGeometry | null>(null);
   const floor = useRef<THREE.Mesh>(null);
   const sweep = useRef<THREE.Group>(null);
-  const w = useRef({ step: 0, frames: 0, t: 0, planned: 1, el: SELECT_EL });
+  const w = useRef({ step: 0, frames: 0, t: 0, el: SELECT_EL });
 
   useEffect(() => {
-    opening.restore = bloomOff;
     if (process.env.NODE_ENV !== "production") (window as unknown as { __bloom: object }).__bloom = { stats: bloomStats, opening, boot, warm: () => ({ ...w.current }), where: () => (readSpot(scene), { ...spot }), sweep: () => { const o = scene.getObjectByName("studio-sweep"); return o && { visible: o.visible, p: o.position.toArray(), sy: o.scale.y, parentVisible: o.parent?.visible, kids: o.children.length }; } };
   }, [scene]);
 
-  // exactly one vehicle: decided last, just before each render
+  // exactly one vehicle, and the in-world swap: decided last, just before each render
   useEffect(() => {
     const prev = scene.onBeforeRender;
     scene.onBeforeRender = function (this: THREE.Scene, ...a: Parameters<THREE.Scene["onBeforeRender"]>) {
@@ -625,15 +628,6 @@ export function Opening() {
       if (warm) warmOwn(() => gl.compileAsync(scene, camera));
     }
 
-    const run = opening.get().run;
-    if (stg === "select" && run > 1 && st.planned !== run) {
-      // back in the garage from the world: plan round where the car is now and hide the world
-      st.planned = run;
-      plan();
-      const me = findPlayer(scene);
-      scan(scene, (o) => o === me);
-      bloomOn();
-    }
     if (stg === "select" || stg === "boot") {
       U.uBloomT.value = -1e4;
     }
@@ -727,7 +721,8 @@ export function Opening() {
 
   return (
     <>
-      <Garage />
+      {stage !== "done" && <Garage />}
+      <SwapScan />
       {stage !== "done" && (
         <group userData={{ bloomSkip: true }}>
           <mesh ref={floor} rotation={[-Math.PI / 2, 0, 0]} material={floorMat} renderOrder={-0.5}>
