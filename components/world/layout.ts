@@ -533,11 +533,18 @@ export type Zone = {
   id: ZoneId;
   label: string;
   hint: string;
+  /** The hotspot: the car is at the place while it is inside this rectangle (Rig.tsx `inside`). */
   pos: [number, number];
   size: [number, number];
+  /** The hotspot's turn, as Rig.tsx `inside` reads it: its local x runs along (cos rotY, sin rotY). */
   rotY?: number;
+  /** Where the E prompt stands: the front of the place's building or prop. Defaults to `pos`. */
+  marker?: [number, number];
   spawn: [number, number, number]; // x, z, heading
 };
+
+/** Where a zone's E prompt stands (ui3d/InteractivePoints.tsx). */
+export const zoneMarker = (z: Zone) => z.marker ?? z.pos;
 
 // A place's hotspot sits on the track right beside its scenery.
 export function sectorT(i: number) {

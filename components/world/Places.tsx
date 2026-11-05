@@ -49,6 +49,7 @@ import { nearGarden } from "./garden/layout";
 import { inTownBelt } from "./street/common";
 import Bridge from "./Bridge";
 import { AhmedabadSector, BostonSector, HyperlabSector, WatersSector } from "./models/sectors";
+import ZoneDebug from "./ui3d/ZoneDebug";
 import { C } from "./palette";
 import {
   GANTRY_T,
@@ -476,6 +477,8 @@ const SCENE_BOXES: Record<keyof typeof SCENES, Box[]> = {
 function Sectors() {
   return (
     <>
+      {/* dev only: window.__zones = true draws every hotspot, prompt, spawn and collider from above */}
+      {process.env.NODE_ENV !== "production" && <ZoneDebug />}
       {SECTORS.map((s) => {
         const Scene = SCENES[s.id];
         return (
