@@ -9,7 +9,8 @@
 //   - each sector set's footprint (SCENE_FOOT, violet) and every collider the car can hit,
 //     read from the physics world itself (fixed in ink, knock-about props in blue).
 // `window.__zoneReport()` checks each place: the spawn is in its hotspot, clear of walls and
-// reachable by car from the start; how much of the hotspot is road or wall; where its marker stands.
+// reachable by car from the start; how much of the hotspot is road or wall; how far its marker
+// stands from the nearest wall; and how much of each contact link's reach and of the timeline a car gets to.
 // Fog is pushed away while it shows (a top view stands far off). Mounted inside <Physics>.
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -317,7 +318,20 @@ function report(feet: Foot[]) {
     const [i, j] = cell(x, z);
     return i >= 0 && j >= 0 && i < N && j < N && seen[j * N + i] === 1;
   };
-  return zones.map((z, k) => {
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+  /** Share of the cells inside `inside` (over its bounding box) that a car reaches from the start. */
+  const reachOf = (x0: number, z0: number, x1: number, z1: number, inside: (x: number, z: number) => boolean) => {
+    let n = 0;
+    let hit = 0;
+    for (let x = x0; x <= x1; x += 0.5)
+      for (let zz = z0; zz <= z1; zz += 0.5) {
+        if (!inside(x, zz)) continue;
+        n++;
+        if (reached(x, zz)) hit++;
+      }
+    return Math.round((100 * hit) / Math.max(1, n));
+  };
+  const places = zones.map((z, k) => {
     let n = 0;
     let road = 0;
     let wall = 0;
@@ -334,7 +348,6 @@ function report(feet: Foot[]) {
       }
     const [sx, sz] = z.spawn;
     const a = zoneMarker(z);
-    const r2 = (v: number) => Math.round(v * 100) / 100;
     return {
       code: `Z${String(k + 1).padStart(2, "0")}`,
       id: z.id,
@@ -347,8 +360,18 @@ function report(feet: Foot[]) {
       reachPct: Math.round((100 * reach) / Math.max(1, n)),
       marker: [r2(a[0]), r2(a[1])],
       markerInWall: wallAt(a[0], a[1]),
+      // how far the prompt stands from the nearest wall: about a metre means it is at a building's front
+      markerGap: r2(Math.min(...blocking.map((p) => distPoly(p, a[0], a[1])))),
     };
   });
+  // the contact links (reach circles) and the timeline terrace: no hotspot of their own, but a car must get there
+  const links = LINK_SPOTS.map(([x, z], i) => ({
+    code: `C${String(i + 1).padStart(2, "0")}`,
+    reachPct: reachOf(x - SOCIAL.reach, z - SOCIAL.reach, x + SOCIAL.reach, z + SOCIAL.reach, (px, pz) => Math.hypot(px - x, pz - z) < SOCIAL.reach),
+  }));
+  const [tx, tz] = TIMELINE.pos;
+  const timeline = { code: "TL", reachPct: reachOf(tx - TIMELINE.hx, tz - TIMELINE.hz, tx + TIMELINE.hx, tz + TIMELINE.hz, () => true) };
+  return { places, links, timeline };
 }
 
 export default function ZoneDebug() {
