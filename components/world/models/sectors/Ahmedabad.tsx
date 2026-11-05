@@ -1,14 +1,9 @@
 // Sector 1 · 2021 · Ahmedabad engineering school. Static.
-// Footprint 26 x 18 (x -13..13, z -9..9). Everything sits in z -9..-0.6; the 9 m band
-// z 0..9 along the +Z edge is left clear for the track.
-// Colliders (cuboids, centre + full size):
-//   school:            (-5.5, 3.7, -6.0)    12.1 x 7.4 x 6.1
-//   courtyard wall:    (8.0, 0.45, -8.75)   10.4 x 0.9 x 0.5
-//   courtyard wall R:  (12.95, 0.45, -6.0)  0.5 x 0.9 x 6.0
-//   neem otla + trunk: (7.8, 1.5, -6.0)     3.2 x 3.0 x 3.2
-//   banner poles:      (4.3, 1.7, -3.1)  and (11.3, 1.7, -3.1)   0.3 x 3.4 x 0.3 each
-//   solar car Mercury: (-6.0, 0.6, -1.9)    4.4 x 1.2 x 1.9
-//   cones: cylinder r 0.2 h 0.55 at (x, -1.9 +/- 0.35) for x = 0.6, 2.4 ... 9.6 (or skip: knock-down props)
+// Footprint 26 x 18 (x -13..13, z -9..9). Everything sits in z -11..-0.6; the 9 m band
+// z 0..9 along the +Z edge is left clear for the track. Everything stands at the world's scale
+// (../../scale.ts): the school's real 4.8 m arcade and 10.4 m tier, Mercury (a real 4.4 m solar
+// car), the cones and the TEAM STALLIONS banner their real size.
+// Colliders: AHMEDABAD_BOXES (the school, the courtyard walls, the neem's otla, the banner poles, Mercury).
 "use client";
 
 import { RoundedBox } from "@react-three/drei";
@@ -21,17 +16,23 @@ import { geo, mat, unitBox, unitCyl, type GroupProps } from "../props/shared";
 import { Built } from "../../kit/builtShared";
 import { ahmedabadParts } from "../../kit/builtSectors";
 import { Inst, type T9 } from "./kit";
+import { WORLD_SCALE } from "../../scale";
 
 // ---- palette (derived only from the world palette) ----
 // Concrete & Ink: the arcades and jharokhas keep it Ahmedabad, in concrete and paper
 const STONE = CI.concrete;
 const TRIM = CI.paper;
 
-// ---- the school: the approved model, fitted in behind the forecourt ----
-const BX = -5.5; // centre x
-const ZB = -9; // back of the set
-/** 10 x 5 bays (27.5 x 13.75 m) scaled to 12.1 x 6 m, clear of Mercury's pad. */
-export const SCHOOL_S = 0.44;
+// ---- the school: the approved model, behind the forecourt ----
+const K = WORLD_SCALE;
+const BX = -7.0; // centre x
+/** 7 x 4 bays of 2.75 m (19.25 x 11 m) at the world's scale: 12.8 x 7.3 m, the arcade's front at z = -3.4, the back at -10.9. */
+export const SCHOOL_S = K;
+const SCHOOL_BAYS: [number, number] = [7, 4];
+const SCHOOL_Z = -7.1;
+/** Mercury parked left of the orange arch; the banner over the courtyard's front. */
+const MERCURY_AT: [number, number] = [-9.8, -1.95];
+const BANNER_X = 7.8;
 
 // ---- courtyard + neem ----
 const facetGeo = () => geo("ahd-facet", () => new THREE.IcosahedronGeometry(1, 0));
@@ -57,7 +58,20 @@ const TRUNK: T9[] = [
   [0.45, 2.8, -0.15, 0.13, 1.35, 0.13, 0.2, 0, -0.55],
   [0.1, 2.9, 0.5, 0.1, 1.1, 0.1, 0.55, 0, 0],
 ];
-const CONES = [0.6, 2.4, 4.2, 6.0, 7.8, 9.6].map((x, i) => [x, -1.9 + (i % 2 ? 0.38 : -0.38)] as const);
+// the slalom in front of the courtyard, clear of the forecourt before the school
+const CONES = [2.4, 4.2, 6.0, 7.8, 9.6, 11.4].map((x, i) => [x, -1.9 + (i % 2 ? 0.38 : -0.38)] as const);
+
+type Box = [[number, number, number], [number, number, number]];
+/** The set's colliders in its own space (centre, full size). */
+export const AHMEDABAD_BOXES: Box[] = [
+  // the school's arcade and tiers (the model: 19.25 x 11 m of bays, 10.6 m to the tier's top)
+  [[BX, 0.06 + 3.55, SCHOOL_Z], [19.65 * K, 7.1, 11 * K]],
+  [[8, 0.45, -8.75], [10.4, 0.9, 0.5]],
+  [[12.95, 0.45, -6], [0.5, 0.9, 6]],
+  [[7.8, 1.5, -6], [3.2, 3, 3.2]],
+  ...[-3.5, 3.5].map((x): Box => [[BANNER_X + x * K, 1.7 * K, -3.1], [0.3 * K, 3.4 * K, 0.3 * K]]),
+  [[MERCURY_AT[0], 0.03 + 0.6 * K, MERCURY_AT[1] + 0.05 * K], [4.4 * K, 1.2 * K, 1.9 * K]],
+];
 
 // ---- solar car Mercury (forward = +X, origin at ground centre) ----
 function mercuryBodyGeo() {
@@ -168,9 +182,9 @@ export function AhmedabadSector(props: GroupProps) {
       <RoundedBox args={[25.6, 0.06, 8.6]} radius={0.025} smoothness={2} position={[0, 0.03, -4.7]} material={mat(CI.concreteDark, { r: 0.95 })} receiveShadow />
       <mesh geometry={unitBox()} scale={[10, 0.03, 5.6]} position={[TX, 0.07, -6.0]} material={mat("#cdc9bf", { r: 0.95 })} receiveShadow />
 
-      {/* ===== the school: the approved model (kit/builtSectors.tsx, concept ahmedabad), 10 x 5 bays ===== */}
-      <group position={[BX, 0.06, ZB + (5 * 2.75 * SCHOOL_S) / 2]} scale={SCHOOL_S}>
-        <Built parts={ahmedabadParts(10, 5)} />
+      {/* ===== the school: the approved model (kit/builtSectors.tsx, concept ahmedabad), 7 x 4 bays ===== */}
+      <group position={[BX, 0.06, SCHOOL_Z]} scale={SCHOOL_S}>
+        <Built parts={ahmedabadParts(...SCHOOL_BAYS)} />
       </group>
 
       {/* ===== courtyard ===== */}
@@ -189,32 +203,36 @@ export function AhmedabadSector(props: GroupProps) {
           <Inst geometry={facetGeo()} material={mat(C.leafDark, { r: 0.9, flat: true })} items={CANOPY_DARK} />
         </group>
       </group>
-      {/* TEAM STALLIONS banner on two poles */}
-      {[4.3, 11.3].map((x) => (
-        <group key={x}>
-          <mesh geometry={unitCyl()} scale={[0.06, 3.4, 0.06]} position={[x, 1.7, -3.1]} material={mat(C.charcoal, { r: 0.4, m: 0.3 })} castShadow />
-          <mesh geometry={unitBox()} scale={[0.16, 0.06, 0.16]} position={[x, 3.42, -3.1]} material={mat(C.charcoal, { r: 0.4, m: 0.3 })} />
-        </group>
-      ))}
-      {/* ink banner, paper type, an orange rule along the foot */}
-      <mesh geometry={unitBox()} scale={[6.7, 1.05, 0.05]} position={[7.8, 2.7, -3.1]} material={mat(C.ink, { r: 0.7 })} castShadow />
-      <mesh geometry={unitBox()} scale={[6.7, 0.08, 0.07]} position={[7.8, 2.2, -3.1]} material={mat(C.orange, { r: 0.55 })} />
-      <Label position={[7.8, 2.78, -3.07]} fontSize={0.46} color={C.paper} letterSpacing={0.04}>
-        TEAM STALLIONS
-      </Label>
-      <Label position={[7.8, 2.78, -3.13]} rotation={[0, Math.PI, 0]} fontSize={0.46} color={C.paper} letterSpacing={0.04}>
-        TEAM STALLIONS
-      </Label>
+      {/* TEAM STALLIONS banner on two poles, in real metres round its centre */}
+      <group position={[BANNER_X, 0, -3.1]} scale={K}>
+        {[-3.5, 3.5].map((x) => (
+          <group key={x}>
+            <mesh geometry={unitCyl()} scale={[0.06, 3.4, 0.06]} position={[x, 1.7, 0]} material={mat(C.charcoal, { r: 0.4, m: 0.3 })} castShadow />
+            <mesh geometry={unitBox()} scale={[0.16, 0.06, 0.16]} position={[x, 3.42, 0]} material={mat(C.charcoal, { r: 0.4, m: 0.3 })} />
+          </group>
+        ))}
+        {/* ink banner, paper type, an orange rule along the foot */}
+        <mesh geometry={unitBox()} scale={[6.7, 1.05, 0.05]} position={[0, 2.7, 0]} material={mat(C.ink, { r: 0.7 })} castShadow />
+        <mesh geometry={unitBox()} scale={[6.7, 0.08, 0.07]} position={[0, 2.2, 0]} material={mat(C.orange, { r: 0.55 })} />
+        <Label position={[0, 2.78, 0.03]} fontSize={0.46} color={C.paper} letterSpacing={0.04}>
+          TEAM STALLIONS
+        </Label>
+        <Label position={[0, 2.78, -0.03]} rotation={[0, Math.PI, 0]} fontSize={0.46} color={C.paper} letterSpacing={0.04}>
+          TEAM STALLIONS
+        </Label>
+      </group>
 
-      {/* ===== solar car + slalom ===== */}
-      <mesh geometry={unitBox()} scale={[5.4, 0.05, 2.7]} position={[-6.0, 0.075, -1.9]} material={mat(C.charcoal, { r: 0.7 })} receiveShadow />
-      <mesh geometry={unitBox()} scale={[5.0, 0.012, 0.05]} position={[-6.0, 0.105, -0.75]} material={mat(C.paper, { r: 0.6 })} />
-      <Label mono position={[-8.0, 0.106, -0.95]} rotation={[-Math.PI / 2, 0, 0]} anchorX="left" fontSize={0.15} color={C.paper} letterSpacing={0.1}>
-        MERCURY · SOLAR EV · 2021
-      </Label>
-      <Mercury position={[-6.0, 0.1, -1.95]} />
+      {/* ===== solar car on its pad, in real metres round the car, + slalom ===== */}
+      <group position={[MERCURY_AT[0], 0.03, MERCURY_AT[1]]} scale={K}>
+        <mesh geometry={unitBox()} scale={[5.4, 0.05, 2.7]} position={[0, 0.075, 0.05]} material={mat(C.charcoal, { r: 0.7 })} receiveShadow />
+        <mesh geometry={unitBox()} scale={[5.0, 0.012, 0.05]} position={[0, 0.105, 1.2]} material={mat(C.paper, { r: 0.6 })} />
+        <Label mono position={[-2.0, 0.106, 1.0]} rotation={[-Math.PI / 2, 0, 0]} anchorX="left" fontSize={0.15} color={C.paper} letterSpacing={0.1}>
+          MERCURY · SOLAR EV · 2021
+        </Label>
+        <Mercury position={[0, 0.1, 0]} />
+      </group>
       {CONES.map(([x, z]) => (
-        <Cone key={x} position={[x, 0.06, z]} />
+        <Cone key={x} position={[x, 0.06, z]} scale={K} />
       ))}
     </group>
   );

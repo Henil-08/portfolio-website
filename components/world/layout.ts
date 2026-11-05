@@ -559,13 +559,13 @@ export function sectorT(i: number) {
 // edge, which keeps it off the kerbs (1 m wide in the bends) too.
 const SECTOR_SPOTS: Record<SectorId, { marker: [number, number]; x: [number, number]; z0: number }> = {
   // the school's orange arch, Mercury parked to its left
-  ahmedabad: { marker: [-2.5, -2.6], x: [-10, 5], z0: -1.2 },
-  // the right-hand hall's glazed gable, between the table tennis and the giant phone
-  hyperlab: { marker: [-5.2, -3.0], x: [-12, 2], z0: -1.3 },
+  ahmedabad: { marker: [-5.2, -3.0], x: [-8, 2], z0: -2.5 },
+  // the right-hand hall's gable, the giant phone to its right
+  hyperlab: { marker: [-4.4, -1.4], x: [-13, 2], z0: -0.9 },
   // the state house's portico and steps, the row of townhouses to its left
   boston: { marker: [4.9, -1.5], x: [-3, 11], z0: -0.9 },
   // the lab's entrance canopy, the planter to its left and the instrument to its right
-  waters: { marker: [-4.6, -2.2], x: [-9, 7], z0: -1.0 },
+  waters: { marker: [-4.3, -1.5], x: [-9, 7], z0: -1.0 },
 };
 const ROAD_GAP = 1.2;
 

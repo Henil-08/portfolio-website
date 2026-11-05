@@ -45,7 +45,7 @@ import Social from "./social";
 import Waterfront from "./waterfront";
 import { HomeBody } from "./Movables";
 import Bridge from "./Bridge";
-import { AhmedabadSector, BOSTON_BOXES, BostonSector, HyperlabSector, WatersSector } from "./models/sectors";
+import { AHMEDABAD_BOXES, AhmedabadSector, BOSTON_BOXES, BostonSector, HYPERLAB_BOXES, HyperlabSector, WATERS_BOXES, WatersSector } from "./models/sectors";
 import ZoneDebug from "./ui3d/ZoneDebug";
 import { C } from "./palette";
 import {
@@ -422,30 +422,10 @@ const SCENES = { ahmedabad: AhmedabadSector, hyperlab: HyperlabSector, boston: B
 // Collision boxes for each scenery set, in the set's local space: [centre, full size].
 type Box = [[number, number, number], [number, number, number]];
 const SCENE_BOXES: Record<keyof typeof SCENES, Box[]> = {
-  ahmedabad: [
-    [[-5.5, 3.7, -6], [12.1, 7.4, 6.1]],
-    [[8, 0.45, -8.75], [10.4, 0.9, 0.5]],
-    [[12.95, 0.45, -6], [0.5, 0.9, 6]],
-    [[7.8, 1.5, -6], [3.2, 3, 3.2]],
-    [[4.3, 1.7, -3.1], [0.3, 3.4, 0.3]],
-    [[11.3, 1.7, -3.1], [0.3, 3.4, 0.3]],
-    [[-6, 0.6, -1.9], [4.4, 1.2, 1.9]],
-  ],
-  hyperlab: [
-    [[-7.6, 1.7, -6.15], [7.3, 3.4, 5.7]],
-    [[6.4, 0.2, -5.1], [12.8, 0.4, 7.4]],
-    [[6.4, 2.8, -8.45], [8.2, 5.6, 0.6]],
-    [[-8.2, 0.4, -2.3], [2.8, 0.8, 1.6]],
-    [[-1.2, 1.8, -2.4], [1.8, 3.6, 0.9]],
-  ],
+  ahmedabad: AHMEDABAD_BOXES,
+  hyperlab: HYPERLAB_BOXES,
   boston: BOSTON_BOXES,
-  waters: [
-    [[-5.3, 1.7, -6.6], [11.1, 3.4, 4.8]],
-    [[-4.6, 0.65, -3.4], [3, 1.3, 1.6]],
-    [[6, 1, -3], [2.8, 2, 1.6]],
-    [[10.3, 1.2, -5.4], [3.2, 2.4, 2.6]],
-    [[-8.8, 0.4, -1.7], [6.6, 0.8, 1]],
-  ],
+  waters: WATERS_BOXES,
 };
 
 function Sectors() {

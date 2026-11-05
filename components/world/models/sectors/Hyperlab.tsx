@@ -1,13 +1,9 @@
 // Sector 2 · 2022-23 · Hyperlab startup. Static.
-// Footprint 26 x 18 (x -13..13, z -9..9). Everything sits in z -9..-0.9; the 9 m band
-// z 0..9 along the +Z edge is left clear for the track.
-// Colliders (cuboids, centre + full size):
-//   studio:            (-7.6, 1.7, -6.15)  7.3 x 3.4 x 5.7
-//   studio stage:      (6.4, 0.2, -5.1)    12.8 x 0.4 x 7.4   (low; screen truss sits on it)
-//   screen + truss:    (6.4, 2.8, -8.45)   8.2 x 5.6 x 0.6
-//   table tennis:      (-8.2, 0.4, -2.3)   2.8 x 0.8 x 1.6
-//   giant phone:       (-1.2, 1.8, -2.4)   1.8 x 3.6 x 0.9
-//   spotlight stands stand on the stage corners (inside the stage cuboid, up to 3.0 m tall)
+// Footprint 26 x 18 (x -13..13, z -9..9). Everything sits in z -11..-0.9; the 9 m band
+// z 0..9 along the +Z edge is left clear for the track. Everything stands at the world's scale
+// (../../scale.ts): the halls (a real 8 m ridge) fill the left, the pitch-show stage the back
+// right, the table tennis in front of it and the giant phone between them.
+// Colliders: HYPERLAB_BOXES (the halls, the stage, the screen and truss, the table, the phone).
 "use client";
 
 import { RoundedBox } from "@react-three/drei";
@@ -19,12 +15,19 @@ import { geo, mat, unitBox, unitCyl, type GroupProps } from "../props/shared";
 import { Built } from "../../kit/builtShared";
 import { hyperlabParts } from "../../kit/builtSectors";
 import { Inst, at, type T9 } from "./kit";
+import { WORLD_SCALE } from "../../scale";
 
 // Concrete & Ink: a concrete sawtooth works shed with ink roofs and one orange neon
 // ---- the studio ----
-const WX = -7.6;
-/** The approved halls (13.5 x 17 m) turned gables-to-track and scaled to the old warehouse plot. */
-export const HQ_S = 0.42;
+const K = WORLD_SCALE;
+const WX = -8.2;
+/** The approved halls (13.5 x 17 m) turned gables-to-track, at the world's scale: gables at z = -1.8, back at z = -10.8. */
+export const HQ_S = K;
+const HALL_Z = -6.32;
+/** Where the stage set's centre, the table tennis and the giant phone stand now (each drawn round its own anchor at the world's scale). */
+const STAGE_AT: [number, number] = [8.3, -7.6];
+const TT_AT: [number, number] = [6.0, -3.2];
+const PHONE_AT: [number, number] = [1.0, -2.8];
 
 // ---- studio ----
 const SX = 6.4;
@@ -62,7 +65,6 @@ const LAMP_YOKE: T9[] = [[0, 2.5, 0, 0.5, 0.05, 0.05]];
 const BARS: T9[] = [0.35, 0.55, 0.8, 1.15, 1.6].map((h, i) => [1.4 + i * 0.42, 2.2 + h / 2, 0.02, 0.26, h, 0.02]);
 
 // ---- table tennis ----
-const TT: [number, number] = [-8.2, -2.3];
 const TT_LEGS: T9[] = [-1, 1].flatMap((sx) => [-1, 1].map((sz) => [sx * 1.15, 0.37, sz * 0.6, 0.06, 0.72, 0.06] as T9));
 const TT_LINES: T9[] = [
   [0, 0.765, 0.74, 2.74, 0.006, 0.03],
@@ -79,6 +81,18 @@ const TRAIL: T9[] = Array.from({ length: 11 }, (_, i) => {
   const s = 0.025 + 0.025 * t;
   return [x, y, 0.15 - 0.3 * t, s, s, s];
 });
+
+type Box = [[number, number, number], [number, number, number]];
+/** The set's colliders in its own space (centre, full size), each solid in its group's own metres where the group stands. */
+export const HYPERLAB_BOXES: Box[] = [
+  // the three halls, turned gables-to-track (the model's z runs across the set)
+  [[WX + 0.135 * K, 0.06 + 2.7, HALL_Z], [17.37 * K, 5.4, 13.54 * K]],
+  // the stage and the screen on its truss, round the stage's centre
+  [[STAGE_AT[0], 0.2 * K, STAGE_AT[1]], [SW * K, 0.4 * K, SD * K]],
+  [[STAGE_AT[0], 2.8 * K, STAGE_AT[1] - 3.35 * K], [8.2 * K, 5.6 * K, 0.6 * K]],
+  [[TT_AT[0], 0.06 + 0.4 * K, TT_AT[1]], [2.8 * K, 0.8 * K, 1.6 * K]],
+  [[PHONE_AT[0], 0.06 + 1.74 * K, PHONE_AT[1]], [1.8 * K, 3.6 * K, 0.9 * K]],
+];
 
 const octGeo = () => geo("hyper-oct", () => new THREE.CylinderGeometry(1, 1, 1, 8));
 
@@ -99,15 +113,16 @@ export function HyperlabSector(props: GroupProps) {
   const warm = mat("#fff2dc", { glow: 2.4 });
   return (
     <group {...props}>
-      {/* polished concrete yard */}
-      <RoundedBox args={[25.6, 0.06, 8.6]} radius={0.025} smoothness={2} position={[0, 0.03, -4.7]} material={mat(CI.concreteDark, { r: 0.95 })} receiveShadow />
+      {/* polished concrete yard, under the whole of the halls */}
+      <RoundedBox args={[25.6, 0.06, 10.6]} radius={0.025} smoothness={2} position={[0, 0.03, -5.7]} material={mat(CI.concreteDark, { r: 0.95 })} receiveShadow />
 
       {/* ===== the studio: the approved model (kit/builtSectors.tsx, concept hyperlab), its gables to the track ===== */}
-      <group position={[WX, 0.06, -6.15]} rotation={[0, Math.PI / 2, 0]} scale={HQ_S}>
+      <group position={[WX, 0.06, HALL_Z]} rotation={[0, Math.PI / 2, 0]} scale={HQ_S}>
         <Built parts={hyperlabParts()} />
       </group>
 
-      {/* ===== pitch-show studio set ===== */}
+      {/* ===== pitch-show studio set: drawn in real metres round its old centre (SX, SZ), moved and scaled ===== */}
+      <group position={[STAGE_AT[0] - SX * K, 0, STAGE_AT[1] - SZ * K]} scale={K}>
       <mesh geometry={unitBox()} scale={[SW, SH, SD]} position={[SX, SH / 2, SZ]} material={gloss} castShadow receiveShadow />
       <mesh geometry={unitBox()} scale={[SW - 0.1, 0.04, 0.05]} position={[SX, SH - 0.06, SZ + SD / 2 + 0.005]} material={warm} />
       {/* floor medallion where the pitcher stands */}
@@ -152,8 +167,10 @@ export function HyperlabSector(props: GroupProps) {
       <Inst geometry={unitCyl()} material={mat(C.charcoal, { r: 0.35, m: 0.4 })} items={LAMP_CAN} at={LAMP_AT} />
       <Inst geometry={unitCyl()} material={warm} items={LAMP_LENS} at={LAMP_AT} cast={false} />
 
+      </group>
+
       {/* ===== table tennis with ball tracking ===== */}
-      <group position={[TT[0], 0.06, TT[1]]}>
+      <group position={[TT_AT[0], 0.06, TT_AT[1]]} scale={K}>
         <mesh geometry={unitBox()} scale={[2.74, 0.05, 1.525]} position={[0, 0.74, 0]} material={mat(CI.graphite, { r: 0.5 })} castShadow receiveShadow />
         <Inst geometry={unitBox()} material={mat(CI.paper, { r: 0.6 })} items={TT_LINES} cast={false} />
         <Inst geometry={unitBox()} material={ink} items={TT_LEGS} />
@@ -177,7 +194,7 @@ export function HyperlabSector(props: GroupProps) {
       </group>
 
       {/* ===== giant phone: 50K downloads ===== */}
-      <group position={[-1.2, 0.06, -2.4]} rotation={[0, 0.3, 0]}>
+      <group position={[PHONE_AT[0], 0.06, PHONE_AT[1]]} rotation={[0, 0.3, 0]} scale={K}>
         <mesh geometry={unitBox()} scale={[1.6, 0.3, 0.8]} position={[0, 0.15, 0]} material={concrete} castShadow receiveShadow />
         <group position={[0, 1.95, 0]} rotation={[-0.06, 0, 0]}>
           <mesh geometry={unitBox()} scale={[1.6, 3.2, 0.16]} material={mat(CI.ink, { r: 0.55, m: 0.2 })} castShadow receiveShadow />
