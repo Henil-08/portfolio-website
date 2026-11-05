@@ -90,13 +90,16 @@ export const HEDGES: [number, number, number, number][] = [
 ];
 export const HEDGE = { h: 0.9, d: 0.9, block: 1.8 };
 
-/** Benches: position and yaw (seat faces local +Z). */
+/**
+ * Benches: position and yaw (seat faces local +Z), each facing something: the lawn and the
+ * terrace from the promenade, the east path, the podium from beside its signpost. (The two
+ * by the old pond went when the circuit took that corner of the garden.)
+ */
 export const BENCHES: { x: number; z: number; yaw: number }[] = [
-  { x: -41.2, z: 21, yaw: -Math.PI / 2 },
-  { x: -36, z: 13, yaw: Math.PI },
   { x: 6, z: 13, yaw: Math.PI },
-  { x: 33, z: -4, yaw: -Math.PI / 2 },
-  { x: 7.2, z: -9.6, yaw: Math.PI },
+  { x: 33.1, z: -1.0, yaw: -Math.PI / 2 },
+  // off to the side of the podium's signpost, turned to the podium 7 m away
+  { x: 10.2, z: -5.2, yaw: -2.41 },
 ];
 
 /** Garden lamps along the paths, every ~13 m, alternating sides. */

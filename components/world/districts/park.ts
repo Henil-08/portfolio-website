@@ -12,6 +12,7 @@ import { compose, rng } from "../street/common";
 import { WORLD_SCALE } from "../scale";
 import { FENCE_BAY, FENCE_SY } from "./furniture";
 import { ISLANDS, islandDist } from "../park/layout";
+import { BUSHES } from "../park/bushes";
 import { C } from "../palette";
 
 // concrete stepping slabs (Concrete & Ink), a few tones from concrete to concrete dark
@@ -110,7 +111,7 @@ export const PARK = (() => {
     const side = r() < 0.5 ? 1 : -1;
     const bx2 = mx - dz * 1.5 * side;
     const bz2 = mz + dx * 1.5 * side;
-    if (onSand(bx2, bz2)) benches.push(compose(bx2, heightAt(bx2, bz2), bz2, yaw + (side > 0 ? Math.PI : 0)));
+    if (onSand(bx2, bz2) && !BUSHES.some((b) => Math.hypot(b.x - bx2, b.z - bz2) < 1.9 * b.s)) benches.push(compose(bx2, heightAt(bx2, bz2), bz2, yaw + (side > 0 ? Math.PI : 0)));
     for (const t of [on[Math.floor(on.length / 4)], on[Math.floor((on.length * 3) / 4)]]) {
       const [x, z] = point(t);
       const s = r() < 0.5 ? 1 : -1;
