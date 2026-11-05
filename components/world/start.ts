@@ -9,9 +9,10 @@ export const START_PLANTERS: [number, number][] = [
   [9.4, 1.15],
   [9.4, 5.5],
 ];
+/** x, z and scale: full-size bushes (a real 1.25 m, foliage/species.ts), so they read as bushes beside the bench. */
 export const START_BUSHES: [number, number, number][] = [
-  [7.2, 1.2, 0.8],
-  [19.6, -0.4, 0.7],
+  [7.2, 1.2, 1.0],
+  [19.6, -0.4, 0.95],
 ];
 /** Bench in the tree's shade, facing the lane. */
 export const START_BENCH = { x: 11.6, z: 0.4, yaw: 0 };
