@@ -9,6 +9,7 @@ import * as THREE from "three";
 import { carState } from "./carState";
 import { CANALS, LAKES, MAX_R, PIT, coastR, TIMELINE, PIT_LANE_WIDTH, SCENE_FOOT, SECTORS, TRACK_WIDTH, pitRoadCurves, trackCurve, zones } from "./layout";
 import { C } from "./palette";
+import { WORLD_SCALE } from "./scale";
 import { getWindUniforms, terrainShader, updateWind, TERRAIN_GLSL, WIND_GLSL } from "./alive/wind";
 import { perlinTexture, seeded } from "./alive/noise";
 import { tracks, tracksTarget } from "./alive/Tracks";
@@ -33,16 +34,22 @@ import { START_PLANTERS } from "./start";
 // view), and our palette instead of the original's yellow-green.
 
 const COARSE = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
-const SUBDIVISIONS = COARSE ? 148 : 280; // 22k blades on phones, 78k on desktop (the original's count)
-const SIZE = 56; // field width in metres
+// A real lawn at the world's scale (./scale.ts, docs/research/model-fidelity.md "World scale"):
+// blades of 5 to 38 cm, most 15-25 cm, tufts at the top end. The original's sizing gave blades
+// up to 1.2 m here (a real 1.7 m), taller than the car; real grass is a hand high. Blades that
+// short need a finer field to read as grass, so the field is smaller and denser than the
+// original's (160k blades on desktop, 40k on phones).
+const SUBDIVISIONS = COARSE ? 200 : 400;
+const SIZE = 44; // field width in metres
 const MASK_RES = 1024;
 const WORLD = (MAX_R + 6) * 2;
 
-// The original scales blades up when the field covers more than its ideal surface.
-const SURFACE_IDEAL = 2000;
-const OVERFLOW = Math.max(0, SIZE * SIZE - SURFACE_IDEAL) / SURFACE_IDEAL;
-const BLADE_WIDTH = 0.1 * (1 + OVERFLOW * 0.5);
-const BLADE_HEIGHT = 0.6 * (1 + OVERFLOW * 0.5);
+/**
+ * A blade is this tall times 0.4-1 (its seed) times 0.5-1.5 (the patch noise): a real 0.25 m, so
+ * 5 to 38 cm, most around 17 cm. Half its base: about as slender as the original's.
+ */
+const BLADE_HEIGHT = 0.25 * WORLD_SCALE;
+const BLADE_WIDTH = BLADE_HEIGHT / 4.5;
 const BLADE_HEIGHT_RANDOMNESS = 0.6;
 
 function makeMask() {
