@@ -1,13 +1,13 @@
-// Street furniture in Concrete & Ink, on the same origin as the original props they replaced
-// (models/props/propModels.ts), so placement stays put: the kit lamp and bench (the approved
-// concepts) and a fence bay (ink posts, paper top rail).
+// Street furniture in Concrete & Ink at the world's scale (../scale.ts): the kit lamp and bench
+// (the approved concepts), origin at the foot, and a fence bay (ink posts, paper top rail).
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { CI } from "../buildings/concrete";
 import { geo } from "../models/props/shared";
 import { bake, kitMat, part, type Paint } from "../kit/shared";
 import { studioMaterial } from "../studio/materials";
-import { benchModel, lampModel } from "../kit/street";
+import { BENCH, LAMP_H, benchModel, lampModel } from "../kit/street";
+import { WORLD_SCALE } from "../scale";
 
 type B = [sx: number, sy: number, sz: number, x: number, y: number, z: number, color: string];
 
@@ -26,37 +26,44 @@ function boxes(list: B[]) {
 }
 
 /**
- * The placements put a lantern's or bench's local origin above its foot and scale it about
- * 1.1-1.17 (0.85-0.9 x PROP_SCALE); the kit models (components/world/kit/street.ts, the approved
- * lamp and bench concepts) are in metres from the foot, so they're shrunk by that much and
- * dropped to the old foot here, and come out at their real size.
+ * The kit lamp and bench (components/world/kit/street.ts, the approved concepts) are drawn in real
+ * metres from their foot; here they are baked at the world's scale (../scale.ts), origin at the
+ * foot, so every placement puts them on the ground at scale 1: a 3.7 m lamp stands 2.45 m, the
+ * 2.1 m bench is 1.4 m long with its seat 0.32 m up.
  */
-const LANTERN_FOOT = -0.51;
-const BENCH_FOOT = -0.78;
-const PLACED = 1.15;
+const AT_WORLD = { s: WORLD_SCALE };
 
 /** Lantern: the kit street lamp (ink post, concrete foot, ink cap), vertex coloured, without its lit cube. */
-export const lanternGeo = () => geo("kit-lantern", () => bake(lampModel(), { skip: ["glow"], xf: { s: 1 / PLACED, p: [0, LANTERN_FOOT, 0] } }));
+export const lanternGeo = () => geo("kit-lantern-world", () => bake(lampModel(), { skip: ["glow"], xf: AT_WORLD }));
 
 /** The lantern's lit paper cube (its own glowing material). */
-export const lanternLightGeo = () => geo("kit-lantern-light", () => part(lampModel(), "glow", { s: 1 / PLACED, p: [0, LANTERN_FOOT, 0] })!);
+export const lanternLightGeo = () => geo("kit-lantern-light-world", () => part(lampModel(), "glow", AT_WORLD)!);
 
-const BENCH_XF = { s: 1 / 1.1, p: [0, BENCH_FOOT, 0] as [number, number, number] };
+/** The lamp's height in the world (m). */
+export const LANTERN_H = LAMP_H * WORLD_SCALE;
 
 let benchList: { geometry: THREE.BufferGeometry; material: THREE.Material }[] | null = null;
 /**
- * Bench: the kit bench (back toward -z) as one part per paint with the kit's materials, so the
- * slats keep their grain and the block its concrete grain. The block comes first (Movables
- * takes its collider from the first part).
+ * Bench: the kit bench (seat toward +z, back toward -z) as one part per paint with the kit's
+ * materials, so the slats keep their grain and the block its concrete grain. The block comes
+ * first (Movables takes its collider from the first part). Place at the ground, scale 1.
  */
 export function benchParts() {
   if (!benchList) {
     const m = benchModel();
     const order = ["concrete", ...m.map((x) => x.paint).filter((p) => p !== "concrete")] as Paint[];
-    benchList = order.map((p) => ({ geometry: part(m, p, BENCH_XF)!, material: p === "concrete" ? studioMaterial(kitMat(p), { grain: 1 }) : kitMat(p) }));
+    benchList = order.map((p) => ({ geometry: part(m, p, AT_WORLD)!, material: p === "concrete" ? studioMaterial(kitMat(p), { grain: 1 }) : kitMat(p) }));
   }
   return benchList;
 }
+
+/** The bench in the world: length, depth and seat height (m). */
+export const BENCH_W = { L: BENCH.L * WORLD_SCALE, D: BENCH.D * WORLD_SCALE, seat: BENCH.seat * WORLD_SCALE };
+
+/** Fence bay (below): its foot under the origin and its height at scale 1. */
+export const FENCE_BAY = { foot: 1.04, h: 1.24, len: 2.14 };
+/** A fence bay's height scale: a real 1.1 m post-and-rail fence at the world's scale. */
+export const FENCE_SY = (1.1 * WORLD_SCALE) / FENCE_BAY.h;
 
 /** Fence bay, vertex coloured, x -1.07..1.07, y -1.04..0.2. */
 export const fenceGeo = () =>

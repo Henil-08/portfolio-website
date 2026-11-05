@@ -7,10 +7,10 @@ import { MAX_R, TRACK_WIDTH, duneMask, inLand, nearestT } from "../layout";
 import { heightAt } from "../terrain";
 import { compose, nearPlace, rng } from "../street/common";
 import { BUILDINGS } from "../street/town";
-import { FENCE } from "../models/props/propModels";
-import { PROP_SCALE, propFoot } from "../models/props/kit";
+import { WORLD_SCALE } from "../scale";
+import { FENCE_BAY, FENCE_SY } from "./furniture";
 
-const PANEL = 2.1; // fence panel length
+const PANEL = FENCE_BAY.len * WORLD_SCALE; // fence panel length (a real 2.1 m bay)
 
 function onDune(x: number, z: number, pad: number) {
   if (duneMask(x, z) < 0.35 || !inLand(x, z, 1.5)) return false;
@@ -18,17 +18,18 @@ function onDune(x: number, z: number, pad: number) {
   return !BUILDINGS.some((b) => Math.hypot(b.x - x, b.z - z) < Math.hypot(b.w, b.d) / 2 + 1 + pad);
 }
 
-/** A marram tuft: a dozen thin blades fanning out from one point, 40 to 70 cm tall. */
+/** A marram tuft: a dozen thin blades fanning out from one point, a real 60 to 100 cm, at the world's scale. */
 export function tuftGeometry() {
   const r = rng(77);
   const blades: THREE.BufferGeometry[] = [];
+  const k = WORLD_SCALE;
   for (let i = 0; i < 12; i++) {
-    const h = 0.4 + r() * 0.3;
-    const g = new THREE.ConeGeometry(0.025, h, 3, 1);
+    const h = (0.6 + r() * 0.4) * k;
+    const g = new THREE.ConeGeometry(0.03 * k, h, 3, 1);
     g.translate(0, h / 2, 0);
     g.rotateZ((r() - 0.5) * 0.9);
     g.rotateY(r() * Math.PI * 2);
-    g.translate((r() - 0.5) * 0.12, 0, (r() - 0.5) * 0.12);
+    g.translate((r() - 0.5) * 0.15 * k, 0, (r() - 0.5) * 0.15 * k);
     g.deleteAttribute("uv");
     blades.push(g);
   }
@@ -41,7 +42,6 @@ export const DUNES = (() => {
   const r = rng(6161);
   const fences: THREE.Matrix4[] = [];
   const tufts = { m: [] as THREE.Matrix4[], c: [] as THREE.Color[] };
-  const foot = propFoot(FENCE) * PROP_SCALE;
   let runs = 0;
   for (let tries = 0; tries < 6000 && runs < 14; tries++) {
     const x = MAX_R * (0.3 + r() * 0.7);
@@ -67,7 +67,8 @@ export const DUNES = (() => {
       const yb = heightAt(bx, bz);
       // each panel leans with the ground between its posts, and a few sag a little
       const pitch = Math.atan2(yb - ya, PANEL);
-      run.push(compose((ax + bx) / 2, (ya + yb) / 2 + foot - 0.12, (az + bz) / 2, Math.atan2(-dz, dx), 1, (0.85 + r() * 0.15) * PROP_SCALE, PROP_SCALE, (r() - 0.5) * 0.12, pitch));
+      const sy = (0.9 + r() * 0.15) * FENCE_SY;
+      run.push(compose((ax + bx) / 2, (ya + yb) / 2 + FENCE_BAY.foot * sy - 0.06, (az + bz) / 2, Math.atan2(-dz, dx), WORLD_SCALE, sy, WORLD_SCALE, (r() - 0.5) * 0.12, pitch));
     }
     if (!ok || run.length < 2) continue;
     // runs keep apart: no panel within 6 m of another run's
@@ -85,7 +86,7 @@ export const DUNES = (() => {
     for (let j = 2 + Math.floor(r() * 4); j > 0; j--) {
       const tx = x + (r() - 0.5) * 1.6;
       const tz = z + (r() - 0.5) * 1.6;
-      const s = 0.7 + r() * 0.6;
+      const s = 0.8 + r() * 0.4;
       tufts.m.push(compose(tx, heightAt(tx, tz) - 0.03, tz, r() * 6, s, s, s));
       tufts.c.push(GRASS[Math.floor(r() * GRASS.length)]);
     }

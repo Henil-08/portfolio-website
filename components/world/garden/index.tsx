@@ -3,7 +3,7 @@
 // The infield garden, a modern landscaped garden in Concrete & Ink: gravel paths with a
 // concrete kerb linking the places, clipped hedges with chamfered tops, raised concrete
 // planters of gravel with muted planting (faceted shrubs, tall grasses, paper blooms), a
-// pond in a concrete surround, the district benches and the kit lamps at garden size with a
+// pond in a concrete surround, the district benches and the kit lamps at the world's scale with a
 // paper light box that glows after dark. Everything is instanced or merged so the whole
 // garden stays around a dozen draw calls. Paths, beds and the pond are drivable; hedges,
 // benches and lamps have small colliders.
@@ -16,11 +16,11 @@ import { dayNight } from "../daynight";
 import { C } from "../palette";
 import { geo, mat, unitBox } from "../models/props/shared";
 import { compose } from "../street/common";
-import { PROP_SCALE } from "../models/props/kit";
+import { WORLD_SCALE } from "../scale";
 import { batch, Instances } from "../street/Instances";
 import { Movables, kindFromMatrices } from "../Movables";
 import { seeded } from "../alive/noise";
-import { benchParts } from "../districts/furniture";
+import { BENCH_W, benchParts } from "../districts/furniture";
 import { bake, part } from "../kit/shared";
 import { LAMP_H as LAMP_H_KIT, lampModel } from "../kit/street";
 import { BEDS, BENCHES, HEDGE, HEDGES, LAMPS_GARDEN, PATHS, POND, clearOfRoad, pathDist, pathSamples, type Bed } from "./layout";
@@ -303,13 +303,11 @@ function Pond() {
 
 // ---------------------------------------------------------------- benches and lamps
 
-const BENCH_K = 0.72 * PROP_SCALE;
-
 function Benches() {
   const parts = useMemo(() => {
     const out = batch();
-    // the district bench: seat toward local +z, back toward -z
-    for (const b of BENCHES) out.m.push(compose(b.x, heightAt(b.x, b.z) + 0.78 * BENCH_K, b.z, b.yaw, BENCH_K, BENCH_K, BENCH_K));
+    // the district bench at the world's scale: seat toward local +z, back toward -z
+    for (const b of BENCHES) out.m.push(compose(b.x, heightAt(b.x, b.z), b.z, b.yaw));
     return out;
   }, []);
   return (
@@ -321,8 +319,8 @@ function Benches() {
   );
 }
 
-/** Garden lamps: the kit street lamp (the approved concept) at garden size. */
-const LAMP_S = 0.55;
+/** Garden lamps: the kit street lamp (the approved concept) at the world's scale, like every lamp. */
+const LAMP_S = WORLD_SCALE;
 const LAMP_H = LAMP_H_KIT * LAMP_S;
 /** Owned by the garden, so it is safe to animate: the lamp's paper cube, dim by day, glowing at night. */
 const lampHeadMat = new THREE.MeshStandardMaterial({
@@ -357,7 +355,7 @@ function Colliders() {
   return (
     <RigidBody type="fixed" colliders={false}>
       {BENCHES.map((b, i) => (
-        <CuboidCollider key={`b${i}`} args={[0.85 * PROP_SCALE, 0.45 * PROP_SCALE, 0.3 * PROP_SCALE]} position={[b.x, heightAt(b.x, b.z) + 0.45 * PROP_SCALE, b.z]} rotation={[0, b.yaw, 0]} />
+        <CuboidCollider key={`b${i}`} args={[BENCH_W.L / 2, BENCH_W.seat, BENCH_W.D / 2]} position={[b.x, heightAt(b.x, b.z) + BENCH_W.seat, b.z]} rotation={[0, b.yaw, 0]} />
       ))}
       {LAMPS_GARDEN.map(([x, z], i) => (
         <CuboidCollider key={`l${i}`} args={[0.06, LAMP_H / 2, 0.06]} position={[x, heightAt(x, z) + LAMP_H / 2, z]} />

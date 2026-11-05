@@ -8,7 +8,7 @@
 import { useMemo } from "react";
 import * as THREE from "three";
 import { Bush } from "./models/props";
-import { PROP_SCALE } from "./models/props/kit";
+import { WORLD_SCALE } from "./scale";
 import { mat, unitBox } from "./models/props/shared";
 import { grassGeo } from "./garden";
 import { withWind } from "./alive/sway";
@@ -46,11 +46,10 @@ export default function StartGarden() {
         blooms.c.push(BLOOMS[Math.floor(r() * BLOOMS.length)]);
       }
     }
-    // the planters: the kit grasses trough (the approved concept)
-    const planters = { m: START_PLANTERS.map(([px, pz]) => compose(px, heightAt(px, pz), pz, 0, 1, 1, 1)) };
-    const k = 0.72 * PROP_SCALE;
+    // the planters: the kit grasses trough (the approved concept), at the world's scale
+    const planters = { m: START_PLANTERS.map(([px, pz]) => compose(px, heightAt(px, pz), pz, 0, WORLD_SCALE, WORLD_SCALE, WORLD_SCALE)) };
     const b = START_BENCH;
-    const bench = { m: [compose(b.x, heightAt(b.x, b.z) + 0.78 * k, b.z, b.yaw, k, k, k)] };
+    const bench = { m: [compose(b.x, heightAt(b.x, b.z), b.z, b.yaw)] };
     const benchKind = kindFromMatrices(bench.m, benchParts(), { mass: 0.6 });
     return { grasses, blooms, planters, benchKind };
   }, []);

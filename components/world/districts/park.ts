@@ -9,8 +9,8 @@ import { TRACK_WIDTH, inLand, nearestT, zoneById, zones, type ZoneId } from "../
 import { nearGarden } from "../garden/layout";
 import { heightAt } from "../terrain";
 import { compose, rng } from "../street/common";
-import { BENCH, FENCE, LANTERN } from "../models/props/propModels";
-import { PROP_SCALE, propFoot } from "../models/props/kit";
+import { WORLD_SCALE } from "../scale";
+import { FENCE_BAY, FENCE_SY } from "./furniture";
 import { ISLANDS, islandDist } from "../park/layout";
 import { C } from "../palette";
 
@@ -52,14 +52,11 @@ export const PARK = (() => {
   const benches: THREE.Matrix4[] = [];
   const fences: THREE.Matrix4[] = [];
   const flowers = { m: [] as THREE.Matrix4[], c: [] as THREE.Color[] };
-  const lFoot = propFoot(LANTERN) * PROP_SCALE * 0.9;
-  const bFoot = propFoot(BENCH) * PROP_SCALE * 0.85;
-  const fFoot = propFoot(FENCE) * PROP_SCALE;
   const lamps: [number, number][] = [];
   const lamp = (x: number, z: number) => {
     if (lamps.some(([lx, lz]) => Math.hypot(lx - x, lz - z) < 5)) return;
     lamps.push([x, z]);
-    lanterns.push(compose(x, heightAt(x, z) + lFoot, z, r() * 6, 0.9 * PROP_SCALE, 0.9 * PROP_SCALE, 0.9 * PROP_SCALE));
+    lanterns.push(compose(x, heightAt(x, z), z, r() * 6));
   };
   const bloom = (x: number, z: number) => {
     const tint = PETALS[Math.floor(r() * PETALS.length)];
@@ -111,9 +108,9 @@ export const PARK = (() => {
     // a bench beside the middle of the path, facing it, and flowers either side
     const [mx, mz] = point(on[Math.floor(on.length / 2)]);
     const side = r() < 0.5 ? 1 : -1;
-    const bx2 = mx - dz * 2.1 * side;
-    const bz2 = mz + dx * 2.1 * side;
-    if (onSand(bx2, bz2)) benches.push(compose(bx2, heightAt(bx2, bz2) + bFoot, bz2, yaw + (side > 0 ? Math.PI : 0), 0.85 * PROP_SCALE, 0.85 * PROP_SCALE, 0.85 * PROP_SCALE));
+    const bx2 = mx - dz * 1.5 * side;
+    const bz2 = mz + dx * 1.5 * side;
+    if (onSand(bx2, bz2)) benches.push(compose(bx2, heightAt(bx2, bz2), bz2, yaw + (side > 0 ? Math.PI : 0)));
     for (const t of [on[Math.floor(on.length / 4)], on[Math.floor((on.length * 3) / 4)]]) {
       const [x, z] = point(t);
       const s = r() < 0.5 ? 1 : -1;
@@ -157,7 +154,7 @@ export const PARK = (() => {
     if (benches.some((m) => Math.hypot(m.elements[12] - mx, m.elements[14] - mz) < 2.5)) continue;
     const ya = heightAt(x0, z0);
     const yb = heightAt(x1, z1);
-    fences.push(compose(mx, (ya + yb) / 2 + fFoot - 0.12, mz, Math.atan2(-(z1 - z0), x1 - x0), (l / 1.88) * 1.02, PROP_SCALE * 0.85, PROP_SCALE));
+    fences.push(compose(mx, (ya + yb) / 2 + FENCE_BAY.foot * FENCE_SY - 0.04, mz, Math.atan2(-(z1 - z0), x1 - x0), (l / 1.88) * 1.02, FENCE_SY, WORLD_SCALE));
   }
 
   return { slabs, lanterns, benches, fences, flowers };
