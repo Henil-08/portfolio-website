@@ -546,24 +546,58 @@ export type Zone = {
 /** Where a zone's E prompt stands (ui3d/InteractivePoints.tsx). */
 export const zoneMarker = (z: Zone) => z.marker ?? z.pos;
 
-// A place's hotspot sits on the track right beside its scenery.
+/** The middle of a sector's stretch of track (the story's order, the map's S labels). */
 export function sectorT(i: number) {
   return SECTORS[i].t;
 }
 
+// Each sector's hotspot is the forecourt in front of its building, in the set's own frame
+// (models/sectors/*: x across the set, +Z toward the track; colliders in Places.tsx SCENE_BOXES).
+// `marker` is where the E prompt stands, at the building's front; `x` is the hotspot's span
+// across the set and `z0` how far back it reaches (a car's nose touching the props in front
+// still counts). Toward the track it runs out over the verge to ROAD_GAP short of the road's
+// edge, which keeps it off the kerbs (1 m wide in the bends) too.
+const SECTOR_SPOTS: Record<SectorId, { marker: [number, number]; x: [number, number]; z0: number }> = {
+  // the school's orange arch, Mercury parked to its left
+  ahmedabad: { marker: [-2.5, -2.6], x: [-10, 5], z0: -1.2 },
+  // the right-hand hall's glazed gable, between the table tennis and the giant phone
+  hyperlab: { marker: [-5.2, -3.0], x: [-12, 2], z0: -1.3 },
+  // the state house's portico and steps, the row of townhouses to its left
+  boston: { marker: [4.9, -1.5], x: [-3, 11], z0: -0.9 },
+  // the lab's entrance canopy, the planter to its left and the instrument to its right
+  waters: { marker: [-4.6, -2.2], x: [-9, 7], z0: -1.0 },
+};
+const ROAD_GAP = 1.2;
+
 function sectorZone(i: number): Zone {
   const s = SECTORS[i];
-  const t = sectorT(i);
-  const p = trackPoint(t);
-  const back = trackPoint(t - 0.02);
+  const spot = SECTOR_SPOTS[s.id];
+  const c = Math.cos(s.sceneRot);
+  const sn = Math.sin(s.sceneRot);
+  // the set's frame to the world (a group turned by sceneRot about Y)
+  const w = (lx: number, lz: number): [number, number] => [s.scene[0] + lx * c + lz * sn, s.scene[1] - lx * sn + lz * c];
+  // out toward the track until the nearest stretch of road, wherever across the span that is
+  let z1 = spot.z0 + 6;
+  for (let lx = spot.x[0]; lx <= spot.x[1] + 1e-6; lx += 0.5)
+    for (let lz = spot.z0; lz < z1; lz += 0.1) {
+      const [x, z] = w(lx, lz);
+      if (nearestT(x, z).dist < TRACK_WIDTH / 2 + ROAD_GAP) {
+        z1 = Math.round(lz * 10) / 10;
+        break;
+      }
+    }
+  const cz = (spot.z0 + z1) / 2;
   return {
     id: `sector-${s.n}` as ZoneId,
     label: s.place,
     hint: s.name,
-    pos: [p.x, p.z],
-    size: [16, 16],
-    rotY: headingFromTangent(trackTangent(t)),
-    spawn: [back.x, back.z, headingFromTangent(trackTangent(t - 0.02))],
+    pos: w((spot.x[0] + spot.x[1]) / 2, cz),
+    size: [spot.x[1] - spot.x[0], Math.round((z1 - spot.z0) * 10) / 10],
+    // Rig.tsx `inside` turns the other way from a three.js group: this lines the hotspot up with the set
+    rotY: -s.sceneRot,
+    marker: w(...spot.marker),
+    // in front of the prompt, facing the building (local -Z)
+    spawn: [...w(spot.marker[0], cz), s.sceneRot + Math.PI / 2],
   };
 }
 
@@ -588,12 +622,19 @@ export const zones: Zone[] = [
     size: [9, 8],
     spawn: [g.x, PIT.garageZ + 3, Math.PI / 2], // on the apron, inside the garage zone
   })),
-  // The park: each on its own grass island north of the garden (park/layout.ts).
-  { id: "playbook", label: "Tyre wall", hint: "How I work with AI", pos: [36, -19], size: [11, 8], spawn: [28, -15, 0] },
-  { id: "podium", label: "Podium", hint: "Papers and patents", pos: [5, -10], size: [10, 8], spawn: [13, -6, Math.PI] },
-  { id: "cricket", label: "Cricket", hint: "Off the clock", pos: [-25, -10], size: [22, 8], spawn: [-10, -10, Math.PI] },
-  { id: "football", label: "Football", hint: "Off the clock", pos: [15, -21], size: [18, 14], spawn: [3, -13, 0] },
-  { id: "contact", label: "Mailbox", hint: "Say hi", pos: [34, -30], size: [9, 8], spawn: [26, -24, 0.67] },
+  // The park: each on its own grass island north of the garden (park/layout.ts). `pos` is also
+  // where each one's props stand (Places.tsx, social), so the prompt stays at it; the spawns sit
+  // inside the hotspot, facing the props, clear of the signposts (Places.tsx Signposts).
+  // the tyre stacks stand 1 m behind the prompt; you land off their left end
+  { id: "playbook", label: "Tyre wall", hint: "How I work with AI", pos: [36, -19], size: [11, 8], spawn: [32, -16.3, 0.75] },
+  // the prompt stands at the podium's front face; you land beside its signpost
+  { id: "podium", label: "Podium", hint: "Papers and patents", pos: [5, -10], size: [10, 8], marker: [5, -9.6], spawn: [8.2, -7.6, 2.4] },
+  // between the wickets, facing across the pitch
+  { id: "cricket", label: "Cricket", hint: "Off the clock", pos: [-25, -10], size: [22, 8], spawn: [-25, -7.3, Math.PI / 2] },
+  // on the halfway side, facing the ball and the goal
+  { id: "football", label: "Football", hint: "Off the clock", pos: [15, -21], size: [18, 14], spawn: [15, -15.5, Math.PI / 2] },
+  // the ring of links behind, Henil waving in its middle: the prompt stands at the ring's centre
+  { id: "contact", label: "Mailbox", hint: "Say hi", pos: [34, -30], size: [9, 8], marker: [34, -33], spawn: [34, -27.5, Math.PI / 2] },
 ];
 
 export const zoneById = Object.fromEntries(zones.map((z) => [z.id, z])) as Record<ZoneId, Zone>;

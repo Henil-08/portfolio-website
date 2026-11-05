@@ -49,7 +49,7 @@ export const SECTOR_PLACES: Place[] = SECTORS.map((s, i) => {
   return zonePlace(`sector-${s.n}` as ZoneId, {
     parts: `models/sectors/${SECTOR_PARTS[i].replace("Sector", "")}.tsx ${SECTOR_PARTS[i]}, Places.tsx Sectors`,
     view: { x: cx - fx * 4, z: cz - fz * 4, lift: 3, off: [fx * 26 + sx * 10, 14, fz * 26 + sz * 10] },
-    trigger: `Drive onto the 16 × 16 m stretch of track beside the scenery (track t ${s.t.toFixed(3)}). The E prompt names the place; E, Enter or a click opens the sheet.`,
+    trigger: `Pull off the track onto the forecourt in front of the building (${hotspot(`sector-${s.n}` as ZoneId)}). The E prompt stands at the building's front; E, Enter or a click opens the sheet.`,
     interact: [
       `Chapter ${s.n} of the story: ${s.name}, ${s.year}.`,
       "The sheet shows the story text, a photo where there is one, and the roles from that chapter; each role row opens its points.",
