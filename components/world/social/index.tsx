@@ -17,6 +17,7 @@ import { zoneById, zones } from "../layout";
 import { getState, setState } from "../store";
 import { geo, mat } from "../models/props/shared";
 import { Avatar } from "../models/Avatar";
+import { WORLD_SCALE } from "../scale";
 import { Label } from "../models/props/Label";
 import { ICONS, type IconName } from "./icons";
 
@@ -193,7 +194,8 @@ export default function Social() {
         ))}
         <CuboidCollider args={[1.6, 0.3, 0.25]} position={[cx, heightAt(cx, cz - 4.2) + 0.3, cz - 4.2]} />
       </RigidBody>
-      <Avatar position={[cx, heightAt(cx, cz - 2.2), cz - 2.2]} rotation={[0, 0.25, 0]} wave />
+      {/* the driver, a real 1.75 m at the world's scale (../scale.ts) */}
+      <Avatar position={[cx, heightAt(cx, cz - 2.2), cz - 2.2]} rotation={[0, 0.25, 0]} scale={WORLD_SCALE} wave />
       <LinkWatcher />
     </>
   );

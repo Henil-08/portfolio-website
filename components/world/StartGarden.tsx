@@ -21,6 +21,7 @@ import { KitInstances } from "./kit/KitModel";
 import { grassesModel } from "./kit/nature";
 import { C } from "./palette";
 import { START_BENCH, START_BUSHES, START_FLOWERS, START_PLANTERS } from "./start";
+import ScaleLineup from "./ScaleLineup";
 
 const BLOOMS = [C.paper, C.paper, C.cream, C.concrete].map((c) => new THREE.Color(c));
 const GRASSES = ["#8b9270", C.leaf, "#8b9270"].map((c) => new THREE.Color(c));
@@ -62,6 +63,8 @@ export default function StartGarden() {
       <Movables kind={parts.benchKind} />
       <Instances geometry={grassGeo()} material={withWind(mat("#ffffff", { r: 0.9, flat: true }), { amount: 0.25, maxHeight: 0.9 })} batch={parts.grasses} shadow={false} />
       <Instances geometry={unitBox()} material={mat("#ffffff", { r: 0.8 })} batch={parts.blooms} shadow={false} />
+      {/* dev only: window.__lineup() (./ScaleLineup.tsx) */}
+      {process.env.NODE_ENV !== "production" && <ScaleLineup />}
     </group>
   );
 }
