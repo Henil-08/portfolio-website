@@ -48,10 +48,20 @@ export function grandstandParts(o: StandOpts = {}) {
   for (let i = 0; i < N; i++) {
     const zf = ZF - i * R, y = Y0 + i * RISE;
     k.box("concrete", [W - 1.2, y + RISE, R], [-0.6, (y + RISE) / 2, zf - R / 2]);
-    for (let s = 0; s < 2; s++) k.box("concrete", [1.6, y + RISE * (s + 1) * 0.5, R / 2], [W / 2 - 1.6, (y + RISE * (s + 1) * 0.5) / 2, zf - (R / 2) * (s + 0.5)]);
+    // the side stair: two half-height steps a row, in the darker concrete so it reads apart
+    for (let s = 0; s < 2; s++) k.box("concreteDark", [1.6, y + RISE * (s + 1) * 0.5, R / 2], [W / 2 - 1.6, (y + RISE * (s + 1) * 0.5) / 2, zf - (R / 2) * (s + 0.5)]);
+    // one row has a block of paper seats across its middle
     const paper = i === Math.min(3, N - 2);
-    for (const x of spread(x0 + 0.3, x1 - 0.3, Math.round((x1 - x0) / 0.58))) seat(k, paper && x > x0 + 4 ? "paper" : "inkMatte", x, y + RISE, zf - 0.05);
+    const p0 = x0 + (x1 - x0) * 0.3, p1 = x1 - 0.4;
+    for (const x of spread(x0 + 0.3, x1 - 0.3, Math.round((x1 - x0) / 0.58))) seat(k, paper && x > p0 && x < p1 ? "paper" : "inkMatte", x, y + RISE, zf - 0.05);
   }
+  // the stair comes down to the ground in front, with an ink handrail up the rake
+  for (let s = 0; s < 3; s++) k.box("concreteDark", [1.6, (Y0 * (s + 1)) / 3, 0.5], [W / 2 - 1.6, (Y0 * (s + 1)) / 6, ZF + 2.2 - (2 - s) * 0.5 - 0.25]);
+  k.bar("ink", [W / 2 - 2.45, Y0 + 0.95, ZF + 0.6], [W / 2 - 2.45, Y0 + N * RISE + 0.95, ZF - N * R + 0.3], 0.06);
+  // an ink railing along the whole front of the first tier
+  const rz = ZF + 0.12, rx0 = -W / 2 + 0.5, rx1 = W / 2 - 2.5;
+  for (const x of spread(rx0, rx1, Math.max(2, Math.round((rx1 - rx0) / 1.6)))) k.box("ink", [0.07, 1.05, 0.07], [x, Y0 + 0.52, rz]);
+  for (const y of [Y0 + 0.5, Y0 + 1.02]) k.box("ink", [rx1 - rx0, 0.06, 0.06], [(rx0 + rx1) / 2, y, rz]);
   const zb = ZF - N * R, ytop = Y0 + N * RISE;
   // back wall and the low left wall
   k.box("concrete", [W - 0.6, ytop + 1.6, 0.4], [-0.3, (ytop + 1.6) / 2, zb - 0.2]);
@@ -65,14 +75,14 @@ export function grandstandParts(o: StandOpts = {}) {
   }
   k.hull("concrete", wedge);
   // the roof: a paper sheet on an ink frame, front posts with V braces, one orange box
-  const ry = ytop + 4.2, rz0 = zb - 0.6, rz1 = ZF + 1.2;
+  const ry = ytop + 3.3, rz0 = zb - 0.6, rz1 = ZF + 1.2;
   k.add("paper", cboxGeo(W + 0.4, 0.2, rz1 - rz0, 0, 0.05, 0), [0, ry + 0.3, (rz0 + rz1) / 2], [0.06, 0, 0]);
   const posts = spread(-W / 2 + 1.2, W / 2 - 1.0, Math.max(2, Math.round(W / 5.3)));
   for (const x of posts) {
     const zp = ZF - 1.6, yb = Y0 + 2 * RISE;
     k.box("ink", [0.18, ry - yb, 0.18], [x, (ry + yb) / 2, zp]);
-    k.bar("ink", [x, ry - 1.1, zp], [x - 1.6, ry, zp], 0.12);
-    k.bar("ink", [x, ry - 1.1, zp], [x + 1.6, ry, zp], 0.12);
+    k.bar("ink", [x, ry - 1.3, zp], [x - 2.2, ry, zp], 0.12);
+    k.bar("ink", [x, ry - 1.3, zp], [x + 2.2, ry, zp], 0.12);
     k.bar("ink", [x, ry, rz0 + 0.3], [x, ry + 0.2, rz1], 0.14);
     k.box("ink", [0.18, ry - ytop, 0.18], [x, ytop + (ry - ytop) / 2, zb - 0.3]);
   }
@@ -80,7 +90,7 @@ export function grandstandParts(o: StandOpts = {}) {
   k.box("orange", [0.35, 0.35, 0.3], [posts[2] + 0.15, ry - 0.5, ZF - 1.4]);
   // mesh fence along the front left
   if (o.fence !== false) {
-    const fz = ZF + 2.0, fh = 2.0;
+    const fz = ZF + 2.0, fh = 2.7;
     const fx = spread(-W / 2, 0.2, 4);
     for (const x of fx) k.box("ink", [0.1, fh + 0.1, 0.1], [x, fh / 2, fz]);
     for (let i = 0; i < 4; i++) {
@@ -138,6 +148,14 @@ export const floodlightParts = once(() => {
   for (const z of [-0.22, 0.22]) k.box("ink", [0.05, l1 - l0, 0.05], [lx, (l0 + l1) / 2, z]);
   for (let y = l0 + 0.15; y < l1; y += 0.34) k.box("ink", [0.04, 0.04, 0.44], [lx, y, 0]);
   for (let y = l0; y < l1; y += 0.9) for (const z of [-0.22, 0.22]) k.box("ink", [0.32, 0.04, 0.04], [lx - 0.16, y, z]);
+  // the safety cage round the ladder from 2.5 m up: hoops every 0.9 m and five uprights
+  const c0 = l0 + 2.3, cr = 0.7;
+  for (let y = c0; y < l1; y += 0.9) {
+    for (const z of [-0.38, 0.38]) k.box("ink", [cr, 0.05, 0.05], [lx + cr / 2, y, z]);
+    k.box("ink", [0.05, 0.05, 0.8], [lx + cr, y, 0]);
+  }
+  for (const [x, z] of [[lx + cr, -0.3], [lx + cr, 0], [lx + cr, 0.3], [lx + cr / 2, -0.38], [lx + cr / 2, 0.38]] as [number, number][])
+    k.box("ink", [0.04, l1 - c0, 0.04], [x, (c0 + l1) / 2, z]);
   const py = MH - 1.2;
   k.box("ink", [1.7, 0.08, 1.4], [1.15, py, 0]);
   for (const [x, z] of [[0.35, -0.7], [1.95, -0.7], [1.95, 0.7], [0.35, 0.7]] as [number, number][]) k.box("ink", [0.05, 1.05, 0.05], [x, py + 0.52, z]);
@@ -236,7 +254,7 @@ export function GantryBuilt(props: G) {
 /* ------------------------------------------------------------------ TecPro */
 
 /** One block: `l` along the wall, `h` tall, `t` thick, chamfered all round. */
-export const TECPRO = { l: 1.25, h: 1.1, t: 1.0, c: 0.24 };
+export const TECPRO = { l: 1.1, h: 1.2, t: 1.2, c: 0.24 };
 export type TecproPaint = "inkMatte" | "paper" | "orange";
 
 /** A single TecPro block's body, centred on its own footprint, base at y = 0 (for instancing). */
@@ -245,16 +263,16 @@ export const tecproBodyGeo = once(() => cboxGeo(TECPRO.l, TECPRO.h, TECPRO.t, TE
 export const tecproStrapParts = once(() => {
   const k = new Kit();
   const { l, h, t, c } = TECPRO;
-  k.add("strap", sliceGeo(0.08, h + 0.02, t + 0.02, c), [l / 2 - 0.3, h / 2, 0]);
-  k.cbox("strap", [0.2, 0.26, 0.06], [l / 2 - 0.3, h / 2, t / 2 + 0.03], 0.02);
-  k.box("graphite", [0.12, 0.04, 0.03], [l / 2 - 0.3, h / 2 + 0.05, t / 2 + 0.07]);
+  k.add("strap", sliceGeo(0.08, h + 0.02, t + 0.02, c), [l / 2 - 0.26, h / 2, 0]);
+  k.cbox("strap", [0.2, 0.26, 0.06], [l / 2 - 0.26, h / 2, t / 2 + 0.03], 0.02);
+  k.box("graphite", [0.12, 0.04, 0.03], [l / 2 - 0.26, h / 2 + 0.05, t / 2 + 0.07]);
   return k.build().strap!;
 });
 
 /** Paints of the concept's wall, top row then bottom, left to right: black and white with one orange. */
 export const TECPRO_WALL: TecproPaint[][] = [
-  ["inkMatte", "paper", "paper", "inkMatte", "paper", "paper"],
-  ["paper", "paper", "orange", "paper", "paper", "inkMatte"],
+  ["inkMatte", "paper", "paper", "inkMatte", "paper", "paper", "inkMatte"],
+  ["paper", "paper", "orange", "paper", "paper", "inkMatte", "paper"],
 ];
 
 /** A two-high wall of TecPro blocks on a concrete strip, in the concept's paints. */
@@ -283,7 +301,7 @@ export function TecproBuilt(props: G) {
 
 /* ------------------------------------------------------------------ marshal post */
 
-export const MARSHAL = { w: 2.5, d: 2.3, h: 3.3 };
+export const MARSHAL = { w: 2.9, d: 2.3, h: 3.3 };
 
 /** A marshal post: a paper frame and light band under an ink roof, a concrete counter with an ink flag holder, the orange flag. */
 export const marshalParts = once(() => {
@@ -292,7 +310,7 @@ export const marshalParts = once(() => {
   k.box("concrete", [W - 0.3, 0.15, D - 0.2], [0.1, 0.075, 0]);
   // paper pillar up the left, the light band across the top, a slim post at the front right
   k.cbox("paper", [0.38, 2.65, D], [-W / 2 + 0.19, 1.325, 0], 0.08, 0, 0.08);
-  k.cbox("paper", [W, 0.6, D], [0, 2.65 + 0.3, 0], 0.1, 0, 0.12);
+  k.cbox("paper", [W, 0.5, D], [0, 2.65 + 0.25, 0], 0.1, 0, 0.12);
   k.box("lens", [W * 0.42, 0.36, 0.04], [-W * 0.18, 2.95, D / 2 + 0.01]);
   k.box("paper", [0.22, 2.5, 0.22], [W / 2 - 0.4, 1.4, D / 2 - 0.35]);
   // concrete back wall inside
@@ -304,7 +322,7 @@ export const marshalParts = once(() => {
   k.cyl("graphite", 0.02, 0.02, 0.9, [W / 2 + 0.1, 1.28, D / 2 - 0.15], 6, [0, 0, Math.PI / 2]);
   k.box("orange", [0.6, 0.6, 0.02], [W / 2 + 0.25, 1.0, D / 2 - 0.15]);
   // the ink roof, soft-cornered
-  k.cbox("ink", [W + 0.1, 0.3, D + 0.15], [0.05, 3.1, 0], 0.18, 0.04, 0.04);
+  k.cbox("inkMatte", [W + 0.1, 0.3, D + 0.15], [0.05, 3.1, 0], 0.18, 0.04, 0.04);
   return k.build();
 });
 
@@ -318,7 +336,7 @@ export function MarshalBuilt(props: G) {
 
 /* ------------------------------------------------------------------ pit wall */
 
-export const PITWALL = { booths: 4, pitch: 3.3, d: 3.8, h: 4.2 };
+export const PITWALL = { booths: 4, pitch: 2.9, d: 3.8, h: 4.2 };
 
 /**
  * The pit wall: a concrete wall with a paper cap and a tall bar fence toward the track (-z),
@@ -335,9 +353,11 @@ export function pitWallParts(wall = true) {
   const L = N * P + 1.0;
   const zw = -D / 2 + 0.3;
   // slab with a raised edge at the left end, and the wall: a sloped foot, an upright and a paper cap
-  k.box("concrete", [L, 0.22, wall ? D : D - 0.6], [0, 0.11, wall ? 0 : 0.3]);
+  // the slab ends just past the booths' fronts
+  const s0 = zw - (wall ? 0.4 : -0.3), s1 = zw + 2.75;
+  k.box("concrete", [L, 0.22, s1 - s0], [0, 0.11, (s0 + s1) / 2]);
   if (wall) {
-    k.cbox("concrete", [0.4, 0.5, D], [-L / 2 + 0.2, 0.25, 0], 0, 0.15, 0);
+    k.cbox("concrete", [0.4, 0.5, s1 - s0], [-L / 2 + 0.2, 0.25, (s0 + s1) / 2], 0, 0.15, 0);
     k.hull("concrete", [[-L / 2, 0, zw - 0.4], [L / 2, 0, zw - 0.4], [-L / 2, 0, zw + 0.35], [L / 2, 0, zw + 0.35], [-L / 2, 0.35, zw - 0.25], [L / 2, 0.35, zw - 0.25], [-L / 2, 0.35, zw + 0.25], [L / 2, 0.35, zw + 0.25], [-L / 2, 1.05, zw - 0.25], [L / 2, 1.05, zw - 0.25], [-L / 2, 1.05, zw + 0.25], [L / 2, 1.05, zw + 0.25]]);
     k.cbox("paper", [L, 0.4, 0.55], [0, 1.25, zw], 0, 0.04, 0);
     // the fence: posts kinked toward the track at the top, vertical bars
@@ -349,9 +369,9 @@ export function pitWallParts(wall = true) {
     }
     for (let i = 0; i < 4; i++) {
       const a = posts[i], b = posts[i + 1];
-      k.add("bars", panelGeo(b - a - 0.09, fh - 0.15, 0.09), [(a + b) / 2, fy + fh / 2, zw]);
+      k.add("bars", panelGeo(b - a - 0.09, fh - 0.15, 0.12), [(a + b) / 2, fy + fh / 2, zw]);
       for (const y of [fy + 0.06, fy + fh - 0.05]) k.box("ink", [b - a, 0.06, 0.06], [(a + b) / 2, y, zw]);
-      k.add("bars", panelGeo(b - a - 0.09, 0.5, 0.09), [(a + b) / 2, fy + fh + 0.22, zw - 0.15], [-0.59, 0, 0]);
+      k.add("bars", panelGeo(b - a - 0.09, 0.5, 0.12), [(a + b) / 2, fy + fh + 0.22, zw - 0.15], [-0.59, 0, 0]);
       k.box("ink", [b - a, 0.06, 0.06], [(a + b) / 2, fy + fh + 0.45, zw - 0.3]);
     }
   }
@@ -380,9 +400,9 @@ export function pitWallParts(wall = true) {
     k.box("ink", [0.45, 0.03, 0.45], [x - 0.1, 0.24, sz]);
     k.hull("graphite", [[x - 0.32, 0.72, sz - 0.25], [x + 0.12, 0.72, sz - 0.25], [x - 0.32, 0.72, sz + 0.2], [x + 0.12, 0.72, sz + 0.2], [x - 0.32, 0.8, sz - 0.25], [x + 0.12, 0.8, sz - 0.25], [x - 0.3, 1.45, sz + 0.32], [x + 0.1, 1.45, sz + 0.32], [x - 0.3, 0.8, sz + 0.26], [x + 0.1, 0.8, sz + 0.26]]);
     // canopy: a hipped ink roof on a back post and a front post, a Z strut from its front edge to the desk
-    const cy = 2.75, cz0 = zw + 0.1, cz1 = zc + 2.15, cw = P - 0.35;
+    const cy = 2.75, cz0 = zw + 0.2, cz1 = zc + 1.95, cw = P - 0.55;
     const ring = (w: number, d: number, y: number, dz = 0): V3[] => chamferRect(w, d, 0).map(([a, b]) => [a + x, y, b + (cz0 + cz1) / 2 + dz]);
-    k.hull("ink", [...ring(cw, cz1 - cz0, cy), ...ring(cw, cz1 - cz0, cy + 0.12), ...ring(cw * 0.35, (cz1 - cz0) * 0.3, cy + 0.42)]);
+    k.hull("inkMatte", [...ring(cw, cz1 - cz0, cy), ...ring(cw, cz1 - cz0, cy + 0.12), ...ring(cw * 0.12, (cz1 - cz0) * 0.12, cy + 0.62)]);
     k.hull("ink", [[x - cw / 2, cy, cz1], [x + cw / 2, cy, cz1], [x - cw / 2, cy - 0.35, cz1 - 0.05], [x + cw / 2, cy - 0.35, cz1 - 0.05], [x - cw / 2, cy, cz1 - 0.12], [x + cw / 2, cy, cz1 - 0.12]]);
     k.box("ink", [0.09, cy - 0.22, 0.09], [x + cw / 2 - 0.1, 0.22 + (cy - 0.22) / 2, cz1 - 0.1]);
     k.box("ink", [0.09, cy - 1.15, 0.09], [x - cw / 2 + 0.15, 1.15 + (cy - 1.15) / 2, cz0 + 0.2]);

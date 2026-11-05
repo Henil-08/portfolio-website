@@ -13,7 +13,7 @@ const spread = (a: number, b: number, n: number) => Array.from({ length: n + 1 }
 
 /** A window: glass in a frame of `frame` bars `t` wide, on the +z face at z. */
 function windowAt(k: Kit, x: number, y: number, z: number, w: number, h: number, frame: MatKey = "paper", t = 0.12, sill = true) {
-  k.box("glass", [w, h, 0.05], [x, y, z]);
+  k.box("glassPale", [w, h, 0.05], [x, y, z]);
   k.box(frame, [w + 2 * t, t, 0.12], [x, y + h / 2 + t / 2, z + 0.03]);
   k.box(frame, [w + 2 * t, t, sill ? 0.22 : 0.12], [x, y - h / 2 - t / 2, z + 0.06]);
   for (const s of [-1, 1]) k.box(frame, [t, h, 0.12], [x + s * (w / 2 + t / 2), y, z + 0.03]);
@@ -27,10 +27,9 @@ export const BOSTON = { w: 32, d: 16, h: 27 };
 /** A row of three stone townhouses (bay windows, stoops, an ink cornice) beside a paper domed state house. */
 export const bostonParts = once(() => {
   const k = new Kit();
-  k.box("concreteDark", [32, 0.25, 15], [0, 0.125, 0.5]);
   // the row: x -15 .. 0, front at z = 3, raised basement to 1.2
-  const R0 = -15, R1 = 0, ZF = 3, ZB = -6.5, TOP = 10.8;
-  const ry = 0.25;
+  const R0 = -17.5, R1 = 0, ZF = 3, ZB = -6.5, TOP = 10.8;
+  const ry = 0.05;
   k.box("concrete", [R1 - R0, TOP, ZF - ZB], [(R0 + R1) / 2, ry + TOP / 2, (ZF + ZB) / 2]);
   k.box("concreteDark", [R1 - R0 + 0.1, 1.3, ZF - ZB + 0.1], [(R0 + R1) / 2, ry + 0.65, (ZF + ZB) / 2]);
   // panel joints on the blank end wall
@@ -96,25 +95,28 @@ export const bostonParts = once(() => {
   const py = cy1 + 1.4, pw = (T1 - T0 + 0.7) / 2;
   k.hull("paper", [[TC - pw, py, TZF + 4.45], [TC + pw, py, TZF + 4.45], [TC, py + 2.2, TZF + 4.45], [TC - pw, py, TZF - 0.5], [TC + pw, py, TZF - 0.5], [TC, py + 2.2, TZF - 0.5]]);
   k.box("glass", [1.3, 3.2, 0.05], [TC, ry + 2.5, TZF + 0.03]);
-  const dz = (TZF + TZB) / 2 - 0.5;
-  k.box("paper", [7, 2.6, 7], [TC, ry + 10.5, dz]);
-  k.cyl("paper", 3.7, 3.7, 1.6, [TC, ry + 12.6, dz], 32);
-  k.cyl("paper", 3.9, 3.9, 0.3, [TC, ry + 13.5, dz], 32);
-  k.add("paper", new THREE.SphereGeometry(3.6, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2), [TC, ry + 13.6, dz]);
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2;
-    k.add("paper", new THREE.TorusGeometry(3.62, 0.06, 4, 16, Math.PI / 2), [TC, ry + 13.6, dz], [0, a, Math.PI / 2]);
-  }
-  k.cyl("paper", 0.9, 0.9, 0.4, [TC, ry + 17.3, dz], 16);
-  for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * Math.PI * 2;
-    k.cyl("paper", 0.09, 0.09, 1.6, [TC + Math.cos(a) * 0.7, ry + 18.3, dz + Math.sin(a) * 0.7], 6);
-  }
-  k.cyl("glass", 0.55, 0.55, 1.6, [TC, ry + 18.3, dz], 12);
-  k.cyl("paper", 0.95, 0.95, 0.3, [TC, ry + 19.25, dz], 16);
-  k.cyl("paper", 0.05, 0.75, 3.6, [TC, ry + 21.2, dz], 8);
-  k.cyl("orange", 0.05, 0.05, 1.0, [TC, ry + 23.4, dz], 6);
-  k.add("orange", new THREE.ConeGeometry(0.12, 0.35, 6), [TC, ry + 24.0, dz]);
+  // the dome group sits lower than first drawn: the concept's spire tip is about twice the row's height
+  k.at([0, -2.2, 0], 0, () => {
+    const dz = (TZF + TZB) / 2 - 0.5;
+    k.box("paper", [7, 2.6, 7], [TC, ry + 10.5, dz]);
+    k.cyl("paper", 3.7, 3.7, 1.6, [TC, ry + 12.6, dz], 32);
+    k.cyl("paper", 3.9, 3.9, 0.3, [TC, ry + 13.5, dz], 32);
+    k.add("paper", new THREE.SphereGeometry(3.6, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2), [TC, ry + 13.6, dz]);
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      k.add("paper", new THREE.TorusGeometry(3.62, 0.06, 4, 16, Math.PI / 2), [TC, ry + 13.6, dz], [0, a, Math.PI / 2]);
+    }
+    k.cyl("paper", 0.9, 0.9, 0.4, [TC, ry + 17.3, dz], 16);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      k.cyl("paper", 0.09, 0.09, 1.6, [TC + Math.cos(a) * 0.7, ry + 18.3, dz + Math.sin(a) * 0.7], 6);
+    }
+    k.cyl("glass", 0.55, 0.55, 1.6, [TC, ry + 18.3, dz], 12);
+    k.cyl("paper", 0.95, 0.95, 0.3, [TC, ry + 19.25, dz], 16);
+    k.cyl("paper", 0.05, 0.75, 2.6, [TC, ry + 20.7, dz], 8);
+    k.cyl("orange", 0.05, 0.05, 1.0, [TC, ry + 22.4, dz], 6);
+    k.add("orange", new THREE.ConeGeometry(0.12, 0.35, 6), [TC, ry + 23.0, dz]);
+  });
   // a low railing along the pavement in front of the state house
   k.box("ink", [4.5, 0.05, 0.05], [T0 - 2.4, ry + 0.9, ZF + 2.4]);
   for (const x of spread(T0 - 4.6, T0 - 0.2, 10)) k.box("ink", [0.03, 0.9, 0.03], [x, ry + 0.45, ZF + 2.4]);
@@ -172,16 +174,24 @@ function jali(k: Kit, p: V3, w: number, h: number, n = 5, m = 5) {
 
 /** A square pavilion: a concrete-framed colonnade of paper pointed arches (one orange) round a taller core with jali screens, under an ink dome. */
 const ahdCache = new Map<string, ReturnType<Kit["build"]>>();
-/** `nx` x `nz` colonnade bays of 2.75 m (8 x 8 is the concept's square; the game's sector set is wider than deep). */
+/** Height of the ground arcade and the top of the upper tier (the dome stands on it). */
+export const AHD = { bay: 2.75, ring: 2.2, arcade: 7.2, tier: 10.4 };
+
+/**
+ * `nx` x `nz` arcade bays of 2.75 m (8 x 8 is the concept's square; the game's sector set is
+ * wider than deep). A tall ground arcade of paper pointed arches (one orange) round a core
+ * with jali screens; the upper tier sits right on the arcade, set back a metre, with a tall
+ * block rising at the front left beside a low two-bay wing; the ink dome on top.
+ */
 export function ahmedabadParts(nx = 8, nz = 8) {
   const key = `${nx}x${nz}`;
   const hit = ahdCache.get(key);
   if (hit) return hit;
   const k = new Kit();
-  const bw = 2.75, RING = 2.8, H = 6;
+  const { bay: bw, ring: RING, arcade: H, tier: CH } = AHD;
   const W = nx * bw, D = nz * bw;
   k.box("concreteDark", [W + 0.4, 0.2, D + 0.4], [0, 0.1, 0]);
-  // a face of the plan: its length, how far out it is, how many bays, and the turn to it
+  // the arcade: a face of the plan is its length, how far out, how many bays, the turn to it
   const faces: [number, number, number, number][] = [[W, D / 2, nx, 0], [D, W / 2, nz, Math.PI / 2], [W, D / 2, nx, Math.PI], [D, W / 2, nz, -Math.PI / 2]];
   faces.forEach(([len, z, n, rot], s) =>
     k.at([0, 0, 0], rot, () => {
@@ -189,7 +199,7 @@ export function ahmedabadParts(nx = 8, nz = 8) {
       for (let i = 0; i < n; i++) {
         const x = -len / 2 + bw * (i + 0.5);
         const orange = s === 0 && i === n - 3;
-        archPanel(k, orange ? "orange" : "paper", bw - 0.5, H - 0.7, bw - 1.2, H * 0.48, H - 1.4, 0.2, [x, 0.2, z - 0.25]);
+        archPanel(k, orange ? "orange" : "paper", bw - 0.5, H - 0.7, bw - 1.15, H * 0.56, H - 1.15, 0.2, [x, 0.2, z - 0.25]);
       }
       for (const x of spread(-len / 2, len / 2, n)) {
         k.box("concrete", [0.5, H - 0.5, 0.55], [x, 0.2 + (H - 0.5) / 2, z - 0.28]);
@@ -198,35 +208,58 @@ export function ahmedabadParts(nx = 8, nz = 8) {
       k.box("concrete", [len + 0.1, 0.55, 0.6], [0, H - 0.05, z - 0.3]);
     }),
   );
-  // colonnade roof
   const ringRoof = new THREE.Shape(chamferRect(W - 0.4, D - 0.4, 0).map(([x, z]) => new THREE.Vector2(x, z)));
   ringRoof.holes.push(new THREE.Path(chamferRect(W - 2 * RING, D - 2 * RING, 0).map(([x, z]) => new THREE.Vector2(x, z))));
   k.add("concrete", extrudeGeo(ringRoof, 0.3), [0, H - 0.05, 0], [Math.PI / 2, 0, 0]);
-  // the core: lower arches with jali in the colonnade, an upper tier of small arches with jali
-  const CX = W - 2 * RING - 0.6, CZ = D - 2 * RING - 0.6, CH = 10.2;
+  // the core behind the arches: jali screens and dark doorways
+  const CX = W - 2 * RING - 0.6, CZ = D - 2 * RING - 0.6;
   k.box("concreteDark", [CX - 0.4, H, CZ - 0.4], [0, 0.2 + H / 2, 0]);
-  k.box("paper", [CX - 0.4, CH - H, CZ - 0.4], [0, 0.2 + H + (CH - H) / 2, 0]);
   const core: [number, number, number][] = [[CX, CZ / 2, 0], [CZ, CX / 2, Math.PI / 2], [CX, CZ / 2, Math.PI], [CZ, CX / 2, -Math.PI / 2]];
   for (const [len, z, rot] of core)
     k.at([0, 0, 0], rot, () => {
+      const n = Math.max(1, Math.round(len / bw)), cb = len / n;
+      for (let i = 0; i < n; i++) {
+        const x = -len / 2 + cb * (i + 0.5);
+        if (i % 2 === 0) {
+          jali(k, [x, 0.2 + 2.0, z - 0.1], cb - 1.3, 1.6);
+          jali(k, [x, 0.2 + 4.3, z - 0.1], cb - 1.3, 1.6);
+        } else k.box("graphite", [cb - 1.1, H * 0.75, 0.05], [x, 0.2 + H * 0.375, z - 0.12]);
+      }
+    });
+  // the upper tier, right on the arcade: from the tall block to a metre in from the arcade's edge
+  const ux0 = -W / 2 + 2 * bw, ux1 = W / 2 - 1.0, uz0 = -D / 2 + 1.0, uz1 = D / 2 - 1.0;
+  const uw = ux1 - ux0, ud = uz1 - uz0, ucx = (ux0 + ux1) / 2, ucz = (uz0 + uz1) / 2, th = CH - H;
+  k.box("paper", [uw - 0.3, th, ud - 0.3], [ucx, H + th / 2 + 0.2, ucz]);
+  const tier: [number, number, number][] = [[uw, ud / 2, 0], [ud, uw / 2, Math.PI / 2], [uw, ud / 2, Math.PI], [ud, uw / 2, -Math.PI / 2]];
+  for (const [len, z, rot] of tier)
+    k.at([ucx, 0, ucz], rot, () => {
       const n = Math.max(1, Math.round(len / 3.2)), cb = len / n;
       for (let i = 0; i < n; i++) {
         const x = -len / 2 + cb * (i + 0.5);
-        if (i % 2 === 0) jali(k, [x, 0.2 + 2.1, z - 0.1], cb - 1.2, 1.5);
-        else k.box("graphite", [cb - 1.0, 3.4, 0.05], [x, 0.2 + 1.7, z - 0.12]);
-        jali(k, [x, H + 1.5, z - 0.1], cb - 1.3, 1.1, 4, 3);
-        archPanel(k, "paper", cb - 0.3, CH - H - 0.6, cb - 1.0, (CH - H) * 0.32, CH - H - 1.3, 0.15, [x, H + 0.25, z + 0.05]);
+        jali(k, [x, H + 0.2 + th * 0.42, z - 0.06], cb - 1.5, th * 0.4, 4, 3);
+        archPanel(k, "paper", cb - 0.3, th - 0.5, cb - 1.2, th * 0.4, th - 1.1, 0.15, [x, H + 0.25, z + 0.05]);
       }
-      for (const x of spread(-len / 2, len / 2, n)) k.box("concrete", [0.45, CH - H, 0.4], [x, H + (CH - H) / 2 + 0.2, z]);
-      k.box("concrete", [len + 0.4, 0.5, 0.5], [0, CH + 0.2, z]);
+      for (const x of spread(-len / 2, len / 2, n)) k.box("concrete", [0.45, th, 0.4], [x, H + th / 2 + 0.2, z + 0.05]);
+      k.box("concrete", [len + 0.5, 0.5, 0.55], [0, CH + 0.2, z + 0.05]);
     });
-  // the ink dome on its square base
-  const base = Math.min(11, CX - 1, CZ + 2), r = base * 0.41;
-  k.cbox("ink", [base, 0.8, base], [0, CH + 0.85, 0], 0.05);
-  k.cyl("ink", r, r, 0.4, [0, CH + 1.45, 0], 32);
-  k.add("ink", new THREE.SphereGeometry(r, 32, 14, 0, Math.PI * 2, 0, Math.PI / 2), [0, CH + 1.6, 0], undefined, [1, 0.95, 1]);
-  k.cyl("ink", r * 0.13, r * 0.24, 0.5, [0, CH + 1.6 + r * 0.95, 0], 16);
-  k.cyl("ink", r * 0.07, r * 0.13, 0.35, [0, CH + 2.0 + r * 0.95, 0], 12);
+  // the tall block at the front left: one great arch over a jali, a jali grid at the top
+  const tx0 = -W / 2 + 2 * bw, tx1 = tx0 + 1.6 * bw, tz0 = uz0, tz1 = D / 2 + 0.05, TH = CH + 0.9;
+  const tcx = (tx0 + tx1) / 2, tw = tx1 - tx0;
+  k.box("paper", [tw, TH, tz1 - tz0], [tcx, TH / 2 + 0.2, (tz0 + tz1) / 2]);
+  for (const x of [tx0, tx1]) k.box("concrete", [0.55, TH, 0.6], [x, TH / 2 + 0.2, tz1 - 0.2]);
+  k.box("concrete", [tw + 0.6, 0.55, 0.65], [tcx, TH + 0.2, tz1 - 0.2]);
+  k.box("graphite", [tw - 1.6, H * 0.7, 0.05], [tcx, 0.2 + H * 0.36, tz1 + 0.02]);
+  jali(k, [tcx, 0.2 + H * 0.36, tz1 + 0.1], tw - 1.9, H * 0.5, 5, 6);
+  archPanel(k, "paper", tw - 0.4, H + 0.2, tw - 1.5, H * 0.62, H - 0.4, 0.15, [tcx, 0.2, tz1 + 0.17]);
+  jali(k, [tcx, H + (TH - H) / 2 + 0.3, tz1 + 0.1], tw - 1.8, (TH - H) * 0.55, 6, 4);
+  // the ink dome on its square base, centred on the upper tier
+  const base = Math.min(11, uw - 3, ud - 2), r = base * 0.42;
+  const dy = CH + 0.45;
+  k.cbox("ink", [base, 0.8, base], [ucx, dy + 0.4, ucz], 0.05);
+  k.cyl("ink", r, r, 0.4, [ucx, dy + 1.0, ucz], 32);
+  k.add("ink", new THREE.SphereGeometry(r, 32, 14, 0, Math.PI * 2, 0, Math.PI / 2), [ucx, dy + 1.15, ucz], undefined, [1, 0.95, 1]);
+  k.cyl("ink", r * 0.13, r * 0.24, 0.5, [ucx, dy + 1.15 + r * 0.95, ucz], 16);
+  k.cyl("ink", r * 0.07, r * 0.13, 0.35, [ucx, dy + 1.55 + r * 0.95, ucz], 12);
   const out = k.build();
   ahdCache.set(key, out);
   return out;
@@ -247,7 +280,7 @@ export const HYPERLAB = { w: 12, d: 17, h: 8 };
 /** Three chamfered concrete halls side by side under ink and glass roofs, a big glazed side wall and the orange sign. */
 export const hyperlabParts = once(() => {
   const k = new Kit();
-  const L = 12, HW = 2.85, C = 0.7;
+  const L = 13.5, HW = 2.85, C = 0.7;
   // hall section (z, y) about its centre line: a flared foot, walls, a chamfered eave, the ridge
   const sec: [number, number][] = [[-HW + 0.35, 0], [HW - 0.35, 0], [HW, 0.7], [HW, 4.6], [HW - 0.55, 5.3], [0, 7.9], [-HW + 0.55, 5.3], [-HW, 4.6], [-HW, 0.7]];
   const halls = [-2 * HW, 0, 2 * HW];
@@ -264,10 +297,13 @@ export const hyperlabParts = once(() => {
       const mz = zc + (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
       k.at([0, my, mz], [ang, 0, 0], () => {
         k.box("ink", [L - 2 * C + 0.3, 0.1, len + 0.15], [0, 0.07, 0]);
+        // glass skylights in ink frames: a run of panes up the slope, ink ribs across and along
         const glassL = zc === 2 * HW ? L * 0.55 : L - 2 * C - 0.6;
         const gx = zc === 2 * HW ? L / 2 - C - 0.3 - glassL / 2 : 0;
-        k.box("glass", [glassL, 0.05, len * 0.62], [gx, 0.14, (-s * len * 0.15)]);
-        for (const x of spread(gx - glassL / 2, gx + glassL / 2, Math.round(glassL / 1.6))) k.box("ink", [0.08, 0.1, len * 0.64], [x, 0.17, -s * len * 0.15]);
+        const gz = -s * len * 0.15, gd = len * 0.62;
+        k.box("glassPale", [glassL, 0.05, gd], [gx, 0.13, gz]);
+        for (const x of spread(gx - glassL / 2, gx + glassL / 2, Math.round(glassL / 2.2))) k.box("ink", [0.14, 0.14, gd + 0.14], [x, 0.17, gz]);
+        for (const z of [gz - gd / 2, gz + gd / 2]) k.box("ink", [glassL + 0.14, 0.14, 0.14], [gx, 0.17, z]);
       });
     }
     // glazed gable top at the far end
@@ -276,10 +312,16 @@ export const hyperlabParts = once(() => {
   // the big glazed wall on the long +z side, in a concrete frame with an ink grid
   const zs = 3 * HW + 0.02, gx0 = -1.2, gx1 = L / 2 - C - 0.4;
   k.box("concrete", [gx1 - gx0 + 0.6, 4.4, 0.25], [(gx0 + gx1) / 2, 2.6, zs]);
-  k.box("glass", [gx1 - gx0, 3.9, 0.05], [(gx0 + gx1) / 2, 2.55, zs + 0.14]);
-  for (const x of spread(gx0, gx1, 5)) k.box("ink", [0.1, 3.9, 0.12], [x, 2.55, zs + 0.16]);
-  for (const y of [0.6, 2.4, 4.5]) k.box("ink", [gx1 - gx0, 0.1, 0.12], [(gx0 + gx1) / 2, y, zs + 0.16]);
-  k.box("inner", [gx1 - gx0, 0.15, 0.6], [(gx0 + gx1) / 2, 2.5, zs - 0.3]);
+  k.box("clear", [gx1 - gx0, 3.9, 0.05], [(gx0 + gx1) / 2, 2.55, zs + 0.14]);
+  // inside: a pale floor, a mezzanine edge and dark columns behind the glass
+  k.box("inner", [gx1 - gx0, 0.05, 2.4], [(gx0 + gx1) / 2, 0.62, zs - 1.2]);
+  k.box("inner", [gx1 - gx0, 0.25, 1.6], [(gx0 + gx1) / 2, 2.55, zs - 0.9]);
+  k.box("graphite", [gx1 - gx0, 3.9, 0.05], [(gx0 + gx1) / 2, 2.55, zs - 2.4]);
+  // the mullion grid: five bays of heavy posts, each split in two, a transom and a door rail
+  for (const x of spread(gx0, gx1, 5)) k.box("ink", [0.14, 3.9, 0.14], [x, 2.55, zs + 0.17]);
+  for (const x of spread(gx0, gx1, 10)) k.box("ink", [0.05, 3.9, 0.08], [x, 2.55, zs + 0.17]);
+  for (const y of [0.6, 2.75, 4.5]) k.box("ink", [gx1 - gx0, 0.12, 0.14], [(gx0 + gx1) / 2, y, zs + 0.17]);
+  k.box("ink", [gx1 - gx0, 0.05, 0.08], [(gx0 + gx1) / 2, 3.7, zs + 0.17]);
   // the orange sign, a block proud of the wall beside the glass
   k.cbox("orange", [1.9, 1.7, 0.3], [gx0 - 1.5, 2.3, zs + 0.1], 0.04);
   return k.build();
@@ -295,12 +337,12 @@ export function HyperlabBuilt(props: G) {
 
 /* ------------------------------------------------------------------ Waters */
 
-export const WATERS = { w: 30, d: 12, h: 6.6 };
+export const WATERS = { w: 23, d: 12, h: 7.6 };
 
 /** A long low concrete lab: chamfered corners, a ribbon window, a paper entrance canopy with an orange line, ink plant on the roof. */
 export const watersParts = once(() => {
   const k = new Kit();
-  const W = 30, D = 10, H = 4.6;
+  const W = 23, D = 10, H = 5.8;
   const ring = (w: number, d: number, c: number, y: number): V3[] => chamferRect(w, d, c).map(([x, z]) => [x, y, z]);
   k.hull("concrete", [...ring(W, D, 1.4, 0), ...ring(W, D, 1.4, H - 0.6), ...ring(W - 0.9, D - 0.9, 1.0, H)]);
   // a low parapet rim round the roof
@@ -311,7 +353,7 @@ export const watersParts = once(() => {
   // panel joints
   for (const x of [-W / 4, W / 4]) k.box("concreteDark", [0.05, H - 0.6, 0.04], [x, (H - 0.6) / 2, D / 2 + 0.01]);
   // the ribbon window, front and sides
-  const wy = 2.9, wh = 0.95, ww = W - 4.4;
+  const wy = 3.8, wh = 1.15, ww = W - 4.4;
   k.box("ink", [ww + 0.2, wh + 0.2, 0.06], [0, wy, D / 2 - 0.0]);
   k.box("glass", [ww, wh, 0.06], [0, wy, D / 2 + 0.02]);
   for (const x of spread(-ww / 2, ww / 2, 14)) k.box("ink", [0.07, wh, 0.08], [x, wy, D / 2 + 0.04]);
@@ -346,8 +388,8 @@ export const watersParts = once(() => {
         k.box("ink", [0.1, 0.05, 0.9], [fx, y + h + 0.28, z - d * 0.22]);
       }
   };
-  unit(-6.5, 0.4, 8.5, 5.2, false);
-  unit(6.0, -0.6, 8.0, 5.2, true);
+  unit(-5.6, 0.4, 7.2, 5.2, false);
+  unit(5.4, -0.6, 7.0, 5.2, true);
   // ducts: two runs with a U-bend between the units
   for (const [z, r] of [[1.2, 1.0], [-0.6, 0.6]] as [number, number][]) {
     k.box("inkMatte", [1.6, 0.7, 0.7], [-1.4, H + 0.4, z]);

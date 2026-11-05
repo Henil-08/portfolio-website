@@ -30,13 +30,16 @@ BUILDINGS.forEach((b, i) => {
 });
 
 /** The town's glass: the shared colour, lit from inside at night. */
-const glass = patchSeeThrough(new THREE.MeshStandardMaterial({ color: "#45515a", roughness: 0.25, metalness: 0.1, emissive: B.lamp, emissiveIntensity: 0 }));
-const material = (k: MatKey) => (k === "glass" ? glass : seeThrough(bm(k)));
+const glass = patchSeeThrough(new THREE.MeshStandardMaterial({ color: "#3d4142", roughness: 0.25, metalness: 0.1, emissive: B.lamp, emissiveIntensity: 0 }));
+/** The tower's paler glass, lit the same way. */
+const glassPale = patchSeeThrough(new THREE.MeshStandardMaterial({ color: "#7a8183", roughness: 0.25, metalness: 0.1, emissive: B.lamp, emissiveIntensity: 0 }));
+const material = (k: MatKey) => (k === "glass" ? glass : k === "glassPale" ? glassPale : seeThrough(bm(k)));
 const plinth = { concreteDark: new THREE.BoxGeometry(1, 1, 1) };
 
 export function Skyline() {
   useFrame(() => {
     glass.emissiveIntensity = dayNight.night * 0.55;
+    glassPale.emissiveIntensity = dayNight.night * 0.45;
   });
   return (
     <>

@@ -2,7 +2,7 @@
 // Footprint 26 x 18 (x -13..13, z -9..9). Everything sits in z -9..-0.9; the 9 m band
 // z 0..9 along the +Z edge is left clear for the track.
 // Colliders (cuboids, centre + full size):
-//   studio:            (-7.6, 1.9, -6.15)  8.2 x 3.8 x 5.7
+//   studio:            (-7.6, 1.7, -6.15)  7.3 x 3.4 x 5.7
 //   studio stage:      (6.4, 0.2, -5.1)    12.8 x 0.4 x 7.4   (low; screen truss sits on it)
 //   screen + truss:    (6.4, 2.8, -8.45)   8.2 x 5.6 x 0.6
 //   table tennis:      (-8.2, 0.4, -2.3)   2.8 x 0.8 x 1.6
@@ -23,8 +23,8 @@ import { Inst, at, type T9 } from "./kit";
 // Concrete & Ink: a concrete sawtooth works shed with ink roofs and one orange neon
 // ---- the studio ----
 const WX = -7.6;
-/** The approved halls (12 x 17 m) turned gables-to-track and scaled to the old warehouse plot. */
-export const HQ_S = 0.475;
+/** The approved halls (13.5 x 17 m) turned gables-to-track and scaled to the old warehouse plot. */
+export const HQ_S = 0.42;
 
 // ---- studio ----
 const SX = 6.4;

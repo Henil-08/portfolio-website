@@ -46,15 +46,18 @@ const spread = (a: number, b: number, n: number) => Array.from({ length: n + 1 }
 export const townLowParts = once(() => {
   const k = new Kit();
   const { w: W, d: D } = TOWN_LOW;
-  const G0 = 3.8, S0 = 4.5, TOP = 11.2, DEP = 0.55;
+  const G0 = 4.2, S0 = 5.0, TOP = 12.5, DEP = 0.55;
   // upper block: core, the sill band under it, the parapet band and the ink roof
   k.box("concrete", [W - 2 * DEP, TOP - S0, D - 2 * DEP], [0, (S0 + TOP) / 2, 0]);
   k.cbox("concrete", [W, S0 - G0, D], [0, (G0 + S0) / 2, 0], 0.08, 0, 0.12);
   k.cbox("concrete", [W, 0.75, D], [0, TOP + 0.375, 0], 0.08, 0.05, 0);
   k.cbox("ink", [W - 1, 0.32, D - 1], [0, TOP + 0.75 + 0.16, 0], 0.05);
-  const rows: [number, number][] = [[S0 + 0.12, 7.75], [7.97, TOP - 0.1]];
-  for (let s = 0; s < 4; s++)
-    k.at([0, 0, 0], (s * Math.PI) / 2, () => coffers(k, D / 2, spread(-W / 2 + 0.15, W / 2 - 0.15, 4), rows, { bar: 0.26, depth: DEP, inset: 0.62, insetY: 0.5 }));
+  const mid = (S0 + TOP) / 2;
+  const rows: [number, number][] = [[S0 + 0.12, mid - 0.11], [mid + 0.11, TOP - 0.1]];
+  const co = { bar: 0.26, depth: DEP, inset: 0.62, insetY: 0.55 };
+  // four bays on the front and back, three on the sides
+  for (const r of [0, Math.PI]) k.at([0, 0, 0], r, () => coffers(k, D / 2, spread(-W / 2 + 0.15, W / 2 - 0.15, 4), rows, co));
+  for (const r of [Math.PI / 2, -Math.PI / 2]) k.at([0, 0, 0], r, () => coffers(k, W / 2, spread(-D / 2 + 0.15, D / 2 - 0.15, 3), rows, co));
   // shop floor: glass on the front and right, set back under the band; concrete behind
   const g = 0.45; // set back
   const zf = D / 2 - g, xr = W / 2 - g;
@@ -71,7 +74,7 @@ export const townLowParts = once(() => {
     k.box("graphite", [0.1, 0.1, D - 2 * g - 1.4], [xr, y, 0.7 - 0.2]);
   }
   for (const x of spread(-W / 2 + g, W / 2 - g, 8)) k.box("graphite", [0.09, G0, 0.1], [x, G0 / 2, zf]);
-  for (const z of spread(-D / 2 + 1.6, D / 2 - g, 5)) k.box("graphite", [0.1, G0, 0.09], [xr, G0 / 2, z]);
+  for (const z of spread(-D / 2 + 1.6, D / 2 - g, 4)) k.box("graphite", [0.1, G0, 0.09], [xr, G0 / 2, z]);
   // the orange door, one cell left of centre
   k.box("orange", [1.25, G0 - 0.3, 0.08], [-2.4, (G0 - 0.3) / 2 + 0.12, zf + 0.04]);
   k.box("ink", [0.05, 1.0, 0.08], [-2.4 - 0.45, 1.2, zf + 0.1]);
@@ -93,7 +96,7 @@ export function TownLow(props: G) {
 export const townMidParts = once(() => {
   const k = new Kit();
   const { w: W, d: D } = TOWN_MID;
-  const DEP = 0.4, F = 3.2, G0 = 3.4, N = 4;
+  const DEP = 0.45, F = 2.95, G0 = 3.3, N = 4;
   const TOP = G0 + N * F;
   k.box("concreteDark", [W + 1.4, 0.2, D + 1.4], [0, 0.1, 0]);
   k.box("concrete", [W - 2 * DEP, TOP, D - 2 * DEP], [0, TOP / 2 + 0.2, 0]);
@@ -101,11 +104,25 @@ export const townMidParts = once(() => {
   for (let i = 0; i < N; i++) rows.push([G0 + 0.32 + i * F, G0 + 0.08 + (i + 1) * F]);
   const lift = (r: [number, number]): [number, number] => [r[0] + 0.2, r[1] + 0.2];
   const R = rows.map(lift);
-  const xsF = spread(-W / 2 + 0.2, W / 2 - 0.2, 4);
-  const xsS = spread(-D / 2 + 0.2, D / 2 - 0.2, 5);
+  const xsF = spread(-W / 2 + 0.2, W / 2 - 0.2, 5);
+  const xsS = spread(-D / 2 + 0.2, D / 2 - 0.2, 4);
+  // a loggia: concrete cheeks, a dark glass back, a glass balustrade with an ink rail (above the ground floor)
+  const loggia = (k: Kit, x: number, y: number, w: number, h: number, z: number, ri: number, deep: number, back: MatKey) => {
+    k.add("concrete", revealGeo(w, h, 0.12, 0.12), [x, y, z]);
+    for (const s of [-1, 1]) k.box("concrete", [0.12, h - 0.24, deep], [x + s * (w / 2 - 0.18), y, z - 0.12 - deep / 2]);
+    k.box("concrete", [w - 0.24, 0.14, deep], [x, y - h / 2 + 0.19, z - 0.12 - deep / 2]);
+    k.box("concrete", [w - 0.24, 0.14, deep], [x, y + h / 2 - 0.19, z - 0.12 - deep / 2]);
+    k.box(back, [w - 0.24, h - 0.24, 0.04], [x, y, z - 0.12 - deep]);
+    if (back === "glass") k.box("ink", [0.06, h - 0.3, 0.06], [x + w * 0.1, y, z - 0.1 - deep]);
+    if (ri > 0) {
+      k.box("glass", [w - 0.4, 0.95, 0.03], [x, y - h / 2 + 0.75, z - 0.22]);
+      k.box("ink", [w - 0.36, 0.06, 0.07], [x, y - h / 2 + 1.25, z - 0.22]);
+    }
+  };
   // front: ink infill with a two-pane window over a spandrel; ground floor: louvre, door, windows
   const front = (k: Kit, x: number, y: number, w: number, h: number, ci: number, ri: number) => {
     const z = D / 2;
+    if (ci === 4) return loggia(k, x, y, w, h, z, ri, 1.4, "glass");
     k.add("concrete", revealGeo(w, h, 0.2, DEP), [x, y, z]);
     const iw = w - 0.4, ih = h - 0.4, zb = z - DEP;
     if (ri === 0 && ci === 0) {
@@ -124,26 +141,18 @@ export const townMidParts = once(() => {
     k.box("glass", [iw * 0.6, wh, 0.04], [x - iw * 0.1, wy, zb + 0.03]);
     k.box("ink", [0.05, wh, 0.08], [x - iw * 0.1, wy, zb + 0.05]);
   };
-  // side: two loggias with glass balustrades, two blind panels, one open corner balcony
+  // side: the corner loggia by the front, two blind panels, an open balcony at the far corner
   const side = (k: Kit, x: number, y: number, w: number, h: number, ci: number, ri: number) => {
     const z = W / 2;
-    if (ci <= 1 || ci === 4) {
-      const deep = ci === 4 ? 2.4 : 1.2;
-      k.add("concrete", revealGeo(w, h, 0.12, 0.12), [x, y, z]);
-      for (const s of [-1, 1]) k.box("concrete", [0.1, h - 0.24, deep], [x + s * (w / 2 - 0.17), y, z - 0.12 - deep / 2]);
-      k.box("concrete", [w - 0.24, 0.12, deep], [x, y - h / 2 + 0.18, z - 0.12 - deep / 2]);
-      k.box(ci === 4 ? "paper" : "glass", [w - 0.24, h - 0.24, 0.04], [x, y, z - 0.12 - deep]);
-      if (ri > 0) k.box("clear", [w - 0.3, 1.0, 0.03], [x, y - h / 2 + 0.75, z - 0.25]);
-      if (ri > 0) k.box("ink", [w - 0.3, 0.05, 0.06], [x, y - h / 2 + 1.27, z - 0.25]);
-      return;
-    }
+    if (ci === 0) return loggia(k, x, y, w, h, z, ri, 1.4, "glass");
+    if (ci === 3) return loggia(k, x, y, w, h, z, ri, 2.2, "concreteDark");
     k.add("concrete", revealGeo(w, h, 0.3, DEP), [x, y, z]);
     k.box("concrete", [w - 0.6, h - 0.6, 0.04], [x, y, z - DEP]);
   };
-  k.at([0, 0, 0], 0, () => coffers(k, D / 2, xsF, R, { bar: 0.3, depth: DEP, inset: 0.2, fill: front }));
-  k.at([0, 0, 0], Math.PI, () => coffers(k, D / 2, xsF, R, { bar: 0.3, depth: DEP, inset: 0.2, fill: front }));
-  k.at([0, 0, 0], Math.PI / 2, () => coffers(k, W / 2, xsS, R, { bar: 0.3, depth: DEP, inset: 0.2, fill: side }));
-  k.at([0, 0, 0], -Math.PI / 2, () => coffers(k, W / 2, xsS, R, { bar: 0.3, depth: DEP, inset: 0.2, fill: side }));
+  k.at([0, 0, 0], 0, () => coffers(k, D / 2, xsF, R, { bar: 0.42, depth: DEP, inset: 0.22, fill: front }));
+  k.at([0, 0, 0], Math.PI, () => coffers(k, D / 2, xsF, R, { bar: 0.42, depth: DEP, inset: 0.22, fill: front }));
+  k.at([0, 0, 0], Math.PI / 2, () => coffers(k, W / 2, xsS, R, { bar: 0.42, depth: DEP, inset: 0.22, fill: side }));
+  k.at([0, 0, 0], -Math.PI / 2, () => coffers(k, W / 2, xsS, R, { bar: 0.42, depth: DEP, inset: 0.22, fill: side }));
   // the chamfered cornice, the planter, the glass penthouse under an overhanging slab, the plant room
   const y0 = TOP + 0.5;
   const ring = (w: number, d: number, y: number): V3[] => chamferRect(w, d, 0).map(([x, z]) => [x, y, z]);
@@ -181,25 +190,25 @@ export const towerParts = once(() => {
   k.box("concrete", [W + 4.5, Y0, W + 4.5], [0, Y0 / 2, 0]);
   const oct = (w: number, c: number, y: number): V3[] => chamferRect(w, w, c).map(([x, z]) => [x, y, z]);
   // glass core with ink transoms per floor
-  k.hull("glass", [...oct(W - 0.4, C - 0.2, Y0), ...oct(W - 0.4, C - 0.2, top)]);
-  // slabs: a chamfered nose all round, proud of the pilasters
+  k.hull("glassPale", [...oct(W - 0.4, C - 0.2, Y0), ...oct(W - 0.4, C - 0.2, top)]);
+  // slabs: a deep band at every floor with a chamfered nose all round, well proud of the pilasters
   for (let i = 1; i <= N; i++) {
-    const y = Y0 + i * F - 0.2;
-    k.hull("concrete", [...oct(W + 0.2, C + 0.1, y - 0.22), ...oct(W + 1.5, C + 0.65, y - 0.08), ...oct(W + 1.5, C + 0.65, y + 0.08), ...oct(W + 0.2, C + 0.1, y + 0.2)]);
+    const y = Y0 + i * F - 0.25;
+    k.hull("concrete", [...oct(W + 0.2, C + 0.1, y - 0.55), ...oct(W + 2.4, C + 1.0, y - 0.3), ...oct(W + 2.4, C + 1.0, y + 0.2), ...oct(W + 0.4, C + 0.15, y + 0.36)]);
     k.hull("ink", [...oct(W - 0.3, C - 0.15, y - 1.4), ...oct(W - 0.3, C - 0.15, y - 1.33)]);
   }
   // pilasters: two per face plus one on each chamfered corner, and ink mullions between them
   const ph = top - Y0;
   for (let s = 0; s < 4; s++)
     k.at([0, 0, 0], (s * Math.PI) / 2, () => {
-      for (const x of [-1.6, 1.6]) k.box("concrete", [0.6, ph, 1.1], [x, Y0 + ph / 2, W / 2 + 0.05]);
-      for (const x of [-3.9, -2.9, -0.5, 0.5, 2.9, 3.9]) k.box("ink", [0.06, ph, 0.12], [x, Y0 + ph / 2, W / 2 - 0.2]);
+      for (const x of [-1.8, 1.8]) k.box("concrete", [0.5, ph, 0.9], [x, Y0 + ph / 2, W / 2 + 0.05]);
+      for (const x of [-4.3, -3.2, -0.6, 0.6, 3.2, 4.3]) k.box("ink", [0.07, ph, 0.12], [x, Y0 + ph / 2, W / 2 - 0.2]);
       k.at([W / 2 - C / 2 + 0.05, 0, W / 2 - C / 2 + 0.05], Math.PI / 4, () => k.box("concrete", [0.7, ph, 1.0], [0, Y0 + ph / 2, 0.25]));
     });
   // the crown: a concrete lip, a glass control room flaring out to an ink roof, the beacon
   k.hull("concrete", [...oct(W + 0.8, C + 0.35, top), ...oct(W + 0.8, C + 0.35, top + 0.4)]);
   const c0 = top + 0.4, c1 = c0 + 3.2;
-  k.hull("glass", [...oct(W + 0.6, 0.5, c0), ...oct(W + 2.8, 0.6, c1)]);
+  k.hull("glassPale", [...oct(W + 0.6, 0.5, c0), ...oct(W + 2.8, 0.6, c1)]);
   for (let s = 0; s < 4; s++)
     k.at([0, 0, 0], (s * Math.PI) / 2, () => {
       for (const t of spread(-1, 1, 6)) k.bar("ink", [t * (W / 2 + 0.05), c0, W / 2 + 0.32], [t * (W / 2 + 1.1), c1, W / 2 + 1.42], 0.09);
@@ -225,12 +234,12 @@ export type PitBay = { x: number; code: string; name?: string };
 /** `bay` door width (default: bay spacing less a 1.4 m pier), `depth` of the block, `end` solid wall past the outer bays, `apron` concrete in front. */
 export type PitOpts = { bay?: number; depth?: number; end?: number; apron?: number };
 
-export const PIT = { H1: 6.2, OPEN: 4.8, HEAD: 5.6, UP: 3.0 };
+export const PIT = { H1: 7.4, OPEN: 5.6, HEAD: 6.5, UP: 3.4 };
 
 function pitSpan(bays: PitBay[], o: PitOpts) {
   const pitch = bays.length > 1 ? bays[1].x - bays[0].x : 8;
   const bay = o.bay ?? pitch - 1.4;
-  const end = o.end ?? 3.2;
+  const end = o.end ?? 2.4;
   const x0 = bays[0].x - bay / 2 - end, x1 = bays[bays.length - 1].x + bay / 2 + end;
   return { bay, D: o.depth ?? 9, x0, x1, w: x1 - x0, cx: (x0 + x1) / 2 };
 }
@@ -266,7 +275,7 @@ export function pitBuildingParts(bays: PitBay[], o: PitOpts = {}) {
   k.hull("concrete", [...ring(OPEN, 0, 0, cv), ...ring(H1 - ct, 0, 0, cv), ...ring(H1, ct * 0.7, ct, cv * 0.6)]);
   // ends: chamfered on their outer corners
   for (const s of [-1, 1]) {
-    const xo = s < 0 ? x0 : x1, xi = xo - s * (o.end ?? 3.2);
+    const xo = s < 0 ? x0 : x1, xi = xo - s * (o.end ?? 2.4);
     const pts: V3[] = [];
     for (const y of [0, OPEN]) pts.push([xo, y, zf - cv], [xo, y, -zf + cv], [xo - s * cv, y, zf], [xo - s * cv, y, -zf], [xi, y, zf], [xi, y, -zf]);
     k.hull("concrete", pts);
@@ -292,7 +301,7 @@ export function pitBuildingParts(bays: PitBay[], o: PitOpts = {}) {
   }
   // upper floor: dark glass, set back behind the chamfer, ink mullions, the long ink roof on slim columns
   const uz0 = -zf + 0.6, uz1 = zf - ct - 0.4, ux0 = x0 + 2.2, ux1 = x1 - 0.6;
-  k.box("glass", [ux1 - ux0, UP, uz1 - uz0], [(ux0 + ux1) / 2, H1 + UP / 2, (uz0 + uz1) / 2]);
+  k.box("glassPale", [ux1 - ux0, UP, uz1 - uz0], [(ux0 + ux1) / 2, H1 + UP / 2, (uz0 + uz1) / 2]);
   const n = Math.round((ux1 - ux0) / 2.2);
   for (const x of spread(ux0, ux1, n)) k.box("ink", [0.08, UP, 0.08], [x, H1 + UP / 2, uz1 + 0.02]);
   for (const z of spread(uz0, uz1, 3)) k.box("ink", [0.08, UP, 0.08], [ux0, H1 + UP / 2, z]);

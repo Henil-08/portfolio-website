@@ -13,6 +13,8 @@ export const B = {
   ink: "#151515",
   concrete: "#d9d6ce",
   concreteDark: "#b8b4a9",
+  cast: "#c4bfb6",
+  castDark: "#a9a49a",
   graphite: "#2b2c2e",
   glass: "#1f262b",
   orange: "#ff4f00",
@@ -31,7 +33,7 @@ function wireMat(vertical = false) {
   g.fillStyle = "#000";
   g.fillRect(0, 0, 32, 32);
   g.fillStyle = "#fff";
-  g.fillRect(0, 0, 5, 32);
+  g.fillRect(0, 0, vertical ? 8 : 5, 32);
   if (!vertical) g.fillRect(0, 0, 32, 5);
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -43,11 +45,15 @@ const MAKERS = {
   paper: () => std(B.paper, 0.6),
   ink: () => std(B.ink, 0.55, 0.2),
   inkMatte: () => std(B.ink, 0.85),
-  concrete: () => std(B.concrete, 0.95),
-  concreteDark: () => std(B.concreteDark, 0.95),
+  /** cast concrete as the concepts render it: a warm grey, not paper (model-fidelity.md) */
+  concrete: () => std(B.cast, 0.95),
+  concreteDark: () => std(B.castDark, 0.95),
   graphite: () => std(B.graphite, 0.6, 0.3),
   strap: () => std("#6d6e6b", 0.8),
-  glass: () => std("#45515a", 0.25, 0.1),
+  /** dark neutral glass (the concepts' is grey-black, never blue) */
+  glass: () => std("#3d4142", 0.25, 0.1),
+  /** paler window glass for the stone row houses */
+  glassPale: () => std("#7a8183", 0.25, 0.1),
   /** see-through glass for shop fronts and garage doors */
   clear: () => new THREE.MeshStandardMaterial({ color: "#8c979b", roughness: 0.08, metalness: 0.3, transparent: true, opacity: 0.32, depthWrite: false }),
   /** pale interiors seen through clear glass */

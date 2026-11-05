@@ -2,7 +2,7 @@
 // Footprint 26 x 18 (x -13..13, z -9..9). Everything sits in z -9..-0.9; the 9 m band
 // z 0..9 along the +Z edge is left clear for the track.
 // Colliders (cuboids, centre + full size):
-//   campus building:   (-5.3, 1.6, -6.6)   14.4 x 3.2 x 4.8, its canopy (-4.6, 0.65, -3.4) 3.0 x 1.3 x 1.6
+//   campus building:   (-5.3, 1.7, -6.6)   11.1 x 3.4 x 4.8, its canopy (-4.6, 0.65, -3.4) 3.0 x 1.3 x 1.6
 //   instrument plinth: (6.0, 1.0, -3.0)    2.8 x 2.0 x 1.6
 //   agent-ops base:    cylinder r 2.5 h 0.15 at (10.3, -5.6); racks: (10.3, 1.2, -5.4) 3.2 x 2.4 x 2.6
 //   front planter:     (-8.8, 0.4, -1.7)   6.6 x 0.8 x 1.0
@@ -21,7 +21,7 @@ import { watersParts } from "../../kit/builtSectors";
 import { Inst, plainTextMat, unitPlane, type T9 } from "./kit";
 
 const BX = -5.3;
-/** The approved lab (30 x 13.4 m with its canopy) scaled to the old building's plot. */
+/** The approved lab (23 x 13.4 m with its canopy) scaled to the old building's plot. */
 export const LAB_S = 0.48;
 
 const HEDGE: T9[] = [-11.5, -10.15, -8.8, -7.45, -6.1].map((x, i) => [x, 0.72, -1.7, 1.2, 0.42 + (i % 2) * 0.08, 0.66]);

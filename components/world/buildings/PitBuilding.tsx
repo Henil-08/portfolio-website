@@ -32,13 +32,13 @@ const gameOpts = (o: PitOpts) => {
   return v;
 };
 
-const glass = (glow: number) => new THREE.MeshStandardMaterial({ color: "#45515a", roughness: 0.25, metalness: 0.1, emissive: CI.lamp, emissiveIntensity: glow });
+const glass = (glow: number) => new THREE.MeshStandardMaterial({ color: "#6e7476", roughness: 0.25, metalness: 0.1, emissive: CI.lamp, emissiveIntensity: glow });
 /** Upper glass by day and lit at night for the docs turntables; the game's follows the clock. */
 const GLASS = { day: glass(0), night: glass(1.6), live: glass(0) };
 /** The bays' pale insides glow a little at night, so the projects still read. */
 const inner = (glow: number) => new THREE.MeshStandardMaterial({ color: "#e4e2dc", roughness: 0.85, emissive: CI.lamp, emissiveIntensity: glow });
 const INNER = { day: inner(0.05), night: inner(0.25), live: inner(0.05) };
-const pick = (g: THREE.Material, i: THREE.Material) => (k: MatKey) => (k === "glass" ? g : k === "inner" ? i : bm(k));
+const pick = (g: THREE.Material, i: THREE.Material) => (k: MatKey) => (k === "glassPale" ? g : k === "inner" ? i : bm(k));
 const MATS = { day: pick(GLASS.day, INNER.day), night: pick(GLASS.night, INNER.night), live: pick(GLASS.live, INNER.live) };
 
 /**

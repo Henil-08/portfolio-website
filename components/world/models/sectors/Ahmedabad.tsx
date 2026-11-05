@@ -2,7 +2,7 @@
 // Footprint 26 x 18 (x -13..13, z -9..9). Everything sits in z -9..-0.6; the 9 m band
 // z 0..9 along the +Z edge is left clear for the track.
 // Colliders (cuboids, centre + full size):
-//   school:            (-5.5, 3.6, -6.0)    12.1 x 7.2 x 6.1
+//   school:            (-5.5, 3.7, -6.0)    12.1 x 7.4 x 6.1
 //   courtyard wall:    (8.0, 0.45, -8.75)   10.4 x 0.9 x 0.5
 //   courtyard wall R:  (12.95, 0.45, -6.0)  0.5 x 0.9 x 6.0
 //   neem otla + trunk: (7.8, 1.5, -6.0)     3.2 x 3.0 x 3.2

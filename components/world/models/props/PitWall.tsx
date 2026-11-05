@@ -1,16 +1,16 @@
 // Static. The pit wall stand: the approved four booths (kit/builtTrackside.tsx, concept
 // pitwall), one per vehicle, each with its ink canopy, console, seat and number plate 1-4,
 // without the kit's own wall (PitWallRun.tsx runs the wall and fence along the pit straight).
-// ~9.6 x 2.5 x 1.9 m at the world's scale. Seats and screens face +Z (the track, over the wall);
+// ~8.8 x 2.5 x 1.9 m at the world's scale. Seats and screens face +Z (the track, over the wall);
 // the consoles' backs are at local z = +0.45, against the wall.
-// Collider: one cuboid 9.6 x 1.2 x 1.4 centered at (0, 0.6, -0.25) covers consoles and pillars.
+// Collider: one cuboid 8.8 x 1.2 x 1.4 centered at (0, 0.6, -0.25) covers consoles and pillars.
 "use client";
 
 import { Built } from "../../kit/builtShared";
 import { PITWALL, boothPlateAt, numberPlate, pitWallParts } from "../../kit/builtTrackside";
 import type { GroupProps } from "./shared";
 
-/** The concept's 3.3 m booths at the world's scale. */
+/** The concept's 2.9 m booths at the world's scale. */
 export const PIT_WALL_SCALE = 0.7;
 const S = PIT_WALL_SCALE;
 // the kit's consoles start at z = -1.3 (toward its wall); turned to face +Z, that lands at +0.45

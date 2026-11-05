@@ -2,8 +2,8 @@
 // Footprint 26 x 18 (x -13..13, z -9..9). Everything sits in z -9..-0.5; the 9 m band
 // z 0..9 along the +Z edge is left clear for the track.
 // Colliders (cuboids, centre + full size):
-//   row:               (-3.48, 3.2, -6.24)  8.1 x 6.3 x 5.53
-//   stoops:            (-3.48, 0.4, -3.27)  8.1 x 0.8 x 1.2
+//   row:               (-4.16, 3.2, -6.24)  9.45 x 6.3 x 5.53
+//   stoops:            (-4.16, 0.4, -3.27)  9.45 x 0.8 x 1.2
 //   state house:       (4.08, 3.5, -6.57)   6.5 x 7.0 x 3.8   (dome and spire to 13 m, out of reach)
 //   portico + steps:   (4.08, 2.7, -3.22)   7.1 x 5.4 x 2.9
 //   street lamps:      cylinder r 0.18 h 4.0 at (-12.3, -1.0), (-7.4, -1.0), (1.0, -1.0), (11.2, -1.0)

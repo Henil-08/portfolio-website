@@ -33,7 +33,7 @@ const W = (STAND_GAME.w ?? 13.3) * STAND_SCALE;
 const FRONT = grandstandFrame(STAND_GAME).front * STAND_SCALE + STAND_Z;
 const BACK = grandstandFrame(STAND_GAME).back * STAND_SCALE + STAND_Z - 0.3;
 const SEATS = standSeats(STAND_GAME);
-/** The marshal post at the world's scale (2 x 2.6 x 1.8 m). */
+/** The marshal post at the world's scale (2.3 x 2.6 x 1.8 m). */
 const MARSHAL_SCALE = 0.8;
 const MARSHAL_MATRICES = MARSHALS.map((m) => compose(m.x, heightAt(m.x, m.z), m.z, m.yaw, MARSHAL_SCALE, MARSHAL_SCALE, MARSHAL_SCALE));
 const STAND_MATRICES = STAND_SPOTS.map((s) => compose(s.x, heightAt(s.x, s.z), s.z, s.yaw).multiply(new THREE.Matrix4().compose(new THREE.Vector3(0, s.raise, STAND_Z), new THREE.Quaternion(), new THREE.Vector3(STAND_SCALE, STAND_SCALE, STAND_SCALE))));
@@ -317,7 +317,7 @@ export function Trackside() {
           );
         })}
         {MARSHALS.map((m, i) => (
-          <CuboidCollider key={i} args={[1.0, 1.3, 0.92]} position={[m.x, heightAt(m.x, m.z) + 1.3, m.z]} rotation={[0, m.yaw, 0]} />
+          <CuboidCollider key={i} args={[1.16, 1.3, 0.92]} position={[m.x, heightAt(m.x, m.z) + 1.3, m.z]} rotation={[0, m.yaw, 0]} />
         ))}
         {FLAG_SPOTS.map((f, i) => (
           <CylinderCollider key={i} args={[1, 0.12]} position={[f.x, heightAt(f.x, f.z) + 1, f.z]} />
