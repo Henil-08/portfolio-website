@@ -1,11 +1,12 @@
 "use client";
 
 // The opening in the canvas (docs/BRAND.md, approved 2026-10-26; the mock is
-// app/docs/brand/world/StartSequence.tsx): the boot warms every shader, the garage turntable
-// stands on the car's own spot, Enter aligns it onto the bloom's first frame, and the real world
-// blooms out round the car (bloom/patch.ts hides it, bloom/plan.ts times it) until the camera
-// lands on the game's chase view (Rig.tsx OFFSET) and driving starts. It runs once; in the world
-// a new vehicle swaps in place (bloom/swap.tsx).
+// app/docs/brand/world/StartSequence.tsx): the boot compiles every program the world needs while
+// nothing is drawn (counted on the boot's bar, bloom/load.ts), the garage turntable stands on the
+// car's own spot, Enter aligns it onto the bloom's first frame, and the real world blooms out
+// round the car (bloom/patch.ts hides it, bloom/plan.ts times it) until the camera lands on the
+// game's chase view (Rig.tsx OFFSET) and driving starts. It runs once; in the world a new vehicle
+// swaps in place (bloom/swap.tsx).
 //
 // Exactly one vehicle is drawn at any moment: the turntable's until the align's last frame, the
 // player's own from the bloom on (`beforeRender`).
@@ -13,7 +14,7 @@
 // Frames: the garage is drawn in "table" units (the mock's), in a group at the car's spot scaled
 // by k = VEHICLE_SCALE / the vehicle's turntable scale, so the handover onto the world is exact.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { addAfterEffect, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { getState, setState, useWorld } from "../store";
 import { carState } from "../carState";
@@ -25,7 +26,8 @@ import { revealSound } from "../sound";
 import { ALIGN, STUDIO_OUT, boot, opening, setStage, skipping, stageTime, studio, useOpening } from "./state";
 import { ISLAND, PLAN, buildDots, reachFrom, type Bloom } from "./plan";
 import { FLOOR, FLOOR_SELECT, SWEEP, SWEEP_LENGTH, sweepAt, GAME_OFFSET as GAME_OFFSET_V, SELECT_AZ, SELECT_CAM, SELECT_EL, SELECT_FOV, SELECT_TARGET_Y, TABLE_SCALE, kOf, selectLens } from "./view";
-import { U, bloomOff, bloomOn, bloomStats, scan, warmOwn } from "./patch";
+import { U, bloomOff, bloomOn, bloomStats, scan } from "./patch";
+import { afterWorldFrame, begin, finish, mark, report, sub } from "./load";
 import { SwapScan, swapBeforeRender } from "./swap";
 
 const S = VEHICLE_SCALE;
@@ -62,6 +64,8 @@ type Pose = { tx: number; ty: number; tz: number; r: number; az: number; el: num
 const END_AZ = Math.atan2(GAME_OFFSET.z, GAME_OFFSET.x);
 /** The bloom's first frame, close on the car (the mock's 12 m round a true-size car, at game scale). */
 const START = { ty: 0.41 * S, r: 12 * S, el: 0.42, az: SELECT_AZ };
+/** The bloom's overview, high over the middle of the island (the boot draws it once too). */
+const OVER: Pose = { tx: ISLAND.x, ty: 0, tz: ISLAND.z, r: ISLAND.r * 2.2, az: END_AZ + 0.3, el: 1.05 };
 
 function endPose(portrait: boolean): Pose {
   const o = GAME_OFFSET.clone().multiplyScalar(portrait ? 1.45 : 1);
@@ -368,7 +372,7 @@ function Garage() {
     return () => {
       for (const c of clipCache.values()) c.dispose();
       clipCache.clear();
-      for (const o of mine) slots.splice(slots.indexOf(o), 1);
+      for (const o of mine) if (slots.includes(o)) slots.splice(slots.indexOf(o), 1);
     };
   }, []);
 
@@ -534,6 +538,82 @@ function beforeRender(scene: THREE.Scene) {
   if (stg === "done") swapBeforeRender(p);
 }
 
+/* ------------------------------------------------------------------ the boot's warm-up */
+
+/** Every geometry three makes takes the next id: the island's build, counted. */
+const geometryCount = () => new THREE.BufferGeometry().id;
+/** The build's geometry count on this browser's last boot, so the bar knows the whole; a first visit uses the reference machine's. */
+const GEO_KEY = "hg-boot-geometries";
+const GEO_DEFAULT = 9200;
+const geometryTotal = () => {
+  try {
+    const n = Number(window.localStorage.getItem(GEO_KEY));
+    return n > 100 ? n : GEO_DEFAULT;
+  } catch {
+    return GEO_DEFAULT;
+  }
+};
+
+/**
+ * The boot (bloom/load.ts steps):
+ *  build    React builds the island; the bar counts geometries
+ *  plan     the bloom's dots, planned round the car (they mount on the next frame)
+ *  own      every material's own program compiles while nothing is drawn, in parallel where
+ *           the browser can (KHR_parallel_shader_compile); the bar counts materials ready
+ *  patched  the bloom's version of every material, the same way
+ *  prime    three's first look at each program (its uniforms), a slice a frame
+ *  frames   the first frames: the island once from above with its own programs (geometry
+ *           uploads, the shadow pass), then the garage view with the bloom's
+ *  ready    the bar fills, and the garage opens
+ * Nothing draws with a program still compiling, so no frame waits on the GPU (a 0.4 to 1 s
+ * freeze each before, when the frames drew the programs `compileAsync` was still compiling).
+ */
+type WarmPhase = "build" | "plan" | "own" | "patched" | "prime" | "frames" | "ready" | "out";
+/** Main-thread time a frame may spend reading compiled programs (ms). */
+const PRIME_MS = 12;
+/** Main-thread time a frame may spend issuing compiles (ms). */
+const COMPILE_MS = 10;
+const hasMesh = (o: THREE.Object3D) => {
+  let found = false;
+  o.traverse((x) => void (found ||= (x as THREE.Mesh).isMesh === true || (x as THREE.Points).isPoints === true));
+  return found;
+};
+/**
+ * A stand-in for the scene with the same lights, fog and environment: `compile` gathers the
+ * lights from the scene it compiles for on every call (a walk through every object), so the
+ * batches compile for this instead. Programs depend on the lights' kinds and counts, not where
+ * they stand. `compile` also counts the lights inside the group it compiles (it expects a group
+ * not yet in the scene), so those are taken out of the stand-in while it does.
+ */
+function lightsOf(scene: THREE.Scene) {
+  const s = new THREE.Scene();
+  s.fog = scene.fog;
+  s.environment = scene.environment;
+  const clones = new Map<THREE.Object3D, THREE.Object3D>();
+  scene.traverseVisible((o) => {
+    if (!(o as THREE.Light).isLight) return;
+    const c = o.clone(false);
+    clones.set(o, c);
+    s.add(c);
+  });
+  return { scene: s, clones };
+}
+function compileFor(gl: THREE.WebGLRenderer, group: THREE.Object3D, camera: THREE.Camera, stand: ReturnType<typeof lightsOf>) {
+  const own: THREE.Object3D[] = [];
+  group.traverseVisible((o) => {
+    const c = stand.clones.get(o);
+    if (c) own.push(c);
+  });
+  for (const c of own) stand.scene.remove(c);
+  const mats = gl.compile(group, camera, stand.scene);
+  for (const c of own) stand.scene.add(c);
+  return mats;
+}
+/** The composer draws the scene off screen: on unless touch is the main pointer (World.tsx `fancy`). */
+const composed = () => !window.matchMedia("(pointer: coarse)").matches;
+/** Any render target: three compiles a program for it as it would for the composer's. */
+const target = new THREE.WebGLRenderTarget(1, 1);
+
 /**
  * Runs the whole opening. Mount it after <CameraRig /> (same frame priority, later in the
  * tree), so its camera writes land after the rig's.
@@ -544,11 +624,26 @@ export function Opening() {
   const [dots, setDots] = useState<THREE.BufferGeometry | null>(null);
   const floor = useRef<THREE.Mesh>(null);
   const sweep = useRef<THREE.Group>(null);
-  const w = useRef({ step: 0, frames: 0, t: 0, el: SELECT_EL });
+  const w = useRef({
+    phase: "build" as WarmPhase,
+    frames: 0,
+    t: 0,
+    el: SELECT_EL,
+    geo0: -1,
+    geoTotal: GEO_DEFAULT,
+    mats: new Set<THREE.Material>(),
+    total: 0,
+    queue: [] as THREE.Object3D[],
+    qi: 0,
+    lights: null as ReturnType<typeof lightsOf> | null,
+    prime: 0,
+    compileMs: 0,
+    materials: 0,
+  });
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== "production") (window as unknown as { __bloom: object }).__bloom = { stats: bloomStats, opening, boot, warm: () => ({ ...w.current }), where: () => (readSpot(scene), { ...spot }), sweep: () => { const o = scene.getObjectByName("studio-sweep"); return o && { visible: o.visible, p: o.position.toArray(), sy: o.scale.y, parentVisible: o.parent?.visible, kids: o.children.length }; } };
-  }, [scene]);
+    if (process.env.NODE_ENV !== "production") (window as unknown as { __bloom: object }).__bloom = { stats: bloomStats, opening, boot, warm: () => { const c = w.current; return { phase: c.phase, frames: c.frames, batches: `${c.qi}/${c.queue.length}`, pending: c.mats.size, total: c.total, prime: c.prime, materials: c.materials, compileMs: c.compileMs }; }, programs: () => gl.info.programs?.length ?? 0, where: () => (readSpot(scene), { ...spot }), sweep: () => { const o = scene.getObjectByName("studio-sweep"); return o && { visible: o.visible, p: o.position.toArray(), sy: o.scale.y, parentVisible: o.parent?.visible, kids: o.children.length }; } };
+  }, [scene, gl]);
 
   // exactly one vehicle, and the in-world swap: decided last, just before each render
   useEffect(() => {
@@ -559,6 +654,20 @@ export function Opening() {
     };
     return () => {
       scene.onBeforeRender = prev;
+    };
+  }, [scene]);
+
+  // the boot's bar ticks at the end of each frame the world draws, until the boot has gone
+  useEffect(() => addAfterEffect(() => !boot.out && afterWorldFrame()), []);
+
+  // nothing is drawn until every program has compiled (the boot covers the canvas meanwhile)
+  useEffect(() => {
+    if (opening.get().stage !== "boot" || skipping()) return;
+    w.current.geo0 = geometryCount();
+    w.current.geoTotal = geometryTotal();
+    scene.visible = false;
+    return () => {
+      scene.visible = true;
     };
   }, [scene]);
 
@@ -578,6 +687,145 @@ export function Opening() {
     setDots(d.geo);
   };
 
+  // the boot's warm-up, a step a frame (WarmPhase); true when this frame draws the island from above
+  const warmUp = (st: typeof w.current) => {
+    // every material under the scene, compiled a few of its top-level groups a frame, so neither
+    // the page nor the GPU process stalls on all of them at once
+    const compileStart = () => {
+      scene.visible = true;
+      st.lights = lightsOf(scene);
+      scene.visible = false;
+      st.queue = scene.children.filter(hasMesh);
+      st.qi = 0;
+      st.mats = new Set();
+      st.total = 0;
+    };
+    const compileSome = () => {
+      const t = performance.now();
+      // a program's output depends on where it draws: the composer (World.tsx, not on touch
+      // screens) draws the scene into a render target, so compile for one, or every program
+      // would compile again on the first frame
+      const was = gl.getRenderTarget();
+      if (composed()) gl.setRenderTarget(target);
+      while (st.qi < st.queue.length && performance.now() - t < COMPILE_MS) {
+        for (const m of compileFor(gl, st.queue[st.qi++], camera, st.lights!)) {
+          if (st.mats.has(m)) continue;
+          st.mats.add(m);
+          st.total++;
+        }
+      }
+      gl.setRenderTarget(was);
+      st.compileMs += performance.now() - t;
+      return st.qi >= st.queue.length;
+    };
+    const pending = () => {
+      for (const m of st.mats) {
+        const p = (gl.properties.get(m) as { currentProgram?: { isReady: () => boolean } }).currentProgram;
+        if (!p || p.isReady()) st.mats.delete(m);
+      }
+      return st.mats.size;
+    };
+    const patchOn = () => {
+      const me = findPlayer(scene);
+      scan(scene, (o) => o === me);
+      bloomOn();
+      U.uBloomT.value = -1e4;
+    };
+    const frames = () => {
+      begin("frames");
+      scene.visible = true;
+      bloomOff();
+      st.phase = "frames";
+      st.frames = 0;
+      return true;
+    };
+    switch (st.phase) {
+      case "build": {
+        const n = geometryCount() - st.geo0;
+        try {
+          window.localStorage.setItem(GEO_KEY, String(n));
+        } catch {}
+        st.geoTotal = n;
+        begin("compile");
+        plan();
+        st.phase = "plan";
+        st.frames = 0;
+        return false;
+      }
+      case "plan":
+        // the dots mount on the next commit; they compile with the rest
+        if (++st.frames < 2) return false;
+        if (!warm) {
+          patchOn();
+          return frames();
+        }
+        compileStart();
+        st.phase = "own";
+        return false;
+      case "own":
+      case "patched": {
+        // issue the batches, then wait until every program reports ready (never blocking on one)
+        const base = st.phase === "own" ? 0 : 0.3;
+        const issued = st.qi >= st.queue.length || compileSome();
+        const left = pending();
+        sub("compile", base + 0.15 * (st.qi / Math.max(1, st.queue.length)) + (issued ? 0.15 * (1 - left / Math.max(1, st.total)) : 0));
+        if (!issued || left) return false;
+        st.materials += st.total;
+        if (st.phase === "own") {
+          mark(`own programs ready (${gl.info.programs?.length ?? 0})`);
+          patchOn();
+          compileStart();
+          st.phase = "patched";
+          return false;
+        }
+        mark(`bloom programs ready (${gl.info.programs?.length ?? 0})`);
+        st.phase = "prime";
+        st.prime = 0;
+        return false;
+      }
+      case "prime": {
+        // three reads a program's uniforms and attributes the first time it draws with it, a round
+        // trip to the GPU each (about 1.5 ms a program, half a second at once): done here instead,
+        // a slice a frame, and never on a program still compiling
+        const list = (gl.info.programs ?? []) as (THREE.WebGLProgram & { isReady?: () => boolean })[];
+        const t = performance.now();
+        while (st.prime < list.length && performance.now() - t < PRIME_MS) {
+          const p = list[st.prime];
+          if (p.isReady && !p.isReady()) break;
+          p.getUniforms();
+          st.prime++;
+        }
+        sub("compile", 0.6 + 0.4 * (st.prime / Math.max(1, list.length)));
+        return st.prime < list.length ? false : frames();
+      }
+      case "frames":
+        st.frames++;
+        sub("frames", st.frames / 4);
+        if (st.frames === 2) {
+          // the garage view, in the bloom's programs from here on
+          bloomOn();
+          U.uBloomT.value = -1e4;
+        }
+        if (st.frames >= 4) {
+          mark(`frames drawn (${gl.info.programs?.length ?? 0})`);
+          finish();
+          st.t = performance.now();
+          st.phase = "ready";
+        }
+        return st.frames < 2;
+      case "ready":
+        if (performance.now() - st.t > 450) {
+          st.phase = "out";
+          boot.out = true;
+          setStage("select");
+          report({ geometries: st.geoTotal, materials: st.materials, programs: gl.info.programs?.length ?? 0, compileMs: Math.round(st.compileMs) });
+        }
+        return false;
+      default:
+        return false;
+    }
+  };
+
   useFrame((s) => {
     const g = getState();
     const st = w.current;
@@ -585,49 +833,23 @@ export function Opening() {
     const c = s.camera as THREE.PerspectiveCamera;
     dotMat.uniforms.uDpr.value = s.gl.getPixelRatio();
 
+    let overview = false;
     if (stg === "boot") {
-      if (!g.ready) return;
+      if (!g.ready) {
+        // the island is being built: geometries made so far, against the whole
+        if (st.geo0 >= 0) sub("build", (geometryCount() - st.geo0) / st.geoTotal);
+        return;
+      }
       if (skipping()) {
         // ?skip: no opening at all
+        scene.visible = true;
         setStage("done");
         boot.out = true;
         setState({ phase: "world", revealed: true });
         return;
       }
-      st.frames++;
-      // the world's own programs compile on the frames behind the boot; after a few, the patch
-      // goes on and every patched program compiles, a few frames compile the shadow pass, then the
-      // garage opens
-      if (st.step === 0 && st.frames > 20) {
-        st.step = 3;
-        boot.stage = "shaders";
-        plan();
-        const me = findPlayer(scene);
-        scan(scene, (o) => o === me);
-        bloomOn();
-        U.uBloomT.value = -1e4;
-        const done = () => {
-          st.step = 4;
-          st.frames = 0;
-        };
-        if (warm) gl.compileAsync(scene, camera).finally(done);
-        else done();
-      } else if (st.step === 4 && st.frames > 3) {
-        st.step = 5;
-        st.t = performance.now();
-        boot.stage = "ready";
-      } else if (st.step === 5 && performance.now() - st.t > 450) {
-        st.step = 6;
-        boot.out = true;
-        setStage("select");
-      }
+      overview = warmUp(st);
     }
-    // in the garage: the world's own programs, for when the build is done
-    if (stg === "select" && st.step === 6) {
-      st.step = 7;
-      if (warm) warmOwn(() => gl.compileAsync(scene, camera));
-    }
-
     if (stg === "select" || stg === "boot") {
       U.uBloomT.value = -1e4;
     }
@@ -662,6 +884,15 @@ export function Opening() {
       place(c, 0, SELECT_TARGET_Y, r, st.el, START.az, k);
       c.fov = fov;
       if (F.width) c.setViewOffset(F.width, F.height, ox, oy, F.width, F.height);
+      if (overview) {
+        // behind the boot: the whole island once, from the bloom's overview, so every geometry
+        // uploads now rather than as the bloom first shows it
+        const o = OVER;
+        c.clearViewOffset();
+        c.fov = GAME_FOV;
+        c.position.set(o.tx + Math.cos(o.el) * Math.cos(o.az) * o.r, o.ty + Math.sin(o.el) * o.r, o.tz + Math.cos(o.el) * Math.sin(o.az) * o.r);
+        c.lookAt(o.tx, o.ty, o.tz);
+      }
       c.updateProjectionMatrix();
     } else if (stg === "align") {
       const ka = power2InOut(clamp01(stageTime(window.__alignT) / ALIGN));
@@ -681,11 +912,10 @@ export function Opening() {
       U.uBloomT.value = t;
       if (c.view?.enabled) c.clearViewOffset();
       const start: Pose = { tx: spot.x, ty: spot.y + START.ty, tz: spot.z, r: START.r, az: START.az, el: START.el };
-      const over: Pose = { tx: ISLAND.x, ty: 0, tz: ISLAND.z, r: ISLAND.r * 2.2, az: END_AZ + 0.3, el: 1.05 };
       const end = endPose(portrait);
       const path: [number, Pose][] = [
         [0, start],
-        [2.4, over],
+        [2.4, OVER],
         [PLAN.camEnd, end],
       ];
       let i = 0;

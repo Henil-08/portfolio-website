@@ -12,9 +12,9 @@
 // shadow before it is there.
 //
 // Cost: while it is on every patched program carries a discard. When the build is done `off()`
-// swaps every material back to its own program. The patched versions compile during the boot,
-// the own ones while the garage is up (`warmOwn`), and three.js keeps every program a material
-// has used, so switching either way is a lookup, never a compile.
+// swaps every material back to its own program. Both versions compile during the boot
+// (Opening.tsx `warmUp`), and three.js keeps every program a material has used, so switching
+// either way is a lookup, never a compile.
 import * as THREE from "three";
 import { PLAN, RAD_POW } from "./plan";
 import { FLOOR } from "./view";
@@ -224,22 +224,6 @@ function flip(next: boolean) {
     const mode = (o.userData as { bloomDepth?: Mode }).bloomDepth ?? "flat";
     o.customDepthMaterial = on ? depthFor(mode) : prev;
   }
-}
-
-/**
- * Compiles every material's own program while the patched ones stay in use: the synchronous
- * part of `compile` runs with the patch off, then it is turned straight back on, so the next
- * frame draws the patched programs again and the own ones finish compiling on the side (in
- * parallel where the browser can). `bloomOff` then only switches.
- */
-export function warmOwn(compile: () => Promise<unknown>) {
-  if (!on) return compile();
-  on = false;
-  for (const m of patched.keys()) m.needsUpdate = true;
-  const p = compile();
-  on = true;
-  for (const m of patched.keys()) m.needsUpdate = true;
-  return p;
 }
 
 /** Turns the patch on: everything not reached by the wave is hidden. */

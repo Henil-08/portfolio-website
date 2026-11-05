@@ -153,16 +153,22 @@ Hover and keyboard focus share one signal, the orange corner brackets (`x-sel` +
 
 ## Screens (S01–S06 in System.tsx; build the real ones from these)
 
-- **S01 Boot (built, components/ui/Boot.tsx):** the loading bar is a CSS transition (it eases to
-  90% over 9 s, then finishes in 0.35 s once the world is ready), never rAF-driven: building the
-  world and compiling shaders block the main thread, and a JS bar froze then jumped to 100% (owner,
-  2026-10-26). There is no percent readout for the same reason. The floor's dot grid stays hidden
-  until the world is ready (Reveal.tsx `load.grid`), so it doesn't snap when the camera moves into place.
-- **Boot order** (components/Experience.tsx `INTRO_MS`): the world isn't imported or mounted
-  until the intro has played (1.8 s). Importing it runs heavy module code and building it blocks
-  the main thread for seconds, which made the mark and the decoding stutter (owner, 2026-10-26).
-  Measured with Chrome long tasks: none before 2.2 s now; the heavy work runs behind a still
-  screen where only the CSS bar moves.
+- **S01 Boot (built, components/ui/Boot.tsx):** the bar follows the real load (world/bloom/load.ts)
+  in steps, each with its share of the bar: the intro (1.8 s, nothing loads yet), the world's code,
+  the island's build (counted in geometries made), the warm-up (counted in materials whose programs
+  are ready) and the first frames. The label names the step: Loading the island, Building the
+  island, Warming up, Ready. The bar is one animation on the compositor and the script only steers
+  its speed: it eases toward the real fraction, creeps on within the step and never passes its end,
+  so it keeps moving through long tasks and never jumps or goes back (owner, 2026-11-05: "stuck on
+  60"). The percent is the bar's own position. Behind the boot the canvas draws nothing until every
+  program the world needs has compiled, so no frame waits on a shader.
+- **Boot order** (components/Experience.tsx; `INTRO_MS` in bloom/load.ts): the world isn't imported
+  or mounted until the intro has played (1.8 s). Importing it runs heavy module code and building it
+  blocks the main thread, which made the mark and the decoding stutter (owner, 2026-10-26). Measured
+  on an M4 Pro (Chrome, dev server, 2026-11-05): code 0.6 s (one 0.45 s task, the town's layout
+  running as it imports), build 0.9 s, warm-up 0.35 s with no task over 50 ms, first frames 0.2 s;
+  the garage opens at about 4.5 s. Before: 5.5 s at best and over 16 s cold, with 0.4 to 5.8 s
+  freezes on shader links and the bar parked at 60%.
 - **S01 Boot (mock):** paper screen.
   1. The mark builds.
   2. The name decodes, then `HG-08 · role · city`.

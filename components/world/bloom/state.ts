@@ -55,10 +55,10 @@ export function useOpening<T>(select: (s: OpeningState) => T): T {
 }
 
 /**
- * The boot screen (components/ui/Boot.tsx) reads this: `stage` what is loading, `out` once the
- * world is built and warmed and the garage can open.
+ * The boot screen (components/ui/Boot.tsx) reads this: `out` once the world is built and warmed
+ * and the garage can open. What is loading, and how far, is bloom/load.ts.
  */
-export const boot = { stage: "world" as "world" | "shaders" | "ready", out: false };
+export const boot = { out: false };
 
 /** ?skip (dev and headless checks) goes straight to driving. */
 export const skipping = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("skip");
