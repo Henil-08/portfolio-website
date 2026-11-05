@@ -6,6 +6,7 @@ import { MAX_R, SEA_Y, TRACK_WIDTH, nearestT, shoreDist } from "../layout";
 import { heightAt } from "../terrain";
 import { compose, nearPlace, rng } from "../street/common";
 import { BUILDINGS } from "../street/town";
+import { offStructures } from "../street/reserved";
 import { PIER, nearPromenade } from "../waterfront/layout";
 
 function onBeach(x: number, z: number) {
@@ -59,5 +60,6 @@ export const BEACHES = (() => {
       }
     }
   }
-  return { rocks, wood };
+  // nothing lies on a trackside structure (placed first: ../street/reserved.ts)
+  return { rocks: offStructures(rocks, 1), wood: offStructures(wood, 1) };
 })();

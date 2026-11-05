@@ -7,6 +7,7 @@ import { MAX_R, TRACK_WIDTH, duneMask, inLand, nearestT, meadowAt } from "../lay
 import { heightAt } from "../terrain";
 import { compose, inSectorScene, nearPlace, rng } from "../street/common";
 import { nearTree } from "../street/trees";
+import { offStructures } from "../street/reserved";
 import { BUILDINGS } from "../street/town";
 import { C } from "../palette";
 
@@ -76,5 +77,6 @@ export const HILLS = (() => {
       }
     }
   }
-  return { flowers, rocks };
+  // nothing grows or lies on a trackside structure (placed first: ../street/reserved.ts)
+  return { flowers: offStructures(flowers, 0.6), rocks: offStructures(rocks, 1) };
 })();

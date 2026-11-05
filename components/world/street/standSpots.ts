@@ -66,7 +66,9 @@ export const STAND_SPOTS: StandSpot[] = [
   pick(0.27, "EAST ESSES"),
   pick(0.46, "TUNNEL STRAIGHT"),
   pick(0.86, "WEST TERRACE"),
-  // the main straight (the pit lane fills its far side) and round the outside of T1
-  ...[0.02, 0.035, 0.05, 0.075, 0.09, 0.105, 0.12, 0.135, 0.15].map((u) => pick(u, "", true)),
-  ...[0.17, 0.185, 0.2].map((u) => pick(u, "", true)),
+  // the main straight (the pit lane fills its far side) and round the outside of T1. None at
+  // u 0.05-0.09: the promenade and the bay run right behind the straight there (by the pier).
+  // None at 0.2: round T1 the bay comes up to the run-off between the two stands either side.
+  ...[0.02, 0.035, 0.105, 0.12, 0.135, 0.15].map((u) => pick(u, "", true)),
+  ...[0.17, 0.185].map((u) => pick(u, "", true)),
 ].filter((s): s is StandSpot => s !== null);

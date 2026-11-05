@@ -2,6 +2,7 @@
 // (./trees.ts, drawn by Places.tsx Nature) and the groves (../Groves.tsx) keep off these, so a
 // grandstand, floodlight, marshal post, board, TecPro wall, flag, the gantry or a building never
 // loses its spot to a tree. Structures themselves never look at trees. Pure data.
+import type * as THREE from "three";
 import { GANTRY } from "./common";
 import { BOARDS, FLAG_SPOTS, FLOODS, MARSHALS, TYRE_WALLS } from "./layoutStreet";
 import { STAND_SPOTS } from "./standSpots";
@@ -25,6 +26,12 @@ export const STRUCTURES: Footprint[] = [
   [GANTRY.p.x, GANTRY.p.z, 7],
 ];
 export const BUILDING_FOOTPRINTS: Footprint[] = BUILDINGS.map((b): Footprint => [b.x, b.z, Math.hypot(b.w, b.d) / 2 + 3.5]);
+
+/** A batch of scattered props (instance matrices, a colour each or none) without the ones that would stand on a structure. */
+export function offStructures<T extends { m: THREE.Matrix4[]; c?: THREE.Color[] }>(b: T, r: number): T {
+  const keep = b.m.map((m) => !onStructure(m.elements[12], m.elements[14], r, false));
+  return { ...b, m: b.m.filter((_, i) => keep[i]), ...(b.c ? { c: b.c.filter((_, i) => keep[i]) } : {}) };
+}
 
 /** True if something `r` m round at (x, z) would stand on a structure (or, with `buildings`, a building or its street). */
 export function onStructure(x: number, z: number, r = 0, buildings = true) {

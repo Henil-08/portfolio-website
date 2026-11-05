@@ -8,6 +8,7 @@ import { CANALS, LAKES, SEA_Y, TRACK_WIDTH, canalDist, lakeDepthDist, nearCrossi
 import { heightAt } from "../terrain";
 import { compose, nearPlace, rng } from "../street/common";
 import { BUILDINGS } from "../street/town";
+import { offStructures } from "../street/reserved";
 import { FOOTBRIDGES } from "../park/layout";
 
 const RIVER = CANALS[0];
@@ -125,5 +126,6 @@ export const WATERSIDE = (() => {
       pads.c.push(PADS[Math.floor(r() * PADS.length)]);
       if (r() < 0.25) flowers.push(compose(x + 0.08 * s, SEA_Y + 0.07, z, r() * 6, 0.11, 0.08, 0.11));
     }
-  return { reeds, rocks, pads, flowers };
+  // nothing grows or lies on a trackside structure (placed first: ../street/reserved.ts)
+  return { reeds: offStructures(reeds, 0.6), rocks: offStructures(rocks, 1), pads, flowers };
 })();

@@ -87,10 +87,23 @@ export const TYRE_WALLS: WallPiece[] = (() => {
     const lens = [0];
     for (let i = 1; i < line.length; i++) lens.push(lens[i - 1] + line[i].distanceTo(line[i - 1]));
     const total = lens[lens.length - 1];
-    const want = Math.min(WALL_MAX, total * 0.6);
-    if (want < WALL_MIN) continue;
+    if (Math.min(WALL_MAX, total * 0.6) < WALL_MIN) continue;
+    // The wall sits on the clear stretch of the run nearest its peak (a crossing, a place or a scene
+    // can fill part of the run-off). A corner with no clear WALL_MIN m gets no wall: at u 0.58 (the
+    // S3 hairpin) the run-off is the football place's edge, and its access stays open.
+    const clearAt = line.map((q, s) => !skip(side, (a + s) % N_FRAMES, q.x, q.z));
+    const stretches: [number, number][] = [];
+    for (let s = 0; s < line.length; s++) {
+      if (!clearAt[s]) continue;
+      const last = stretches[stretches.length - 1];
+      if (last && last[1] === lens[s - 1]) last[1] = lens[s];
+      else stretches.push([lens[s], lens[s]]);
+    }
     const mid = lens[peak - a];
-    const from = THREE.MathUtils.clamp(mid - want / 2, 0, total - want);
+    const room = stretches.filter(([s0, s1]) => s1 - s0 >= WALL_MIN).sort((p, q) => Math.max(0, p[0] - mid, mid - p[1]) - Math.max(0, q[0] - mid, mid - q[1]))[0];
+    if (!room) continue;
+    const want = Math.min(WALL_MAX, total * 0.6, room[1] - room[0]);
+    const from = THREE.MathUtils.clamp(mid - want / 2, room[0], room[1] - want);
     const n = Math.floor(want / BLOCK);
     const pieces: WallPiece[] = [];
     for (const row of [0, 1] as const) {
@@ -114,7 +127,7 @@ export const TYRE_WALLS: WallPiece[] = (() => {
     if (kept.filter((p) => p.row === 0).length >= 3) {
       out.push(...kept);
       wall++;
-    } else placementWarning(`TecPro wall at u ${f.u.toFixed(3)}: fewer than three blocks clear`);
+    } else placementWarning(`TecPro wall at u ${f.u.toFixed(3)}: fewer than three blocks clear on its stretch`);
   }
   return out;
 })();
@@ -127,6 +140,7 @@ export const FLOOD_SPACING = 17;
 const FLOOD_STRAIGHT = 9; // m between towers on the pit wall
 const FLOOD_BACK = 2.6; // m past the barrier line, clear of the TecPro walls and the catch fence
 const FLOOD_FAR = 3.2; // m past the straight's far edge, for the towers moved off the pit wall
+const FLOOD_BEHIND = 22; // m a tower may stand back to clear a scene, a stand or a place on the verge
 const GARAGE_CLEAR = 8; // m past the outer garages' centres that the pit wall stays clear of towers
 
 /**
@@ -153,10 +167,12 @@ export const FLOODS: Flood[] = (() => {
     const off = Math.abs(barrierOffset(i, s as 1 | -1)) + FLOOD_BACK;
     let q = f.p.clone().addScaledVector(f.n, s * off);
     if (inPitSide(q.x, q.z)) continue; // the main straight gets its own row on the pit wall, below
-    // something in the way: step further back before giving the spot up
+    // something in the way: step further back before giving the spot up. Where a sector scene, a
+    // grandstand or a place fills the verge the tower stands behind it, up to 22 m back, so every
+    // stretch of the lap keeps its tower and the night stays evenly lit.
     const pit = inPitSide(q.x, q.z);
     let ok = clear(q.x, q.z);
-    for (let back = 2; !ok && !pit && back <= 8; back += 2) {
+    for (let back = 2; !ok && !pit && back <= FLOOD_BEHIND; back += 2) {
       q = f.p.clone().addScaledVector(f.n, s * (off + back));
       ok = clear(q.x, q.z);
     }
@@ -175,7 +191,7 @@ export const FLOODS: Flood[] = (() => {
       }
     }
     if (!ok) {
-      placementWarning(`floodlight at u ${f.u.toFixed(3)}: no clear spot up to 8 m back`);
+      placementWarning(`floodlight at u ${f.u.toFixed(3)}: no clear spot up to ${FLOOD_BEHIND} m back`);
       continue;
     }
     const pool = g.p.clone().addScaledVector(g.n, s * 1.2);
@@ -196,10 +212,18 @@ export const FLOODS: Flood[] = (() => {
     const x = x0 + ((x1 - x0) * k) / n;
     if (Math.abs(x - GANTRY.p.x) < 4) continue;
     if (x > g0 && x < g1) {
-      // just off the far edge, short of the waterfront promenade
-      const z = [FLOOD_FAR, FLOOD_FAR - 0.8].map((o) => STRAIGHT_Z + TRACK_WIDTH / 2 + o).find((zz) => clear(x, zz) && !nearPromenade(x, zz, 0.5));
-      if (z !== undefined) out.push({ x, z, yaw: Math.PI, px: x, pz: STRAIGHT_Z, py: 0, pyaw: 0, pitch: 0 });
-      else placementWarning(`floodlight on the main straight at x ${x.toFixed(1)}: no clear spot`);
+      // just off the far edge, short of the waterfront promenade; a grandstand there (placed first)
+      // moves the tower up to 4 m along the straight
+      let at: { x: number; z: number } | undefined;
+      for (const dx of [0, -1, 1, -2, 2, -3, 3, -4, 4]) {
+        const z = [FLOOD_FAR, FLOOD_FAR - 0.8].map((o) => STRAIGHT_Z + TRACK_WIDTH / 2 + o).find((zz) => clear(x + dx, zz) && !nearPromenade(x + dx, zz, 0.5));
+        if (z !== undefined) {
+          at = { x: x + dx, z };
+          break;
+        }
+      }
+      if (at) out.push({ x: at.x, z: at.z, yaw: Math.PI, px: at.x, pz: STRAIGHT_Z, py: 0, pyaw: 0, pitch: 0 });
+      else placementWarning(`floodlight on the main straight at x ${x.toFixed(1)}: no clear spot within 4 m`);
       continue;
     }
     const z = pitWallZ(x);
@@ -238,7 +262,25 @@ export const FENCES: FenceRun[] = (() => {
 
 // ------------------------------------------------------------ boards and marshals
 
-/** Sponsor boards on two legs at the far edge of the run-off. */
+/**
+ * The far-side spot nearest `u0` along the lap (steps of 0.0015, about 1.2 m, out to `reach`)
+ * where `why` finds nothing in the way, or null. `why` names what's in the way ("" if clear).
+ */
+function nearestSpot(u0: number, extra: number, reach: number, why: (s: Spot) => string) {
+  const n = Math.round(reach / 0.0015);
+  for (let k = 0; k <= n; k++)
+    for (const sg of k ? [1, -1] : [1]) {
+      const sp = farSpot(u0 + sg * k * 0.0015, extra);
+      if (!why(sp)) return sp;
+    }
+  return null;
+}
+
+/**
+ * Sponsor boards on two legs at the far edge of the run-off, each at the nearest clear spot to
+ * its corner. (Gone: "LIGHTS OUT" at u 0.355 and "08" at 0.645 and 0.94, whose corners are their
+ * sector scenes' frontage for 20 m either way.)
+ */
 const BOARD_WANT: [number, string][] = [
   [0.3, "HG-08"],
   [0.355, "LIGHTS OUT"],
@@ -251,39 +293,60 @@ const BOARD_WANT: [number, string][] = [
   [0.94, "08"],
   [0.12, "DRS ZONE"],
 ];
-export const BOARDS: (Spot & { text: string })[] = BOARD_WANT.map(([u, text]) => ({ ...farSpot(u, 0), text })).filter((sp) => {
-  const why = !inSectorScene(sp.x, sp.z, 2)
-    ? !nearPlace(sp.x, sp.z, 1)
-      ? !nearCrossing(sp.x, sp.z, 20)
-        ? inLand(sp.x, sp.z, 2)
-          ? !TYRE_WALLS.some((w) => Math.hypot(w.x - sp.x, w.z - sp.z) < 3)
-            ? !STAND_SPOTS.some((st) => Math.hypot(st.x - sp.x, st.z - sp.z) < 8)
-              ? ""
-              : "a grandstand"
-            : "a TecPro wall"
-          : "the shore"
-        : "the bridge"
-      : "a place"
-    : "a sector scene";
-  if (why) placementWarning(`board "${sp.text}" at u ${sp.u.toFixed(3)}: on ${why}`);
-  return !why;
-});
+const boardWhy = (placed: Spot[]) => (sp: Spot) =>
+  inSectorScene(sp.x, sp.z, 2)
+    ? "a sector scene"
+    : nearPlace(sp.x, sp.z, 1)
+      ? "a place"
+      : nearCrossing(sp.x, sp.z, 20)
+        ? "the bridge"
+        : !inLand(sp.x, sp.z, 2)
+          ? "the shore"
+          : TYRE_WALLS.some((w) => Math.hypot(w.x - sp.x, w.z - sp.z) < 3)
+            ? "a TecPro wall"
+            : STAND_SPOTS.some((st) => Math.hypot(st.x - sp.x, st.z - sp.z) < 8)
+              ? "a grandstand"
+              : placed.some((o) => Math.hypot(o.x - sp.x, o.z - sp.z) < 8)
+                ? "another board"
+                : "";
+export const BOARDS: (Spot & { text: string })[] = (() => {
+  const out: (Spot & { text: string })[] = [];
+  for (const [u, text] of BOARD_WANT) {
+    const sp = nearestSpot(u, 0, 0.025, boardWhy(out));
+    if (sp) out.push({ ...sp, text });
+    else placementWarning(`board "${text}" at u ${u}: no clear spot within 0.025 of its corner`);
+  }
+  return out;
+})();
 
-export const MARSHALS: Spot[] = [0.235, 0.47, 0.715, 0.79, 0.965]
-  .map((u) => farSpot(u, 3.2))
-  .filter((s) => {
-    const why = inSectorScene(s.x, s.z, 1) ? "a sector scene" : nearPlace(s.x, s.z, 0) ? "a place" : !inLand(s.x, s.z, 2) ? "the shore" : "";
-    if (why) placementWarning(`marshal post at u ${s.u.toFixed(3)}: on ${why}`);
-    return !why;
-  });
+/**
+ * Marshal posts 3.2 m past the barrier, each at the nearest clear spot to its corner. (Gone: the
+ * one at u 0.965, the Waters scene's frontage; the one at 0.235, where the bay meets the barrier.)
+ */
+const MARSHAL_U = [0.235, 0.47, 0.715, 0.79, 0.965];
+export const MARSHALS: Spot[] = (() => {
+  const out: Spot[] = [];
+  for (const u of MARSHAL_U) {
+    const sp = nearestSpot(u, 3.2, 0.03, (s) =>
+      inSectorScene(s.x, s.z, 1) ? "a sector scene" : nearPlace(s.x, s.z, 0) ? "a place" : !inLand(s.x, s.z, 2) ? "the shore" : STAND_SPOTS.some((st) => Math.hypot(st.x - s.x, st.z - s.z) < 8) ? "a grandstand" : "",
+    );
+    if (sp) out.push(sp);
+    else placementWarning(`marshal post at u ${u}: no clear spot within 0.03 of its corner`);
+  }
+  return out;
+})();
 
 // ------------------------------------------------------------ flags
 
-/** Flagpoles along the far side of the tunnel straight, the loop and the west (6.6 m past the barrier). */
-export const FLAG_SPOTS: Spot[] = [0.45, 0.47, 0.56, 0.6, 0.81, 0.836, 0.335]
-  .map((u) => farSpot(u, 6.6))
-  .filter((s) => {
-    const why = inSectorScene(s.x, s.z, 1) ? "a sector scene" : nearPlace(s.x, s.z, 0) ? "a place" : STAND_SPOTS.some((st) => Math.hypot(st.x - s.x, st.z - s.z) < 5.5) ? "a grandstand" : "";
-    if (why) placementWarning(`flag at u ${s.u.toFixed(3)}: on ${why}`);
-    return !why;
-  });
+/** Flagpoles along the far side of the tunnel straight, the loop and the west (6.6 m past the barrier), each at the nearest clear spot. */
+export const FLAG_SPOTS: Spot[] = (() => {
+  const out: Spot[] = [];
+  for (const u of [0.45, 0.47, 0.56, 0.6, 0.81, 0.836, 0.335]) {
+    const sp = nearestSpot(u, 6.6, 0.02, (s) =>
+      inSectorScene(s.x, s.z, 1) ? "a sector scene" : nearPlace(s.x, s.z, 0) ? "a place" : STAND_SPOTS.some((st) => Math.hypot(st.x - s.x, st.z - s.z) < 5.5) ? "a grandstand" : out.some((o) => Math.hypot(o.x - s.x, o.z - s.z) < 6) ? "another flag" : "",
+    );
+    if (sp) out.push(sp);
+    else placementWarning(`flag at u ${u}: no clear spot within 0.02`);
+  }
+  return out;
+})();
