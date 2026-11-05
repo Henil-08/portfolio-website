@@ -351,8 +351,12 @@ export default function InteractivePoints({ views }: { views?: () => PromptView[
           it.last = t;
         }
         let a = 0;
+        // the open sticker shows within its reach too: the places page's other boxes, framed on
+        // other places, leave it out (in the game the camera is always close to the place it is at)
+        const shown = o.i !== active.current || (onScreen && o.d < p.far);
+        if (shown !== (it.root.style.visibility !== "hidden")) it.root.style.visibility = shown ? "" : "hidden";
         if (o.i === active.current) {
-          if (onScreen) {
+          if (shown) {
             const kw = coarse.current ? KEY_TOUCH : KEY;
             const x0 = o.x - kw / 2 - 2;
             taken.push([x0, o.y - it.sh / 2, x0 + it.sw + 3, o.y + it.sh / 2 + 3]);
