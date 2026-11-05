@@ -191,9 +191,10 @@ World sizes in metres (real x 2/3). "Before" is what the world drew before this 
 | Town-mid | 17 x 13.6 x 21; five storeys of 3.02 and a penthouse | about 23 | none placed (capped 12) | 15.3 (0.729); none fit the plots this time either | street/town.ts |
 | Tower | 12.5 core x 41; twelve storeys of 3.0 | about 45 | 17.2 (capped) | 30.7 (0.733), one on the far side | street/town.ts |
 | Boston row and state house | 31 x 13.6, storeys 3.1 | | 0.54 | 0.667, set back so the steps stop at the pavement | sectors/Boston.tsx |
-| Ahmedabad school | arcade 7.2 (double height), tier 3.2 | | 0.44 | 0.44 (left, below) | sectors/Ahmedabad.tsx |
-| Hyperlab halls | 13.5 x 17.4 x 8 | | 0.42 | 0.42 (left) | sectors/Hyperlab.tsx |
-| Waters lab | 23 x 13.4, 5.8 to the roof (two storeys) | | 0.48 | 0.48 (left) | sectors/Waters.tsx |
+| Ahmedabad school | 2.75 m bays, arcade 7.2 (double height), tier 3.2 | | 0.44, 10 x 5 bays | 0.667, 7 x 4 bays (12.8 x 7.3, arcade 4.8, dome 10.3) | sectors/Ahmedabad.tsx |
+| Hyperlab halls | 13.5 x 17.4 x 8 | | 0.42 | 0.667 (11.6 x 9, ridge 5.3) | sectors/Hyperlab.tsx |
+| Waters lab | 23 x 13.4, 5.8 to the roof (two storeys) | | 0.48 | 0.667 (15.4 x 8.9, 3.9 to the roof) | sectors/Waters.tsx |
+| Sector story props (Mercury, cones, banner, stage set, table tennis, giant phone, planter, instrument, racks) | real metres | | real size | 0.667, each round its own anchor; the instrument stays 1.2x as an exhibit | sectors/*.tsx |
 | Football goal | kit 3 x 2; the pitch's 4 x 1.8 x 1.5 | 5-a-side 3 x 2 (the pitch is 24 x 19.5 real) | 4 x 1.8 | left (gameplay, see below) | props/Goal.tsx, Places.tsx |
 | Cricket stumps | 0.71 | 0.71 | 0.72 tall, 0.36 wide | left (gameplay) | props/Stumps.tsx, Places.tsx |
 | Podium | 1.72 x 1.6, steps 1.2 / 0.85 / 0.6 | top step 0.8-1.0 | as modelled | left (gameplay) | props/Podium.tsx, Places.tsx |
@@ -211,11 +212,8 @@ bodies, so their colliders follow the smaller bench):
   of the walk, facing the sea. Start: facing the lane.
 
 **Left for a follow-up.**
-- Ahmedabad, Hyperlab and Waters sets: their buildings are still at 0.42-0.48 (storeys about 2 m
-  real) and their props (table tennis, giant phone, studio stage, Mercury, instrument, racks,
-  cones) at real size. At the storey rule the buildings are 23-59 % bigger and no longer fit their
-  set's 10 m depth with the props where they are, so each set needs a re-layout. The sector
-  hotspots (layout.ts `SECTOR_SPOTS`, built this week against today's sets) must move with it.
+- (Done 2026-11-05: the Ahmedabad, Hyperlab and Waters sets are re-laid at the world's scale, each
+  building to its storeys, the props round their anchors, the sector hotspots moved with them.)
 - Gameplay pieces (goal, stumps, podium, tyres) are bigger than real for play, like the ball
   (r 0.35, three times a real football). At the world's scale the goal is 2 x 1.33, the wicket
   0.47 tall; their colliders and the goal and wicket checks live in Places.tsx. Owner's call.
