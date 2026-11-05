@@ -1,14 +1,8 @@
 // Sector 3 · 2023-25 · Boston, grad school + co-ops. Static.
-// Footprint 26 x 18 (x -13..13, z -9..9). Everything sits in z -9..-0.5; the 9 m band
-// z 0..9 along the +Z edge is left clear for the track.
-// Colliders (cuboids, centre + full size):
-//   row:               (-4.16, 3.2, -6.24)  9.45 x 6.3 x 5.53
-//   stoops:            (-4.16, 0.4, -3.27)  9.45 x 0.8 x 1.2
-//   state house:       (4.08, 3.5, -6.57)   6.5 x 7.0 x 3.8   (dome and spire to 13 m, out of reach)
-//   portico + steps:   (4.08, 2.7, -3.22)   7.1 x 5.4 x 2.9
-//   street lamps:      cylinder r 0.18 h 4.0 at (-12.3, -1.0), (-7.4, -1.0), (1.0, -1.0), (11.2, -1.0)
-//   bare trees:        cylinder r 0.18 h 3 at (-3.2, -1.1), (12.3, -2.3)
-//   bench:             (2.4, 0.5, -1.4)    1.8 x 1.0 x 0.7
+// Footprint 26 x 18 (x -13..13, z -9..9). Everything sits in z -11..-0.5; the 9 m band
+// z 0..9 along the +Z edge is left clear for the track. Everything stands at the world's scale
+// (../../scale.ts): the row's real 3.1 m storeys, real 4.3 m lamps.
+// Colliders: BOSTON_BOXES (the row, its stoops, the state house, its portico and steps).
 "use client";
 
 import * as THREE from "three";
@@ -16,16 +10,31 @@ import { CI } from "../../buildings/concrete";
 import { geo, mat, unitBox, unitCyl, type GroupProps } from "../props/shared";
 import { Built } from "../../kit/builtShared";
 import { bostonParts } from "../../kit/builtSectors";
-import { Inst, at, type T9 } from "./kit";
+import { Inst, type T9 } from "./kit";
+import { WORLD_SCALE } from "../../scale";
 
 const SNOW = CI.paper;
-/** The approved row and state house (32 x 15 m) scaled to sit between the back of the set and the pavement. */
-export const HALL_S = 0.54;
+/** The approved row and state house (31 x 13.6 m, its storeys a real 3.1 m) at the world's scale. */
+export const HALL_S = WORLD_SCALE;
+/** Where the model's origin stands: its portico steps reach z = -1.8, the back of the row z = -10.8. */
+const HALL_AT: [number, number, number] = [0.57, 0.06, -6.4];
+
+type Box = [[number, number, number], [number, number, number]];
+/** The model's solids in its own metres (centre, size): the row, its stoops, the state house, its portico and steps. */
+const HALL_SOLIDS: Box[] = [
+  [[-8.76, 5.81, -1.39], [17.5, 11.67, 10.24]],
+  [[-8.76, 0.63, 4.11], [17.5, 1.48, 2.22]],
+  [[6.5, 6.37, -2.0], [12.04, 12.96, 7.04]],
+  [[6.5, 4.89, 4.2], [13.15, 10.0, 5.37]],
+];
+/** The set's colliders in its own space (centre, full size), from the model's solids where it stands. */
+export const BOSTON_BOXES: Box[] = HALL_SOLIDS.map(([c, sz]) => [c.map((v, i) => HALL_AT[i] + v * HALL_S) as Box[0], sz.map((v) => v * HALL_S) as Box[1]]);
 
 // ---- street furniture ----
 /** Faceted lumps (snow drifts, finials): no round toy spheres. */
 const facetGeo = () => geo("bost-facet", () => new THREE.IcosahedronGeometry(1, 0));
-const LAMP_AT: T9[] = [-12.3, -7.4, 1.0, 11.2].map((x) => at(x, -1.0));
+/** Gas lamps along the kerb: a real 4.3 m lamp at the world's scale. */
+const LAMP_AT: T9[] = [-12.3, -7.4, 1.0, 11.2].map((x) => [x, 0, -1.0, WORLD_SCALE, WORLD_SCALE, WORLD_SCALE, 0, 0, 0]);
 const LAMP_BASE: T9[] = [[0, 0.2, 0, 0.15, 0.4, 0.15]];
 const LAMP_POLE: T9[] = [[0, 1.9, 0, 0.055, 3.1, 0.055]];
 const LAMP_GLASS: T9[] = [[0, 3.72, 0, 0.36, 0.55, 0.36]];
@@ -35,7 +44,10 @@ const LAMP_CAP: T9[] = [
 ];
 const LAMP_FIN: T9[] = [[0, 4.24, 0, 0.05, 0.05, 0.05]];
 const LAMP_SNOW: T9[] = [[0, 4.12, 0, 0.2, 0.06, 0.2]];
-const TREE_AT: T9[] = [at(-3.2, -1.1, 0.4), at(12.3, -2.3, 1.9)];
+const TREE_AT: T9[] = [
+  [-3.2, 0, -1.1, 1, 1, 1, 0, 0.4, 0],
+  [12.3, 0, -2.3, 1, 1, 1, 0, 1.9, 0],
+];
 const TREE_PARTS: T9[] = [
   [0, 1.4, 0, 0.12, 2.8, 0.12],
   [0.35, 2.9, 0, 0.06, 1.4, 0.06, 0, 0, -0.55],
@@ -54,25 +66,12 @@ const SNOW_PATCH: T9[] = [
   [0.0, 0.08, -2.9, 0.55, 0.07, 0.4],
   [12.3, 0.12, -2.3, 0.42, 0.06, 0.42],
   [11.5, 0.08, -3.0, 1.1, 0.08, 0.55],
-  [1.9, 0.08, -2.2, 0.8, 0.07, 0.5],
+  [1.9, 0.08, -1.35, 0.8, 0.07, 0.4],
   [-8.0, 0.08, -0.9, 0.6, 0.06, 0.3],
   [9.0, 0.08, -0.85, 0.9, 0.06, 0.28],
   [5.6, 0.08, -0.85, 0.5, 0.05, 0.22],
 ];
-const BENCH_SLATS: T9[] = [
-  [0, 0.46, 0.12, 1.7, 0.05, 0.12],
-  [0, 0.46, -0.02, 1.7, 0.05, 0.12],
-  [0, 0.46, -0.16, 1.7, 0.05, 0.12],
-  [0, 0.68, -0.27, 1.7, 0.1, 0.04, -0.2, 0, 0],
-  [0, 0.86, -0.3, 1.7, 0.1, 0.04, -0.2, 0, 0],
-];
-const BENCH_IRON: T9[] = [-0.75, 0.75].flatMap((x) => [
-  [x, 0.22, 0.08, 0.05, 0.44, 0.05] as T9,
-  [x, 0.42, -0.27, 0.05, 0.84, 0.05, -0.2, 0, 0] as T9,
-  [x, 0.44, -0.04, 0.05, 0.05, 0.5] as T9,
-]);
-
-/** Sector 3: Boston brownstone row with bay windows and stoops, a columned concrete college hall with a clock cupola, in Concrete & Ink, lamps, bench and snow. Faces +Z. */
+/** Sector 3: Boston brownstone row with bay windows and stoops, a columned concrete college hall with a clock cupola, in Concrete & Ink, lamps and snow. Faces +Z. */
 export function BostonSector(props: GroupProps) {
   const iron = mat(CI.ink, { r: 0.45, m: 0.3 });
   const ink = mat(CI.ink, { r: 0.5, m: 0.1 });
@@ -80,13 +79,13 @@ export function BostonSector(props: GroupProps) {
   const warm = mat("#ffe7bf", { glow: 1.8 });
   return (
     <group {...props}>
-      {/* concrete base, sidewalk, kerb */}
-      <mesh geometry={unitBox()} scale={[25.6, 0.06, 8.6]} position={[0, 0.03, -4.7]} material={mat(CI.concreteDark, { r: 0.95 })} receiveShadow />
+      {/* concrete base (under the whole row), sidewalk, kerb */}
+      <mesh geometry={unitBox()} scale={[25.6, 0.06, 10.7]} position={[0, 0.03, -5.75]} material={mat(CI.concreteDark, { r: 0.95 })} receiveShadow />
       <mesh geometry={unitBox()} scale={[25.4, 0.04, 2.9]} position={[0, 0.07, -2.1]} material={mat("#cdc9bf", { r: 0.95 })} receiveShadow />
       <mesh geometry={unitBox()} scale={[25.6, 0.16, 0.26]} position={[0, 0.08, -0.62]} material={mat(CI.concreteDark, { r: 0.9 })} castShadow receiveShadow />
 
       {/* ===== the row and the state house: the approved model (kit/builtSectors.tsx, concept boston) ===== */}
-      <group position={[0.57, 0.06, -5.49]} scale={HALL_S}>
+      <group position={HALL_AT} scale={HALL_S}>
         <Built parts={bostonParts()} />
       </group>
 
@@ -100,11 +99,6 @@ export function BostonSector(props: GroupProps) {
       <Inst geometry={unitCyl()} material={ink} items={TREE_PARTS} at={TREE_AT} />
       <Inst geometry={unitBox()} material={mat(CI.graphite, { r: 0.85 })} items={PIT} />
       <Inst geometry={facetGeo()} material={snow} items={SNOW_PATCH} />
-      <group position={[2.4, 0.06, -1.4]}>
-        <Inst geometry={unitBox()} material={mat(CI.concrete, { r: 0.9 })} items={BENCH_SLATS} />
-        <Inst geometry={unitBox()} material={iron} items={BENCH_IRON} />
-        <mesh geometry={unitBox()} scale={[1.3, 0.04, 0.3]} position={[0.1, 0.5, 0.0]} material={snow} />
-      </group>
     </group>
   );
 }

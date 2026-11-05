@@ -48,7 +48,7 @@ import { HomeBody } from "./Movables";
 import { nearGarden } from "./garden/layout";
 import { inTownBelt } from "./street/common";
 import Bridge from "./Bridge";
-import { AhmedabadSector, BostonSector, HyperlabSector, WatersSector } from "./models/sectors";
+import { AhmedabadSector, BOSTON_BOXES, BostonSector, HyperlabSector, WatersSector } from "./models/sectors";
 import ZoneDebug from "./ui3d/ZoneDebug";
 import { C } from "./palette";
 import {
@@ -458,13 +458,7 @@ const SCENE_BOXES: Record<keyof typeof SCENES, Box[]> = {
     [[-8.2, 0.4, -2.3], [2.8, 0.8, 1.6]],
     [[-1.2, 1.8, -2.4], [1.8, 3.6, 0.9]],
   ],
-  boston: [
-    [[-4.16, 3.2, -6.24], [9.45, 6.3, 5.53]],
-    [[-4.16, 0.4, -3.27], [9.45, 0.8, 1.2]],
-    [[4.08, 3.5, -6.57], [6.5, 7, 3.8]],
-    [[4.08, 2.7, -3.22], [7.1, 5.4, 2.9]],
-    [[2.4, 0.5, -1.4], [1.8, 1, 0.7]],
-  ],
+  boston: BOSTON_BOXES,
   waters: [
     [[-5.3, 1.7, -6.6], [11.1, 3.4, 4.8]],
     [[-4.6, 0.65, -3.4], [3, 1.3, 1.6]],
