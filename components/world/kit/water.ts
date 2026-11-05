@@ -3,9 +3,9 @@ import { cbox, hull, inset, model, prism, ring, rod, vbox, box, type Kit, type V
 
 /** Boat deck outline in plan (bow +X), counter-clockwise. */
 const DECK: V2[] = [
-  [3.3, 0],
-  [3.0, 0.48],
-  [2.2, 0.98],
+  [3.55, 0],
+  [3.1, 0.42],
+  [2.3, 0.95],
   [0.6, 1.24],
   [-3.2, 1.14],
   [-3.2, -1.14],
@@ -19,17 +19,17 @@ export const BOAT = { deck: 0.95, top: 1.42, waterline: 0.4, length: 6.6, beam: 
 
 /** Centre-console launch: a faceted paper hull with an ink gunwale, an orange rubbing strake, a paper cabin frame with glass and an ink T-top. 6.6 m, bow +X. */
 export function boatModel() {
-  return model("kit-boat", (k) => {
+  return model("kit-boat-v2", (k) => {
     const { deck, top } = BOAT;
     const pts: V3[] = DECK.map(([x, z]): V3 => [x, deck, z]);
     const chine: V2[] = [
-      [2.95, 0],
-      [2.4, 0.62],
+      [3.2, 0],
+      [2.55, 0.58],
       [0.6, 1.12],
       [-3.1, 1.06],
     ];
     for (const [x, z] of chine) pts.push([x, 0.42, z], [x, 0.42, -z]);
-    pts.push([-3.0, 0, 0.3], [-3.0, 0, -0.3], [1.8, 0, 0.22], [1.8, 0, -0.22], [2.7, 0.22, 0]);
+    pts.push([-3.0, 0, 0.3], [-3.0, 0, -0.3], [1.8, 0, 0.22], [1.8, 0, -0.22], [3.0, 0.26, 0]);
     k.add("paper", hull(pts));
     // bulwark, strake and the ink gunwale cap
     k.add("paper", ring(DECK, inset(DECK, 0.09), deck - 0.01, top));
@@ -44,9 +44,8 @@ export function boatModel() {
     const xb = -0.75;
     const xf = 0.55;
     const zc = 0.78;
+    // an open wheelhouse: posts and a windscreen, no side walls, seats and a console inside
     for (const sz of [-1, 1]) {
-      k.add("paper", box(xf - xb, 0.62, 0.07), { p: [(xb + xf) / 2, deck + 0.31, sz * zc] });
-      k.add("glass", box(xf - xb - 0.1, 0.62, 0.02), { p: [(xb + xf) / 2, deck + 0.95, sz * zc] });
       k.add("paper", box(0.08, 1.38, 0.08), { p: [xb, deck + 0.69, sz * zc] });
       k.add("paper", box(0.08, 1.38, 0.08), { p: [xf, deck + 0.69, sz * zc] });
       k.add("paper", box(xf - xb, 0.08, 0.08), { p: [(xb + xf) / 2, deck + 1.3, sz * zc] });
@@ -54,7 +53,12 @@ export function boatModel() {
     k.add("paper", box(0.08, 0.62, zc * 2), { p: [xf, deck + 0.31, 0] });
     k.add("glass", box(0.02, 0.66, zc * 2 - 0.1), { p: [xf + 0.08, deck + 0.98, 0], r: [0, 0, -0.25] });
     k.add("paper", cbox(0.55, 0.9, 0.6, 0.03), { p: [0.15, deck + 0.45, 0.2] });
-    k.add("ink", cbox(0.4, 0.36, 0.5, 0.02), { p: [-0.35, deck + 0.4, 0.2] });
+    k.add("ink", cbox(0.4, 0.06, 0.5, 0.02), { p: [0.15, deck + 0.93, 0.2] });
+    for (const sz of [-0.32, 0.36]) {
+      k.add("ink", cbox(0.42, 0.12, 0.44, 0.02), { p: [-0.42, deck + 0.42, sz] });
+      k.add("ink", cbox(0.08, 0.42, 0.44, 0.02), { p: [-0.64, deck + 0.68, sz] });
+      k.add("paper", box(0.3, 0.36, 0.34), { p: [-0.42, deck + 0.18, sz] });
+    }
     k.add("ink", prism(0.12, 0.12, 0.02, 10), { p: [0.3, deck + 1.0, 0.2], r: [0, 0, 1.1] });
     k.add("ink", cbox(1.75, 0.1, 1.8, 0.05), { p: [(xb + xf) / 2, deck + 1.43, 0] });
   });
@@ -71,22 +75,26 @@ export function addPierSegment(k: Kit, x0: number, o: PierOpts = {}) {
   const t = 0.36;
   k.add("concrete", cbox(seg - 0.04, t, w, 0.05), { p: [x0 + seg / 2, h - t / 2, 0] });
   const xb = x0 + 0.5;
-  const capH = Math.min(0.5, (h - t) * 0.4);
-  k.add("ink", cbox(0.62, capH, w - 0.2, 0.14), { p: [xb, h - t - capH / 2, 0] });
+  const capH = Math.min(0.58, (h - t) * 0.4);
+  k.add("ink", cbox(0.78, capH, w - 0.1, 0.2), { p: [xb, h - t - capH / 2, 0] });
   const pile = h - t - capH;
-  for (const z of [-(w / 2 - 0.55), w / 2 - 0.55]) k.add("ink", vbox(0.5, pile, 0.5, 0.09), { p: [xb, pile / 2, z] });
+  for (const z of [-(w / 2 - 0.6), w / 2 - 0.6]) k.add("ink", vbox(0.6, pile, 0.6, 0.1), { p: [xb, pile / 2, z] });
   rails.forEach((on, i) => {
-    if (!on) return;
-    const z = (i === 0 ? -1 : 1) * (w / 2 - 0.12);
-    const n = Math.max(1, Math.round(seg / 1.35));
-    for (let j = 0; j < n; j++) {
-      const x = x0 + 0.3 + j * (seg / n);
-      k.add("ink", box(0.06, 1.0, 0.06), { p: [x, h + 0.5, z] });
-      k.add("ink", box(0.12, 0.03, 0.12), { p: [x, h + 0.015, z] });
-    }
-    for (const y of [0.32, 0.62]) k.add("ink", rod([x0, h + y, z], [x0 + seg, h + y, z], 0.025, 6));
-    k.add("paper", cbox(seg, 0.07, 0.11, 0.015), { p: [x0 + seg / 2, h + 1.03, z] });
+    if (on) addPierRail(k, x0, x0 + seg, (i === 0 ? -1 : 1) * (w / 2 - 0.12), h);
   });
+}
+
+/** A railing run from xa to xb along the deck edge at z: ink posts about every 1.35 m, two ink rails, a paper handrail. */
+export function addPierRail(k: Kit, xa: number, xb: number, z: number, h = PIER.h) {
+  const len = xb - xa;
+  const n = Math.max(1, Math.round(len / 1.35));
+  for (let j = 0; j < n; j++) {
+    const x = xa + 0.3 + j * ((len - 0.3) / n);
+    k.add("ink", box(0.06, 1.0, 0.06), { p: [x, h + 0.5, z] });
+    k.add("ink", box(0.12, 0.03, 0.12), { p: [x, h + 0.015, z] });
+  }
+  for (const y of [0.32, 0.62]) k.add("ink", rod([xa, h + y, z], [xb, h + y, z], 0.025, 6));
+  k.add("paper", cbox(len, 0.07, 0.11, 0.015), { p: [(xa + xb) / 2, h + 1.03, z] });
 }
 
 /** A rail across the pier's end at x. */
@@ -102,11 +110,14 @@ export function addPierBollard(k: Kit, x: number, z: number, h = PIER.h) {
   k.add("orange", prism(0.14, 0.14, 0.48, 8), { p: [x, h, z] });
 }
 
-/** Pier: three modules, the near one with an orange mooring bollard and its rail set back. 12 m. */
+/** Pier (concept "pier"): two modules, the near one with an orange mooring bollard and its near rail set back behind it. 8 m. */
 export function pierModel() {
   return model("kit-pier", (k) => {
     const { seg, h, w } = PIER;
-    for (let i = 0; i < 3; i++) addPierSegment(k, -1.5 * seg + i * seg);
-    addPierBollard(k, -1.5 * seg + 1.2, w / 2 - 0.45, h);
+    const x0 = -seg;
+    // the near rail of the first module starts behind the mooring bollard, as in the concept
+    for (let i = 0; i < 2; i++) addPierSegment(k, x0 + i * seg, { rails: [true, i > 0] });
+    addPierRail(k, x0 + 1.75, x0 + seg, w / 2 - 0.12, h);
+    addPierBollard(k, x0 + 1.0, w / 2 - 0.42, h);
   });
 }

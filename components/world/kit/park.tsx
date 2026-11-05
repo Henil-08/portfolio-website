@@ -105,13 +105,13 @@ export function bailModel(len = WICKET.gap + 0.032, f = 1) {
 }
 
 /** Podium step: x centre, height. Width and depth are shared. */
-export const PODIUM = { w: 1.0, d: 1.15, steps: [{ n: "2", x: -1.0, h: 0.5 }, { n: "1", x: 0, h: 0.82 }, { n: "3", x: 1.0, h: 0.36 }] };
+export const PODIUM = { w: 1.0, d: 1.0, steps: [{ n: "2", x: -1.0, h: 0.5 }, { n: "1", x: 0, h: 0.8 }, { n: "3", x: 1.0, h: 0.36 }] };
 export type PodiumDims = typeof PODIUM;
 
 /** Podium mass: the stepped front silhouette extruded with a chamfer on every edge. */
 function podiumMass(dims: PodiumDims) {
   const { w, d, steps } = dims;
-  const c = 0.035;
+  const c = Math.min(0.055, dims.w * 0.06);
   const s = new THREE.Shape();
   const l = steps[0].x - w / 2 + c;
   const r = steps[2].x + w / 2 - c;
@@ -134,8 +134,8 @@ export function podiumModel(dims: PodiumDims = PODIUM) {
   return model(`kit-podium-${JSON.stringify(dims)}`, (k) => {
     const { w, d, steps } = dims;
     k.add("concrete", podiumMass(dims));
-    for (const st of steps) k.add("ink", box(w - 0.12, 0.016, d - 0.12), { p: [st.x, st.h + 0.008, 0] });
-    k.add("orange", box(w * 0.16, 0.018, d - 0.12), { p: [w * 0.14, steps[1].h + 0.009, 0] });
+    for (const st of steps) k.add("ink", box(w - 0.07, 0.016, d - 0.07), { p: [st.x, st.h + 0.008, 0] });
+    k.add("orange", box(w * 0.16, 0.018, d - 0.07), { p: [w * 0.14, steps[1].h + 0.009, 0] });
   });
 }
 
@@ -156,7 +156,7 @@ export function KitPodium({ dims = PODIUM, numbers = true, ...props }: ThreeElem
 
 /** Trophy: a faceted paper cup with angular handles on a two-tier ink plinth with an orange band. 0.9 m. */
 export function trophyModel() {
-  return model("kit-trophy", (k) => {
+  return model("kit-trophy-v2", (k) => {
     k.add("ink", hull([...sq(0.24, 0), ...sq(0.24, 0.03), ...sq(0.2, 0.075)]));
     k.add("ink", cbox(0.36, 0.17, 0.36, 0.035), { p: [0, 0.075 + 0.085, 0] });
     k.add("orange", box(0.362, 0.022, 0.362), { p: [0, 0.165, 0] });
@@ -170,11 +170,11 @@ export function trophyModel() {
           [0.11, y0 + 0.025],
           [0.055, y0 + 0.07],
           [0.05, y0 + 0.1],
-          [0.11, y0 + 0.2],
-          [0.185, y0 + 0.38],
-          [0.2, y0 + 0.58],
-          [0.178, y0 + 0.58],
-          [0.165, y0 + 0.4],
+          [0.13, y0 + 0.19],
+          [0.215, y0 + 0.37],
+          [0.235, y0 + 0.58],
+          [0.212, y0 + 0.58],
+          [0.195, y0 + 0.4],
           [0, y0 + 0.36],
         ],
         8,
@@ -182,13 +182,13 @@ export function trophyModel() {
     );
     for (const sx of [-1, 1]) {
       const p: V3[] = [
-        [sx * 0.18, y0 + 0.54, 0],
-        [sx * 0.31, y0 + 0.54, 0],
-        [sx * 0.34, y0 + 0.47, 0],
-        [sx * 0.28, y0 + 0.3, 0],
-        [sx * 0.15, y0 + 0.24, 0],
+        [sx * 0.21, y0 + 0.53, 0],
+        [sx * 0.37, y0 + 0.53, 0],
+        [sx * 0.4, y0 + 0.46, 0],
+        [sx * 0.36, y0 + 0.27, 0],
+        [sx * 0.17, y0 + 0.2, 0],
       ];
-      for (let i = 0; i < p.length - 1; i++) k.add("paper", bar(p[i], p[i + 1], 0.04, 0.03));
+      for (let i = 0; i < p.length - 1; i++) k.add("paper", bar(p[i], p[i + 1], 0.055, 0.04));
     }
   });
 }

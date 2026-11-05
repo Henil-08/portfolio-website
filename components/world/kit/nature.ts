@@ -31,22 +31,22 @@ function spindle(seed: number, st: [number, number][], n: number, jitter: number
 
 /** Cypress: a tall faceted spindle on an ink trunk in a square concrete planter with an orange edge clip. 4.3 m. */
 export function cypressModel() {
-  return model("kit-cypress", (k) => {
+  return model("kit-cypress-v2", (k) => {
     planter(k, 1.2, 0.5, 0.1, 0.4);
     k.add("orange", box(0.11, 0.03, 0.42), { p: [0.545, 0.515, 0.28] });
     k.add("orange", box(0.012, 0.1, 0.42), { p: [0.604, 0.47, 0.28] });
     k.add("ink", prism(0.08, 0.065, 1.0, 6), { p: [0, 0.4, 0] });
     k.add(
-      "leafLight",
+      "sageLeaf",
       spindle(
         8,
         [
-          [1.15, 0],
-          [1.45, 0.38],
-          [2.0, 0.55],
-          [2.7, 0.52],
-          [3.4, 0.38],
-          [4.0, 0.16],
+          [1.05, 0],
+          [1.35, 0.46],
+          [2.0, 0.66],
+          [2.7, 0.63],
+          [3.4, 0.46],
+          [4.0, 0.2],
           [4.32, 0],
         ],
         5,
@@ -56,19 +56,21 @@ export function cypressModel() {
   });
 }
 
-const TILE: Paint[] = ["leafLight", "leafLight", "leafLight", "leaf"];
+const TILE: Paint[] = ["sageLeaf", "sageLeaf", "sageLeaf", "sage", "leafLight"];
 
 /** Round tree: a tiled icosphere crown on an ink trunk with an orange collar, in a shallow concrete tray. 4.8 m. */
 export function roundTreeModel() {
-  return model("kit-round-tree", (k) => {
-    const out = roundRect(1.8, 1.8, 0.04, 1);
-    k.add("concrete", ring(out, inset(out, 0.09), 0, 0.12));
-    k.add("concreteDark", slab(inset(out, 0.085), 0, 0.07));
-    k.add("ink", prism(0.13, 0.11, 1.55, 8), { p: [0, 0.07, 0] });
-    k.add("orange", prism(0.118, 0.118, 0.05, 8), { p: [0, 1.52, 0] });
-    const R = 1.65;
-    const cy = 1.6 + R * 0.93;
-    k.add("leaf", new THREE.IcosahedronGeometry(R * 0.955, 1), { p: [0, cy, 0] });
+  return model("kit-round-tree-v2", (k) => {
+    // a thin square plate with a shallow frame
+    const out = roundRect(1.7, 1.7, 0.02, 1);
+    k.add("concreteLight", ring(out, inset(out, 0.07), 0, 0.07));
+    k.add("concrete", slab(inset(out, 0.065), 0, 0.045));
+    const R = 1.6;
+    const cy = 1.75 + R;
+    // the orange collar sits on the trunk just under the crown
+    k.add("ink", prism(0.13, 0.11, cy - 0.04, 8), { p: [0, 0.04, 0] });
+    k.add("orange", prism(0.12, 0.12, 0.06, 8), { p: [0, cy - R * 0.93 - 0.12, 0] });
+    k.add("sageLeafDark", new THREE.IcosahedronGeometry(R * 0.93, 1), { p: [0, cy, 0] });
     // every face is its own slightly shrunk tile, so the seams read as grooves
     const ico = new THREE.IcosahedronGeometry(R, 1).toNonIndexed();
     const p = ico.attributes.position;
@@ -78,9 +80,9 @@ export function roundTreeModel() {
       const c = v[0].clone().add(v[1]).add(v[2]).divideScalar(3);
       const pts: V3[] = [];
       for (const a of v) {
-        const t = a.clone().lerp(c, 0.03);
+        const t = a.clone().lerp(c, 0.06);
         pts.push([t.x, t.y + cy, t.z]);
-        const b = t.clone().multiplyScalar(0.95);
+        const b = t.clone().multiplyScalar(0.93);
         pts.push([b.x, b.y + cy, b.z]);
       }
       k.add(TILE[Math.floor(r() * TILE.length)], hull(pts));
@@ -177,7 +179,7 @@ function blade(len: number, w: number, lean: number, yaw: number, curve: number)
 
 /** Ornamental grasses (ink, paper, sage and sand blades with stacked seed heads) in a long chamfered concrete trough with an orange tag. 1.6 m long. */
 export function grassesModel() {
-  return model("kit-grasses", (k) => {
+  return model("kit-grasses-v2", (k) => {
     const L = 1.6;
     const D = 0.62;
     const H = 0.5;
@@ -185,32 +187,33 @@ export function grassesModel() {
     k.add("graphite", slab(roundRect(L - 0.12, D - 0.12, 0.02, 1), H, H + 0.004));
     k.add("orange", box(0.1, 0.11, 0.012), { p: [0.58, H - 0.1, D / 2 + 0.002] });
     const r = rng(17);
-    const paints: Paint[] = ["inkBlade", "paperBlade", "sageBlade", "sandBlade", "inkBlade", "paperBlade", "sandBlade"];
-    for (let i = 0; i < 120; i++) {
-      const x = (r() - 0.5) * (L - 0.25);
-      const z = (r() - 0.5) * (D - 0.22);
-      // lean away from the trough's middle, more at the ends
+    // mostly sage, paper and sand, a little ink; wide, long, arching blades
+    const paints: Paint[] = ["sageBlade", "paperBlade", "sandBlade", "sageBlade", "inkBlade", "paperBlade", "sandBlade", "sageBlade"];
+    for (let i = 0; i < 130; i++) {
+      const x = (r() - 0.5) * (L - 0.22);
+      const z = (r() - 0.5) * (D - 0.2);
       const out = x / (L / 2);
-      const yaw = (out >= 0 ? 0 : Math.PI) + (r() - 0.5) * 1.6;
-      const lean = 0.03 + Math.abs(out) * 0.3 + r() * 0.2;
-      const len = 0.55 + r() * 0.55 - Math.abs(out) * 0.15;
-      k.add(paints[i % paints.length], blade(len, 0.06 + r() * 0.035, lean, yaw, 0.2 + r() * 0.5), { p: [x, H, z] });
+      const yaw = (out >= 0 ? 0 : Math.PI) + (r() - 0.5) * 2.2;
+      const lean = 0.04 + Math.abs(out) * 0.25 + r() * 0.2;
+      const len = 0.7 + r() * 0.55 - Math.abs(out) * 0.2;
+      k.add(paints[i % paints.length], blade(len, 0.065 + r() * 0.04, lean, yaw, 0.45 + r() * 0.8), { p: [x, H, z] });
     }
-    // seed heads: a thin stalk and a stack of chevrons
+    // seed heads: tan feathered plumes, a stack of small chevrons on a thin stalk
     for (let i = 0; i < 6; i++) {
       const x = -0.55 + i * 0.22 + (r() - 0.5) * 0.06;
       const z = (r() - 0.5) * 0.2;
-      const tilt = (x / (L / 2)) * 0.35;
-      const top = 0.75 + r() * 0.3;
+      const tilt = (x / (L / 2)) * 0.3;
+      const top = 0.8 + r() * 0.3;
       k.add("sandBlade", blade(top, 0.012, tilt, 0, 0), { p: [x, H, z] });
-      const head = i % 2 === 0 ? "paper" : "gravel";
-      for (let j = 0; j < 6; j++) {
-        const y = H + top + j * 0.055;
-        const dx = Math.sin(tilt) * (top + j * 0.055);
-        k.add(head, cbox(0.085, 0.05, 0.06, 0.016), { p: [x + dx, y, z], r: [0, 0.2 * j, -tilt + (j % 2 ? 0.25 : -0.25)] });
+      const head: Paint = i % 3 === 1 ? "paper" : "gravel";
+      for (let j = 0; j < 7; j++) {
+        const t = top + j * 0.045;
+        const px = x + Math.sin(tilt) * t;
+        const py = H + Math.cos(tilt) * t;
+        // a chevron: two small plates in a V pointing up
+        for (const sd of [-1, 1]) k.add(head, cbox(0.045, 0.012, 0.03, 0.004), { p: [px + sd * 0.019, py, z], r: [0, 0, -tilt + sd * 0.55] });
       }
-      const dx = Math.sin(tilt) * (top + 0.36);
-      k.add(head, prism(0.04, 0, 0.09, 4), { p: [x + dx, H + top + 0.33, z], r: [0, 0, -tilt] });
+      k.add(head, prism(0.022, 0, 0.06, 4), { p: [x + Math.sin(tilt) * (top + 0.32), H + Math.cos(tilt) * (top + 0.32), z], r: [0, 0, -tilt] });
     }
   });
 }
@@ -237,19 +240,21 @@ function boulder(seed: number, w: number, h: number, d: number, c: number) {
   return g;
 }
 
-/** Three chamfered concrete boulders on grey gravel in a thin square tray; an orange hook on the front one. 2.6 m square. */
-export function rocksModel() {
-  return model("kit-rocks", (k) => {
-    const out = roundRect(2.6, 2.6, 0.01, 1);
-    k.add("concrete", ring(out, inset(out, 0.04), 0, 0.06));
-    k.add("stone", slab(inset(out, 0.035), 0, 0.035));
-    gravel(k, ["concreteDark", "stone", "concrete"], 2.5, 2.5, 0.04, 700, 9, 0.024);
-    k.add("concrete", boulder(3, 1.1, 0.85, 1.0, 0.2), { p: [-0.5, 0.02, -0.4], r: [0, 0.25, 0] });
-    k.add("concrete", boulder(5, 0.95, 0.75, 1.05, 0.19), { p: [0.62, 0.02, -0.2], r: [0, -0.2, 0] });
-    k.add("concrete", boulder(7, 1.05, 0.62, 0.85, 0.17), { p: [0.0, 0.02, 0.45], r: [0, 0.08, 0] });
-    // the hook sits over the front boulder's top front edge
-    k.add("orange", box(0.045, 0.022, 0.1), { p: [0.15, 0.64, 0.66] });
-    k.add("orange", box(0.045, 0.1, 0.022), { p: [0.15, 0.6, 0.72], r: [0.5, 0, 0] });
+/** Rocks (concept "rocks"): three big chamfered concrete boulders on dense dark grit in a thin square concrete tray; an orange hook on the front one. 3.2 m square. */
+export function rocksModel(chips = 4200) {
+  return model(`kit-rocks-v2-${chips}`, (k) => {
+    const out = roundRect(3.2, 3.2, 0.01, 1);
+    k.add("concrete", ring(out, inset(out, 0.045), 0, 0.07));
+    k.add("stone", slab(inset(out, 0.04), 0, 0.04));
+    // dense dark grit: small pebbles in greys
+    gravel(k, ["stone", "graphite", "concreteDark", "stone", "concrete"], 3.1, 3.1, 0.044, chips, 9, chips > 600 ? 0.013 : 0.026, undefined, chips > 600);
+    // three big, blocky, sharply cut boulders that fill the tray
+    k.add("concrete", boulder(3, 1.35, 0.9, 1.2, 0.2), { p: [-0.6, 0.02, -0.38], r: [0, 0.22, 0] });
+    k.add("concrete", boulder(5, 1.05, 0.8, 1.3, 0.18), { p: [0.72, 0.02, -0.22], r: [0, -0.18, 0] });
+    k.add("concrete", boulder(7, 1.3, 0.68, 1.0, 0.17), { p: [0.02, 0.02, 0.5], r: [0, 0.06, 0] });
+    // the orange hook draped over the front boulder's top front edge
+    k.add("orange", box(0.045, 0.022, 0.12), { p: [0.2, 0.71, 0.84] });
+    k.add("orange", box(0.045, 0.11, 0.022), { p: [0.2, 0.65, 0.92], r: [0.45, 0, 0] });
   });
 }
 

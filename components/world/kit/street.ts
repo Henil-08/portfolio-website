@@ -8,13 +8,13 @@ export const LAMP_LIGHT_Y = 3.36;
 
 /** Lamp: ink square post on a concrete foot, a glowing paper lantern cube with an ink cap; an orange tag low on the post. 3.7 m. */
 export function lampModel() {
-  return model("kit-lamp", (k) => {
-    k.add("concrete", cbox(0.72, 0.14, 0.72, 0.025), { p: [0, 0.07, 0] });
-    k.add("ink", vbox(0.2, 2.98, 0.2, 0.02), { p: [0, 0.14 + 1.49, 0] });
+  return model("kit-lamp-v2", (k) => {
+    k.add("concrete", cbox(0.86, 0.16, 0.86, 0.025), { p: [0, 0.08, 0] });
+    k.add("ink", vbox(0.2, 2.96, 0.2, 0.02), { p: [0, 0.16 + 1.48, 0] });
     k.add("orange", box(0.085, 0.1, 0.012), { p: [0, 0.6, 0.104] });
-    k.add("ink", box(0.6, 0.03, 0.6), { p: [0, 3.115, 0] });
-    k.add("glow", box(0.55, 0.52, 0.55), { p: [0, LAMP_LIGHT_Y, 0] });
-    k.add("ink", cbox(0.62, 0.07, 0.62, 0.012), { p: [0, 3.645, 0] });
+    k.add("ink", box(0.68, 0.03, 0.68), { p: [0, 3.115, 0] });
+    k.add("glow", box(0.64, 0.52, 0.64), { p: [0, LAMP_LIGHT_Y, 0] });
+    k.add("ink", cbox(0.7, 0.07, 0.7, 0.012), { p: [0, 3.645, 0] });
   });
 }
 
@@ -119,15 +119,22 @@ export function bollardsModel() {
 
 /** Kiosk: a chamfered ink box with a glazed serving window, a concrete counter, a paper awning and a paper side panel; orange tab and handle. 2.2 m square, 2.5 m. */
 export function kioskModel() {
-  return model("kit-kiosk", (k) => {
+  return model("kit-kiosk-v2", (k) => {
     const W = 2.2;
     const H = 2.3;
     const z0 = W / 2;
     k.add("ink", box(W - 0.2, 0.16, W - 0.2), { p: [0, 0.08, 0] });
-    k.add("ink", vbox(W, H, W, 0.14), { p: [0, 0.16 + H / 2, 0] });
+    k.add("ink", vbox(W, H, W, 0.26), { p: [0, 0.16 + H / 2, 0] });
     // window: two panes and an ink mullion
     k.add("glass", box(1.36, 1.0, 0.02), { p: [-0.3, 1.6, z0 + 0.006] });
-    k.add("ink", box(0.04, 1.0, 0.03), { p: [-0.3, 1.6, z0 + 0.012] });
+    // window frame: graphite surround and a centre mullion
+    for (const [w, h, x, y] of [
+      [1.48, 0.06, -0.3, 2.13],
+      [0.06, 1.12, -1.01, 1.6],
+      [0.06, 1.12, 0.41, 1.6],
+      [0.05, 1.0, -0.3, 1.6],
+    ] as [number, number, number, number][])
+      k.add("graphite", box(w, h, 0.035), { p: [x, y, z0 + 0.016] });
     k.add("graphite", box(1.44, 0.05, 0.04), { p: [-0.3, 1.08, z0 + 0.01] });
     k.add("orange", box(0.12, 0.02, 0.02), { p: [0.68, 1.12, z0 + 0.012] });
     // counter
@@ -137,11 +144,11 @@ export function kioskModel() {
     const pts: V3[] = [];
     for (const x of [-1.4, 0.82])
       for (const [y, z] of [
-        [2.36, z0],
-        [2.28, z0],
-        [2.04, z0 + 0.72],
-        [1.98, z0 + 0.72],
-        [2.06, z0 + 0.66],
+        [2.42, z0],
+        [2.24, z0],
+        [2.0, z0 + 0.66],
+        [1.9, z0 + 0.74],
+        [2.12, z0 + 0.76],
       ] as [number, number][])
         pts.push([x, y, z]);
     k.add("paper", hull(pts));
@@ -152,11 +159,11 @@ export function kioskModel() {
 
 /** Bus stop: a chamfered paper roof on ink posts, glass back and side, an ink advert panel on one end, a concrete bench; an orange sign. 3.3 m long, 2.6 m. */
 export function busStopModel() {
-  return model("kit-busstop", (k) => {
+  return model("kit-busstop-v2", (k) => {
     const L = 3.1;
     const zb = -0.55;
     const zf = 0.6;
-    k.add("paper", cbox(3.4, 0.2, 1.62, 0.07), { p: [0.05, 2.5, 0.02] });
+    k.add("paper", block(3.45, 0.3, 1.66, 0.04, 0.12, 0.03), { p: [0.05, 2.55, 0.02] });
     const xr = L / 2;
     const xl = -L / 2 + 0.25;
     // posts
@@ -184,7 +191,8 @@ export function busStopModel() {
     // bench
     k.add("concrete", cbox(1.6, 0.08, 0.42, 0.015), { p: [0.35, 0.46, zb + 0.26] });
     for (const x of [-0.35, 1.05]) k.add("concrete", cbox(0.1, 0.42, 0.38, 0.015), { p: [x, 0.21, zb + 0.26] });
-    k.add("orange", box(0.42, 0.18, 0.04), { p: [xr - 0.25, 1.95, zf] });
+    // the stop sign: an orange plate on the right front post, toward the shelter
+    k.add("orange", box(0.46, 0.18, 0.04), { p: [xr - 0.27, 1.95, zf - 0.03] });
   });
 }
 

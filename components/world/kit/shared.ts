@@ -36,11 +36,14 @@ const PAINTS = {
   leaf: { c: KIT.leaf, r: 0.85 },
   leafLight: { c: KIT.leafLight, r: 0.85 },
   sage: { c: "#9aa38c", r: 0.85 },
+  /** the concepts' tree crowns: a light grey-sage */
+  sageLeaf: { c: "#8c9a7c", r: 0.85 },
+  sageLeafDark: { c: "#77856a", r: 0.85 },
   /** grey stone for gravel beds */
   stone: { c: "#8f8c86", r: 1 },
   orange: { c: KIT.orange, r: 0.55 },
   /** lit lantern panes: paper that glows a little by day */
-  glow: { c: "#fbf8ef", r: 0.5, glow: 0.55 },
+  glow: { c: "#fbf6e8", r: 0.5, glow: 0.95 },
   /** thin blades seen from both sides */
   inkBlade: { c: KIT.ink, r: 0.7, double: true },
   paperBlade: { c: KIT.paper, r: 0.7, double: true },
