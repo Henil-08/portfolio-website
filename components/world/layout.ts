@@ -630,8 +630,8 @@ export const zones: Zone[] = [
   // inside the hotspot, facing the props, clear of the signposts (Places.tsx Signposts).
   // the tyre stacks stand 1 m behind the prompt; you land off their left end
   { id: "playbook", label: "Tyre wall", hint: "How I work with AI", pos: [36, -19], size: [11, 8], spawn: [32, -16.3, 0.75] },
-  // the prompt stands at the podium's front face; you land beside its signpost
-  { id: "podium", label: "Podium", hint: "Papers and patents", pos: [5, -10], size: [10, 8], marker: [5, -9.6], spawn: [8.2, -7.6, 2.4] },
+  // the prompt stands at the podium's front face; you land between its signpost and the bench
+  { id: "podium", label: "Podium", hint: "Papers and patents", pos: [5, -10], size: [10, 8], marker: [5, -9.6], spawn: [7.4, -7.9, 2.38] },
   // between the wickets, facing across the pitch
   { id: "cricket", label: "Cricket", hint: "Off the clock", pos: [-25, -10], size: [22, 8], spawn: [-25, -7.3, Math.PI / 2] },
   // on the halfway side, facing the ball and the goal
