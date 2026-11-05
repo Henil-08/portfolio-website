@@ -19,7 +19,7 @@ import Island from "@/components/world/Island";
 import Places from "@/components/world/Places";
 import Street from "@/components/world/street";
 import StartGarden from "@/components/world/StartGarden";
-import InteractivePoints from "@/components/world/ui3d/InteractivePoints";
+import InteractivePoints, { type PromptView } from "@/components/world/ui3d/InteractivePoints";
 import { Sky } from "@/components/world/Rig";
 import { EnvLight, sceneParams } from "@/components/world/Effects";
 import { dayNight } from "@/components/world/daynight";
@@ -28,6 +28,9 @@ import { views } from "./views";
 
 // the game's noon (Effects.tsx TIME_OF.day)
 const NOON = 0.24;
+
+/** Every box with its camera, for the E prompts: each box gets its own layer of stickers. */
+const promptViews = (): PromptView[] => [...views.entries()].map(([id, v]) => ({ id, el: v.el, camera: v.camera }));
 
 function MultiView() {
   const light = useRef<THREE.DirectionalLight>(null);
@@ -138,7 +141,7 @@ export default function Scene() {
           <StartGarden />
         </Physics>
       </Suspense>
-      <InteractivePoints />
+      <InteractivePoints views={promptViews} />
       <EnvLight />
     </Canvas>
   );

@@ -1,355 +1,398 @@
 "use client";
 
-// The interaction prompt, ported from folio-2025 (MIT, public/vendor/LICENSE.md),
-// sources/Game/InteractivePoints.js, as the brand's zone sticker (docs/BRAND.md I08).
+// The interaction prompt: the zone sticker (docs/BRAND.md S02, I02, I08) at every place and
+// contact link, after folio-2025's InteractivePoints (MIT, public/vendor/LICENSE.md,
+// sources/Game/InteractivePoints.js): a point is HIDDEN until the opening is done, then
+// CONCEALED, and the one the car is at (store `near` / `nearLink`) OPENs.
 //
-// Every place and contact medallion has a point standing in the world with the
-// original's fixed tilt (it faces our chase camera, which sits at the same angle as the
-// original's). A point is HIDDEN until the opening is done, then CONCEALED: a small
-// diamond. The one the car is at (store `near` / `nearLink`) OPENs: the diamond grows
-// with an elastic overshoot, the E key pops in and the label slides out of the diamond,
-// all drawn on top. Leaving conceals it again. E / Enter (Hud.tsx) or a click opens it.
+// - Concealed: a small code tag (Z05, C03) on paper with a 2 px ink border and a hard shadow, its
+//   status dot an outline until you have opened the place and ink after.
+// - Open: the sticker. Paper, a 2 px ink border, the hard 3 px ink shadow; the ink E key on the
+//   left (Tap on touch), standing on the point; the code in Plex Mono after the one orange, the
+//   live dot; the name in Plex Sans 600. Its frame draws top to bottom while the key pops and
+//   the code and name decode (M01, M06, M03, about .3 s); leaving wipes it out. E or Enter
+//   (Hud.tsx) presses the key into its shadow; a click or a tap on the sticker opens it too.
 //
-// The marker is the original's square SDF with an inner outline, kept square (no diamond):
-// an ink square with a paper line, the E key on it. The label is a canvas texture (Plex
-// Sans, ink on white, the place's name as written) revealed by a moving UV offset. Built imperatively under
-// one group so every material is mutated through refs, never through hook values.
+// Stickers are DOM over the canvas, the same size on screen at any distance. Every frame each
+// point is projected through the camera; a tag that would overlap the open sticker or a nearer
+// tag hides, and tags fade out with distance. They all step back for the garage sequence. The
+// places page draws the world into several boxes with their own cameras: it passes them as
+// `views` and every box gets a layer of its own.
 import { useEffect, useRef } from "react";
-import { useFrame, type ThreeEvent } from "@react-three/fiber";
+import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { getState, openZone, subscribe } from "../store";
+import { getState, openZone } from "../store";
 import { garageView } from "../garage/state";
-import { zones, type ZoneId } from "../layout";
+import { SECTORS, zoneMarker, zones, type ZoneId } from "../layout";
 import { heightAt } from "../terrain";
 import { LINKS, LINK_SPOTS, openLink } from "../social";
 import { paper } from "../sound";
+
+/** A box the world is drawn into and the camera it is drawn with (the places page's views). */
+export type PromptView = { id: string; el: HTMLElement; camera?: THREE.Camera };
+
+const ZONE_Y = 3; // m over the ground at a zone's marker: in front of the building's face
+const LINK_Y = 2.4; // m: just over a contact slab
+const ZONE_FAR = 70; // m from the camera; a tag fades out over the last 15%
+const LINK_FAR = 34;
+const KEY = 32; // px, the key's width inside the border (44 on touch)
+const KEY_TOUCH = 44;
+const GAP = 4; // px kept between a shown tag and anything else
+
+type Point = { id: string; code: string; kicker: string; name: string; pos: THREE.Vector3; far: number; zone: ZoneId | null; open: () => void };
+
+const pad = (n: number) => String(n).padStart(2, "0");
+
+function points(): Point[] {
+  return [
+    ...zones.map((zn, i) => {
+      const [x, z] = zoneMarker(zn);
+      const sector = SECTORS.find((s) => `sector-${s.n}` === zn.id);
+      return {
+        id: zn.id,
+        code: `Z${pad(i + 1)}`,
+        kicker: sector ? `Sector ${sector.n} · ${sector.year}` : zn.hint,
+        name: zn.label,
+        pos: new THREE.Vector3(x, heightAt(x, z) + ZONE_Y, z),
+        far: ZONE_FAR,
+        zone: zn.id,
+        open: () => openZone(zn.id),
+      };
+    }),
+    ...LINKS.map((l, i) => {
+      const [x, z] = LINK_SPOTS[i];
+      return { id: `link-${l.key}`, code: `C${pad(i + 1)}`, kicker: "Contact", name: l.name, pos: new THREE.Vector3(x, heightAt(x, z) + LINK_Y, z), far: LINK_FAR, zone: null, open: () => openLink(l.key) };
+    }),
+  ];
+}
+
+const CSS = `
+.ipl{position:fixed;left:0;top:0;pointer-events:none;overflow:hidden;z-index:10}
+.ipp{position:absolute;left:0;top:0;width:0;height:0}
+.ipt{position:absolute;left:0;top:0;translate:-50% -50%;display:flex;align-items:center;gap:4px;padding:1px 5px 1px 4px;border:2px solid #111;background:#f3f2ed;box-shadow:2px 2px 0 #111;font:600 10.5px/15px var(--font-plex-mono),ui-monospace,monospace;color:#111;white-space:nowrap;opacity:0}
+.ipd{flex:none;width:6px;height:6px;border-radius:50%;border:1.5px solid #111;box-sizing:border-box}
+.ipt[data-seen] .ipd{background:#111}
+.ips{position:absolute;top:0;translate:0 -50%;display:flex;align-items:stretch;margin:0;padding:0;border:2px solid #111;background:#fff;box-shadow:3px 3px 0 #111;color:#111;font:inherit;text-align:left;cursor:pointer;visibility:hidden;pointer-events:none}
+.ips[data-open]{pointer-events:auto}
+.ipk{display:grid;place-items:center;flex:none;background:#111;color:#fff;font:600 15px var(--font-plex-mono),ui-monospace,monospace}
+.ipb{display:flex;flex-direction:column;justify-content:center;gap:1px;padding:5px 12px 6px 10px}
+.ipc{display:flex;align-items:center;gap:6px;font:500 11px/14px var(--font-plex-mono),ui-monospace,monospace;color:#5d5d58;white-space:nowrap}
+.ipc .ipd{border:0;background:#ff4f00;animation:ipl-blink 1.06s steps(1,end) infinite}
+.ipn{font:600 15px/19px var(--font-plex),system-ui,sans-serif;letter-spacing:-.005em;white-space:nowrap}
+.iph{position:relative;display:inline-block}
+.iph>.ipg{visibility:hidden}
+.iph>.ipv{position:absolute;left:0;top:0}
+@keyframes ipl-blink{50%{opacity:0}}
+@media (pointer:coarse){.ipk{font-size:12px}.ipb{padding:8px 14px 9px 10px}}
+@media (prefers-reduced-motion:reduce){.ipc .ipd{animation:none}}
+`;
+
+// M03 Decode: scramble glyphs keep the real character's case, three run ahead (components/brand/motion.tsx).
+const UPPER = "ABCDEFGHJKLNPRSTUVXYZ";
+const LOWER = "abcdeghknopqrsuvxyz";
+const DIGIT = "0123456789";
+function glyph(ch: string) {
+  const set = /[A-Z]/.test(ch) ? UPPER : /[a-z]/.test(ch) ? LOWER : /\d/.test(ch) ? DIGIT : "#/<>";
+  return set[(Math.random() * set.length) | 0];
+}
+function decoded(text: string, k: number) {
+  if (k >= 1) return text;
+  if (k <= 0) return "";
+  const n = Math.floor(k * text.length);
+  let s = text.slice(0, n);
+  for (let i = n; i < Math.min(text.length, n + 3); i++) s += text[i] === " " ? " " : glyph(text[i]);
+  return s;
+}
 
 const HIDDEN = 0;
 const CONCEALED = 1;
 const OPEN = 2;
 
-const SCALE = 1.15; // the original's 0.85, for our bigger car and props
-const BACK = new THREE.Color("#111111"); // ink
-const FRONT = new THREE.Color("#f3f2ed"); // paper
-const LABEL_BACK = new THREE.Color("#ffffff");
-
-// gsap's eases
-const back = (s: number) => (t: number) => (s + 1) * t ** 3 - s * t ** 2;
-const power2In = (t: number) => t * t;
-const power2Out = (t: number) => 1 - (1 - t) ** 2;
-const elastic = (a: number, p: number) => {
-  const s = (p / (2 * Math.PI)) * Math.asin(1 / a);
-  return (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : a * 2 ** (-10 * t) * Math.sin(((t - s) * 2 * Math.PI) / p) + 1);
+/** One point's elements in one layer. */
+type El = {
+  root: HTMLDivElement;
+  tag: HTMLDivElement;
+  stk: HTMLButtonElement;
+  code: HTMLSpanElement;
+  name: HTMLSpanElement;
+  /** tag and sticker size, measured once the fonts are in */
+  tw: number;
+  th: number;
+  sw: number;
+  sh: number;
+  last: string;
+  alpha: number;
 };
+type Layer = { el: HTMLDivElement; items: El[]; box: string };
 
-type Tween = {
-  obj: Record<string, number>;
-  key: string;
-  from: number | null;
-  to: number;
-  t: number;
-  dur: number;
-  delay: number;
-  ease: (t: number) => number;
-  done?: () => void;
-  dead?: boolean;
-};
-
-type Item = {
-  id: string;
-  open: () => void;
-  x: number;
-  z: number;
-  state: number;
-  v: { threshold: number; thick: number; offset: number; label: number; key: number };
-  group: THREE.Group;
-  materials: THREE.ShaderMaterial[];
-  key: THREE.Mesh;
-};
-
-const vertexShader = /* glsl */ `
-varying vec2 vUv;
-void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
-`;
-const diamondFrag = /* glsl */ `
-uniform float uThreshold; uniform float uThick; uniform float uOffset; uniform vec3 uBack; uniform vec3 uFront;
-varying vec2 vUv;
-void main() {
-  float d = max(abs(vUv.x - 0.5), abs(vUv.y - 0.5)) * 2.0;
-  float line = step(abs(uThreshold - d - uOffset), uThick * 0.5);
-  if (d > uThreshold) discard;
-  gl_FragColor = vec4(mix(uBack, uFront, line), 1.0);
-  #include <colorspace_fragment>
-}
-`;
-const labelFrag = /* glsl */ `
-uniform sampler2D uMap; uniform float uOffset; uniform vec3 uBack; uniform vec3 uFront;
-varying vec2 vUv;
-void main() {
-  vec2 p = vec2(vUv.x - uOffset, vUv.y);
-  if (p.x > 1.0 || p.x < 0.0) discard;
-  float text = texture2D(uMap, p).r;
-  gl_FragColor = vec4(mix(uBack, uFront, text), 1.0);
-  #include <colorspace_fragment>
-}
-`;
-const keyFrag = /* glsl */ `
-uniform sampler2D uMap; uniform vec3 uFront;
-varying vec2 vUv;
-void main() {
-  if (texture2D(uMap, vUv).r < 0.5) discard;
-  gl_FragColor = vec4(uFront, 1.0);
-  #include <colorspace_fragment>
-}
-`;
-
-const fontVar = (v: string, fallback: string) => getComputedStyle(document.documentElement).getPropertyValue(v).trim() || fallback;
-
-/** The label: the name in Plex Sans (white where text, the shader maps it to ink on white), room for the marker on the left. */
-function labelTexture(text: string, family: string) {
-  const h = 64;
-  const font = `600 40px ${family}`;
-  const c = document.createElement("canvas");
-  const g = c.getContext("2d")!;
-  g.font = font;
-  const padL = 62;
-  const padR = 22;
-  c.width = Math.ceil(g.measureText(text).width) + padL + padR;
-  c.height = h;
-  g.fillStyle = "#000";
-  g.fillRect(0, 0, c.width, h);
-  g.font = font;
-  g.fillStyle = "#fff";
-  g.textBaseline = "middle";
-  g.fillText(text, padL, h / 2 + 2);
-  const t = new THREE.CanvasTexture(c);
-  t.minFilter = THREE.LinearFilter;
-  t.generateMipmaps = false;
-  return { t, aspect: c.width / h };
+/** Text that decodes in place: the final text holds the box, the live copy sits over it. */
+function hold(cls: string, text: string) {
+  const outer = document.createElement("span");
+  outer.className = `${cls} iph`;
+  const ghost = document.createElement("span");
+  ghost.className = "ipg";
+  ghost.textContent = text;
+  const live = document.createElement("span");
+  live.className = "ipv";
+  live.textContent = text;
+  live.setAttribute("aria-hidden", "true");
+  outer.append(ghost, live);
+  return { outer, live };
 }
 
-/** The key cap glyph: a bold E. */
-function keyTexture(family: string) {
-  const c = document.createElement("canvas");
-  c.width = c.height = 64;
-  const g = c.getContext("2d")!;
-  g.fillStyle = "#000";
-  g.fillRect(0, 0, 64, 64);
-  g.fillStyle = "#fff";
-  g.font = `700 52px ${family}`;
-  g.textAlign = "center";
-  g.textBaseline = "middle";
-  g.fillText("E", 32, 35);
-  const t = new THREE.CanvasTexture(c);
-  t.generateMipmaps = false;
-  return t;
-}
-
-/** Every point; `s` scales the sticker (the contact slabs stand ~3 m apart, so theirs are smaller). */
-function points(): { id: string; label: string; x: number; z: number; y: number; s: number; open: () => void }[] {
-  return [
-    ...zones.map((zn) => ({ id: zn.id, label: zn.label, x: zn.pos[0], z: zn.pos[1], y: 3.2, s: 1, open: () => openZone(zn.id as ZoneId) })),
-    ...LINKS.map((l, i) => ({ id: `link-${l.key}`, label: l.name, x: LINK_SPOTS[i][0], z: LINK_SPOTS[i][1], y: 2.6, s: 0.6, open: () => openLink(l.key) })),
-  ];
-}
-
-export default function InteractivePoints() {
-  const root = useRef<THREE.Group>(null);
-  const items = useRef<Item[]>([]);
-  const tweens = useRef<Tween[]>([]);
-  const active = useRef<Item | null>(null);
+export default function InteractivePoints({ views }: { views?: () => PromptView[] }) {
+  const pts = useRef<Point[]>([]);
+  const st = useRef<{ state: number; t0: number; done: boolean }[]>([]);
+  const layers = useRef(new Map<string, Layer>());
+  const active = useRef(-1);
   const coarse = useRef(false);
+  const reduced = useRef(false);
+  const v = useRef(new THREE.Vector3());
+  const cam = useRef(new THREE.Vector3());
+  /** The canvas's own root element: the layers go right after it, in the same stacking context as the HUD. */
+  const host = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    const parent = root.current;
-    if (!parent) return;
     coarse.current = window.matchMedia("(pointer: coarse)").matches;
-    let disposed = false;
-    const plane = new THREE.PlaneGeometry(2, 2);
-    const labelGeo = new THREE.PlaneGeometry(1, 1);
-    labelGeo.translate(0.5, 0, 0);
-    const owned: { dispose: () => void }[] = [plane, labelGeo];
-    const sans = fontVar("--font-plex", "system-ui, sans-serif");
-    const mono = fontVar("--font-plex-mono", "ui-monospace, monospace");
-    // canvas text needs the web fonts loaded first
-    void Promise.all([document.fonts.load(`600 40px ${sans}`), document.fonts.load(`700 52px ${mono}`)]).finally(() => {
-      if (disposed) return;
-      const keyTex = keyTexture(mono);
-      owned.push(keyTex);
-      for (const p of points()) {
-        const group = new THREE.Group();
-        group.rotation.order = "YXZ";
-        group.rotation.x = -Math.PI * 0.15;
-        group.rotation.y = Math.PI * 0.25;
-        group.position.set(p.x, heightAt(p.x, p.z) + p.y, p.z);
-        group.scale.setScalar(SCALE * p.s);
-        group.userData.id = p.id;
-
-        const { t, aspect } = labelTexture(p.label, sans);
-        const labelMat = new THREE.ShaderMaterial({
-          vertexShader,
-          fragmentShader: labelFrag,
-          uniforms: { uMap: { value: t }, uOffset: { value: 1 }, uBack: { value: LABEL_BACK }, uFront: { value: BACK } },
-        });
-        const label = new THREE.Mesh(labelGeo, labelMat);
-        label.renderOrder = 6;
-        label.scale.set(0.75 * aspect, 0.75, 1);
-        label.position.z = -0.01;
-
-        const diamondMat = new THREE.ShaderMaterial({
-          vertexShader,
-          fragmentShader: diamondFrag,
-          uniforms: { uThreshold: { value: 0 }, uThick: { value: 0.15 }, uOffset: { value: 0.175 }, uBack: { value: BACK }, uFront: { value: FRONT } },
-        });
-        const diamond = new THREE.Mesh(plane, diamondMat);
-        diamond.renderOrder = 7;
-
-        const keyMat = new THREE.ShaderMaterial({
-          vertexShader,
-          fragmentShader: keyFrag,
-          depthTest: false,
-          uniforms: { uMap: { value: keyTex }, uFront: { value: FRONT } },
-        });
-        const key = new THREE.Mesh(plane, keyMat);
-        key.renderOrder = 8;
-        key.position.z = 0.01;
-        key.scale.setScalar(0);
-
-        group.add(label, diamond, key);
-        parent.add(group);
-        owned.push(t, labelMat, diamondMat, keyMat);
-        items.current.push({
-          id: p.id,
-          open: p.open,
-          x: p.x,
-          z: p.z,
-          state: HIDDEN,
-          v: { threshold: 0, thick: 0.15, offset: 0.175, label: 1, key: 0 },
-          group,
-          materials: [labelMat, diamondMat],
-          key,
-        });
-      }
+    reduced.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    pts.current = points();
+    st.current = pts.current.map(() => ({ state: HIDDEN, t0: 0, done: true }));
+    const style = document.createElement("style");
+    style.textContent = CSS;
+    document.head.append(style);
+    const all = layers.current;
+    // the measured sizes are only right once the web fonts are in
+    let live = true;
+    void document.fonts.ready.then(() => {
+      if (!live) return;
+      for (const l of all.values()) for (const it of l.items) it.tw = 0;
     });
+    // E or Enter presses the open sticker's key into its shadow (I01, I02)
+    const key = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+      if ((e.code === "KeyE" || e.code === "Enter") && !e.repeat && active.current >= 0) press(active.current);
+    };
+    window.addEventListener("keydown", key);
     return () => {
-      disposed = true;
-      for (const it of items.current) parent.remove(it.group);
-      items.current = [];
-      for (const o of owned) o.dispose();
+      live = false;
+      window.removeEventListener("keydown", key);
+      for (const l of all.values()) l.el.remove();
+      all.clear();
+      style.remove();
     };
   }, []);
 
-  // a little pulse on the open diamond when its place opens (the original's interact())
-  useEffect(() => {
-    let last = getState().zone;
-    return subscribe(() => {
-      const z = getState().zone;
-      if (z && z !== last && active.current) pulse(active.current);
-      last = z;
+  function layer(id: string): Layer {
+    const have = layers.current.get(id);
+    if (have) return have;
+    const el = document.createElement("div");
+    el.className = "ipl";
+    el.dataset.prompts = id;
+    // the places page's canvas is a fixed layer at z 20: its boxes' prompts go over it
+    if (views) el.style.zIndex = "21";
+    const kw = coarse.current ? KEY_TOUCH : KEY;
+    const items = pts.current.map((p, i) => {
+      const root = document.createElement("div");
+      root.className = "ipp";
+      const tag = document.createElement("div");
+      tag.className = "ipt";
+      tag.innerHTML = `<i class="ipd"></i>`;
+      tag.append(p.code);
+      const stk = document.createElement("button");
+      stk.type = "button";
+      stk.tabIndex = -1;
+      stk.className = "ips";
+      stk.style.left = `${-(2 + kw / 2)}px`;
+      stk.setAttribute("aria-label", `Open ${p.name}`);
+      const k = document.createElement("span");
+      k.className = "ipk";
+      k.style.width = `${kw}px`;
+      k.textContent = coarse.current ? "Tap" : "E";
+      const body = document.createElement("span");
+      body.className = "ipb";
+      const codeLine = document.createElement("span");
+      codeLine.className = "ipc";
+      codeLine.innerHTML = `<i class="ipd"></i>`;
+      const code = hold("", `${p.code} · ${p.kicker}`);
+      codeLine.append(code.outer);
+      const name = hold("ipn", p.name);
+      body.append(codeLine, name.outer);
+      stk.append(k, body);
+      stk.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (st.current[i].state !== OPEN) return;
+        press(i);
+        p.open();
+      });
+      root.append(tag, stk);
+      el.append(root);
+      return { root, tag, stk, code: code.live, name: name.live, tw: 0, th: 0, sw: 0, sh: 0, last: "", alpha: 0 };
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function to(obj: Record<string, number>, key: string, value: number, dur: number, ease: (t: number) => number, delay = 0, done?: () => void) {
-    for (const tw of tweens.current) if (tw.obj === obj && tw.key === key) tw.dead = true; // overwrite: true
-    tweens.current.push({ obj, key, from: null, to: value, t: 0, dur, delay, ease, done });
+    // beside the canvas, not on <body>: the page's fixed root is its own stacking context, and
+    // the HUD's stickers in it must stay over these
+    if (host.current) host.current.after(el);
+    else document.body.append(el);
+    const made = { el, items, box: "" };
+    layers.current.set(id, made);
+    // a point that is already open shows in the new layer too
+    st.current.forEach((s, i) => s.state === OPEN && drawIn(made.items[i], 0));
+    return made;
   }
 
-  function reveal(it: Item) {
-    if (it.state === OPEN) return;
-    it.state = OPEN;
-    const e = elastic(1.3, 0.4);
-    to(it.v, "threshold", 0.5, 1.5, e);
-    to(it.v, "thick", 0.075, 1.5, e);
-    to(it.v, "offset", 0.15, 1.5, e);
-    if (!coarse.current) {
-      it.v.key = 0;
-      to(it.v, "key", 0.25, 1.5, elastic(1.3, 0.8), 0.6);
-    }
-    to(it.v, "label", 0, 0.6, power2Out, 0.2);
-    for (const m of it.materials) m.depthTest = false; // drawn over everything while open
+  function drawIn(it: El, delay: number) {
+    const d = reduced.current ? 0 : 1;
+    it.stk.dataset.open = "";
+    it.stk.style.visibility = "visible";
+    it.stk.getAnimations().forEach((a) => a.cancel());
+    // M01 Draw, top to bottom, the shadow kept inside the clip
+    it.stk.animate([{ clipPath: "inset(-5px -5px 100% -5px)" }, { clipPath: "inset(-5px -5px -5px -5px)" }], { duration: 300 * d, delay: delay * d, easing: "cubic-bezier(.6,0,.2,1)", fill: "both" });
+    // M06 Pop for the key
+    it.stk.firstElementChild?.animate([{ transform: "scale(0)" }, { transform: "scale(1)" }], { duration: 280 * d, delay: delay * d, easing: "cubic-bezier(.3,1.7,.5,1)", fill: "both" });
+  }
+
+  function wipeOut(it: El) {
+    delete it.stk.dataset.open;
+    // the wipe overrides the draw's clip; a key press still running finishes under it
+    const a = it.stk.animate([{ clipPath: "inset(-5px -5px -5px -5px)" }, { clipPath: "inset(-5px -5px -5px 100%)" }], { duration: reduced.current ? 0 : 220, easing: "cubic-bezier(.55,0,1,.45)", fill: "both" });
+    a.onfinish = () => {
+      if (!it.stk.dataset.open) it.stk.style.visibility = "hidden";
+    };
+  }
+
+  function press(i: number) {
+    if (reduced.current) return;
+    for (const l of layers.current.values())
+      l.items[i].stk.animate([{ translate: "0 -50%" }, { translate: "3px calc(-50% + 3px)", boxShadow: "0 0 0 #111", offset: 0.35 }, { translate: "0 -50%" }], { duration: 220, easing: "ease-out" });
+  }
+
+  function reveal(i: number, now: number) {
+    const s = st.current[i];
+    if (s.state === OPEN) return;
+    s.state = OPEN;
+    s.t0 = now;
+    s.done = false;
+    for (const l of layers.current.values()) drawIn(l.items[i], 0);
     paper(true);
   }
 
-  function conceal(it: Item) {
-    if (it.state === CONCEALED) return;
-    const from = it.state;
-    it.state = CONCEALED;
-    const e = from === HIDDEN ? power2Out : back(4.5);
-    to(it.v, "threshold", 0.25, 0.6, e, 0.2);
-    to(it.v, "thick", 0.15, 0.6, e, 0.2);
-    to(it.v, "offset", 0.175, 0.6, e, 0.2, () => {
-      for (const m of it.materials) m.depthTest = true;
-    });
-    to(it.v, "key", 0, 0.6, power2In);
-    // the first conceal (after the opening) parks the label at once: tweening it from 1 to -1
-    // swept every label across in view at the same moment
-    if (from === HIDDEN) it.v.label = -1;
-    else to(it.v, "label", -1, 0.6, power2In);
-    if (from === OPEN) paper(false);
+  function conceal(i: number) {
+    const s = st.current[i];
+    if (s.state === CONCEALED) return;
+    const was = s.state;
+    s.state = CONCEALED;
+    if (was !== OPEN) return;
+    for (const l of layers.current.values()) wipeOut(l.items[i]);
+    paper(false);
   }
 
-  function pulse(it: Item) {
-    to(it.v, "threshold", 0.6, 0.1, power2Out, 0, () => to(it.v, "threshold", 0.5, 1.5, elastic(1.3, 0.6)));
-  }
-
-  useFrame((_, dt) => {
-    const s = getState();
-    const list = items.current;
+  useFrame((state) => {
+    const list = pts.current;
     if (!list.length) return;
-    // HIDDEN until the opening has swept out, then every point shows its small diamond
-    if (s.revealed) for (const it of list) if (it.state === HIDDEN) conceal(it);
-    // the open one: the medallion the car is at, else the place
-    // a place's card is open (or the garage shot): the prompt steps back
-    // and stays back for the whole garage sequence, back-out included, until you can drive again
-    const want = !s.revealed || s.zone || garageView.dom !== null ? null : s.nearLink ? `link-${s.nearLink}` : s.near;
-    const next = want ? (list.find((it) => it.id === want) ?? null) : null;
+    const s = getState();
+    const now = performance.now();
+    // HIDDEN until the opening has swept out; the garage sequence hides every one
+    const hide = !s.revealed || garageView.dom !== null;
+    if (s.revealed) st.current.forEach((p, i) => p.state === HIDDEN && conceal(i));
+    // the open one: the link the car is at, else the place; a place's sheet open steps it back
+    const want = hide || s.zone ? null : s.nearLink ? `link-${s.nearLink}` : s.near;
+    const next = want ? list.findIndex((p) => p.id === want) : -1;
     if (next !== active.current) {
-      if (active.current && active.current.state === OPEN) conceal(active.current);
+      if (active.current >= 0) conceal(active.current);
       active.current = next;
     }
-    if (next && next.state !== OPEN) reveal(next);
+    if (next >= 0) reveal(next, now);
 
-    // tweens (a finished tween's callback may start new ones)
-    const step = Math.min(dt, 0.1);
-    for (const tw of tweens.current.slice()) {
-      if (tw.dead) continue;
-      if (tw.delay > 0) {
-        tw.delay -= step;
-        continue;
+    host.current ??= state.gl.domElement.parentElement?.parentElement ?? null;
+    const vs: PromptView[] = views ? views() : [{ id: "world", el: state.gl.domElement, camera: state.camera }];
+    // every box's rect first, before this frame writes anything
+    const rects = vs.map((view) => view.el.getBoundingClientRect());
+    vs.forEach((view, k) => {
+      if (!view.camera) return;
+      const l = layer(view.id);
+      const r = rects[k];
+      const W = r.width;
+      const H = r.height;
+      const off = hide || W < 4 || H < 4 || r.bottom < 0 || r.top > window.innerHeight;
+      const box = off ? "none" : `${r.left},${r.top},${W},${H}`;
+      if (box !== l.box) {
+        l.box = box;
+        l.el.style.display = off ? "none" : "";
+        if (!off) Object.assign(l.el.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${W}px`, height: `${H}px` });
       }
-      if (tw.from === null) tw.from = tw.obj[tw.key];
-      tw.t += step;
-      const k = Math.min(1, tw.t / tw.dur);
-      tw.obj[tw.key] = tw.from + (tw.to - tw.from) * tw.ease(k);
-      if (k >= 1) {
-        tw.dead = true;
-        tw.done?.();
+      if (off) return;
+      const camera = view.camera;
+      camera.updateMatrixWorld();
+      camera.getWorldPosition(cam.current);
+      // project every point, nearest first; the open sticker claims its box before any tag
+      const order = list
+        .map((p, i) => {
+          v.current.copy(p.pos).project(camera);
+          const inFront = v.current.z > -1 && v.current.z < 1;
+          return { i, x: (v.current.x * 0.5 + 0.5) * W, y: (-v.current.y * 0.5 + 0.5) * H, d: cam.current.distanceTo(p.pos), inFront };
+        })
+        .sort((a, b) => (a.i === active.current ? -1 : b.i === active.current ? 1 : a.d - b.d));
+      const taken: [number, number, number, number][] = [];
+      const free = (x0: number, y0: number, x1: number, y1: number) => !taken.some(([a0, b0, a1, b1]) => x0 < a1 + GAP && x1 > a0 - GAP && y0 < b1 + GAP && y1 > b0 - GAP);
+      for (const o of order) {
+        const it = l.items[o.i];
+        const p = list[o.i];
+        if (!it.tw && it.tag.offsetWidth) {
+          it.tw = it.tag.offsetWidth;
+          it.th = it.tag.offsetHeight;
+          it.sw = it.stk.offsetWidth;
+          it.sh = it.stk.offsetHeight;
+        }
+        const onScreen = o.inFront && o.x > -it.sw && o.x < W + 40 && o.y > -60 && o.y < H + 60;
+        // behind the camera a projection comes out mirrored: the point steps out of the layer
+        const t = o.inFront ? `translate3d(${o.x.toFixed(1)}px,${o.y.toFixed(1)}px,0)` : "translate3d(-9999px,0,0)";
+        if (t !== it.last) {
+          it.root.style.transform = t;
+          it.last = t;
+        }
+        let a = 0;
+        if (o.i === active.current) {
+          if (onScreen) {
+            const kw = coarse.current ? KEY_TOUCH : KEY;
+            const x0 = o.x - kw / 2 - 2;
+            taken.push([x0, o.y - it.sh / 2, x0 + it.sw + 3, o.y + it.sh / 2 + 3]);
+          }
+        } else if (onScreen && st.current[o.i].state === CONCEALED) {
+          // fade out over the last 15% of the reach
+          const k = THREE.MathUtils.clamp((p.far - o.d) / (p.far * 0.15), 0, 1);
+          const box = [o.x - it.tw / 2, o.y - it.th / 2, o.x + it.tw / 2 + 2, o.y + it.th / 2 + 2] as const;
+          if (k > 0 && free(...box)) {
+            a = k;
+            taken.push([...box]);
+          }
+        }
+        // ease toward the target so a tag that is crowded out or comes back never pops
+        it.alpha += (a - it.alpha) * 0.25;
+        if (Math.abs(it.alpha - a) < 0.01) it.alpha = a;
+        it.tag.style.opacity = it.alpha.toFixed(3);
+        if (p.zone) {
+          const seen = s.found.includes(p.zone);
+          if (seen !== it.tag.hasAttribute("data-seen")) it.tag.toggleAttribute("data-seen", seen);
+        }
       }
-    }
-    tweens.current = tweens.current.filter((tw) => !tw.dead);
+    });
 
-    for (const it of list) {
-      const [labelMat, diamondMat] = it.materials;
-      diamondMat.uniforms.uThreshold.value = it.v.threshold;
-      diamondMat.uniforms.uThick.value = it.v.thick;
-      diamondMat.uniforms.uOffset.value = it.v.offset;
-      labelMat.uniforms.uOffset.value = it.v.label;
-      it.key.scale.setScalar(it.v.key);
-      // the garage in use hides its point outright: the cockpit camera passes right by it
-      it.group.visible = it.v.threshold > 0.001 && !(garageView.dom && it.id === `garage-${garageView.dom}`);
+    // M03 Decode on the open sticker: the code from 60 ms, the name from 120 ms, .3 s each; the
+    // last write is always the full text, however long a frame took
+    const i = active.current;
+    const cur = st.current[i];
+    if (i >= 0 && !cur.done) {
+      const k = reduced.current ? 2 : (now - cur.t0) / 300;
+      const p = list[i];
+      const c = decoded(`${p.code} · ${p.kicker}`, k - 0.2);
+      const n = decoded(p.name, k - 0.4);
+      for (const l of layers.current.values()) {
+        l.items[i].code.textContent = c;
+        l.items[i].name.textContent = n;
+      }
+      cur.done = k >= 1.4;
     }
   });
 
-  const click = (e: ThreeEvent<MouseEvent>) => {
-    let o: THREE.Object3D | null = e.object;
-    while (o && !o.userData.id) o = o.parent;
-    const it = items.current.find((x) => x.id === o?.userData.id);
-    if (!it || it.state !== OPEN) return;
-    e.stopPropagation();
-    pulse(it);
-    it.open();
-  };
-
-  return <group ref={root} onClick={click} userData={{ noMap: true }} />;
+  return null;
 }
