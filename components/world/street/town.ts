@@ -7,11 +7,11 @@ import { FLOODS } from "./layoutStreet";
 import { nearPromenade } from "../waterfront/layout";
 import { STAND_SPOTS } from "./standSpots";
 import { TOWER, TOWN_LOW, TOWN_MID } from "../kit/builtDims";
+import { storeyScale } from "../scale";
 
 // The town is the three approved blocks (../kit/builtTown.tsx: town-low, town-mid and the
-// landmark tower), each scaled to its footprint. Kept low so buildings read only a little
-// taller than the car, like the original (4b-b).
-const MAX_TOP = 12;
+// landmark tower), each at a real storey height (fitModel). Low blocks near the track, the
+// taller ones further out and on the far side.
 // storey heights the placement reasons with (ground floor, upper floors)
 const G0 = 3.0;
 const FH = 2.6;
@@ -162,21 +162,25 @@ function frontOf(x: number, z: number, yaw: number): 1 | -1 {
 }
 
 const DIMS = { low: TOWN_LOW, mid: TOWN_MID, tower: TOWER };
-const CAP = { low: 9, mid: MAX_TOP, tower: 18 };
+/**
+ * Each block's storey as modelled (../kit/builtTown.tsx): town-low is a 4.2 m shop floor and two
+ * tall floors, 12.5 m to the roof for three storeys; town-mid 3.3 m and four of 2.95 m; the tower
+ * twelve of 3.0 m. Every block stands at a real 3.3 m storey at the world's scale (../scale.ts),
+ * so a three-storey block is about 10 m real, 6.6 m to its roof here.
+ */
+const MODEL_STOREY = { low: 12.5 / 3, mid: (3.3 + 4 * 2.95) / 5, tower: 3.0 };
+export const BLOCK_SCALE = { low: storeyScale(MODEL_STOREY.low), mid: storeyScale(MODEL_STOREY.mid), tower: storeyScale(MODEL_STOREY.tower) };
+/** How far a block's facades may stretch or shrink (bay widths) to fill its plot; its storeys never change. */
+const FIT = [0.8, 1.25] as const;
 
-/** A block model fitted to a footprint (trimmed to at most 1.3 : 1 so its facades keep their proportions). */
+/** A block model on a plot: its storeys at the world's scale, its facades fitted to the plot within FIT (at most 1.3 : 1). */
 export function fitModel(kind: TownKind, w: number, d: number) {
   const M = DIMS[kind];
-  let sx = Math.min(w, d * 1.3) / M.w;
-  let sz = Math.min(d, w * 1.3) / M.d;
-  let sy = Math.sqrt(sx * sz);
-  if (sy * M.h > CAP[kind]) {
-    const k = CAP[kind] / (sy * M.h);
-    sx *= k;
-    sy *= k;
-    sz *= k;
-  }
-  return { w: sx * M.w, d: sz * M.d, h: sy * M.h, s: [sx, sy, sz] as [number, number, number] };
+  const k = BLOCK_SCALE[kind];
+  const fit = (want: number, size: number) => Math.min(FIT[1] * k, Math.max(FIT[0] * k, want / size));
+  const sx = fit(Math.min(w, d * 1.3), M.w);
+  const sz = fit(Math.min(d, w * 1.3), M.d);
+  return { w: sx * M.w, d: sz * M.d, h: k * M.h, s: [sx, k, sz] as [number, number, number] };
 }
 
 function dress(r: () => number, b: Omit<Bld, "kind" | "s" | "h" | "front">, kind: TownKind = b.floors >= 3 ? "mid" : "low"): Bld {
@@ -310,15 +314,18 @@ export const BUILDINGS: Bld[] = (() => {
     if (blocksCamera(b)) continue;
     out.push(b);
   }
-  // A few landmarks on the far side: the landmark tower.
+  // A landmark on the far side: the tower (twelve real storeys, about 30 m here), on a block of
+  // two or more storeys whose plot takes the tower without touching its neighbours.
   let marks = 0;
   for (const b of out) {
-    if (marks >= 4) break;
+    if (marks >= 1) break;
     const g = (b.x * AWAY.x + b.z * AWAY.z) / Math.hypot(b.x, b.z);
-    if (g < 0.55 || b.floors < 3 || (marks && b.seed % 3 > 1)) continue;
-    const side = Math.min(b.w, b.d, 5.6);
+    if (g < 0.55 || b.floors < 2 || b.old || (marks && b.seed % 3 > 1)) continue;
+    const side = Math.min(b.w, b.d);
     const mark: Bld = { ...b, ...fitModel("tower", side, side), kind: "tower", floors: 3 };
-    if (blocksCamera(mark)) continue; // taller now: it mustn't hide the car
+    if (out.some((o) => o !== b && overlaps(o, mark, 1.1))) continue;
+    if (!clear({ ...mark }, out.filter((o) => o !== b))) continue;
+    if (blocksCamera(mark)) continue; // it mustn't hide the car
     Object.assign(b, mark);
     marks++;
   }
