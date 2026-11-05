@@ -15,9 +15,10 @@ import { bm, type MatKey } from "../kit/builtShared";
 import { BuiltInstances, placeMatrix } from "../kit/builtInstances";
 import { floodlightParts } from "../kit/builtTrackside";
 import { FLOODS } from "./layoutStreet";
+import { WORLD_SCALE } from "../scale";
 
-/** The concept's 24 m mast at the world's scale: about 15 m to the top of the head. */
-export const FLOOD_SCALE = 0.6;
+/** The concept's 26 m tower (a real 20-30 m floodlight) at the world's scale (../scale.ts): about 18.7 m to the top of the head. */
+export const FLOOD_SCALE = WORLD_SCALE;
 
 /** Warm lens for the trackside's other lamps: dim by day, bright at night. Owned by the street so it's safe to animate. */
 export const lensMat = new THREE.MeshStandardMaterial({
@@ -51,7 +52,7 @@ export function Floodlights() {
       <BuiltInstances parts={floodlightParts()} matrices={MATRICES} material={material} />
       <RigidBody type="fixed" colliders={false}>
         {FLOODS.map((f, i) => (
-          <CylinderCollider key={i} args={[1.5, 0.75]} position={[f.x, heightAt(f.x, f.z) + 1.5, f.z]} />
+          <CylinderCollider key={i} args={[1.5, 1.25 * FLOOD_SCALE]} position={[f.x, heightAt(f.x, f.z) + 1.5, f.z]} />
         ))}
       </RigidBody>
     </>

@@ -15,6 +15,7 @@ import { boardTexture, loadBoardFonts } from "./boardArt";
 import { K, debrisFenceMat, km } from "./ink";
 import { BuiltInstances } from "../kit/builtInstances";
 import { STAND_GAME, STAND_SCALE, STAND_Z, grandstandFrame, grandstandParts, marshalParts, standSeats } from "../kit/builtTrackside";
+import { WORLD_SCALE } from "../scale";
 
 // ------------------------------------------------------------ painted parts (one draw call)
 
@@ -33,8 +34,14 @@ const W = (STAND_GAME.w ?? 13.3) * STAND_SCALE;
 const FRONT = grandstandFrame(STAND_GAME).front * STAND_SCALE + STAND_Z;
 const BACK = grandstandFrame(STAND_GAME).back * STAND_SCALE + STAND_Z - 0.3;
 const SEATS = standSeats(STAND_GAME);
-/** The marshal post at the world's scale (2.3 x 2.6 x 1.8 m). */
-const MARSHAL_SCALE = 0.8;
+/** The marshal post at the world's scale (../scale.ts): 1.9 x 2.2 x 1.5 m. */
+const MARSHAL_SCALE = WORLD_SCALE;
+/**
+ * The figures: a capsule body and a head, 0.74 m from the origin to the crown. A seated fan's
+ * crown is a real 0.9 m above the seat, a standing marshal a real 1.75 m tall, at the world's scale.
+ */
+const FAN = (0.9 * WORLD_SCALE) / 0.74;
+const STANDING = (1.75 * WORLD_SCALE) / 0.74;
 const MARSHAL_MATRICES = MARSHALS.map((m) => compose(m.x, heightAt(m.x, m.z), m.z, m.yaw, MARSHAL_SCALE, MARSHAL_SCALE, MARSHAL_SCALE));
 const STAND_MATRICES = STAND_SPOTS.map((s) => compose(s.x, heightAt(s.x, s.z), s.z, s.yaw).multiply(new THREE.Matrix4().compose(new THREE.Vector3(0, s.raise, STAND_Z), new THREE.Quaternion(), new THREE.Vector3(STAND_SCALE, STAND_SCALE, STAND_SCALE))));
 
@@ -68,7 +75,7 @@ const PAINT = (() => {
     const ph = placer(heads, s.x, s.z, s.yaw);
     for (const [x, y, z] of SEATS) {
       if (r() < 0.1) continue;
-      const sc = 0.95 + r() * 0.1;
+      const sc = (0.95 + r() * 0.1) * FAN;
       pb(x * STAND_SCALE, R + y * STAND_SCALE, z * STAND_SCALE + STAND_Z, sc, sc, sc, SHIRTS[Math.floor(r() * SHIRTS.length)]);
       ph(x * STAND_SCALE, R + y * STAND_SCALE, z * STAND_SCALE + STAND_Z, sc, sc, sc, SKINS[Math.floor(r() * SKINS.length)]);
     }
@@ -86,12 +93,14 @@ const PAINT = (() => {
   // the pad in front and two marshals in orange
   for (const m of MARSHALS) {
     const put = placer(paint, m.x, m.z, m.yaw);
-    put(0, 0.05, 1.45, 2.6, 0.1, 1.0, CONCRETE_DARK);
+    const k = MARSHAL_SCALE;
+    // the pad in front (a real 3.25 x 1.25 m slab) and two marshals on it
+    put(0, 0.05, 1.81 * k, 3.25 * k, 0.1, 1.25 * k, CONCRETE_DARK);
     const pb = placer(bodies, m.x, m.z, m.yaw);
     const ph = placer(heads, m.x, m.z, m.yaw);
-    for (const sx of [-0.5, 0.45]) {
-      pb(sx, 0.1, 1.35, 1.1, 1.1, 1.1, ORANGE);
-      ph(sx, 0.1, 1.35, 1.1, 1.1, 1.1, SKINS[Math.floor(r() * SKINS.length)]);
+    for (const sx of [-0.62, 0.56]) {
+      pb(sx * k, 0.1, 1.7 * k, STANDING, STANDING, STANDING, ORANGE);
+      ph(sx * k, 0.1, 1.7 * k, STANDING, STANDING, STANDING, SKINS[Math.floor(r() * SKINS.length)]);
     }
   }
   return { paint, bodies, heads };
@@ -317,7 +326,7 @@ export function Trackside() {
           );
         })}
         {MARSHALS.map((m, i) => (
-          <CuboidCollider key={i} args={[1.16, 1.3, 0.92]} position={[m.x, heightAt(m.x, m.z) + 1.3, m.z]} rotation={[0, m.yaw, 0]} />
+          <CuboidCollider key={i} args={[1.45 * MARSHAL_SCALE, 1.63 * MARSHAL_SCALE, 1.15 * MARSHAL_SCALE]} position={[m.x, heightAt(m.x, m.z) + 1.63 * MARSHAL_SCALE, m.z]} rotation={[0, m.yaw, 0]} />
         ))}
         {FLAG_SPOTS.map((f, i) => (
           <CylinderCollider key={i} args={[1, 0.12]} position={[f.x, heightAt(f.x, f.z) + 1, f.z]} />

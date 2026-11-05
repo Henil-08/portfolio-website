@@ -5,6 +5,7 @@
 // builder (merged per material, ready for InstancedMesh) and a component. Front faces +z.
 import * as THREE from "three";
 import type { ThreeElements } from "@react-three/fiber";
+import { WORLD_SCALE } from "../scale";
 import { B, Built, Kit, cboxGeo, chamferRect, once, panelGeo, sliceGeo, type MatKey } from "./builtShared";
 
 type G = ThreeElements["group"];
@@ -112,9 +113,9 @@ export function standSeats(o: StandOpts = {}): V3[] {
   return out;
 }
 
-/** The stands in the game: a 13.3 m, five-row stand without its own fence (the track has a catch fence), at 0.75. */
+/** The stands in the game: a 13.3 m, five-row stand without its own fence (the track has a catch fence), at the world's scale (../scale.ts). */
 export const STAND_GAME: StandOpts = { w: 13.3, rows: 5, fence: false };
-export const STAND_SCALE = 0.75;
+export const STAND_SCALE = WORLD_SCALE;
 /** The game stand's z offset that puts its front at local z = 2.0 (where the old stands' front was). */
 export const STAND_Z = 2.0 - grandstandFrame(STAND_GAME).front * STAND_SCALE;
 

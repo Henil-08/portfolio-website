@@ -1,5 +1,5 @@
 // Static. The main grandstand: the approved model (kit/builtTrackside.tsx, concept
-// grandstand) at the game's size (STAND_GAME at STAND_SCALE: ~10 x 5.6 x 5 m), seats facing
+// grandstand) at the world's scale (STAND_GAME at STAND_SCALE: ~8.9 x 5 x 4.9 m), seats facing
 // +Z, with a crowd that can cheer and the printed front board.
 // Collider: one cuboid 10.2 x 2.4 x 4.9 centered at (0, 1.2, -0.42) covers the tiers.
 "use client";
@@ -13,8 +13,11 @@ import { K } from "../../street/ink";
 import { Built } from "../../kit/builtShared";
 import { STAND_GAME, STAND_SCALE, STAND_Z, grandstandFrame, grandstandParts, standSeats } from "../../kit/builtTrackside";
 import { geo, mat, rng, type GroupProps } from "./shared";
+import { WORLD_SCALE } from "../../scale";
 
 const SEATS = standSeats(STAND_GAME);
+/** A fan's crown (0.74 m on the figure) a real 0.9 m above the seat, at the world's scale. */
+const FAN = (0.9 * WORLD_SCALE) / 0.74;
 const FRONT = grandstandFrame(STAND_GAME).front * STAND_SCALE + STAND_Z;
 
 // a restrained crowd: paper, ink and greys (the marshals wear the orange)
@@ -46,7 +49,7 @@ function Crowd({ cheer }: { cheer: boolean }) {
     const list: Fan[] = [];
     for (const [x, y, z] of SEATS) {
       if (r() < 0.08) continue; // a few empty seats
-      list.push({ x: x * STAND_SCALE, y: y * STAND_SCALE, z: z * STAND_SCALE + STAND_Z, phase: r() * Math.PI * 2, s: 0.95 + r() * 0.1 });
+      list.push({ x: x * STAND_SCALE, y: y * STAND_SCALE, z: z * STAND_SCALE + STAND_Z, phase: r() * Math.PI * 2, s: (0.95 + r() * 0.1) * FAN });
     }
     return list;
   }, []);

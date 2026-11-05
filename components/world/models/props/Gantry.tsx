@@ -1,7 +1,7 @@
 // Static. Start/finish gantry: the approved model (kit/builtTrackside.tsx, concept gantry) at
-// the game's size: ink posts on concrete feet ~9 m apart, a mitred beam, the LED board under it
-// and five start lights on top that glow orange. Faces +Z (the road runs along Z, through the
-// arch). The beam is at y = 4..4.6 (overhead, no collider needed).
+// the world's scale: ink posts on concrete feet ~9.4 m apart, a mitred beam, the LED board under
+// it and five start lights on top that glow orange. Faces +Z (the road runs along Z, through the
+// arch). The beam is at y = 4.1..4.7 (overhead, no collider needed).
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,9 +11,10 @@ import { loadBoardFonts } from "../../street/boardArt";
 import { Built } from "../../kit/builtShared";
 import { GANTRY_BOARD, GANTRY_LENSES, gantryParts } from "../../kit/builtTrackside";
 import { mat, unitCyl, type GroupProps } from "./shared";
+import { WORLD_SCALE } from "../../scale";
 
-/** The concept's 15 m span at the world's scale. */
-const S = 0.65;
+/** The concept's 15 m span (a real gantry over a 12 m road) at the world's scale (../../scale.ts). */
+const S = WORLD_SCALE;
 const BOARD = { w: GANTRY_BOARD.w, h: GANTRY_BOARD.h };
 
 /** The LED board: orange mono text on near-black, drawn once the fonts are in. */
@@ -71,7 +72,7 @@ export function Gantry({ lights = 0, ...props }: GroupProps & { lights?: number 
         ))}
       </group>
       {/* always mounted so toggling lights never recompiles shaders */}
-      <pointLight color={K.orange} intensity={Math.max(0, Math.min(5, lights)) * 1.5} distance={8} position={[0, 4.4, 1.2]} />
+      <pointLight color={K.orange} intensity={Math.max(0, Math.min(5, lights)) * 1.5} distance={8} position={[0, 6.8 * S, 1.8 * S]} />
     </group>
   );
 }
