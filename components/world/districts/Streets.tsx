@@ -14,23 +14,24 @@ import { bollardModel, busStopModel, cafeChairModel, cafeTableModel, kioskModel 
 import { Tree } from "../models/props/Tree";
 import { Instances } from "../street/Instances";
 import { Movables, kindFromMatrices } from "../Movables";
-import { STREETS } from "./townStreets";
+import { STREETS, STREET_TREE_S } from "./townStreets";
+import { WORLD_SCALE } from "../scale";
 
 const vc = () => mat("#ffffff", { r: 0.75, vc: true, flat: true });
 
-/** Bollards are placed at their middle (0.42 m up); the kit bollard stands on its foot. */
-const BOLLARD_MID = 0.42;
-const bollardGeo = (band: boolean) => geo(`kit-street-bollard-${band}`, () => bake(bollardModel(band), { xf: { p: [0, -BOLLARD_MID, 0] } }));
+// Every kit piece here is in real metres and stands at the world's scale (../scale.ts), origin at its foot.
+const K = WORLD_SCALE;
+const bollardGeo = (band: boolean) => geo(`kit-street-bollard-${band}-w`, () => bake(bollardModel(band), { xf: { s: K } }));
 /** The kit café table, and its chair turned so its back is toward -x like the placements expect. */
-const tableGeo = () => geo("kit-street-table", () => bake(cafeTableModel()));
-const chairGeo = () => geo("kit-street-chair", () => bake(cafeChairModel(), { xf: { r: [0, Math.PI / 2, 0] } }));
+const tableGeo = () => geo("kit-street-table-w", () => bake(cafeTableModel(), { xf: { s: K } }));
+const chairGeo = () => geo("kit-street-chair-w", () => bake(cafeChairModel(), { xf: { s: K, r: [0, Math.PI / 2, 0] } }));
 
 /** The kit bus stop (the approved concept): glass back away from the road (-z). */
 function BusStop({ x, y, z, yaw }: { x: number; y: number; z: number; yaw: number }) {
   return (
     <RigidBody type="fixed" colliders={false} position={[x, y, z]} rotation={[0, yaw, 0]}>
-      <KitModel model={busStopModel()} />
-      <CuboidCollider args={[1.75, 1.3, 0.75]} position={[0, 1.3, 0]} />
+      <KitModel model={busStopModel()} scale={K} />
+      <CuboidCollider args={[1.75 * K, 1.3 * K, 0.75 * K]} position={[0, 1.3 * K, 0]} />
     </RigidBody>
   );
 }
@@ -39,8 +40,8 @@ function BusStop({ x, y, z, yaw }: { x: number; y: number; z: number; yaw: numbe
 function Kiosk({ x, y, z, yaw }: { x: number; y: number; z: number; yaw: number }) {
   return (
     <RigidBody type="fixed" colliders={false} position={[x, y, z]} rotation={[0, yaw, 0]}>
-      <KitModel model={kioskModel()} />
-      <CuboidCollider args={[1.1, 1.25, 1.2]} position={[0, 1.25, 0.1]} />
+      <KitModel model={kioskModel()} scale={K} />
+      <CuboidCollider args={[1.1 * K, 1.25 * K, 1.2 * K]} position={[0, 1.25 * K, 0.1 * K]} />
     </RigidBody>
   );
 }
@@ -66,11 +67,11 @@ export default function Streets() {
       ))}
       <RigidBody type="fixed" colliders={false}>
         {STREETS.trees.map((t, i) => (
-          <CylinderCollider key={i} args={[0.6, 0.55]} position={[t.x, t.y, t.z]} />
+          <CylinderCollider key={i} args={[0.4, 0.55]} position={[t.x, t.y - 0.1, t.z]} />
         ))}
       </RigidBody>
       {STREETS.trees.map((t, i) => (
-        <group key={i} position={[t.x, t.y, t.z]} rotation={[0, t.rot, 0]} scale={0.62}>
+        <group key={i} position={[t.x, t.y, t.z]} rotation={[0, t.rot, 0]} scale={STREET_TREE_S}>
           <Tree variant="round" seed={t.seed} />
         </group>
       ))}

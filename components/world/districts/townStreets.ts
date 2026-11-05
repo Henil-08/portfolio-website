@@ -10,6 +10,7 @@ import { BUILDINGS, type Bld } from "../street/town";
 import { compose, distToTrack, nearTree, rng } from "../street/common";
 import { FLOODS } from "../street/layoutStreet";
 import { STAND_SPOTS } from "../street/standSpots";
+import { WORLD_SCALE } from "../scale";
 
 const HALF = TRACK_WIDTH / 2;
 /** Pavement top above the ground, and its kerb. */
@@ -18,6 +19,10 @@ const SLAB = 1.2;
 const MIN_DEPTH = 1.8;
 const MAX_DEPTH = 3.0;
 const SLAB_TONES = ["#d3d0c8", "#cac7be", "#dcd9d2"].map((c) => new THREE.Color(c));
+/** A street tree's planter: a real 1.5 m square, 0.6 m tall concrete box, at the world's scale. */
+const PLANTER = { w: 1.5 * WORLD_SCALE, h: 0.6 * WORLD_SCALE };
+/** The round tree in a planter: its tray as wide as the planter (a real 4-5 m street tree). */
+export const STREET_TREE_S = 0.65;
 
 function toWorld(b: Bld, lx: number, lz: number) {
   const c = Math.cos(b.yaw);
@@ -88,8 +93,8 @@ export const STREETS = (() => {
       const sx = r() < 0.5 ? -1 : 1;
       const [px, pz] = toWorld(b, sx * (b.w / 2 - 0.7), fz + b.front * (depth - 0.65));
       if (!blocked(px, pz, 1.2) && distToTrack(px, pz) > HALF + 1.4) {
-        planters.push(compose(px, y + 0.3, pz, b.yaw, 1.0, 0.6, 1.0));
-        trees.push({ x: px, z: pz, y: y + 0.55, rot: r() * 6, seed: Math.floor(r() * 1000) });
+        planters.push(compose(px, y + PLANTER.h / 2, pz, b.yaw, PLANTER.w, PLANTER.h, PLANTER.w));
+        trees.push({ x: px, z: pz, y: y + PLANTER.h - 0.05, rot: r() * 6, seed: Math.floor(r() * 1000) });
       }
     }
     // bollards along the kerb
@@ -97,7 +102,7 @@ export const STREETS = (() => {
       const [bx, bz] = toWorld(b, fx * b.w, fz + b.front * (depth - 0.3));
       if (blocked(bx, bz, 0.3) || distToTrack(bx, bz) < HALF + 0.9) continue;
       if (trees.some((t) => Math.hypot(t.x - bx, t.z - bz) < 1.2)) continue;
-      bollards.push(compose(bx, y + 0.42, bz, 0, 1, 1, 1));
+      bollards.push(compose(bx, y, bz));
     }
     // café tables outside some one-storey buildings with room for them
     if (b.floors === 1 && depth >= 2.4 && r() < 0.5) {
@@ -106,7 +111,7 @@ export const STREETS = (() => {
         if (blocked(tx, tz, 0.8)) continue;
         tables.push(compose(tx, y, tz, yawOut));
         for (const side of [-1, 1]) {
-          const [cx, cz] = toWorld(b, fx * b.w + side * 0.62, fz + b.front * (depth * 0.45));
+          const [cx, cz] = toWorld(b, fx * b.w + side * 0.62 * WORLD_SCALE, fz + b.front * (depth * 0.45));
           chairs.push(compose(cx, y, cz, yawOut + (side * Math.PI) / 2));
         }
       }
