@@ -2,24 +2,7 @@
 // computed once at module load from the track curve, deterministically, so the
 // city looks identical on every visit and nothing random runs during render.
 import * as THREE from "three";
-import {
-  GANTRY_T,
-  GRANDSTAND,
-  BRIDGE_HALF,
-  nearCrossing,
-  MAX_R,
-  inLand,
-  LETTERS,
-  TIMELINE,
-  PIT,
-  SECTORS,
-  TRACK_WIDTH,
-  trackCurve,
-  zoneById,
-  zones,
-} from "../layout";
-import { nearGarden } from "../garden/layout";
-import { nearPromenade } from "../waterfront/layout";
+import { GANTRY_T, GRANDSTAND, BRIDGE_HALF, nearCrossing, inLand, PIT, SECTORS, TRACK_WIDTH, trackCurve, zones } from "../layout";
 
 export const HALF = TRACK_WIDTH / 2;
 /** Barrier centre line, measured from the track centre (kerbs end at ~4.6 m). */
@@ -118,7 +101,7 @@ export function nearestFrame(x: number, z: number) {
 
 /**
  * The town's belt: outside the lap and within 30 m of it. The island's scattered
- * trees keep out of it (Places.tsx Nature and TREES below) so the town has room;
+ * trees keep out of it (./trees.ts, drawn by Places.tsx Nature) so the town has room;
  * its greenery comes from Groves and the street trees instead.
  */
 export function inTownBelt(x: number, z: number) {
@@ -143,48 +126,13 @@ export function inSectorScene(x: number, z: number, margin = 0, back = 11) {
   return false;
 }
 
-/** Replica of the tree scatter in Places.tsx (same seed + algorithm) so we never build on a tree. */
-export const TREES: [number, number, number][] = (() => {
-  let s = 42;
-  const r = () => {
-    s = (s * 16807) % 2147483647;
-    return (s - 1) / 2147483646;
-  };
-  const samples = trackCurve.getSpacedPoints(160);
-  const dTrack = (x: number, z: number) => {
-    let b = Infinity;
-    for (const p of samples) b = Math.min(b, Math.hypot(p.x - x, p.z - z));
-    return b;
-  };
-  const avoid = Object.values(zoneById).map((zn) => [zn.pos[0], zn.pos[1], Math.max(zn.size[0], zn.size[1]) / 2 + 6]);
-  avoid.push([TIMELINE.pos[0], TIMELINE.pos[1], Math.hypot(TIMELINE.hx, TIMELINE.hz) + 2], [LETTERS.center[0], LETTERS.center[1], LETTERS.hx + 1.5], [GRANDSTAND.pos[0], GRANDSTAND.pos[1], 10]);
-  for (const sc of SECTORS) avoid.push([sc.scene[0], sc.scene[1], 17]);
-  for (let x = PIT.from - 6; x <= PIT.to + 6; x += 6) avoid.push([x, PIT.garageZ, 8], [x, PIT.z, 6]);
-  const out: [number, number, number][] = [];
-  let tries = 0;
-  while (out.length < 90 && tries++ < 4000) {
-    const a = r() * Math.PI * 2;
-    const rad = Math.sqrt(r()) * (MAX_R - 3);
-    const x = Math.cos(a) * rad;
-    const z = Math.sin(a) * rad;
-    if (!inLand(x, z, 3)) continue;
-    if (dTrack(x, z) < TRACK_WIDTH / 2 + 4) continue;
-    if (avoid.some(([ax, az, ar]) => Math.hypot(x - ax, z - az) < ar)) continue;
-    if (nearGarden(x, z, 1.5)) continue;
-    if (inTownBelt(x, z)) continue;
-    if (nearPromenade(x, z, 2)) continue;
-    const roll = r();
-    const tree = roll < 0.7; // round / cypress; the rest are bushes and rocks
-    r();
-    r();
-    r();
-    out.push([x, z, tree ? 2.4 : 1.3]);
-  }
-  return out;
-})();
-
-export function nearTree(x: number, z: number, r: number) {
-  return TREES.some(([tx, tz, tr]) => Math.hypot(tx - x, tz - z) < r + tr);
+/**
+ * Dev only: a structure that couldn't find its spot, and why. Structures are placed before
+ * anything grows (the tree scatter keeps off them: ./trees.ts), so a warning here means a real
+ * clash (a scene, a place, the shore), never a tree.
+ */
+export function placementWarning(what: string) {
+  if (process.env.NODE_ENV !== "production") console.warn(`[placement] ${what}`);
 }
 
 /** Cone spots from Places (t, along +n from the kerb). Keep the barrier open there. */
@@ -228,14 +176,15 @@ export const RUNOFF: number[] = (() => {
     for (let j = -14; j <= 14; j++) m = Math.max(m, want[(i + j + N_FRAMES) % N_FRAMES] * (1 - Math.abs(j) / 18));
     return m;
   });
-  // cap by obstacles (trees, scenes, places, pit)
+  // cap by obstacles (scenes, places, the shore). Trees grow after the run-off is laid out and
+  // keep off it (./trees.ts), so they never shorten it.
   const capped = wide.map((w, i) => {
     if (w <= 0) return 0;
     const f = FRAMES[i];
     const s = -Math.sign(f.k) || 1; // outside of the bend
     for (let d = 0; d <= w; d += 0.5) {
       const q = f.p.clone().addScaledVector(f.n, s * (BARRIER_OFF + d + 0.8));
-      if (nearTree(q.x, q.z, 0.6) || inSectorScene(q.x, q.z, 1) || nearPlace(q.x, q.z, -4) || !inLand(q.x, q.z, 4))
+      if (inSectorScene(q.x, q.z, 1) || nearPlace(q.x, q.z, -4) || !inLand(q.x, q.z, 4))
         return Math.max(0, d - 1);
     }
     return w;
@@ -258,6 +207,14 @@ export function barrierOffset(i: number, side: 1 | -1) {
   const f = FRAMES[i];
   const outside = -Math.sign(f.k) || 1;
   return side * (BARRIER_OFF + (side === outside ? RUNOFF[i] : 0));
+}
+
+/** True if (x, z) is between the road and its barrier line (the verge, a bend's run-off), plus `pad`. */
+export function onRunoff(x: number, z: number, pad = 0) {
+  const f = nearestFrame(x, z);
+  const i = Math.round(f.u * N_FRAMES) % N_FRAMES;
+  const d = (x - f.p.x) * f.n.x + (z - f.p.z) * f.n.z; // across the road, signed along n
+  return Math.abs(d) < Math.abs(barrierOffset(i, (Math.sign(d) || 1) as 1 | -1)) + 0.8 + pad;
 }
 
 // ------------------------------------------------------------ helpers

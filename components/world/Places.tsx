@@ -43,10 +43,7 @@ import Groves from "./Groves";
 import Garden from "./garden";
 import Social from "./social";
 import Waterfront from "./waterfront";
-import { nearPromenade } from "./waterfront/layout";
 import { HomeBody } from "./Movables";
-import { nearGarden } from "./garden/layout";
-import { inTownBelt } from "./street/common";
 import Bridge from "./Bridge";
 import { AhmedabadSector, BOSTON_BOXES, BostonSector, HyperlabSector, WatersSector } from "./models/sectors";
 import ZoneDebug from "./ui3d/ZoneDebug";
@@ -55,9 +52,7 @@ import {
   GANTRY_T,
   GARAGES,
   GRANDSTAND,
-  MAX_R,
   inLand,
-  shoreDist,
   LETTERS,
   TIMELINE,
   PIT,
@@ -78,6 +73,7 @@ import { PitBuilding, pitSolids, type Bay, type PitOpts } from "./buildings/PitB
 import { heightAt } from "./terrain";
 import { pitAsphalt, roadPaint } from "./Island";
 import Park from "./park";
+import { NATURE } from "./street/trees";
 
 type V3 = [number, number, number];
 
@@ -85,22 +81,6 @@ function at(id: ZoneId): V3 {
   const z = zoneById[id];
   return [z.pos[0], heightAt(z.pos[0], z.pos[1]), z.pos[1]];
 }
-
-// Deterministic pseudo random so the island looks the same on every visit.
-function rng(seed: number) {
-  let s = seed;
-  return () => {
-    s = (s * 16807) % 2147483647;
-    return (s - 1) / 2147483646;
-  };
-}
-
-function distToTrack(x: number, z: number) {
-  let best = Infinity;
-  for (const p of TRACK_SAMPLES) best = Math.min(best, Math.hypot(p.x - x, p.z - z));
-  return best;
-}
-const TRACK_SAMPLES = trackCurve.getSpacedPoints(160);
 
 // ------------------------------------------------------------ dynamic props
 
@@ -515,34 +495,10 @@ function Signposts() {
 
 // ------------------------------------------------------------ nature
 
+// The island's scatter: one list (street/trees.ts), grown after every structure is placed,
+// that the street, the bushes and the birds read too.
 function Nature() {
-  const items = useMemo(() => {
-    const r = rng(42);
-    const out: { kind: "round" | "cypress" | "bush" | "rock"; p: V3; s: number; rot: number; seed: number }[] = [];
-    const avoid = Object.values(zoneById).map((z) => [z.pos[0], z.pos[1], Math.max(z.size[0], z.size[1]) / 2 + 6]);
-    avoid.push([TIMELINE.pos[0], TIMELINE.pos[1], Math.hypot(TIMELINE.hx, TIMELINE.hz) + 2], [LETTERS.center[0], LETTERS.center[1], LETTERS.hx + 1.5], [GRANDSTAND.pos[0], GRANDSTAND.pos[1], 10]);
-    for (const sc of SECTORS) avoid.push([sc.scene[0], sc.scene[1], 17]);
-    for (let x = PIT.from - 6; x <= PIT.to + 6; x += 6) avoid.push([x, PIT.garageZ, 8], [x, PIT.z, 6]);
-    let tries = 0;
-    while (out.length < 90 && tries++ < 4000) {
-      const a = r() * Math.PI * 2;
-      const rad = Math.sqrt(r()) * (MAX_R - 3);
-      const x = Math.cos(a) * rad;
-      const z = Math.sin(a) * rad;
-      if (!inLand(x, z, 3)) continue;
-      if (distToTrack(x, z) < TRACK_WIDTH / 2 + 4) continue;
-      if (avoid.some(([ax, az, ar]) => Math.hypot(x - ax, z - az) < ar)) continue;
-      if (nearGarden(x, z, 1.5)) continue;
-      if (inTownBelt(x, z)) continue;
-      if (nearPromenade(x, z, 2)) continue;
-      // the shore gets cypresses where it used to have palms (W10 has two tree forms only)
-      const beach = shoreDist(x, z) < 10;
-      const roll = r();
-      const kind = beach ? (roll < 0.7 ? "cypress" : "rock") : roll < 0.4 ? "round" : roll < 0.7 ? "cypress" : roll < 0.88 ? "bush" : "rock";
-      out.push({ kind, p: [x, heightAt(x, z), z], s: 0.85 + r() * 0.5, rot: r() * Math.PI * 2, seed: Math.floor(r() * 1000) });
-    }
-    return out;
-  }, []);
+  const items = useMemo(() => NATURE.map((it) => ({ ...it, p: [it.x, heightAt(it.x, it.z), it.z] as V3 })), []);
 
   return (
     <>

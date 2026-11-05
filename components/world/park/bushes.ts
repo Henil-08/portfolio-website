@@ -8,7 +8,8 @@ import { PIT, PIT_LANE_WIDTH, TIMELINE, LETTERS, inLand, zones } from "../layout
 import { PATHS, clearOfRoad, nearGarden, pathSamples } from "../garden/layout";
 import { ISLANDS, islandDist, parkSand } from "./layout";
 import { BUILDINGS } from "../street/town";
-import { inSectorScene, nearTree, rng } from "../street/common";
+import { inSectorScene, rng } from "../street/common";
+import { nearTree } from "../street/trees";
 import { FOOTBRIDGES } from "./layout";
 import { START_SPOT } from "../startSpot";
 

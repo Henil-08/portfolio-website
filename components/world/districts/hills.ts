@@ -5,7 +5,8 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { MAX_R, TRACK_WIDTH, duneMask, inLand, nearestT, meadowAt } from "../layout";
 import { heightAt } from "../terrain";
-import { compose, inSectorScene, nearPlace, nearTree, rng } from "../street/common";
+import { compose, inSectorScene, nearPlace, rng } from "../street/common";
+import { nearTree } from "../street/trees";
 import { BUILDINGS } from "../street/town";
 import { C } from "../palette";
 

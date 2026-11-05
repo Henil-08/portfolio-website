@@ -7,9 +7,9 @@ import * as THREE from "three";
 import { heightAt } from "../terrain";
 import { C } from "../palette";
 import { geo, mat, unitBox, unitCyl } from "../models/props/shared";
-import { BARRIER_H, compose, farSpot, inSectorScene, nearPlace, nearTree, rng, yawOf } from "./common";
+import { BARRIER_H, compose, rng, yawOf } from "./common";
 import { Instances } from "./Instances";
-import { BOARDS, FENCES, FENCE_H, MARSHALS } from "./layoutStreet";
+import { BOARDS, FENCES, FENCE_H, FLAG_SPOTS as FLAG_AT, MARSHALS } from "./layoutStreet";
 import { STAND_SPOTS } from "./standSpots";
 import { boardTexture, loadBoardFonts } from "./boardArt";
 import { K, debrisFenceMat, km } from "./ink";
@@ -201,17 +201,10 @@ const flagMat = (() => {
   return m;
 })();
 
+/** The flags where layoutStreet.ts placed them, in turn orange, paper and ink. */
 const FLAG_SPOTS = (() => {
-  const out: { x: number; z: number; c: THREE.Color }[] = [];
   const cols = [ORANGE, PAPER, KINK, PAPER, KINK, PAPER];
-  // along the far side of the tunnel straight, the loop and the west
-  for (const u of [0.45, 0.47, 0.56, 0.6, 0.81, 0.836, 0.335]) {
-    const s = farSpot(u, 6.6);
-    if (inSectorScene(s.x, s.z, 1) || nearPlace(s.x, s.z, 0) || nearTree(s.x, s.z, 1)) continue;
-    if (STAND_SPOTS.some((st) => Math.hypot(st.x - s.x, st.z - s.z) < 5.5)) continue;
-    out.push({ x: s.x, z: s.z, c: cols[out.length % cols.length] });
-  }
-  return out;
+  return FLAG_AT.map((s, i) => ({ x: s.x, z: s.z, c: cols[i % cols.length] }));
 })();
 
 const FLAGS = (() => {

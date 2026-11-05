@@ -8,7 +8,7 @@ import * as THREE from "three";
 import Street from "@/components/world/street";
 import Island from "@/components/world/Island";
 import Places from "@/components/world/Places";
-import { TREES } from "@/components/world/street/common";
+import { TREES } from "@/components/world/street/trees";
 import { dayNight } from "@/components/world/daynight";
 import { C } from "@/components/world/palette";
 import { GARAGES, GRANDSTAND, ISLAND_RADIUS, PIT, SECTORS, TRACK_WIDTH, trackCurve, trackPoint, zones } from "@/components/world/layout";

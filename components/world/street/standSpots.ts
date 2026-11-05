@@ -1,6 +1,7 @@
 // Where the extra grandstands go. Kept separate so the skyline, lamps and
-// stands can all avoid each other without import cycles.
-import { GANTRY, N_FRAMES, barrierOffset, farSign, farSpot, frameAt, inSectorScene, nearPlace, nearTree, type Spot } from "./common";
+// stands can all avoid each other without import cycles. Stands are placed before anything
+// grows: the tree scatter (./trees.ts) keeps off them (./reserved.ts), never the reverse.
+import { GANTRY, N_FRAMES, barrierOffset, farSign, farSpot, frameAt, inSectorScene, nearPlace, placementWarning, type Spot } from "./common";
 import { nearPromenade } from "../waterfront/layout";
 import { TRACK_WIDTH, inLand, nearestT } from "../layout";
 
@@ -33,7 +34,7 @@ function sideSpot(u: number, near: boolean, extra: number): Spot {
 const FOOT: [number, number][] = [-5.4, 0, 5.4].flatMap((lx) => [-2.7, 2.1].map((lz) => [lx, lz] as [number, number]));
 
 /**
- * Nearest clear spot to `u0` (no trees, scenes or places under the stand). Far-side stands
+ * Nearest clear spot to `u0` (no scenes or places under the stand). Far-side stands
  * face the camera; near-side ones (the camera side) are set further back so the roof never
  * comes between the camera and the car, and show the camera their open back.
  */
@@ -44,7 +45,6 @@ function pick(u0: number, label: string, near = false): StandSpot | null {
     const c = Math.cos(s.yaw);
     const sn = Math.sin(s.yaw);
     const ok =
-      !nearTree(s.x, s.z, 6.2) &&
       !inSectorScene(s.x, s.z, 6) &&
       !nearPlace(s.x, s.z, 4) &&
       inLand(s.x, s.z, 7) && // a stand is ~11 m wide: keep it out of the river and the harbour
@@ -57,6 +57,7 @@ function pick(u0: number, label: string, near = false): StandSpot | null {
       return { x: s.x, z: s.z, yaw: s.yaw, raise: 0, label, open: near };
     }
   }
+  placementWarning(`grandstand ${label || "at u " + u0.toFixed(3)}: no clear spot within 0.03 of u ${u0.toFixed(3)}`);
   return null;
 }
 

@@ -7,7 +7,7 @@ import * as THREE from "three";
 import { TRACK_WIDTH } from "../layout";
 import { heightAt } from "../terrain";
 import { BUILDINGS, type Bld } from "../street/town";
-import { compose, distToTrack, nearTree, rng } from "../street/common";
+import { compose, distToTrack, rng } from "../street/common";
 import { FLOODS } from "../street/layoutStreet";
 import { STAND_SPOTS } from "../street/standSpots";
 import { WORLD_SCALE } from "../scale";
@@ -40,8 +40,8 @@ function inBuilding(x: number, z: number, pad: number) {
   });
 }
 
-const blocked = (x: number, z: number, r: number) =>
-  FLOODS.some((f) => Math.hypot(f.x - x, f.z - z) < r + 1) || STAND_SPOTS.some((s) => Math.hypot(s.x - x, s.z - z) < r + 7) || nearTree(x, z, r);
+// (no tree can stand on a pavement: the tree scatter keeps clear of every building and its street, ../street/reserved.ts)
+const blocked = (x: number, z: number, r: number) => FLOODS.some((f) => Math.hypot(f.x - x, f.z - z) < r + 1) || STAND_SPOTS.some((s) => Math.hypot(s.x - x, s.z - z) < r + 7);
 
 /** A building's street: how deep its pavement can be before the road (0 = none). */
 function pavementDepth(b: Bld) {

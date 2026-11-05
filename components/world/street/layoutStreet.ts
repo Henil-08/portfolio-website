@@ -1,7 +1,8 @@
-// Procedural layout of the street circuit: where every barrier block, lamp,
-// board, fence panel and marshal post goes. Pure data, computed once.
+// Procedural layout of the street circuit: where every barrier block, floodlight, board,
+// fence panel, flag and marshal post goes. Pure data, computed once. These are placed before
+// anything grows: the tree scatter (./trees.ts) keeps off them (./reserved.ts), never the reverse.
 import * as THREE from "three";
-import { GANTRY, LEN, FRAMES, N_FRAMES, barrierOffset, farSign, farSpot, inPitSide, inSectorScene, nearCones, nearPlace, nearTree, outSign, RUNOFF, type Spot } from "./common";
+import { GANTRY, LEN, FRAMES, N_FRAMES, barrierOffset, farSign, farSpot, inPitSide, inSectorScene, nearCones, nearPlace, outSign, placementWarning, RUNOFF, type Spot } from "./common";
 import { STAND_SPOTS } from "./standSpots";
 import { nearGarden } from "../garden/layout";
 import { nearPromenade } from "../waterfront/layout";
@@ -30,7 +31,6 @@ function skip(side: 1 | -1, i: number, x: number, z: number) {
   if (far && inSectorScene(x, z, 2)) return true;
   if (nearPlace(x, z, 1)) return true;
   if (nearCones(x, z, 3.5)) return true;
-  if (nearTree(x, z, 0.6)) return true;
   if (!inLand(x, z, 1)) return true;
   if (inner) {
     for (const [u, h] of ACCESS) {
@@ -114,7 +114,7 @@ export const TYRE_WALLS: WallPiece[] = (() => {
     if (kept.filter((p) => p.row === 0).length >= 3) {
       out.push(...kept);
       wall++;
-    }
+    } else placementWarning(`TecPro wall at u ${f.u.toFixed(3)}: fewer than three blocks clear`);
   }
   return out;
 })();
@@ -142,7 +142,6 @@ export const FLOODS: Flood[] = (() => {
     !inSectorScene(x, z, 2.5) &&
     !nearPlace(x, z, 2) &&
     !nearGarden(x, z, 1) &&
-    !nearTree(x, z, 0.8) &&
     !nearCones(x, z, 3) &&
     !STAND_SPOTS.some((st) => Math.hypot(st.x - x, st.z - z) < 8) &&
     !TYRE_WALLS.some((w) => Math.hypot(w.x - x, w.z - z) < 1.6);
@@ -161,11 +160,28 @@ export const FLOODS: Flood[] = (() => {
       q = f.p.clone().addScaledVector(f.n, s * (off + back));
       ok = clear(q.x, q.z);
     }
-    if (!ok) continue;
-    const pool = f.p.clone().addScaledVector(f.n, s * 1.2);
-    const pitch = Math.atan2(f.tan.y, Math.hypot(f.tan.x, f.tan.z));
+    // a grandstand (placed first) stands there: slide along the road past it, clear of the next tower
+    let g = f;
+    if (!ok && STAND_SPOTS.some((st) => Math.hypot(st.x - q.x, st.z - q.z) < 14)) {
+      for (const d of [4, -4, 8, -8, 12, -12, 16, -16, 20, -20]) {
+        const j = (i + d + N_FRAMES) % N_FRAMES;
+        if (farSign(FRAMES[j]) !== s) continue;
+        const qq = FRAMES[j].p.clone().addScaledVector(FRAMES[j].n, s * (Math.abs(barrierOffset(j, s as 1 | -1)) + FLOOD_BACK));
+        if (!clear(qq.x, qq.z) || out.some((o) => Math.hypot(o.x - qq.x, o.z - qq.z) < 9)) continue;
+        q = qq;
+        g = FRAMES[j];
+        ok = true;
+        break;
+      }
+    }
+    if (!ok) {
+      placementWarning(`floodlight at u ${f.u.toFixed(3)}: no clear spot up to 8 m back`);
+      continue;
+    }
+    const pool = g.p.clone().addScaledVector(g.n, s * 1.2);
+    const pitch = Math.atan2(g.tan.y, Math.hypot(g.tan.x, g.tan.z));
     if (nearCrossing(pool.x, pool.z, 14)) continue;
-    out.push({ x: q.x, z: q.z, yaw: Math.atan2(-s * f.n.x, -s * f.n.z), px: pool.x, pz: pool.z, py: f.p.y, pyaw: Math.atan2(-f.tan.z, f.tan.x), pitch });
+    out.push({ x: q.x, z: q.z, yaw: Math.atan2(-s * g.n.x, -s * g.n.z), px: pool.x, pz: pool.z, py: g.p.y, pyaw: Math.atan2(-g.tan.z, g.tan.x), pitch });
   }
   // The main straight, lit like a night race's pit straight: a tower every FLOOD_STRAIGHT m,
   // its bank facing the track. On the pit wall (facing +z) past the ends of the garage block;
@@ -183,6 +199,7 @@ export const FLOODS: Flood[] = (() => {
       // just off the far edge, short of the waterfront promenade
       const z = [FLOOD_FAR, FLOOD_FAR - 0.8].map((o) => STRAIGHT_Z + TRACK_WIDTH / 2 + o).find((zz) => clear(x, zz) && !nearPromenade(x, zz, 0.5));
       if (z !== undefined) out.push({ x, z, yaw: Math.PI, px: x, pz: STRAIGHT_Z, py: 0, pyaw: 0, pitch: 0 });
+      else placementWarning(`floodlight on the main straight at x ${x.toFixed(1)}: no clear spot`);
       continue;
     }
     const z = pitWallZ(x);
@@ -210,7 +227,7 @@ export const FENCES: FenceRun[] = (() => {
     const fast = Math.abs(f.k) < 0.018 && RUNOFF[i] < 0.3;
     const off = Math.abs(barrierOffset(i, s as 1 | -1)) + 0.75;
     const q = f.p.clone().addScaledVector(f.n, s * off);
-    const ok = fast && !STAND_SPOTS.some((st) => Math.hypot(st.x - q.x, st.z - q.z) < 7) && !inSectorScene(q.x, q.z, 3) && !nearPlace(q.x, q.z, 2) && !nearTree(q.x, q.z, 0.4) && !inPitSide(q.x, q.z) && !nearCones(q.x, q.z, 4);
+    const ok = fast && !STAND_SPOTS.some((st) => Math.hypot(st.x - q.x, st.z - q.z) < 7) && !inSectorScene(q.x, q.z, 3) && !nearPlace(q.x, q.z, 2) && !inPitSide(q.x, q.z) && !nearCones(q.x, q.z, 4);
     if (!ok || s !== lastSide) flush();
     lastSide = s;
     if (ok) cur.push(q);
@@ -234,17 +251,39 @@ const BOARD_WANT: [number, string][] = [
   [0.94, "08"],
   [0.12, "DRS ZONE"],
 ];
-export const BOARDS: (Spot & { text: string })[] = BOARD_WANT.map(([u, text]) => ({ ...farSpot(u, 0), text })).filter(
-  (sp) =>
-    !inSectorScene(sp.x, sp.z, 2) &&
-    !nearPlace(sp.x, sp.z, 1) &&
-    !nearTree(sp.x, sp.z, 1.5) &&
-    !nearCrossing(sp.x, sp.z, 20) &&
-    inLand(sp.x, sp.z, 2) &&
-    !TYRE_WALLS.some((w) => Math.hypot(w.x - sp.x, w.z - sp.z) < 3) &&
-    !STAND_SPOTS.some((st) => Math.hypot(st.x - sp.x, st.z - sp.z) < 8)
-);
+export const BOARDS: (Spot & { text: string })[] = BOARD_WANT.map(([u, text]) => ({ ...farSpot(u, 0), text })).filter((sp) => {
+  const why = !inSectorScene(sp.x, sp.z, 2)
+    ? !nearPlace(sp.x, sp.z, 1)
+      ? !nearCrossing(sp.x, sp.z, 20)
+        ? inLand(sp.x, sp.z, 2)
+          ? !TYRE_WALLS.some((w) => Math.hypot(w.x - sp.x, w.z - sp.z) < 3)
+            ? !STAND_SPOTS.some((st) => Math.hypot(st.x - sp.x, st.z - sp.z) < 8)
+              ? ""
+              : "a grandstand"
+            : "a TecPro wall"
+          : "the shore"
+        : "the bridge"
+      : "a place"
+    : "a sector scene";
+  if (why) placementWarning(`board "${sp.text}" at u ${sp.u.toFixed(3)}: on ${why}`);
+  return !why;
+});
 
 export const MARSHALS: Spot[] = [0.235, 0.47, 0.715, 0.79, 0.965]
   .map((u) => farSpot(u, 3.2))
-  .filter((s) => !inSectorScene(s.x, s.z, 1) && !nearPlace(s.x, s.z, 0) && !nearTree(s.x, s.z, 1.5) && inLand(s.x, s.z, 2));
+  .filter((s) => {
+    const why = inSectorScene(s.x, s.z, 1) ? "a sector scene" : nearPlace(s.x, s.z, 0) ? "a place" : !inLand(s.x, s.z, 2) ? "the shore" : "";
+    if (why) placementWarning(`marshal post at u ${s.u.toFixed(3)}: on ${why}`);
+    return !why;
+  });
+
+// ------------------------------------------------------------ flags
+
+/** Flagpoles along the far side of the tunnel straight, the loop and the west (6.6 m past the barrier). */
+export const FLAG_SPOTS: Spot[] = [0.45, 0.47, 0.56, 0.6, 0.81, 0.836, 0.335]
+  .map((u) => farSpot(u, 6.6))
+  .filter((s) => {
+    const why = inSectorScene(s.x, s.z, 1) ? "a sector scene" : nearPlace(s.x, s.z, 0) ? "a place" : STAND_SPOTS.some((st) => Math.hypot(st.x - s.x, st.z - s.z) < 5.5) ? "a grandstand" : "";
+    if (why) placementWarning(`flag at u ${s.u.toFixed(3)}: on ${why}`);
+    return !why;
+  });

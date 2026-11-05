@@ -10,7 +10,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { carState } from "../carState";
 import { GARAGES, GRANDSTAND, PIT } from "../layout";
-import { TREES } from "../street/common";
+import { TREES } from "../street/trees";
 import { heightAt } from "./ground";
 import { seeded } from "./noise";
 import { garageBusy, garageView } from "../garage/state";

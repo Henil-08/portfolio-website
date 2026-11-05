@@ -1,8 +1,9 @@
 // Where the town's buildings stand and what they look like: pure data, shared
-// by the renderer (./Skyline.tsx) and anything that must keep clear of them.
+// by the renderer (./Skyline.tsx) and anything that must keep clear of them. Buildings are
+// placed before anything grows: the tree scatter (./trees.ts) keeps off them, never the reverse.
 import { CROSSINGS, MAX_R, PIT, inLand, trackTangent } from "../layout";
 import { heightAt } from "../terrain";
-import { AWAY, FRAMES, RUNOFF, barrierOffset, distToTrack, farSign, inSectorScene, nearPlace, nearTree, nearestFrame, outSign, rng } from "./common";
+import { AWAY, FRAMES, RUNOFF, barrierOffset, distToTrack, farSign, inSectorScene, nearPlace, nearestFrame, outSign, placementWarning, rng } from "./common";
 import { FLOODS } from "./layoutStreet";
 import { nearPromenade } from "../waterfront/layout";
 import { STAND_SPOTS } from "./standSpots";
@@ -147,7 +148,6 @@ function clear(b: Bld, out: Bld[], tight = false) {
   if (nearPromenade(b.x, b.z, Math.max(b.w, b.d) * 0.55 + 1)) return false;
   if (inSectorScene(b.x, b.z, hd + 5, 14)) return false;
   if (nearPlace(b.x, b.z, hd, !tight)) return false;
-  if (nearTree(b.x, b.z, Math.min(b.w, b.d) * 0.45)) return false;
   if (FLOODS.some((l) => Math.hypot(l.x - b.x, l.z - b.z) < hd + 1)) return false;
   if (STAND_SPOTS.some((s) => Math.hypot(s.x - b.x, s.z - b.z) < hd + 8)) return false;
   if (tight ? !cornersClear(b, 6.5) : distToTrack(b.x, b.z) - Math.min(b.w, b.d) / 2 < 7.5) return false;
@@ -296,7 +296,6 @@ export const BUILDINGS: Bld[] = (() => {
     if (!outside) continue;
     if (inSectorScene(x, z, hd + 5, 14)) continue;
     if (nearPlace(x, z, hd)) continue;
-    if (nearTree(x, z, Math.min(w, d) * 0.45)) continue;
     if (FLOODS.some((l) => Math.hypot(l.x - x, l.z - z) < hd + 1)) continue;
     if (STAND_SPOTS.some((s) => Math.hypot(s.x - x, s.z - z) < hd + 8)) continue;
     if (z > PIT.garageZ - 8 && z < 44 && Math.abs(x) < 46) continue;
@@ -329,5 +328,6 @@ export const BUILDINGS: Bld[] = (() => {
     Object.assign(b, mark);
     marks++;
   }
+  if (!marks) placementWarning("landmark tower: no far-side block's plot takes it");
   return out;
 })();
