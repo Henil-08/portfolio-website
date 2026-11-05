@@ -182,6 +182,8 @@ let snapWheels = true; // set by place(): put the wheel visuals straight at rest
 let posLive = false;
 /** The player's model group, by name (bloom/Opening.tsx finds it this way). */
 export const PLAYER_MODEL = "player-vehicle";
+/** The last teleport a vehicle carried out (store `teleport.id`). */
+let teleported = -1;
 // Parked: after a spawn or teleport the car is held in place (only its height
 // settles, damped) until the first drive input, so it never bobs on its springs while the page
 // loads (the intro camera copies the car, so any bob shook the whole picture).
@@ -317,17 +319,21 @@ function Drive({ def }: { def: VehicleDef }) {
     });
   }, []);
 
-  // Teleports from the map menu and the race engineer.
+  // Teleports from the map menu and the race engineer. One asked for before the vehicle has run
+  // a frame is carried out as it mounts (it used to be dropped): the mount has just put it at the
+  // spawn, so even one already carried out goes again (StrictMode mounts twice). After that only
+  // new ones: `teleported` outlives each vehicle, so a swap doesn't repeat the last.
   useEffect(() => {
-    let last = getState().teleport?.id;
-    return subscribe(() => {
+    const go = (mount: boolean) => {
       const tp = getState().teleport;
-      if (!tp || tp.id === last || !body.current) return;
-      last = tp.id;
+      if (!tp || !body.current || (tp.id === teleported && !(mount && !posLive))) return;
+      teleported = tp.id;
       const z = zoneById[tp.zone];
       place(body.current, z.spawn[0], z.spawn[1], z.spawn[2]);
       prevPos.copy(body.current.translation() as THREE.Vector3);
-    });
+    };
+    go(true);
+    return subscribe(() => go(false));
   }, []);
 
   // Dev and headless checks: window.__placeT(t) drops the car on the track at t;
