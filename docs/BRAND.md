@@ -242,7 +242,9 @@ using drei `<View>`.
   - ink `#151515`, paper `#f3f2ed`, orange `#ff4f00` (one accent per object), glass `#1f262b`
 - **Models:**
   - W01 car HG-08: ink body, paper sidepods and engine cover with 08, an orange nose line
-  - W02 garages: a concrete block with five glazed bays Z05–Z09 and a thin ink roof
+  - W02 garages: a concrete block with five glazed bays Z05–Z09 and a thin ink roof. The bays are
+    shut to the car (owner, 2026-11-05: "only when we press Enter can I drive inside"): you stop on
+    the apron, and E sends the stand-in in while the bay's glass front rolls up into the header.
   - W03 TecPro barrier blocks (replaces the tyre walls)
   - W04 concrete wall and ink debris fence
   - W05 ink/paper kerbs, a paper edge line and gravel

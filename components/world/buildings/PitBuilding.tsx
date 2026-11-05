@@ -3,12 +3,15 @@
 // The pit building in the game: the approved model (../kit/builtTown.tsx, concept
 // pit-building) with a glazed bay per garage and its name plate, plus what the game needs
 // on top: the upper glass lit at night, one showroom light in the bay nearest the car,
-// and the solid walls for colliders. Front faces +z, floor at y = 0, x and z in metres.
-import { useRef } from "react";
+// and the solids for colliders (walls, closed doors, a lid). Front faces +z, floor at y = 0,
+// x and z in metres.
+import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { carState } from "../carState";
 import { dayNight } from "../daynight";
+import { GARAGES } from "../layout";
+import { garageView } from "../garage/state";
 import { bm, type MatKey } from "../kit/builtShared";
 import { PIT, PitBuildingBuilt, pitBuildingSolids, type PitBay, type PitOpts as KitPitOpts } from "../kit/builtTown";
 import { CI, type Part } from "./concrete";
@@ -19,9 +22,38 @@ export type PitOpts = KitPitOpts;
 
 const NO_OPTS: PitOpts = {};
 
-/** The solid walls a car can hit (ends, piers, back wall), for colliders. */
+/** How thick the closed doors' colliders are, back from the building's front face. */
+const DOOR_T = 0.3;
+/** The lid's height, from the ground floor's top (H1) to the roof slab's top (kit/builtTown.tsx: an 0.18 m slab at H1 + UP + 0.12). */
+const LID_H = PIT.UP + 0.21;
+
+/**
+ * The kit's walls (ends, piers, back wall) and what they leave: the block's ends x0, x1, its
+ * depth D, and each bay's door opening (from a to b across), the gaps between the ends and piers.
+ */
+function pitShell(bays: Bay[], opts: PitOpts) {
+  const walls = pitBuildingSolids(bays, { ...GAME, ...opts });
+  // the ends and piers run the block's full depth
+  const blocks = walls.filter(([s]) => s[2] > 1).sort((p, q) => p[1][0] - q[1][0]);
+  const edge = (i: number, side: -1 | 1) => blocks[i][1][0] + (side * blocks[i][0][0]) / 2;
+  const doors: { a: number; b: number }[] = [];
+  for (let i = 1; i < blocks.length; i++) if (edge(i, -1) - edge(i - 1, 1) > 0.01) doors.push({ a: edge(i - 1, 1), b: edge(i, -1) });
+  return { walls, doors, D: blocks[0][0][2], x0: edge(0, -1), x1: edge(blocks.length - 1, 1) };
+}
+
+/**
+ * Everything a car can hit, for colliders: the ends, piers and back wall, then each bay's
+ * closed door from the floor to the header's top, flush with the front face, and a lid over
+ * the whole block up to the roof, so nothing gets in over the top either. The bays only open
+ * for the garage's own drive-in (E, garage/GarageShow.tsx), which has no physics.
+ */
 export function pitSolids(bays: Bay[], opts: PitOpts = {}): Part[] {
-  return pitBuildingSolids(bays, { ...GAME, ...opts });
+  const { walls, doors, D, x0, x1 } = pitShell(bays, opts);
+  return [
+    ...walls,
+    ...doors.map(({ a, b }): Part => [[b - a, PIT.H1, DOOR_T], [(a + b) / 2, PIT.H1 / 2, D / 2 - DOOR_T / 2]]),
+    [[x1 - x0, LID_H, D], [(x0 + x1) / 2, PIT.H1 + LID_H / 2, 0]],
+  ];
 }
 /** The game keeps its 7 m deep block, so the doors stay where the pit lane expects them. */
 const GAME: PitOpts = { depth: 7 };
@@ -38,8 +70,27 @@ const GLASS = { day: glass(0), night: glass(1.6), live: glass(0) };
 /** The bays' pale insides glow a little at night, so the projects still read. */
 const inner = (glow: number) => new THREE.MeshStandardMaterial({ color: "#e4e2dc", roughness: 0.85, emissive: CI.lamp, emissiveIntensity: glow });
 const INNER = { day: inner(0.05), night: inner(0.25), live: inner(0.05) };
-const pick = (g: THREE.Material, i: THREE.Material) => (k: MatKey) => (k === "glassPale" ? g : k === "inner" ? i : bm(k));
-const MATS = { day: pick(GLASS.day, INNER.day), night: pick(GLASS.night, INNER.night), live: pick(GLASS.live, INNER.live) };
+
+// The door (game only): while a garage's stand-in drives in and backs out (garage/GarageShow.tsx),
+// that bay's glass front, its pane, mullions and sill, is cut away from the floor up, as if it
+// rolled up into the header. x0, x1, the cut's height and the front face's z, in the building's frame.
+const doorCut = { value: new THREE.Vector4(0, 0, -1, 0) };
+function withDoor<M extends THREE.Material>(m: M) {
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uDoor = doorCut;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vDoor;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvDoor = transformed;");
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", "#include <common>\nvarying vec3 vDoor;\nuniform vec4 uDoor;")
+      .replace("void main() {", "void main() {\n  if (vDoor.x > uDoor.x && vDoor.x < uDoor.y && vDoor.y < uDoor.z && vDoor.z > uDoor.w - 0.2 && vDoor.z < uDoor.w) discard;");
+  };
+  m.customProgramCacheKey = () => "pit-door";
+  return m;
+}
+const DOOR = { clear: withDoor(bm("clear").clone()), ink: withDoor(bm("ink").clone()) };
+
+const pick = (g: THREE.Material, i: THREE.Material, door = false) => (k: MatKey) =>
+  k === "glassPale" ? g : k === "inner" ? i : door && (k === "clear" || k === "ink") ? DOOR[k] : bm(k);
+const MATS = { day: pick(GLASS.day, INNER.day), night: pick(GLASS.night, INNER.night), live: pick(GLASS.live, INNER.live, true) };
 
 /**
  * The pit building. `bays` and `opts` should be stable (module constants). `night` fixes day
@@ -47,10 +98,21 @@ const MATS = { day: pick(GLASS.day, INNER.day), night: pick(GLASS.night, INNER.n
  */
 export function PitBuilding({ bays, opts = NO_OPTS, night }: { bays: Bay[]; opts?: PitOpts; night?: boolean }) {
   const lamp = useRef<THREE.PointLight>(null);
+  const root = useRef<THREE.Group>(null);
+  const shell = useMemo(() => pitShell(bays, opts), [bays, opts]);
   useFrame(() => {
     if (night !== undefined) return;
     GLASS.live.emissiveIntensity = dayNight.night * 1.8;
     INNER.live.emissiveIntensity = 0.05 + dayNight.night * 0.22;
+    // the open garage's door: up before the stand-in moves, down once it has backed out
+    const g = GARAGES.find((q) => q.domain === garageView.dom);
+    const up = g ? THREE.MathUtils.smoothstep(garageView.k, 0, 0.12) : 0;
+    if (up > 0 && root.current) {
+      root.current.updateWorldMatrix(true, false);
+      const x = g!.x - root.current.matrixWorld.elements[12];
+      const d = shell.doors.find((q) => x > q.a && x < q.b);
+      if (d) doorCut.value.set(d.a + 0.01, d.b - 0.01, up * (PIT.OPEN + 0.05), shell.D / 2 - 0.005);
+    } else doorCut.value.z = -1;
     // one showroom light, in the bay nearest the car (the one you can look into)
     const l = lamp.current;
     if (l?.parent) {
@@ -62,7 +124,7 @@ export function PitBuilding({ bays, opts = NO_OPTS, night }: { bays: Bay[]; opts
     }
   });
   return (
-    <group>
+    <group ref={root}>
       {night === undefined && <pointLight ref={lamp} color={CI.lamp} intensity={18} distance={11} decay={1.6} position={[bays[0].x, PIT.OPEN - 0.8, 0.2]} />}
       <PitBuildingBuilt bays={bays} opts={gameOpts(opts)} material={night === undefined ? MATS.live : night ? MATS.night : MATS.day} />
     </group>

@@ -614,13 +614,16 @@ export const zones: Zone[] = [
   sectorZone(1),
   sectorZone(2),
   sectorZone(3),
+  // A garage's door is shut (buildings/PitBuilding.tsx pitSolids; its face is at PIT.garageZ + 2.5):
+  // you stop on the 4.8 m apron in front of it and E drives the stand-in in (garage/GarageShow.tsx).
   ...GARAGES.map<Zone>((g) => ({
     id: `garage-${g.domain}` as ZoneId,
     label: garageLabel[g.domain],
     hint: "Garage",
-    pos: [g.x, PIT.garageZ],
-    size: [9, 8],
-    spawn: [g.x, PIT.garageZ + 3, Math.PI / 2], // on the apron, inside the garage zone
+    pos: [g.x, PIT.garageZ + 4.9], // the apron, door to pit lane
+    size: [10, 4.8],
+    marker: [g.x, PIT.garageZ + 3], // just in front of the door
+    spawn: [g.x, PIT.garageZ + 6, Math.PI / 2], // facing the door, the longest nose (TH-18) 1.6 m clear of it
   })),
   // The park: each on its own grass island north of the garden (park/layout.ts). `pos` is also
   // where each one's props stand (Places.tsx, social), so the prompt stays at it; the spawns sit

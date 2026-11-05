@@ -9,7 +9,6 @@
 import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
-import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { GARAGES, type ZoneId } from "../layout";
 import { getState, setState, useWorld } from "../store";
 import { carState } from "../carState";
@@ -18,7 +17,7 @@ import { liveryOf, vehicleByCode } from "../vehicles";
 import type { Domain } from "@/content/projects";
 import { GarageBay } from "./Bay";
 import { ShowCar } from "./ShowCar";
-import { PLINTH_H, STAGE, STAGE_Y, STAGE_Z, bayOrigin, cockpitPoses, garageList, glanceOf, inOut, lerp, parkZ, seg, stepDrive, useSlide } from "./anim";
+import { STAGE_Z, bayOrigin, cockpitPoses, garageList, glanceOf, inOut, lerp, parkZ, seg, stepDrive, useSlide } from "./anim";
 import { garageView } from "./state";
 
 /** The player's model group, by name (Vehicle.tsx PLAYER_MODEL). */
@@ -66,11 +65,8 @@ function GameBay({ domain }: { domain: Domain }) {
   const origin = useMemo(() => bayOrigin(domain), [domain]);
   return (
     <group position={origin.toArray()}>
+      {/* no colliders: the bay is shut (buildings/PitBuilding.tsx pitSolids), only the stand-in comes in */}
       <GarageBay list={list} drive={drive} slide={slide} onPick={(i) => getState().zone === zid && setState({ garageSel: i })} />
-      <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[STAGE[0] / 2, STAGE_Y / 2, STAGE[2] / 2]} position={[0, STAGE_Y / 2, STAGE_Z]} />
-        <CuboidCollider args={[0.5, (STAGE_Y + PLINTH_H) / 2, 0.5]} position={[0, (STAGE_Y + PLINTH_H) / 2, STAGE_Z]} />
-      </RigidBody>
     </group>
   );
 }
