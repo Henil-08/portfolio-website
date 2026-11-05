@@ -101,8 +101,11 @@ export function heading(now = performance.now()) {
   const cap = a + s.share - 0.004;
   const e = now - live.t0;
   // the intro is a timer: its real fraction is the time gone
-  const exp = s.id === "intro" ? s.ms : s.ms * speed();
   const real = s.id === "intro" ? Math.min(1, e / s.ms) : live.sub;
+  // a step that reports its progress says by its pace how long it will take, when that is longer
+  // than planned (a slow GPU compiling), so the lead doesn't run on to the step's end without it
+  const plan = s.id === "intro" ? s.ms : s.ms * speed();
+  const exp = s.id !== "intro" && real > 0.05 ? Math.max(plan, e / real) : plan;
   const r = Math.min(cap, a + s.share * real);
   // the lead: half the way to the step's end at once, all but all of it as the expected time
   // passes; real progress reported inside the step takes over from it as it grows, so a step that

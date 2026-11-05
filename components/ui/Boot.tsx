@@ -118,6 +118,8 @@ export default function Boot() {
     let last = performance.now();
     let calm = 0;
     let slow = false;
+    // the longest recent gap between frames (ms), fading: how long the page may be busy next
+    let busy = 0;
     let shown = 0;
     let gone = false;
     const log = (...e: unknown[]) => process.env.NODE_ENV !== "production" && ((window as unknown as { __barLog?: unknown[] }).__barLog ??= []).push(e);
@@ -133,6 +135,7 @@ export default function Boot() {
       const long = now - last > 100;
       if (long && !slow) calm = 2;
       slow = long;
+      busy = Math.max(now - last, busy - (now - last) * 0.3);
       last = now;
       if (calm > 0) {
         calm--;
@@ -143,7 +146,9 @@ export default function Boot() {
       if (++frames > 2) {
         const h = heading();
         const k = at();
-        const v = loadDone() ? Math.max((1 - k) / 240, 0.0004) : Math.max((h.goal - k) / h.tau, (h.cap - k) / CREEP_MS);
+        // ease toward the goal, creep when there, and never so fast that the page being busy for
+        // twice as long as it lately was would carry the bar to the step's end
+        const v = loadDone() ? Math.max((1 - k) / 240, 0.0004) : Math.min(Math.max((h.goal - k) / h.tau, (h.cap - k) / CREEP_MS), (h.cap - k) / Math.max(500, 2 * busy));
         if (!seg || Math.abs(h.cap - seg.k1) > 1e-4) {
           segment(h.cap, v);
           log(Math.round(now), "segment", +k.toFixed(3), +h.cap.toFixed(3), +rate.toFixed(2));
