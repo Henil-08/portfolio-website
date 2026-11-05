@@ -175,11 +175,23 @@ export function cockpitPoses(out: CockpitPoses, k: number, code: VehicleCode, ca
   return out;
 }
 
-/** The camera at progress k: from `fromPos`/`fromLook`/`fromFov` through the poses. Returns the fov. */
-export function blendCamera(p: CockpitPoses, fromPos: THREE.Vector3, fromLook: THREE.Vector3, fromFov: number, pos: THREE.Vector3, look: THREE.Vector3) {
+/** How wide the seat's view is: FOV (vertical) at the approved picture's 1.08 aspect, as the tangent of half its horizontal angle. */
+const WIDE = Math.tan(THREE.MathUtils.degToRad(FOV / 2)) * 1.08;
+/**
+ * The cockpit lens (vertical fov) for a picture of this aspect: it keeps the approved width of
+ * the bay in view, the whole pit wall, so a narrow picture beside the garage's reading panel
+ * widens and a wide strip over a phone's sheet closes in (36 to 80 degrees).
+ */
+export const cockpitFov = (aspect: number) => Math.min(80, Math.max(36, THREE.MathUtils.radToDeg(2 * Math.atan(WIDE / aspect))));
+
+/**
+ * The camera at progress k: from `fromPos`/`fromLook`/`fromFov` through the poses. Returns the
+ * fov; with the picture's `aspect`, the seat's lens fits it (cockpitFov), else it is FOV.
+ */
+export function blendCamera(p: CockpitPoses, fromPos: THREE.Vector3, fromLook: THREE.Vector3, fromFov: number, pos: THREE.Vector3, look: THREE.Vector3, aspect?: number) {
   pos.lerpVectors(fromPos, p.chase, p.a).lerp(p.eye, p.b);
   look.lerpVectors(fromLook, p.chaseLook, out3(p.a)).lerp(p.look, p.b);
-  return lerp(lerp(fromFov, 46, p.a), FOV, p.b);
+  return lerp(lerp(fromFov, 46, p.a), aspect ? cockpitFov(aspect) : FOV, p.b);
 }
 
 /** The glance for a slide clock: the eye turns a little the way the stage moves. */

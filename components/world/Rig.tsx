@@ -11,15 +11,12 @@ import { sceneParams } from "./Effects";
 import { dayNight } from "./daynight";
 import { studio } from "./bloom/state";
 import { zones, type Zone } from "./layout";
-import { garageView } from "./garage/state";
+import { garageSheet, garageView } from "./garage/state";
 import { blendCamera } from "./garage/anim";
 
 // The world camera's lens (World.tsx), which the garage's cockpit shot borrows and gives back.
 const FOV = 34;
 const NEAR = 0.5;
-/** The garage's sheet on the right from 640 px (Hud.tsx Sheet, 440 px at right 20 px), or the bottom 62 % below. */
-const SHEET_W = 440 + 20 + 12;
-const SHEET_H = 0.62;
 
 const OFFSET = new THREE.Vector3(10.5, 12.5, 14);
 const look = new THREE.Vector3();
@@ -83,23 +80,25 @@ export function CameraRig() {
 
     // Garage experience (garage/GarageShow.tsx): from the chase pose behind the stand-in as it
     // drives into the bay, into the driver's eye. The picture is framed in the part of the screen
-    // the garage's sheet leaves free (a view offset), and the lens goes back when it is over.
+    // the garage's sheet leaves free (a view offset) with a lens that fits it, and the lens goes
+    // back when it is over.
     {
       const lens = garageLens.current;
       if (garageView.car) {
-        const fov = blendCamera(garageView.poses, followPos, target.current, FOV, camera.position, look);
-        camera.lookAt(look);
         const cam = state.camera as THREE.PerspectiveCamera;
         const b = garageView.poses.b;
         const W = size.width;
         const H = size.height;
-        const side = W >= 640;
-        const rw = side ? THREE.MathUtils.lerp(W, Math.max(W * 0.4, W - SHEET_W), b) : W;
-        const rh = side ? H : THREE.MathUtils.lerp(H, H * (1 - SHEET_H) - 12, b);
+        const free = garageSheet(W, H).free;
+        const rw = THREE.MathUtils.lerp(W, free.w, b);
+        const rh = THREE.MathUtils.lerp(H, free.h, b);
+        const ry = free.y * b;
+        const fov = blendCamera(garageView.poses, followPos, target.current, FOV, camera.position, look, rw / rh);
+        camera.lookAt(look);
         cam.fov = fov;
         cam.near = THREE.MathUtils.lerp(NEAR, 0.04, b);
         cam.aspect = rw / rh;
-        cam.setViewOffset(rw, rh, 0, 0, W, H);
+        cam.setViewOffset(rw, rh, 0, -ry, W, H);
         cam.updateProjectionMatrix();
         lens.on = true;
         orbit.copy(camera.position);

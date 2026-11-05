@@ -175,10 +175,17 @@ Hover and keyboard focus share one signal, the orange corner brackets (`x-sel` +
   - Toast top centre.
   - Zone sticker bottom centre: E tab, `Z02 · Hyperlab`, and the story title.
   - Speed sticker bottom left.
-- **Place sheets (built):** Hud.tsx `Sheet`. On desktop it sits on the right, 440 px wide (640 px for
-  garages); on phones it's a bottom sheet. The ink bar shows `Zxx · kicker` (Panels.tsx `zoneCode`) and
-  an Esc close; the title decodes; bodies use numbered heads (`Head`). Controls and Settings use
-  the same frame as centred modals (`Modal`).
+- **Place sheets (built):** Hud.tsx `Sheet`. On desktop it sits on the right, 440 px wide; on phones
+  it's a bottom sheet. The ink bar shows `Zxx · kicker` (Panels.tsx `zoneCode`) and an Esc close; the
+  title decodes; bodies use numbered heads (`Head`). Controls and Settings use the same frame as
+  centred modals (`Modal`).
+  - A garage's sheet is a reading panel (garage/state.ts `garageSheet`, owner 2026-11-05: "too narrow
+    to read everything"). On a landscape screen from 640 px wide it stands on the right under the
+    tabs, full height, about half the width (48 %, 620 to 820 px, narrower only to leave the bay
+    480 px), so the datasheet goes two columns on screens from about 1500 px. Otherwise it's a
+    bottom sheet, 70 % of the height on a phone and 58 % on a tablet. The driver's view is framed in
+    what it leaves (under the tabs), with a lens that keeps the whole pit wall in view (anim.ts
+    `cockpitFov`).
 - **S03 Garage:** the datasheet project card (parts.tsx `DsCard`) over the garage, with an Esc sticker.
   ← → step through projects and each one boots in. The card has:
   - header bar `HG-08 / Pxx`

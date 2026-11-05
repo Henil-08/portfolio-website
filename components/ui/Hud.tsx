@@ -9,14 +9,14 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { toggleGarage } from "@/components/world/bloom/state";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { closeZone, getState, openZone, setState, useWorld } from "@/components/world/store";
 import { input } from "@/components/world/input";
 import { powerName } from "@/components/world/powers/meter";
 import { powerReading } from "@/components/world/powers/state";
 import PowerMeter from "./PowerMeter";
 import { pop } from "@/components/world/sound";
-import { PanelBody, ProjectItem, zoneCode, zoneMeta } from "./Panels";
+import { PanelBody, ProjectItem, useSheetBox, zoneCode, zoneMeta } from "./Panels";
 import { Decode, Stage, d } from "@/components/brand/motion";
 import { projects } from "@/content/projects";
 import Ask from "./Ask";
@@ -109,12 +109,13 @@ function Tab({ label, k, onClick, className = "", children }: { label: string; k
 /**
  * The frame every place opens in (S02/S03): it draws in, an ink bar wipes across with the
  * place's code and an Esc close, the title decodes. Right side on desktop, a bottom sheet on phones.
+ * A `box` (the garage's reading panel, Panels.tsx `useSheetBox`) places it exactly, full height.
  */
-function Sheet({ code, kicker, title, onClose, wide, children }: { code: string; kicker: string; title: string; onClose: () => void; wide?: boolean; children: React.ReactNode }) {
-  return (
-    <Stage motion className={`fixed inset-x-3 bottom-3 z-30 flex max-h-[62svh] flex-col sm:inset-x-auto sm:bottom-auto sm:right-5 sm:top-[4.5rem] sm:max-h-[calc(100svh-11rem)] ${wide ? "sm:w-[min(640px,calc(100vw-2.5rem))]" : "sm:w-[440px]"}`}>
+function Sheet({ code, kicker, title, onClose, box, children }: { code: string; kicker: string; title: string; onClose: () => void; box?: CSSProperties | null; children: React.ReactNode }) {
+  const sheet = (
+    <Stage motion className={box ? "flex min-h-0 flex-1 flex-col" : "fixed inset-x-3 bottom-3 z-30 flex max-h-[62svh] flex-col sm:inset-x-auto sm:bottom-auto sm:right-5 sm:top-[4.5rem] sm:max-h-[calc(100svh-11rem)] sm:w-[440px]"}>
       {(run) => (
-        <aside className="dsa-frame flex min-h-0 flex-col border-2 border-ink bg-white shadow-[4px_4px_0_var(--color-ink)]" style={d(0)}>
+        <aside className={`dsa-frame flex min-h-0 flex-col border-2 border-ink bg-white shadow-[4px_4px_0_var(--color-ink)] ${box ? "flex-1" : ""}`} style={d(0)}>
           <div className="relative flex items-center gap-3 px-4 py-2 font-mono text-[12px] text-white">
             <span className="dsa-x absolute inset-0 bg-ink" style={d(80)} />
             <span className="relative min-w-0 truncate">
@@ -124,7 +125,7 @@ function Sheet({ code, kicker, title, onClose, wide, children }: { code: string;
               <span className="bg-white px-1.5 text-ink">Esc</span> Close
             </button>
           </div>
-          <div className="no-scrollbar min-h-0 overflow-y-auto px-5 pb-5 pt-4">
+          <div className={`no-scrollbar min-h-0 overflow-y-auto ${box ? "overscroll-contain px-4 pb-6 pt-4 sm:px-6 sm:pt-5" : "px-5 pb-5 pt-4"}`}>
             <h2 className="mb-4 text-[24px] font-semibold leading-tight tracking-tight">
               <Decode text={title} run={run} delay={300} dur={450} />
             </h2>
@@ -134,16 +135,24 @@ function Sheet({ code, kicker, title, onClose, wide, children }: { code: string;
       )}
     </Stage>
   );
+  return box ? (
+    <div className="fixed z-30 flex flex-col" style={box}>
+      {sheet}
+    </div>
+  ) : (
+    sheet
+  );
 }
 
 function ZoneCard() {
   const zone = useWorld((s) => s.zone);
+  const box = useSheetBox(zone);
   useEffect(() => {
     if (zone) pop();
   }, [zone]);
   if (!zone) return null;
   return (
-    <Sheet key={zone} code={zoneCode(zone)} kicker={zoneMeta[zone].kicker} title={zoneMeta[zone].title} onClose={closeZone}>
+    <Sheet key={zone} code={zoneCode(zone)} kicker={zoneMeta[zone].kicker} title={zoneMeta[zone].title} onClose={closeZone} box={box}>
       <PanelBody zone={zone} />
     </Sheet>
   );

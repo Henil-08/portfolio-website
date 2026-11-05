@@ -13,6 +13,7 @@ import { patents, publications, toolbox } from "@/content/research";
 import { playbook, playbookIntro } from "@/content/playbook";
 import { DsCard } from "@/components/brand/sheets";
 import { Figures, pad } from "@/components/brand/tokens";
+import { garageSheet } from "@/components/world/garage/state";
 
 // Which roles belong to each place, matched by company and title.
 const SECTOR_ROLES: Record<number, (r: (typeof experience)[number]) => boolean> = {
@@ -21,6 +22,24 @@ const SECTOR_ROLES: Record<number, (r: (typeof experience)[number]) => boolean> 
   3: (r) => ["Northeastern University", "Edlight, PBC", "Impacter AI"].includes(r.company) || r.kind === "Internship",
   4: (r) => r.company === "Waters Corporation" && r.kind === "Full time",
 };
+
+const onResize = (f: () => void) => {
+  window.addEventListener("resize", f);
+  return () => window.removeEventListener("resize", f);
+};
+const viewport = () => `${window.innerWidth}x${window.innerHeight}`;
+
+/**
+ * Where a place's sheet stands, when it isn't the usual frame: a garage's is a reading panel,
+ * about half the screen on the right or most of it from the bottom (garage/state.ts
+ * `garageSheet`, which the camera frames the bay beside). Null for every other place.
+ */
+export function useSheetBox(zone: ZoneId | null) {
+  const vp = useSyncExternalStore(onResize, viewport, () => "");
+  if (!zone?.startsWith("garage-") || !vp) return null;
+  const [w, h] = vp.split("x").map(Number);
+  return garageSheet(w, h).box;
+}
 
 /** A place's code on the map and in its sheet: Z01, Z02… in zone order (layout.ts `zones`). */
 export const zoneCode = (zone: ZoneId) => `Z${pad(zones.findIndex((z) => z.id === zone) + 1)}`;
