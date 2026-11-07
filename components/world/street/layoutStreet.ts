@@ -328,7 +328,9 @@ export const MARSHALS: Spot[] = (() => {
   const out: Spot[] = [];
   for (const u of MARSHAL_U) {
     const sp = nearestSpot(u, 3.2, 0.03, (s) =>
-      inSectorScene(s.x, s.z, 1) ? "a sector scene" : nearPlace(s.x, s.z, 0) ? "a place" : !inLand(s.x, s.z, 2) ? "the shore" : STAND_SPOTS.some((st) => Math.hypot(st.x - s.x, st.z - s.z) < 8) ? "a grandstand" : "",
+      inSectorScene(s.x, s.z, 1) ? "a sector scene" : nearPlace(s.x, s.z, 0) ? "a place" :
+      // another stretch of the lap: past the crossover the far side of the deck is the hairpin under it
+      nearestT(s.x, s.z).dist < TRACK_WIDTH / 2 + 2.5 ? "the road" : !inLand(s.x, s.z, 2) ? "the shore" : STAND_SPOTS.some((st) => Math.hypot(st.x - s.x, st.z - s.z) < 8) ? "a grandstand" : "",
     );
     if (sp) out.push(sp);
     else placementWarning(`marshal post at u ${u}: no clear spot within 0.03 of its corner`);
@@ -338,12 +340,18 @@ export const MARSHALS: Spot[] = (() => {
 
 // ------------------------------------------------------------ flags
 
-/** Flagpoles along the far side of the tunnel straight, the loop and the west (6.6 m past the barrier), each at the nearest clear spot. */
+/**
+ * Flagpoles along the far side of the tunnel straight, the loop and the west (6.6 m past the
+ * barrier), each at the nearest clear spot. (Gone: the one at u 0.56, coming down off the
+ * crossover: the far side there is the hairpin under the deck, and its pole stood in that road.)
+ */
 export const FLAG_SPOTS: Spot[] = (() => {
   const out: Spot[] = [];
-  for (const u of [0.45, 0.47, 0.56, 0.6, 0.81, 0.836, 0.335]) {
+  for (const u of [0.45, 0.47, 0.6, 0.81, 0.836, 0.335]) {
     const sp = nearestSpot(u, 6.6, 0.02, (s) =>
-      inSectorScene(s.x, s.z, 1) ? "a sector scene" : nearPlace(s.x, s.z, 0) ? "a place" : STAND_SPOTS.some((st) => Math.hypot(st.x - s.x, st.z - s.z) < 5.5) ? "a grandstand" : out.some((o) => Math.hypot(o.x - s.x, o.z - s.z) < 6) ? "another flag" : "",
+      inSectorScene(s.x, s.z, 1) ? "a sector scene" : nearPlace(s.x, s.z, 0) ? "a place" :
+      // another stretch of the lap: past the crossover the far side of the deck is the hairpin under it
+      nearestT(s.x, s.z).dist < TRACK_WIDTH / 2 + 2.5 ? "the road" : STAND_SPOTS.some((st) => Math.hypot(st.x - s.x, st.z - s.z) < 5.5) ? "a grandstand" : out.some((o) => Math.hypot(o.x - s.x, o.z - s.z) < 6) ? "another flag" : "",
     );
     if (sp) out.push(sp);
     else placementWarning(`flag at u ${u}: no clear spot within 0.02`);
