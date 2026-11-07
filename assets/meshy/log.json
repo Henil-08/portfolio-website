@@ -417,5 +417,29 @@
       "credits": 6,
       "at": "2026-11-04T17:26:49.899Z"
     }
+  },
+  "garage-a": {
+    "concept": {
+      "task": "01a1b6c3-5c5a-762a-95d7-9e687a43fd2c",
+      "prompt": "Interior of one Formula 1 team garage bay seen from the driver's seat of a race car parked in it (the car's nose and halo in the foreground, low): a clean gallery bay, warm grey concrete walls and floor, a lit paper-white plinth stage in the middle holding one product object, a wide pit wall of eight framed datasheet screens on the back wall, recessed linear ceiling light panels, thin ink floor markings, one orange accent line, calm museum feel",
+      "credits": 6,
+      "at": "2026-11-07T16:07:16.600Z"
+    }
+  },
+  "garage-b": {
+    "concept": {
+      "task": "01a1b6c3-a4b7-7636-8af2-13fcf51baff9",
+      "prompt": "Interior of one Formula 1 team garage bay seen from the driver's seat of a race car parked in it (the car's nose and halo in the foreground, low): a working F1 garage, black ink tool walls and tyre racks with paper white tyre covers along the sides, a lit stage with one product object in front, a pit wall of datasheet screens behind on a black gantry, overhead equipment booms, warm grey epoxy floor with ink bay markings, one orange accent",
+      "credits": 6,
+      "at": "2026-11-07T16:07:39.479Z"
+    }
+  },
+  "garage-c": {
+    "concept": {
+      "task": "01a1b6c3-fd94-77a7-b1d5-7b739da5ab10",
+      "prompt": "Interior of one Formula 1 team garage bay seen from the driver's seat of a race car parked in it (the car's nose and halo in the foreground, low): a data-wall control room bay, the whole back wall a grid of glowing paper-white datasheet screens with orange highlights in black frames, a low black plinth with one product object lit from above in front of it, dark ink ceiling with a light slot, concrete floor, one orange accent strip",
+      "credits": 6,
+      "at": "2026-11-07T16:07:53.391Z"
+    }
   }
 }

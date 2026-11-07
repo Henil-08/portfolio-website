@@ -38,6 +38,9 @@ export const MESHY: MeshyModel[] = [
 
 /** Concept images (public/models/concepts/<id>.png): designed first, meshed once approved. */
 export const CONCEPTS: { id: string; name: string; group: string }[] = [
+  { id: "garage-a", name: "A · Working gallery", group: "Garage interior" },
+  { id: "garage-b", name: "B · Paper workshop", group: "Garage interior" },
+  { id: "garage-c", name: "C · Data wall", group: "Garage interior" },
   { id: "mail", name: "C01 · Email", group: "Contact monuments" },
   { id: "linkedin", name: "C02 · LinkedIn", group: "Contact monuments" },
   { id: "github", name: "C03 · GitHub", group: "Contact monuments" },
