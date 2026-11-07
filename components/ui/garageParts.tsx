@@ -201,7 +201,7 @@ export function GaragePicker() {
               <span className="border border-white/40 px-1">← →</span> Choose
             </span>
             <button type="button" onClick={() => toggleGarage(false)} aria-label="Close" className="relative flex shrink-0 items-center gap-1.5 transition hover:text-signal pointer-coarse:ml-auto">
-              <span className="bg-white px-1.5 text-ink">Esc</span> Close
+              <span className="bg-white px-1.5 text-ink pointer-coarse:hidden">Esc</span> Close
             </button>
           </div>
           <div className="no-scrollbar max-h-[56svh] overflow-y-auto px-4 pb-4 pt-3 sm:max-h-[calc(100svh-11rem)]">

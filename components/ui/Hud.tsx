@@ -120,7 +120,7 @@ function Sheet({ code, kicker, title, onClose, box, children }: { code: string; 
               <Decode text={`${code} · ${kicker}`} run={run} delay={200} />
             </span>
             <button onClick={onClose} aria-label="Close" className="relative ml-auto flex shrink-0 items-center gap-1.5 transition hover:text-signal">
-              <span className="bg-white px-1.5 text-ink">Esc</span> Close
+              <span className="bg-white px-1.5 text-ink pointer-coarse:hidden">Esc</span> Close
             </button>
           </div>
           <div className={`no-scrollbar min-h-0 overflow-y-auto ${box ? "overscroll-contain px-4 pb-6 pt-4 sm:px-6 sm:pt-5" : "px-5 pb-5 pt-4"}`}>
@@ -185,7 +185,7 @@ function Modal({ open, close, title, wide, children }: { open: boolean; close: (
                     <Decode text={`HG-08 / ${title}`} run={run} delay={200} />
                   </span>
                   <button onClick={close} aria-label="Close" className="relative ml-auto flex items-center gap-1.5 transition hover:text-signal">
-                    <span className="bg-white px-1.5 text-ink">Esc</span> Close
+                    <span className="bg-white px-1.5 text-ink pointer-coarse:hidden">Esc</span> Close
                   </button>
                 </div>
                 <div className="p-5">{children}</div>

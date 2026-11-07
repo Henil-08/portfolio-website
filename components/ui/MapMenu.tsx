@@ -39,7 +39,7 @@ export default function MapMenu() {
                     <span className="x-blink h-1.5 w-1.5 rounded-full bg-signal" /> Live
                   </span>
                   <button onClick={close} aria-label="Close map" className="relative flex items-center gap-1.5 transition hover:text-signal">
-                    <span className="bg-white px-1.5 text-ink">Esc</span> Close
+                    <span className="bg-white px-1.5 text-ink pointer-coarse:hidden">Esc</span> Close
                   </button>
                 </div>
                 <div className="grid min-h-0 flex-1 overflow-y-auto md:grid-cols-[1fr_300px] md:overflow-hidden">

@@ -57,7 +57,7 @@ export default function FitPanel() {
                     <Decode text="HG-08 / Fit check" run={run} delay={200} />
                   </span>
                   <button onClick={() => setState({ fitOpen: false })} className="relative ml-auto flex items-center gap-1.5 transition hover:text-signal" aria-label="Close">
-                    <span className="bg-white px-1.5 text-ink">Esc</span> Close
+                    <span className="bg-white px-1.5 text-ink pointer-coarse:hidden">Esc</span> Close
                   </button>
                 </div>
                 <div className="p-5 sm:p-6">
