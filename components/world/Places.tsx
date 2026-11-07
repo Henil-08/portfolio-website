@@ -43,6 +43,7 @@ import Garden from "./garden";
 import Social from "./social";
 import Waterfront from "./waterfront";
 import { HomeBody } from "./Movables";
+import { carState } from "./carState";
 import Bridge from "./Bridge";
 import { AHMEDABAD_BOXES, AhmedabadSector, BOSTON_BOXES, BostonSector, HYPERLAB_BOXES, HyperlabSector, WATERS_BOXES, WatersSector } from "./models/sectors";
 import ZoneDebug from "./ui3d/ZoneDebug";
@@ -215,9 +216,17 @@ function FootballPitch() {
         }, 1500);
       }
     }
-    if (p.y < gy - 3 || !inLand(p.x, p.z, -4)) {
+    // off the island, or kicked off the pitch and left there: back on the spot once the car is
+    // away (like the knock-about props, Movables.tsx), so the next visit has a ball to play with
+    const v = b.linvel();
+    const off = Math.abs(p.x - x) > 9 || Math.abs(p.z - z) > 7.5;
+    const still = Math.hypot(v.x, v.y, v.z) < 0.3;
+    const car = carState.pos;
+    const away = Math.hypot(car.x - p.x, car.z - p.z) > 30 && Math.hypot(car.x - home[0], car.z - home[2]) > 30;
+    if (p.y < gy - 3 || !inLand(p.x, p.z, -4) || (off && still && away)) {
       b.setTranslation({ x: home[0], y: home[1] + 1, z: home[2] }, true);
       b.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      b.setAngvel({ x: 0, y: 0, z: 0 }, true);
     }
   });
 
