@@ -2,7 +2,7 @@
 // (components/ui/GarageSelect.tsx) and the boot's still of the dotted floor (components/ui/Boot.tsx),
 // so the boot hands over to the garage in place: same floor, same vanishing point.
 // No three.js here: the boot draws its floor before the world (and three) has loaded.
-import { VEHICLE_SCALE } from "../vehicles/scale";
+import { vehicleScale } from "../vehicles/scale";
 import type { VehicleCode } from "../vehicles/liveries";
 import { START_SPOT } from "../startSpot";
 
@@ -12,8 +12,8 @@ import { START_SPOT } from "../startSpot";
  * and all the same size (owner, 2026-10-26).
  */
 export const TABLE_SCALE: Record<VehicleCode, number> = { V01: 1.42 / 3.02, V02: 1.0 / 1.33, V03: 1.25 / 2.55, V04: 0.95 / 1.03 };
-/** table units to world metres, per vehicle */
-export const kOf = (code: VehicleCode) => VEHICLE_SCALE / TABLE_SCALE[code];
+/** table units to world metres, per vehicle: the turntable's vehicle hands over at the size it drives at */
+export const kOf = (code: VehicleCode) => vehicleScale(code) / TABLE_SCALE[code];
 
 /** The select camera, in table units round the vehicle's spot: where it sits, what it looks at, its fov over the cell. */
 export const SELECT_CAM: [number, number, number] = [4.3, 2.15, 4.9];

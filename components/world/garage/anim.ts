@@ -9,7 +9,7 @@ import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { PIT, GARAGES } from "../layout";
 import { heightAt } from "../terrain";
-import { VEHICLE_SCALE } from "../vehicles/scale";
+import { vehicleScale } from "../vehicles/scale";
 import type { VehicleCode } from "../vehicles/liveries";
 import { projects, type Domain, type Project } from "@/content/projects";
 
@@ -84,7 +84,8 @@ export function garageList(domain: Domain): Item[] {
 
 /* ------------------------------------------------------------------ the bay */
 
-export const S = VEHICLE_SCALE;
+/** World metres per model metre for this vehicle: the size it drives at in the world (vehicles/scale.ts). */
+export const S = vehicleScale;
 export const DOOR_Z = 3.5;
 /** The back wall's inner face: the game's 7 m deep pit building lines its bays 0.41 m in from the back (kit/builtTown.tsx). */
 export const BACK_Z = -3.08;
@@ -145,7 +146,7 @@ export const EYE: Record<VehicleCode, V3> = {
   V04: [0, 1.42, -0.3],
 };
 /** Where a vehicle's centre parks (bay frame z), facing the wall, so its eye is at EYE_Z. */
-export const parkZ = (code: VehicleCode) => EYE_Z + EYE[code][2] * S;
+export const parkZ = (code: VehicleCode) => EYE_Z + EYE[code][2] * S(code);
 
 /* ------------------------------------------------------------------ the camera */
 
@@ -165,10 +166,11 @@ export function cockpitPoses(out: CockpitPoses, k: number, code: VehicleCode, ca
   const fx = Math.sin(yaw);
   const fz = Math.cos(yaw);
   const e = EYE[code];
+  const sc = S(code);
   out.chase.set(car.x - fx * 4.2, car.y + 1.9, car.z - fz * 4.2);
   out.chaseLook.set(car.x + fx * 4, car.y + 0.9, car.z + fz * 4);
   // the eye: the model's frame turned by yaw
-  out.eye.set(car.x + (e[0] * fz + e[2] * fx) * S, car.y + e[1] * S, car.z + (-e[0] * fx + e[2] * fz) * S);
+  out.eye.set(car.x + (e[0] * fz + e[2] * fx) * sc, car.y + e[1] * sc, car.z + (-e[0] * fx + e[2] * fz) * sc);
   out.look.copy(TARGET);
   out.look.x += glance * out.b;
   if (origin) out.look.add(origin);

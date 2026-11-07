@@ -12,7 +12,7 @@
 // player's own from the bloom on (`beforeRender`).
 //
 // Frames: the garage is drawn in "table" units (the mock's), in a group at the car's spot scaled
-// by k = VEHICLE_SCALE / the vehicle's turntable scale, so the handover onto the world is exact.
+// by k = vehicleScale(code) / the vehicle's turntable scale, so the handover onto the world is exact.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addAfterEffect, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
@@ -48,8 +48,12 @@ const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 const PLINTH = 1.75;
 /** the turntable's slow spin, as the mock's orbit autoRotateSpeed 1.4 (rad/s) */
 const SPIN_RATE = ((2 * Math.PI) / 60) * 1.4;
-/** Swap timings (s): the old one slides off, the table spins, the scan line reveals the new one. */
-const SWAP = { old: 0.3, spin: 0.55, scan0: 0.05, scan1: 0.42, pop0: 0.12, pop1: 0.58 };
+/**
+ * Swap timings (s): the old one slides off and is gone, then the scan line reveals the new one while
+ * the table spins: one vehicle on the table at a time, never two. A new livery runs the scan line
+ * alone, from `line0`.
+ */
+const SWAP = { old: 0.22, spin: 0.6, scan0: 0.24, scan1: 0.58, pop0: 0.26, pop1: 0.7, line0: 0.05 };
 const SPIN = Math.PI * 0.8;
 /** The dot floor rises from the plinth's foot in the garage (view.ts FLOOR_SELECT) to just under the
  * vehicle once aligned, where the bloom keeps it. One floor from the boot on. */
@@ -433,7 +437,7 @@ function Garage() {
     } else if (A.l !== curSlot.l) {
       // a new livery: the scan line only
       A.l = curSlot.l;
-      A.ts = now;
+      A.ts = now - (SWAP.scan0 - SWAP.line0);
     }
     if (stg === "boot" || stg === "select") {
       // the slow spin, and drag to turn

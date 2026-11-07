@@ -12,7 +12,8 @@ export const VEHICLE_SCALE = 8 / 12;
  * bike was a toy on the 8 m road (owner, 2026-11-04: "too small for the road"): with nobody on it
  * there is no rider to give it size, so it drives at real size, as tall as a person's hip and about
  * half the TH-18's length. E14 a touch up too, so the Baja car stands above the F1's wheels as it
- * would. The garage turntables keep their own sizes (bloom/view.ts TABLE_SCALE).
+ * would. The garage turntables keep their own sizes (bloom/view.ts TABLE_SCALE) and hand over at this one
+ * (view.ts kOf); the garage bays' stand-in drives in at it too (garage/anim.ts S).
  */
 export const VEHICLE_DISPLAY: Record<VehicleCode, number> = { V01: 1, V02: 1.12, V03: 1, V04: 1.45 };
 

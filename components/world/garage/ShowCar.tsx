@@ -42,7 +42,7 @@ export function ShowCar({ v, livery, root, inCab }: { v: VehicleDef; livery: Liv
       if (ds !== 0)
         v.wheels.forEach((w, i) => {
           const s = spins.current[i];
-          if (s) s.rotation.x += ds / (w.r * S);
+          if (s) s.rotation.x += ds / (w.r * S(v.code));
         });
       last.current.copy(p);
     } else last.current = p.clone();
@@ -69,7 +69,7 @@ export function ShowCar({ v, livery, root, inCab }: { v: VehicleDef; livery: Liv
   });
 
   return (
-    <group ref={model} scale={S}>
+    <group ref={model} scale={S(v.code)}>
       <RigContext.Provider value={rig}>
         <v.Model livery={livery} />
       </RigContext.Provider>
