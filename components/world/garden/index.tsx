@@ -140,7 +140,7 @@ const hedgeGeo = () =>
     g.translate(0, 0, -0.5);
     g.rotateY(Math.PI / 2); // the profile across the run, extruded along x
     g.deleteAttribute("uv");
-    return g.toNonIndexed();
+    return g; // an extrusion is already non-indexed
   });
 
 function hedgeBlocks() {
@@ -196,7 +196,7 @@ function bedPoint(b: Bed, k: number, o: number) {
 }
 
 /** Flat-shaded faceted shrub (an icosahedron with no subdivision). */
-const shrubGeo = () => geo("garden-shrub", () => new THREE.IcosahedronGeometry(1, 0).toNonIndexed());
+const shrubGeo = () => geo("garden-shrub", () => new THREE.IcosahedronGeometry(1, 0));
 /** A tall ornamental grass: a slim four-sided spike. */
 export const grassGeo = () => geo("garden-grass", () => new THREE.ConeGeometry(1, 1, 4).translate(0, 0.5, 0).toNonIndexed());
 /** An octagonal plate (the planter's gravel and the pond's water). */

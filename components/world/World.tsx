@@ -34,7 +34,8 @@ export default function World() {
 
   return (
     <Canvas
-      shadows
+      // PCF: three dropped PCFSoftShadowMap (it warned and used PCF anyway), so ask for PCF outright
+      shadows="percentage"
       dpr={[1, fancy ? 1.75 : 1.25]}
       camera={{ fov: 34, near: 0.5, far: 1200, position: [90, 60, 40] }}
       gl={{ antialias: !fancy, powerPreference: "high-performance", toneMapping: THREE.NoToneMapping }}

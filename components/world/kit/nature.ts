@@ -72,7 +72,7 @@ export function roundTreeModel() {
     k.add("orange", prism(0.12, 0.12, 0.06, 8), { p: [0, cy - R * 0.93 - 0.12, 0] });
     k.add("sageLeafDark", new THREE.IcosahedronGeometry(R * 0.93, 1), { p: [0, cy, 0] });
     // every face is its own slightly shrunk tile, so the seams read as grooves
-    const ico = new THREE.IcosahedronGeometry(R, 1).toNonIndexed();
+    const ico = new THREE.IcosahedronGeometry(R, 1); // already one vertex per face corner (non-indexed)
     const p = ico.attributes.position;
     const r = rng(21);
     for (let f = 0; f < p.count; f += 3) {
