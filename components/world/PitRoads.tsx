@@ -2,9 +2,11 @@
 
 // Pit entry and exit: two short lanes that peel off the inside of the last corner
 // into the pit lane and rejoin on the inside of T1, a paper line along both edges from
-// where they leave the track's edge (no paint on the track itself), and PIT IN / PIT OUT boards. Visual only; the car drives on the
-// terrain under them, which is level here.
+// where they leave the track's edge (no paint on the track itself), and PIT IN / PIT OUT boards. The
+// lanes are drawn up to ~0.15 m over the terrain (so it never pokes through), and the car drives on
+// them as drawn (a trimesh of the same strips): on the terrain under them its tyres sank into the asphalt.
 import { useMemo } from "react";
+import { RigidBody, TrimeshCollider } from "@react-three/rapier";
 import * as THREE from "three";
 import { C } from "./palette";
 import { PIT, TRACK_WIDTH, nearestT, pitRoadCurves, trackPoint } from "./layout";
@@ -114,7 +116,9 @@ export default function PitRoads() {
         road: strip(c, -EDGE - 0.1, EDGE + 0.1),
         lines: [strip(c, EDGE - LINE / 2, EDGE + LINE / 2, 0.004, offTrack), strip(c, -EDGE - LINE / 2, -EDGE + LINE / 2, 0.004, offTrack)],
       });
-    return { out, entry: entry.getPoint(0), exit: exit.getPoint(0) };
+    // the lanes as drawn, solid (see the top)
+    const solid = out.map((o) => [o.road.getAttribute("position").array as Float32Array, Uint32Array.from(o.road.getIndex()!.array)] as const);
+    return { out, solid, entry: entry.getPoint(0), exit: exit.getPoint(0) };
   }, []);
 
   return (
@@ -129,6 +133,11 @@ export default function PitRoads() {
           ))}
         </group>
       ))}
+      <RigidBody type="fixed" colliders={false}>
+        {parts.solid.map((a, i) => (
+          <TrimeshCollider key={i} args={[a[0], a[1]]} />
+        ))}
+      </RigidBody>
       <Board x={parts.entry.x + 4} z={PIT.z - 6} text="PIT IN" rot={0} />
       <Board x={parts.exit.x - 4} z={PIT.z - 6} text="PIT OUT" rot={0} />
     </group>

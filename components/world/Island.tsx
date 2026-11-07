@@ -300,7 +300,16 @@ export const pitAsphalt = lit(
 
 function Kerbs() {
   const geo = useMemo(() => kerbGeometry(), []);
-  return <mesh geometry={geo} receiveShadow material={ROAD.kerb} />;
+  // the kerbs stand KERB_H proud of the road: solid as drawn, so the tyres ride up on them, not into them
+  const solid = useMemo(() => [geo.getAttribute("position").array as Float32Array, Uint32Array.from(geo.getIndex()!.array)] as const, [geo]);
+  return (
+    <>
+      <mesh geometry={geo} receiveShadow material={ROAD.kerb} />
+      <RigidBody type="fixed" colliders={false}>
+        <TrimeshCollider args={[solid[0], solid[1]]} />
+      </RigidBody>
+    </>
+  );
 }
 
 function EdgeLines() {
