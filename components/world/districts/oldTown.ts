@@ -40,10 +40,15 @@ function inBuilding(x: number, z: number, pad: number) {
 
 const onRoad = (x: number, z: number) => distToTrack(x, z) < TRACK_WIDTH / 2 + 2.4;
 
-/** Slabs: flat-shaded quads that follow the ground, one tone each. */
+/**
+ * Slabs: flat-shaded quads that follow the ground, one tone each; and the same slabs with the joints
+ * closed (`solid`), the ground a car drives on: the slabs are 5 cm proud, and a wheel's ray dropping
+ * into every 7 cm joint would shake the car.
+ */
 function paving() {
   const r = rng(731);
   const pos: number[] = [];
+  const solid: number[] = [];
   const col: number[] = [];
   const seen = new Set<string>();
   for (const b of old) {
@@ -79,13 +84,26 @@ function paving() {
           pos.push(...q[k]);
           col.push(tone.r, tone.g, tone.b);
         }
+        const e = GAP / 2;
+        const sq = [
+          [x0 - e, z0 - b.front * e],
+          [x1 + e, z0 - b.front * e],
+          [x1 + e, z1 + b.front * e],
+          [x0 - e, z1 + b.front * e],
+        ].map(([lx, lz]) => {
+          const [x, z] = toWorld(b, lx, lz);
+          return [x, heightAt(x, z) + 0.05, z];
+        });
+        for (const k of tris) solid.push(...sq[k]);
       }
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
   g.computeVertexNormals();
-  return g;
+  const sg = new THREE.BufferGeometry();
+  sg.setAttribute("position", new THREE.Float32BufferAttribute(solid, 3));
+  return { g, solid: sg };
 }
 
 function furniture() {
@@ -109,4 +127,5 @@ function furniture() {
   return { lanterns, benches };
 }
 
-export const OLD_TOWN = { paving: paving(), ...furniture() };
+const PAVING = paving();
+export const OLD_TOWN = { paving: PAVING.g, pavingSolid: PAVING.solid, ...furniture() };

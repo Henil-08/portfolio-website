@@ -95,7 +95,8 @@ export const PARK = (() => {
         const jz = z + dx * (side + (r() - 0.5) * 0.06);
         const w = 0.62 + r() * 0.1;
         const d = 0.8 + r() * 0.06;
-        slabs.m.push(compose(jx, heightAt(jx, jz) + 0.015, jz, yaw + (r() - 0.5) * 0.06, w, 0.07, d));
+        // set in the ground, a hair proud (top +1.3 cm): a car drives over them, not into them
+        slabs.m.push(compose(jx, heightAt(jx, jz) - 0.022, jz, yaw + (r() - 0.5) * 0.06, w, 0.07, d));
         slabs.c.push(TONES[Math.floor(r() * TONES.length)]);
       }
     }

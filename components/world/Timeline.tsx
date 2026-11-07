@@ -18,6 +18,7 @@
 import { Suspense, useMemo, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Billboard, Text } from "@react-three/drei";
+import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { carState } from "./carState";
 import { dayNight } from "./daynight";
@@ -54,6 +55,13 @@ function Terrace() {
         <planeGeometry args={[w, d]} />
         <meshStandardMaterial color={STONE} roughness={0.95} />
       </mesh>
+      {/* solid as drawn: the tyres ride on the pavement (TOP over the pad), and bump over the year markers */}
+      <RigidBody type="fixed" colliders={false}>
+        <CuboidCollider args={[w / 2 + 0.25, depth / 2, d / 2 + 0.25]} position={[cx, TOP - depth / 2, cz]} />
+        {Array.from({ length: T1 - T0 + 1 }, (_, i) => (
+          <CuboidCollider key={i} args={[0.45, 0.07, 0.21]} position={[YEAR_X, TOP + 0.05, zOf(T0 + i)]} />
+        ))}
+      </RigidBody>
     </group>
   );
 }

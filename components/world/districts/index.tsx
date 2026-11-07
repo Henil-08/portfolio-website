@@ -20,6 +20,7 @@ import { DUNES, tuftGeometry } from "./dunes";
 import { HARBOUR } from "./harbour";
 import { HILLS, flowerGeometry } from "./hills";
 import { OLD_TOWN } from "./oldTown";
+import { Solid, trimeshOf } from "../solid";
 import { PARK } from "./park";
 import { WATERSIDE, padGeometry, reedGeometry } from "./waterside";
 import Streets from "./Streets";
@@ -41,6 +42,8 @@ function onGround(kind: MovableKind) {
 export default function Districts() {
   const vc = mat("#ffffff", { r: 0.8, vc: true });
   const props = useMemo(() => ({ lantern: lanternGeo(), light: lanternLightGeo(), crate: new RoundedBoxGeometry(1, 1, 1, 2, 0.08), slab: new THREE.BoxGeometry(1, 1, 1), flower: flowerGeometry(), rock: boulderGeometry(11, 2, 1.45, 1.75), fence: fenceGeo(), tuft: tuftGeometry(), reed: reedGeometry(), pad: padGeometry() }), []);
+  // the old town's forecourt slabs are 5 cm proud: solid as drawn (oldTown.ts paving)
+  const pavingSolid = useMemo(() => trimeshOf(OLD_TOWN.pavingSolid), []);
   const lilies = useMemo(() => ({ m: WATERSIDE.flowers }), []);
   const fences = useMemo(() => ({ m: [...DUNES.fences, ...PARK.fences] }), []);
   const lanterns = useMemo(() => ({ m: [...OLD_TOWN.lanterns, ...HARBOUR.lanterns, ...PARK.lanterns] }), []);
@@ -68,6 +71,7 @@ export default function Districts() {
         <Movables key={i} kind={k} />
       ))}
       <mesh geometry={OLD_TOWN.paving} material={mat("#ffffff", { r: 0.9, vc: true, flat: true })} receiveShadow />
+      <Solid args={pavingSolid} />
       <Instances geometry={props.flower} material={withWind(mat("#ffffff", { r: 0.7, side: THREE.DoubleSide }), { amount: 0.25, maxHeight: 0.4 })} batch={HILLS.flowers} shadow={false} />
       <Instances geometry={props.slab} material={mat("#ffffff", { r: 0.9 })} batch={PARK.slabs} shadow={false} />
       <Instances geometry={props.flower} material={withWind(mat("#ffffff", { r: 0.7, side: THREE.DoubleSide }), { amount: 0.25, maxHeight: 0.4 })} batch={PARK.flowers} shadow={false} />
