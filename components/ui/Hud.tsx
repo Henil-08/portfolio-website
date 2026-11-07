@@ -271,8 +271,10 @@ function InteractKey() {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
       const s = getState();
-      if ((e.code === "KeyE" || e.code === "Enter") && s.nearLink && !s.zone) openLink(s.nearLink);
-      else if ((e.code === "KeyE" || e.code === "Enter") && s.near && !s.zone) openZone(s.near);
+      // not under the map, Settings, Controls or the quick garage: E there opened the place behind them
+      const over = s.menuOpen || s.settingsOpen || s.controlsOpen || s.garageOpen;
+      if ((e.code === "KeyE" || e.code === "Enter") && s.nearLink && !s.zone && !over) openLink(s.nearLink);
+      else if ((e.code === "KeyE" || e.code === "Enter") && s.near && !s.zone && !over) openZone(s.near);
       if (e.code === "Escape" && s.zone) closeZone();
       // garage open: the arrow keys switch the project on the stage (world/garage/GarageShow.tsx)
       if (s.zone?.startsWith("garage-") && (e.code === "ArrowRight" || e.code === "ArrowLeft")) {

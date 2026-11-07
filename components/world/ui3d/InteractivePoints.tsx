@@ -306,7 +306,9 @@ export default function InteractivePoints({ views }: { views?: () => PromptView[
     for (const l of layers.current.values()) if (l.el.style.opacity !== under) l.el.style.opacity = under;
     if (s.revealed) st.current.forEach((p, i) => p.state === HIDDEN && conceal(i));
     // the open one: the link the car is at, else the place; a place's sheet open steps it back
-    const want = hide || s.zone ? null : s.nearLink ? `link-${s.nearLink}` : s.near;
+    // a panel over the world (the map, Settings, Controls, the quick garage) steps it back too
+    const over = s.menuOpen || s.settingsOpen || s.controlsOpen || s.garageOpen;
+    const want = hide || s.zone || over ? null : s.nearLink ? `link-${s.nearLink}` : s.near;
     const next = want ? list.findIndex((p) => p.id === want) : -1;
     if (next !== active.current) {
       if (active.current >= 0) conceal(active.current);
