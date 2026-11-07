@@ -1,9 +1,11 @@
 "use client";
 
-// 05 · Garage experience · Cockpit + pit wall: what happens when you drive into a garage, as a
-// live mock through the page's one canvas, with the real pit building, the vehicle and livery
-// you pick here (your game choice to start with), the garage's real project objects and the
-// real datasheet (DsCard). Owner, 2026-11-05: 01 Cockpit and 03 Pit wall screens, combined.
+// 05 · Garage experience: what happens when you drive into a garage, as a live mock through the
+// page's one canvas, with the real pit building, the vehicle and livery you pick here (your game
+// choice to start with), the garage's real project objects and the real datasheet (DsCard).
+// 00 is the game's Cockpit + pit wall (owner, 2026-11-05); 01-04 are other ways through a
+// garage's projects, each with its own camera, transitions and presentation, for the owner to
+// pick from (2026-11-07). Keys: 0-4 experience, Enter drive in, ← → project, Esc back out.
 import { useCallback, useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from "react";
 import { View } from "@react-three/drei";
 import { DsCard } from "@/components/brand/sheets";
@@ -15,8 +17,21 @@ import { garageLabel } from "@/components/world/layout";
 import type { Domain } from "@/content/projects";
 import { DOMAIN_ORDER, garageList, zoneCode } from "./common";
 import CockpitWall from "./CockpitWall";
+import PitLaneWalk from "./PitLaneWalk";
+import Teardown, { TeardownOverlay } from "./Teardown";
+import OnBoard, { OnBoardOverlay } from "./OnBoard";
+import RollerDoors from "./RollerDoors";
+import type { OverlayProps, SceneProps } from "./types";
 
-const NAME = "Garage experience · Cockpit + pit wall";
+/** The experiences: code, name, what you do, the scene, its overlay, whether the overlay has its own controls. */
+const EXPERIENCES: { id: string; name: string; line: string; Scene: (p: SceneProps) => React.ReactElement; Overlay?: (p: OverlayProps) => React.ReactElement | null; controls?: boolean }[] = [
+  { id: "00", name: "Cockpit + pit wall", line: "In the game now: the driver's eye on the stage, the pit wall of screens behind it.", Scene: CockpitWall },
+  { id: "01", name: "Pit lane walk", line: "The projects parked in a row on stands with pit boards; the camera walks the line, the one you stop at turns to you and its board swings out.", Scene: PitLaneWalk },
+  { id: "02", name: "Teardown", line: "One project on a drawing table, taken apart into its parts with callouts; it goes back together and the next one comes apart.", Scene: Teardown, Overlay: TeardownOverlay },
+  { id: "03", name: "On-board display", line: "You stay in the seat: the dash and a heads-up frame are the browser, paddles turn the rotary, the project materialises on the stage.", Scene: OnBoard, Overlay: OnBoardOverlay, controls: true },
+  { id: "04", name: "Roller doors", line: "A corridor of numbered doors: drive to the next one, it rolls up and the scan line climbs the project inside.", Scene: RollerDoors },
+];
+
 
 const CSS = `
 .gx-in-1,.gx-in--1{animation:.42s cubic-bezier(.6,0,.2,1) both}
@@ -29,7 +44,7 @@ const CSS = `
 declare global {
   interface Window {
     /** Dev only: drive the mock from a headless browser, e.g. __garageMock.set({ vi: 2, livery: "Orange", inside: true }). */
-    __garageMock?: { set: (s: Partial<{ vi: number; livery: LiveryName; domain: Domain; sel: number; inside: boolean }>) => void };
+    __garageMock?: { set: (s: Partial<{ vi: number; livery: LiveryName; domain: Domain; sel: number; inside: boolean; exp: number }>) => void };
   }
 }
 
@@ -53,6 +68,8 @@ export default function GarageExperience() {
   const [dir, setDir] = useState<1 | -1>(1);
   const [inside, setInside] = useState(false);
   const [down, setDown] = useState<string | null>(null);
+  const [ei, setEi] = useState(1);
+  const ex = EXPERIENCES[ei];
   const v = VEHICLES.find((x) => x.code === (vPick ?? gv)) ?? VEHICLES[0];
   const lname = lPick ?? gl ?? LIVERY_NAMES[0];
   const livery = liveryOf(v.code, lname);
@@ -91,7 +108,10 @@ export default function GarageExperience() {
   }, []);
   // the key handler reads the latest state without re-binding
   const onKey = useEffectEvent((k: string) => {
-    if (k === "ArrowRight" || k === "ArrowLeft") {
+    if (/^Digit[0-4]$/.test(k)) {
+      const i = Number(k.slice(5));
+      if (i !== ei) restart(() => setEi(i));
+    } else if (k === "ArrowRight" || k === "ArrowLeft") {
       if (inside) step(k === "ArrowRight" ? 1 : -1);
     } else if (k === "Enter") setInside(true);
     else if (k === "Escape") setInside(false);
@@ -101,7 +121,7 @@ export default function GarageExperience() {
       if (!live.current) return;
       const k0 = e.code || e.key;
       const k = k0 === "NumpadEnter" ? "Enter" : k0;
-      if (!/^(ArrowRight|ArrowLeft|Enter|Escape)$/.test(k)) return;
+      if (!/^(ArrowRight|ArrowLeft|Enter|Escape|Digit[0-4])$/.test(k)) return;
       if (k !== "Escape") e.preventDefault();
       onKey(k);
       setDown(k);
@@ -119,6 +139,7 @@ export default function GarageExperience() {
     if (process.env.NODE_ENV === "production") return;
     window.__garageMock = {
       set: (s) => {
+        if (s.exp !== undefined) setEi(s.exp);
         if (s.vi !== undefined) setVPick(VEHICLES[s.vi].code);
         if (s.livery !== undefined) setLPick(s.livery);
         if (s.domain !== undefined) setDomain(s.domain);
@@ -137,7 +158,20 @@ export default function GarageExperience() {
     <div>
       <style>{CSS}</style>
 
-      {/* vehicle, livery and garage pickers */}
+      {/* the experience, then vehicle, livery and garage */}
+      <div role="radiogroup" aria-label="Experience" className="mb-2 flex flex-wrap pl-[2px] pt-[2px]">
+        {EXPERIENCES.map((x, i) => {
+          const on = i === ei;
+          return (
+            <button key={x.id} type="button" role="radio" aria-checked={on} onClick={() => i !== ei && restart(() => setEi(i))} className={`${tab(on)} px-3 py-1.5 text-left`}>
+              <span className={code(on)}>
+                {x.id} <span className={on ? "text-white/50" : "text-[#5d5d58]/70"}>· key {i}</span>
+              </span>
+              <span className="block whitespace-nowrap text-[14px] font-semibold leading-tight">{x.name}</span>
+            </button>
+          );
+        })}
+      </div>
       <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
         <div role="radiogroup" aria-label="Vehicle" className="flex flex-wrap pl-[2px] pt-[2px]">
           {VEHICLES.map((x, i) => {
@@ -188,7 +222,7 @@ export default function GarageExperience() {
       <div ref={box} id="garage-mock" className="relative mt-3 overflow-hidden border-2 border-[#111] bg-white">
         <div className="flex items-center gap-3 bg-[#111] px-3 py-2 text-white">
           <span className="font-mono truncate text-[12px]">
-            HG-08 / {zc} · {garageLabel[domain].toUpperCase()} · <span className="text-[#ff4f00]">{NAME}</span>
+            HG-08 / {zc} · {garageLabel[domain].toUpperCase()} · <span className="text-[#ff4f00]">{ex.id} {ex.name}</span>
           </span>
           <span className="font-mono ml-auto hidden shrink-0 items-center gap-2 text-[11.5px] text-white/60 lg:flex">
             <span className="border border-white/40 px-1.5">Enter</span> Drive in
@@ -196,16 +230,19 @@ export default function GarageExperience() {
             <span className="ml-2 border border-white/40 px-1.5">Esc</span> Back out
           </span>
         </div>
-        <div className="grid md:h-[620px] md:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="grid md:h-[640px] md:grid-cols-[minmax(0,1fr)_minmax(400px,46%)]">
           {/* the 3D cell, with its counter and arrows */}
           <div className="relative h-[360px] border-b-2 border-[#111] sm:h-[440px] md:h-auto md:border-b-0 md:border-r-2">
             <View className="absolute inset-0">
-              <CockpitWall v={v} livery={livery} domain={domain} list={list} sel={Math.min(sel, list.length - 1)} dir={dir} inside={inside} onPick={pick} />
+              <ex.Scene key={ex.id} v={v} livery={livery} domain={domain} list={list} sel={Math.min(sel, list.length - 1)} dir={dir} inside={inside} onPick={pick} />
             </View>
-            <span className="font-mono pointer-events-none absolute left-3 top-3 z-[25] bg-white px-1.5 py-0.5 text-[11.5px] shadow-[3px_3px_0_#111] ring-2 ring-[#111]">
-              {v.code} {v.name} · {inside ? "Driver's eye" : "Pit lane"}
-            </span>
-            {inside ? (
+            {ex.Overlay && <ex.Overlay list={list} sel={Math.min(sel, list.length - 1)} inside={inside} step={step} garage={`${zc} ${garageLabel[domain].toUpperCase()}`} />}
+            {!(ex.controls && inside) && (
+              <span className="font-mono pointer-events-none absolute left-3 top-3 z-[25] bg-white px-1.5 py-0.5 text-[11.5px] shadow-[3px_3px_0_#111] ring-2 ring-[#111]">
+                {v.code} {v.name} · {inside ? ex.name : "Outside"}
+              </span>
+            )}
+            {inside && ex.controls ? null : inside ? (
               <div className="absolute bottom-3 left-1/2 z-[25] flex -translate-x-1/2 items-stretch border-2 border-[#111] bg-white shadow-[3px_3px_0_#111]">
                 <button type="button" onClick={() => step(-1)} aria-label="Previous project" className="px-3 text-[16px] hover:bg-[#111] hover:text-white">
                   ←
@@ -253,7 +290,7 @@ export default function GarageExperience() {
                     <Decode text={garageLabel[domain]} run delay={150} dur={360} />
                   </h3>
                   <p className="mt-1 text-[14.5px] text-[#5d5d58]">
-                    {list.length} projects on the wall inside. Drive in to see them one at a time.
+                    {list.length} projects inside. Drive in to see them one at a time.
                   </p>
                   <ol className="mt-4 border-t border-[#111]">
                     {list.map((x, i) => (
@@ -280,8 +317,11 @@ export default function GarageExperience() {
           </div>
         </div>
       </div>
-      <p className="font-mono mt-3 text-[12px] text-[#5d5d58]">
-        {v.code} {v.name} · {livery.name} · {zc} {garageLabel[domain]} · {inside ? `P${pad(cur.index + 1)} on the stage and lit on the wall, ← → to switch, Esc to back out` : "outside on the pit lane, Enter to drive in"}
+      <p className="mt-3 max-w-3xl text-[14.5px] leading-relaxed">
+        <span className="font-mono text-[12px] text-[#ff4f00]">{ex.id}</span> <span className="font-semibold">{ex.name}.</span> {ex.line}
+      </p>
+      <p className="font-mono mt-1 text-[12px] text-[#5d5d58]">
+        {v.code} {v.name} · {livery.name} · {zc} {garageLabel[domain]} · {inside ? `P${pad(cur.index + 1)} on show, ← → to switch, Esc to back out` : "outside, Enter to drive in"} · 0-4 switch experience
       </p>
     </div>
   );

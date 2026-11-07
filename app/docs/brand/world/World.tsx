@@ -345,8 +345,9 @@ export default function World() {
             <h2 className="text-[30px] font-semibold leading-none tracking-tight sm:text-[40px]">Garage experience</h2>
           </div>
           <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-[#5d5d58]">
-            Cockpit + pit wall, approved and in the game (2026-11-05), built from the same code. Pick a vehicle, a livery and a garage, then press Enter to drive in, ← → to change project
-            (or click a screen) and Esc to back out.
+            Ways through a garage&apos;s projects, for the owner to pick from. 00 is the Cockpit + pit wall in the game now; 01 Pit lane walk, 02 Teardown, 03 On-board display and 04 Roller
+            doors each have their own camera, transitions and way of showing a project. Pick one (or press 0-4), a vehicle, a livery and a garage, then Enter to drive in, ← → to change
+            project and Esc to back out.
           </p>
           <div className="mt-6">
             <GarageExperience />
