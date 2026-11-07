@@ -9,6 +9,8 @@ import { nearPromenade } from "../waterfront/layout";
 import { inTownBelt, onRunoff } from "./common";
 import { onStructure } from "./reserved";
 import { nearMonument } from "../contactRing";
+import { START_SPOT } from "../startSpot";
+import { GAME_OFFSET } from "../bloom/view";
 
 export type NatureKind = "round" | "cypress" | "bush" | "rock";
 export type NatureItem = { kind: NatureKind; x: number; z: number; s: number; rot: number; seed: number };
@@ -16,6 +18,18 @@ export type NatureItem = { kind: NatureKind; x: number; z: number; s: number; ro
 /** Clear radius round a tree, and round a bush or a rock (m). */
 const TREE_R = 2.4;
 const LOW_R = 1.3;
+
+/**
+ * Between the chase camera and the car at the start spot, where the bloom hands over to the chase
+ * view (bloom/view.ts GAME_OFFSET): a round tree and a cypress filled that first frame's lower right.
+ * Nothing that grows stands here.
+ */
+export function inStartView(x: number, z: number, r: number) {
+  const [sx, sz] = [START_SPOT[0], START_SPOT[1]];
+  const [vx, vz] = [GAME_OFFSET[0] * 1.3, GAME_OFFSET[2] * 1.3];
+  const t = Math.max(0, Math.min(1, ((x - sx) * vx + (z - sz) * vz) / (vx * vx + vz * vz)));
+  return t > 0.1 && Math.hypot(x - sx - t * vx, z - sz - t * vz) < 4 + r;
+}
 
 export const NATURE: NatureItem[] = (() => {
   let s = 42;
@@ -59,9 +73,10 @@ export const NATURE: NatureItem[] = (() => {
   // tree keeps its spot
   const pitRoads = pitRoadCurves().flatMap((c) => c.getSpacedPoints(80));
   const onPitRoad = (x: number, z: number, r: number) => pitRoads.some((p) => Math.hypot(p.x - x, p.z - z) < PIT_LANE_WIDTH / 2 + r);
+  // and none between the chase camera and the car where you start driving (inStartView)
   return out.filter((it) => {
     const r = it.kind === "round" || it.kind === "cypress" ? TREE_R : LOW_R;
-    return !nearMonument(it.x, it.z, r) && !onPitRoad(it.x, it.z, r);
+    return !nearMonument(it.x, it.z, r) && !onPitRoad(it.x, it.z, r) && !inStartView(it.x, it.z, r);
   });
 })();
 
