@@ -1,5 +1,5 @@
 // Every place you can interact with in the game, read from the game's own data: the zones in
-// layout.ts (`zones`, the E prompt and a sheet each), the contact medallions (social `LINKS`,
+// layout.ts (`zones`, the E prompt and a sheet each), the contact monuments (social `LINKS`,
 // store `nearLink`), the career terrace (Timeline.tsx, driven by the car's position) and the
 // start by the name (startSpot.ts, the knockable letters in Places.tsx).
 import { GARAGES, LETTERS, PIT, SECTORS, TIMELINE, garageLabel, zoneById, type ZoneId } from "@/components/world/layout";
@@ -101,11 +101,12 @@ export const PARK_PLACES: Place[] = [
     ],
   }),
   zonePlace("contact", {
-    parts: "social/index.tsx Social (medallions, waving Avatar), ui3d/InteractivePoints",
-    view: { x: 34, z: -35.5, lift: 1.2, off: [5, 7, 15] },
+    parts: "social/index.tsx Social (Meshy monuments C01–C07, the CONTACT sign, the rigged driver), models/Avatar, ui3d/InteractivePoints",
+    view: { x: 34, z: -35.5, lift: 1.2, off: [2, 8, 17] },
     interact: [
       "The mailbox hotspot opens the Say hi sheet: email, links, and the MCP command to copy.",
-      "Each medallion in the ring is an interactable of its own (store nearLink): drive up to it, the prompt names the link, E opens it in a new tab.",
+      "Each monument in the ring is an interactable of its own (store nearLink): drive up to its plaque, the prompt names the link, E opens it in a new tab.",
+      "The driver idles behind the sign, turns to face the car as it comes in and waves while it is within 8 m.",
     ],
   }),
 ];

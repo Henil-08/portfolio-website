@@ -63,11 +63,11 @@ function Head({ n, children }: { n: string; children: React.ReactNode }) {
   );
 }
 
-/** The contact ring: every medallion is its own interactable. */
-function Medallions() {
+/** The contact ring: every monument is its own interactable. */
+function Monuments() {
   return (
     <div className="border-2 border-ink bg-white p-4">
-      <Head n="M">Medallions · {LINKS.length} links</Head>
+      <Head n="M">Monuments · {LINKS.length} links</Head>
       {LINKS.map((l, i) => (
         <button
           key={l.key}
@@ -77,7 +77,7 @@ function Medallions() {
           onClick={() => openLink(l.key)}
           className="x-row grid w-full grid-cols-[38px_1fr_auto_18px] items-center gap-3 border-b border-rule px-1 py-2 text-left text-[14px]"
         >
-          <span className="font-mono text-[12px] text-signal">L{pad(i + 1)}</span>
+          <span className="font-mono text-[12px] text-signal">C{pad(i + 1)}</span>
           <span className="font-medium">{l.name}</span>
           <span className="x-mute font-mono text-[11.5px] text-graphite">
             {LINK_SPOTS[i][0].toFixed(1)}, {LINK_SPOTS[i][1].toFixed(1)}
@@ -253,7 +253,7 @@ function PlaceCard({ place, i }: { place: Place; i: number }) {
         <div className="min-w-0 space-y-4 bg-paper p-4">
           <p className="font-mono text-[12px] uppercase text-graphite">{zone ? "Opens" : "Data"}</p>
           {zone && <SheetPreview zone={zone} />}
-          {zone === "contact" && <Medallions />}
+          {zone === "contact" && <Monuments />}
           {place.slug === "timeline" && <TimelineDrive />}
           {place.slug === "start" && <StartData />}
         </div>
