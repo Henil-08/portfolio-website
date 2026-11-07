@@ -14,6 +14,8 @@ import { STAND_SPOTS } from "./standSpots";
 import { boardTexture, loadBoardFonts } from "./boardArt";
 import { K, debrisFenceMat, km } from "./ink";
 import { BuiltInstances } from "../kit/builtInstances";
+import { bm, type MatKey } from "../kit/builtShared";
+import { patchSeeThrough, seeThrough } from "../seeThrough";
 import { STAND_GAME, STAND_SCALE, STAND_Z, grandstandFrame, grandstandParts, marshalParts, standSeats } from "../kit/builtTrackside";
 import { WORLD_SCALE } from "../scale";
 
@@ -42,6 +44,8 @@ const MARSHAL_SCALE = WORLD_SCALE;
  */
 const FAN = (0.9 * WORLD_SCALE) / 0.74;
 const STANDING = (1.75 * WORLD_SCALE) / 0.74;
+/** The built materials, faded round the car where they stand between it and the camera. */
+const seen = (k: MatKey) => seeThrough(bm(k));
 const MARSHAL_MATRICES = MARSHALS.map((m) => compose(m.x, heightAt(m.x, m.z), m.z, m.yaw, MARSHAL_SCALE, MARSHAL_SCALE, MARSHAL_SCALE));
 const STAND_MATRICES = STAND_SPOTS.map((s) => compose(s.x, heightAt(s.x, s.z), s.z, s.yaw).multiply(new THREE.Matrix4().compose(new THREE.Vector3(0, s.raise, STAND_Z), new THREE.Quaternion(), new THREE.Vector3(STAND_SCALE, STAND_SCALE, STAND_SCALE))));
 
@@ -139,6 +143,8 @@ const FENCE = (() => {
   const idx: number[] = [];
   const posts = { m: [] as THREE.Matrix4[] };
   const rails = { m: [] as THREE.Matrix4[] };
+  /** each panel as a thin wall [x, z, yaw, half length]: the catch fence is solid (a car drove through it into the stands) */
+  const solid: [number, number, number, number][] = [];
   const y0 = 0.15;
   for (const run of [...FENCES, ...STAND_FENCES]) {
     let acc = 0;
@@ -153,6 +159,7 @@ const FENCE = (() => {
         const q = run.pts[i - 1];
         const len = p.distanceTo(q);
         const yaw = Math.atan2(-(p.z - q.z), p.x - q.x);
+        solid.push([(p.x + q.x) / 2, (p.z + q.z) / 2, yaw, len / 2 + 0.02]);
         for (const y of [FENCE_H]) rails.m.push(compose((p.x + q.x) / 2, heightAt((p.x + q.x) / 2, (p.z + q.z) / 2) + y, (p.z + q.z) / 2, yaw, len + 0.04, 0.06, 0.06));
       }
       if (i % 2 === 0 || i === run.pts.length - 1) posts.m.push(compose(p.x, heightAt(p.x, p.z) + (FENCE_H + 0.3) / 2, p.z, 0, 0.08, FENCE_H + 0.3, 0.08));
@@ -163,7 +170,7 @@ const FENCE = (() => {
   g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
   g.setIndex(idx);
   g.computeVertexNormals();
-  return { g, posts, rails };
+  return { g, posts, rails, solid };
 })();
 
 // ------------------------------------------------------------ flags
@@ -280,22 +287,23 @@ function Boards() {
 // ------------------------------------------------------------ component
 
 export function Trackside() {
-  const fenceMat = useMemo(() => debrisFenceMat(), []);
+  const fenceMat = useMemo(() => patchSeeThrough(debrisFenceMat()), []);
   useFrame(({ clock }) => {
     flagUniforms.uTime.value = clock.elapsedTime;
   });
   return (
     <>
-      <BuiltInstances parts={grandstandParts(STAND_GAME)} matrices={STAND_MATRICES} />
-      <BuiltInstances parts={marshalParts()} matrices={MARSHAL_MATRICES} />
-      <Instances geometry={unitBox()} material={km.painted()} batch={PAINT.paint} />
-      <Instances geometry={bodyGeo()} material={mat(C.white, { r: 0.45 })} batch={PAINT.bodies} />
-      <Instances geometry={headGeo()} material={mat(C.white, { r: 0.45 })} batch={PAINT.heads} shadow={false} />
+      {/* stands and marshal posts fade round the car when they stand between it and the camera (../seeThrough.ts) */}
+      <BuiltInstances parts={grandstandParts(STAND_GAME)} matrices={STAND_MATRICES} material={seen} />
+      <BuiltInstances parts={marshalParts()} matrices={MARSHAL_MATRICES} material={seen} />
+      <Instances geometry={unitBox()} material={seeThrough(km.painted())} batch={PAINT.paint} />
+      <Instances geometry={bodyGeo()} material={seeThrough(mat(C.white, { r: 0.45 }))} batch={PAINT.bodies} />
+      <Instances geometry={headGeo()} material={seeThrough(mat(C.white, { r: 0.45 }))} batch={PAINT.heads} shadow={false} />
 
       {/* catch fence */}
       <mesh geometry={FENCE.g} material={fenceMat} />
-      <Instances geometry={unitBox()} material={km.ink()} batch={FENCE.posts} />
-      <Instances geometry={unitBox()} material={km.ink()} batch={FENCE.rails} shadow={false} />
+      <Instances geometry={unitBox()} material={seeThrough(km.ink())} batch={FENCE.posts} />
+      <Instances geometry={unitBox()} material={seeThrough(km.ink())} batch={FENCE.rails} shadow={false} />
 
       {/* flags */}
       <Instances geometry={unitCyl()} material={mat(C.metal, { r: 0.3, m: 0.5 })} batch={FLAGS.poles} />
@@ -320,6 +328,9 @@ export function Trackside() {
         })}
         {MARSHALS.map((m, i) => (
           <CuboidCollider key={i} args={[1.45 * MARSHAL_SCALE, 1.63 * MARSHAL_SCALE, 1.15 * MARSHAL_SCALE]} position={[m.x, heightAt(m.x, m.z) + 1.63 * MARSHAL_SCALE, m.z]} rotation={[0, m.yaw, 0]} />
+        ))}
+        {FENCE.solid.map(([x, z, yaw, hl], i) => (
+          <CuboidCollider key={`f${i}`} args={[hl, FENCE_H / 2, 0.05]} position={[x, FENCE_H / 2, z]} rotation={[0, yaw, 0]} />
         ))}
         {FLAG_SPOTS.map((f, i) => (
           <CylinderCollider key={i} args={[1, 0.12]} position={[f.x, heightAt(f.x, f.z) + 1, f.z]} />

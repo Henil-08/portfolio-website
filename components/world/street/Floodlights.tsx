@@ -16,6 +16,7 @@ import { BuiltInstances, placeMatrix } from "../kit/builtInstances";
 import { floodlightParts } from "../kit/builtTrackside";
 import { FLOODS } from "./layoutStreet";
 import { WORLD_SCALE } from "../scale";
+import { patchSeeThrough, seeThrough } from "../seeThrough";
 
 /** The concept's 26 m tower (a real 20-30 m floodlight) at the world's scale (../scale.ts): about 18.7 m to the top of the head. */
 export const FLOOD_SCALE = WORLD_SCALE;
@@ -30,14 +31,16 @@ export const lensMat = new THREE.MeshStandardMaterial({
 });
 
 /** Floodlight lamp faces: paper by day, warm white well above 1 at night. */
-const lampMat = new THREE.MeshStandardMaterial({
+const lampMat = patchSeeThrough(new THREE.MeshStandardMaterial({
   color: "#f4f1e8",
   emissive: new THREE.Color("#fff3dc"),
   emissiveIntensity: 0.25,
   roughness: 0.3,
   toneMapped: false,
-});
-const material = (k: MatKey) => (k === "lens" ? lampMat : bm(k));
+}));
+// A tower between the chase camera and the car fades round it (../seeThrough.ts), as the town does:
+// standing 19 m tall at the verge, one often stood right over the car on screen.
+const material = (k: MatKey) => (k === "lens" ? lampMat : seeThrough(bm(k)));
 
 const MATRICES = FLOODS.map((f) => placeMatrix(f.x, heightAt(f.x, f.z), f.z, f.yaw, FLOOD_SCALE));
 
