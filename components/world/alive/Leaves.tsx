@@ -105,14 +105,16 @@ function makeMaterial() {
         transformed.xy = rot2(transformed.xy, rotationZ);
         transformed.yz = rot2(transformed.yz, rotationX);
         transformed.xz = rot2(transformed.xz, aLeafRot.x);
-        transformed += aLeafPos.xyz;
+        // a leaf blown up near the camera shrinks away instead of drawing as a big grey square
+        float leafNear = smoothstep(6.0, 11.0, -(modelViewMatrix * vec4(aLeafPos.xyz, 1.0)).z);
+        transformed = transformed * leafNear + aLeafPos.xyz;
         vLeafMix = aLeafRot.z;`
       );
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", "#include <common>\nuniform vec3 uColorA; uniform vec3 uColorB; varying float vLeafMix;")
       .replace("vec4 diffuseColor = vec4( diffuse, opacity );", "vec4 diffuseColor = vec4( mix(uColorA, uColorB, vLeafMix), opacity );");
   };
-  m.customProgramCacheKey = () => "alive-leaves";
+  m.customProgramCacheKey = () => "alive-leaves-near";
   return m;
 }
 
