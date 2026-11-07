@@ -106,7 +106,7 @@ function makeMaterial() {
         transformed.yz = rot2(transformed.yz, rotationX);
         transformed.xz = rot2(transformed.xz, aLeafRot.x);
         // a leaf blown up near the camera shrinks away instead of drawing as a big grey square
-        float leafNear = smoothstep(6.0, 11.0, -(modelViewMatrix * vec4(aLeafPos.xyz, 1.0)).z);
+        float leafNear = smoothstep(9.0, 16.0, -(modelViewMatrix * vec4(aLeafPos.xyz, 1.0)).z);
         transformed = transformed * leafNear + aLeafPos.xyz;
         vLeafMix = aLeafRot.z;`
       );
