@@ -7,6 +7,7 @@ import { radioBeep, radioLine } from "@/components/world/sound";
 import { radioLines, radioText } from "@/content/radio";
 import type { ZoneId } from "@/components/world/layout";
 import { Decode, Stage, d } from "@/components/brand/motion";
+import { useSheetBox } from "./Panels";
 
 let msgId = 0;
 
@@ -16,6 +17,12 @@ export default function RadioMessages() {
   const msg = useWorld((s) => s.radioMsg);
   const live = useWorld((s) => s.phase === "world");
   const heard = useRef(new Set<ZoneId>());
+  // The line plays as a place's sheet opens: keep it beside the sheet, never under it. A side sheet
+  // (Hud.tsx Sheet, 440 px from sm; the garage's reading panel, Panels.tsx useSheetBox) leaves the
+  // radio the screen to its left; a bottom sheet (phones, a portrait garage) sends it up under the tabs.
+  const box = useSheetBox(near);
+  const side = box && "width" in box ? { paddingRight: Number(box.width) + Number(box.right ?? 0) + 24 } : undefined;
+  const place = !near ? "bottom-[96px]" : box ? (side ? "bottom-[96px]" : "top-[64px]") : "max-sm:top-[60px] sm:bottom-[96px] sm:pr-[484px]";
 
   useEffect(() => {
     // Nothing plays behind the start screen.
@@ -42,7 +49,8 @@ export default function RadioMessages() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.35 }}
-          className="pointer-events-none fixed inset-x-0 bottom-[96px] z-20 flex justify-center px-6"
+          className={`pointer-events-none fixed inset-x-0 z-20 flex justify-center px-6 ${place}`}
+          style={side}
         >
           {/* The radio panel (docs/BRAND.md S02): who is talking on an ink bar with the live
               waveform, then the line decoding in as it is said. */}
