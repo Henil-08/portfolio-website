@@ -3,6 +3,7 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
+  BallCollider,
   CuboidCollider,
   CylinderCollider,
   RigidBody,
@@ -502,6 +503,15 @@ function Nature() {
         return solid ? (
           <RigidBody key={i} type="fixed" colliders={false} position={it.p}>
             <CylinderCollider args={[1, 0.3 * it.s]} position={[0, 1, 0]} />
+            <group rotation={[0, it.rot, 0]} scale={it.s}>
+              {visual}
+            </group>
+          </RigidBody>
+        ) : it.kind === "rock" ? (
+          // a boulder (0.8 m across, 0.47 m tall at s 1) is solid but round: a car meets it and slides
+          // or rides off it, never through it nor stuck on an edge
+          <RigidBody key={i} type="fixed" colliders={false} position={it.p}>
+            <BallCollider args={[0.4 * it.s]} position={[0, 0.07 * it.s, 0]} />
             <group rotation={[0, it.rot, 0]} scale={it.s}>
               {visual}
             </group>

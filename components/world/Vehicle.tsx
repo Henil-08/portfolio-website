@@ -327,6 +327,8 @@ function Drive({ def }: { def: VehicleDef }) {
   const heading = useRef(SPAWN[2]); // the way it was going while upright (a flip rights it facing that way)
   const wet = useRef(0);
   const buried = useRef(0);
+  const hung = useRef(0);
+  const hungAt = useRef(new THREE.Vector3());
   const lastHud = useRef(0);
   const goingForward = useRef(true);
   const speed = useRef(0); // simulation units per second, like the original's
@@ -646,7 +648,8 @@ function Drive({ def }: { def: VehicleDef }) {
       const r = b.rotation();
       const f = tmpF.set(1, 0, 0).applyQuaternion(tmpQ.set(r.x, r.y, r.z, r.w));
       if (wall.on && (f.x * wall.n.x + f.z * wall.n.z) * Math.sign(accelerating) > 0.3) engine = 0;
-      if (f.y > Math.sin(WHEELIE) && wheelie(v, WHEELS)) engine = 0;
+      // (reverse still drives: it is how you back down off whatever lifted the nose)
+      if (accelerating > 0 && f.y > Math.sin(WHEELIE) && wheelie(v, WHEELS)) engine = 0;
     }
 
     brakeHeld.current = braking ? brakeHeld.current + dts / 2 : 0; // dts runs at 2x
@@ -910,10 +913,26 @@ function Drive({ def }: { def: VehicleDef }) {
     // In deep water (past the shallows) for a second: back onto the road, like the original respawn.
     wet.current = SEA_Y - heightAt(t.x, t.z) > 0.7 && t.y < SEA_Y + 0.4 ? wet.current + dt : 0;
     buried.current = t.y < heightAt(t.x, t.z) - BURIED ? buried.current + dt : 0;
-    if (input.reset || flipped.current > 1.6 || wet.current > 1 || buried.current > 0.1 || t.y < heightAt(t.x, t.z) - 4) {
-      const flip = !input.reset && flipped.current > 1.6 && wet.current <= 1 && buried.current <= 0.1;
+    // Stuck: pressing to go and not moving, hung up on something (a bike nose-up on the rocks):
+    // after 2.5 s it rights itself like a flip.
+    {
+      const vc = controller.current;
+      let down = 0;
+      if (vc) for (let i = 0; i < WHEELS.length; i++) if (vc.wheelIsInContact(i)) down++;
+      const pressing = getState().phase === "world" && !garageBusy(getState().zone) && (input.forward > 0 || input.back > 0);
+      // hung: a wheel off the ground, or tipped past 12 degrees (pressing flat into a wall is neither)
+      // (by where it is, not its speed: a bike hung on rocks rocks back and forth on the spot)
+      const hangs = pressing && (down < WHEELS.length || tmpV.y < 0.978);
+      if (!hangs || hungAt.current.distanceTo(carState.pos) > 0.6) {
+        hungAt.current.copy(carState.pos);
+        hung.current = 0;
+      } else hung.current += dt;
+    }
+    if (input.reset || flipped.current > 1.6 || hung.current > 2.5 || wet.current > 1 || buried.current > 0.1 || t.y < heightAt(t.x, t.z) - 4) {
+      const flip = !input.reset && (flipped.current > 1.6 || hung.current > 2.5) && wet.current <= 1 && buried.current <= 0.1;
       input.reset = false;
       flipped.current = 0;
+      hung.current = 0;
       wet.current = 0;
       buried.current = 0;
       if (t.y < heightAt(t.x, t.z) - 4) place(b, SPAWN[0], SPAWN[1], SPAWN[2]);
