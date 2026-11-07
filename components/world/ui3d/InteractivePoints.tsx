@@ -38,6 +38,10 @@ const LINK_FAR = 34;
 const KEY = 32; // px, the key's width inside the border (44 on touch)
 const KEY_TOUCH = 44;
 const GAP = 4; // px kept between a shown tag and anything else
+const EDGE = 12; // px the open sticker keeps from the edges of its box
+/** px kept clear at the top and bottom of the screen for the HUD (tabs and meter; touch: tabs, then meter and pedals). */
+const HUD_DESK: [number, number] = [88, 100];
+const HUD_TOUCH: [number, number] = [64, 200];
 
 type Point = { id: string; code: string; kicker: string; name: string; pos: THREE.Vector3; far: number; zone: ZoneId | null; open: () => void };
 
@@ -121,6 +125,8 @@ type El = {
   sw: number;
   sh: number;
   last: string;
+  /** where the open sticker was last put against its point (flip, dx, dy) */
+  place: string;
   alpha: number;
 };
 type Layer = { el: HTMLDivElement; items: El[]; box: string };
@@ -227,7 +233,7 @@ export default function InteractivePoints({ views }: { views?: () => PromptView[
       });
       root.append(tag, stk);
       el.append(root);
-      return { root, tag, stk, code: code.live, name: name.live, tw: 0, th: 0, sw: 0, sh: 0, last: "", alpha: 0 };
+      return { root, tag, stk, code: code.live, name: name.live, tw: 0, th: 0, sw: 0, sh: 0, last: "", place: "", alpha: 0 };
     });
     // beside the canvas, not on <body>: the page's fixed root is its own stacking context, and
     // the HUD's stickers in it must stay over these
@@ -357,9 +363,22 @@ export default function InteractivePoints({ views }: { views?: () => PromptView[
         if (shown !== (it.root.style.visibility !== "hidden")) it.root.style.visibility = shown ? "" : "hidden";
         if (o.i === active.current) {
           if (shown) {
+            // the key stands on the point and the sticker runs right; near the right edge it flips
+            // (key on the right, running left), then it is held inside the box clear of the HUD
             const kw = coarse.current ? KEY_TOUCH : KEY;
-            const x0 = o.x - kw / 2 - 2;
-            taken.push([x0, o.y - it.sh / 2, x0 + it.sw + 3, o.y + it.sh / 2 + 3]);
+            const [top, bottom] = views ? [EDGE, EDGE] : coarse.current ? HUD_TOUCH : HUD_DESK;
+            const flip = o.x - kw / 2 - 2 + it.sw + 3 > W - EDGE;
+            let x0 = flip ? o.x + kw / 2 + 2 - it.sw : o.x - kw / 2 - 2;
+            x0 = THREE.MathUtils.clamp(x0, EDGE, Math.max(EDGE, W - EDGE - it.sw - 3));
+            const y = THREE.MathUtils.clamp(o.y, top + it.sh / 2, Math.max(top + it.sh / 2, H - bottom - it.sh / 2 - 3));
+            const place = `${flip ? 1 : 0}${(x0 - o.x).toFixed(1)},${(y - o.y).toFixed(1)}`;
+            if (place !== it.place) {
+              it.place = place;
+              it.stk.style.flexDirection = flip ? "row-reverse" : "";
+              it.stk.style.left = `${(x0 - o.x).toFixed(1)}px`;
+              it.stk.style.top = `${(y - o.y).toFixed(1)}px`;
+            }
+            taken.push([x0, y - it.sh / 2, x0 + it.sw + 3, y + it.sh / 2 + 3]);
           }
         } else if (onScreen && st.current[o.i].state === CONCEALED) {
           // fade out over the last 15% of the reach
