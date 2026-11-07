@@ -8,7 +8,7 @@
 // handful of draw calls.
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { CuboidCollider, RigidBody } from "@react-three/rapier";
+import { CuboidCollider, CylinderCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { SEA_FLOOR, SEA_Y, coastR } from "../layout";
 import { PIER, PIER_I, PIER_LAMP, PROMENADE, PROM_LAMPS, PROM_W, frame } from "./layout";
@@ -19,7 +19,7 @@ import { mat, unitBox } from "../models/props/shared";
 import { KitModel } from "../kit/KitModel";
 import { bake, model, part } from "../kit/shared";
 import { lampModel } from "../kit/street";
-import { BOAT, addPierBollard, addPierHead, addPierSegment, boatModel } from "../kit/water";
+import { BOAT, addPierBollard, addPierHead, addPierRail, addPierSegment, boatModel } from "../kit/water";
 import { compose } from "../street/common";
 import { WORLD_SCALE } from "../scale";
 import { Solid, trimeshOf } from "../solid";
@@ -160,10 +160,16 @@ const SEG = PIER.len / 4;
  * the world's scale, so its rails, caps and piles are their real size.
  */
 const P = 1 / WORLD_SCALE;
+/**
+ * The pier starts on the promenade's centre line; its railings start past the walk's sea edge, so
+ * the walk stays clear across (rail ends stood 1.5 m into it, and a front wheel caught on them).
+ */
+const RAIL_FROM = PROM_W / 2 + 0.3;
 const pierModel = () =>
-  model("world-pier-v2", (k) => {
+  model("world-pier-v3", (k) => {
     const o = { h: (PIER.y - PILE_FOOT) * P, w: PIER.w * P, seg: SEG * P };
-    for (let i = 0; i < 4; i++) addPierSegment(k, i * o.seg, o);
+    for (let i = 0; i < 4; i++) addPierSegment(k, i * o.seg, i ? o : { ...o, rails: [false, false] });
+    for (const sd of [-1, 1]) addPierRail(k, RAIL_FROM * P, o.seg, sd * (o.w / 2 - 0.12), o.h);
     addPierHead(k, (PIER.len - 0.1) * P, o);
     addPierBollard(k, (PIER.len - 1.4) * P, (PIER.w / 2 - 0.5) * P, o.h);
   });
@@ -178,9 +184,13 @@ function Pier() {
       <KitModel model={pierModel()} position={[PIER.x, PILE_FOOT, PIER.z]} rotation={[0, yaw, 0]} scale={WORLD_SCALE} />
       <RigidBody type="fixed" colliders={false} position={[mid.x, PIER.y - 0.05, mid.z]} rotation={[0, yaw, 0]}>
         <CuboidCollider args={[PIER.len / 2, 0.08, PIER.w / 2]} friction={1} />
-        <CuboidCollider args={[PIER.len / 2, PIER_RAIL / 2, 0.06]} position={[0, 0.05 + PIER_RAIL / 2, PIER.w / 2 - 0.1]} />
-        <CuboidCollider args={[PIER.len / 2, PIER_RAIL / 2, 0.06]} position={[0, 0.05 + PIER_RAIL / 2, -(PIER.w / 2 - 0.1)]} />
+        <CuboidCollider args={[(PIER.len - RAIL_FROM) / 2, PIER_RAIL / 2, 0.06]} position={[RAIL_FROM / 2, 0.05 + PIER_RAIL / 2, PIER.w / 2 - 0.1]} />
+        <CuboidCollider args={[(PIER.len - RAIL_FROM) / 2, PIER_RAIL / 2, 0.06]} position={[RAIL_FROM / 2, 0.05 + PIER_RAIL / 2, -(PIER.w / 2 - 0.1)]} />
         <CuboidCollider args={[0.06, PIER_RAIL / 2, PIER.w / 2]} position={[PIER.len / 2, 0.05 + PIER_RAIL / 2, 0]} />
+        {/* the rails' land ends rounded off: a front wheel glancing the square end caught on it */}
+        {[1, -1].map((sd) => (
+          <CylinderCollider key={sd} args={[PIER_RAIL / 2, 0.22]} position={[-PIER.len / 2 + RAIL_FROM + 0.12, 0.05 + PIER_RAIL / 2, sd * (PIER.w / 2 - 0.1)]} />
+        ))}
         {/* a gentle ramp up from the promenade */}
         <CuboidCollider args={[1.4, 0.05, PIER.w / 2]} position={[-PIER.len / 2 - 1.1, -0.3, 0]} rotation={[0, 0, 0.24]} />
       </RigidBody>
