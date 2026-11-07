@@ -1,30 +1,32 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import {
   CoefficientCombineRule,
   CuboidCollider,
   RigidBody,
   useBeforePhysicsStep,
+  useFilterContactPair,
   useRapier,
+  type RapierCollider,
   type RapierRigidBody,
 } from "@react-three/rapier";
 import * as THREE from "three";
-import { VEHICLE_SCALE } from "./vehicles/scale";
+import { VEHICLE_DISPLAY, VEHICLE_SCALE, vehicleScale } from "./vehicles/scale";
 import { garageBusy, garageView } from "./garage/state";
 import { RigContext, liveryOf, vehicleByCode, type VehicleDef, type VehicleRig } from "./vehicles";
 import { input } from "./input";
-import { carState, ticker } from "./carState";
+import { carState, sweepable, ticker } from "./carState";
 import { getState, setState, subscribe, toast, useWorld } from "./store";
 import { PowerTrail } from "./powers/Trail";
 import { Thrusters } from "./powers/Thrusters";
-import { CAR_GROUPS, usePowers } from "./powers/usePowers";
+import { CAR_GROUPS, SWEEP_GROUPS, usePowers } from "./powers/usePowers";
 import { power } from "./powers/state";
 import { dayNight } from "./daynight";
-import { heightAt } from "./terrain";
+import { EXTENT, GRID, heightAt, heightGrid } from "./terrain";
 import { setWheelLocal } from "./alive/ground";
-import { SEA_Y, SPAWN, headingFromTangent, nearestT3, trackPoint, trackTangent, zoneById } from "./layout";
+import { PIT, SEA_Y, SPAWN, headingFromTangent, nearestT3, pitRoadCurves, trackPoint, trackTangent, zoneById } from "./layout";
 import { engineIdle, engineUpdate, honk } from "./sound";
 
 // Driving model ported from folio-2025 (MIT, see public/vendor/LICENSE.md),
@@ -65,12 +67,19 @@ const SUSPENSION = {
 };
 const FRICTION_SLIP = 0.9;
 const SIDE_FRICTION = 3;
-// Static compression the springs settle at, measured in the headless check.
-const SAG = 0.34;
+// Static compression the springs settle at with 60 fps steps (window.__realtime: 0.156-0.159 for
+// every vehicle). The old 0.34 was measured at the slow headless frame rate, where the controller's
+// fixed 1/60 against the 2x world step lets the springs sag twice as far: at 60 fps every vehicle
+// then rode 0.18 m above its model, the wheels hanging out of the arches and the bumper over the
+// football. (Faster screens sag less: 120 Hz rides ~0.08 m high, still on the ground.)
+const SAG = 0.16;
 // Wheel visuals stay within this of their resting height, whatever the raycast says
 // (a ray starting inside a wall or post reports a wild suspension length).
 const WHEEL_REST = SUSPENSION.restLength - SAG;
 const WHEEL_PLAY = 0.25;
+/** The centre of mass this high above the ground at rest: where the original's -0.5 below the
+ * chassis put it at the old ride height, so lowering the body to its model changed no handling. */
+const COM_HEIGHT = 0.11;
 // The chassis centre rides ~0.45 m above the ground. Below the ground it has been
 // shoved through the terrain (a post or wall at speed): respawn instead of
 // leaving the body buried with the wheels sticking out.
@@ -84,11 +93,19 @@ const REST_Y = RIDE + 0.02;
 const BASE_WHEELBASE = 2.48;
 const BASE_TRACK = 1.38;
 export { VEHICLE_SCALE };
-const S = VEHICLE_SCALE;
 /** The bike rides on two pairs of wheels this far either side of its centre line (hidden), and stays upright. */
 const BIKE_TRACK = 0.28;
 const BIKE_UPRIGHT = 10; // roll rate (rad/s) per rad of roll that brings the bike back up
 const BIKE_LEAN_MAX = 0.7;
+/**
+ * The bumper rides 0.46 m up so a vehicle never beaches on a crest, which is over a football's head:
+ * the car drove over the ball, pressed it into the grass and bounced on it. The sweeper is a second,
+ * kinematic box on the bumper's footprint that follows the chassis every step. Kinematic bodies never
+ * touch the fixed world, and a contact filter lets it push only the balls (carState `sweepable`), so
+ * it changes nothing else the car meets. It reaches SWEEP_CLEAR into the ground: with its bottom face
+ * above the grass, a bounce of the car let that face catch a ball's top and press it into the ground.
+ */
+const SWEEP_CLEAR = -0.25;
 
 /**
  * Each vehicle's handling, from its garage stats [speed, grip, handling] (0..100):
@@ -103,14 +120,17 @@ const BIKE_LEAN_MAX = 0.7;
  * The rest are the old car's numbers. Dev and headless checks: window.__tune is the live
  * vehicle's table (change it to compare variants).
  */
-function tuneOf(def: VehicleDef) {
+function tuneOf(def: VehicleDef, S: number) {
   const [speed, grip, handling] = def.stats;
   const k = (speed / 90) ** 1.5;
   const fz = Math.max(...def.wheels.map((w) => w.z)) * S;
   const rz = Math.min(...def.wheels.map((w) => w.z)) * S;
   const wheelbase = fz - rz;
   const track = Math.max(0.6, 2 * S * Math.max(...def.wheels.map((w) => Math.abs(w.x))));
-  const L = (wheelbase / BASE_WHEELBASE) ** 2;
+  // A vehicle drawn bigger than the rest (vehicles/scale.ts) keeps the inertia of its usual size times
+  // the factor: its tyres' longer lever arms then turn it as quickly as before.
+  const f = VEHICLE_DISPLAY[def.code];
+  const L = ((wheelbase / f / BASE_WHEELBASE) ** 2) * f;
   return {
     idleBrake: IDLE_BRAKE,
     sideFriction: (SIDE_FRICTION * grip) / 90,
@@ -131,6 +151,7 @@ type Tune = ReturnType<typeof tuneOf>;
 
 /** Everything the physics needs from a vehicle, in the chassis frame (forward +X, right +Z). */
 function specOf(def: VehicleDef) {
+  const S = vehicleScale(def.code);
   const bike = def.wheels.length === 2;
   // model space (nose +z, left +x) to the chassis frame: x = model z, z = -model x
   const wheels = def.wheels.flatMap((w, i) =>
@@ -148,6 +169,8 @@ function specOf(def: VehicleDef) {
   const max = def.box.max.map((v) => v * S);
   const top = Math.min(max[1], 1.2) - RIDE;
   return {
+    /** world metres per model metre (vehicles/scale.ts) */
+    scale: S,
     bike,
     wheels,
     /** the physics wheels behind each visible wheel (two for each bike wheel) */
@@ -156,10 +179,12 @@ function specOf(def: VehicleDef) {
     chassis: { half: [(fz - rz) / 2, 0.19, bike ? BIKE_TRACK : Math.max(0.3, halfW - 0.1)] as const, x: (fz + rz) / 2 },
     /** the massless bumper round the whole body */
     bumper: { half: [(max[2] - min[2]) / 2, (top - 0.03) / 2, Math.max(max[0], -min[0], bike ? BIKE_TRACK + 0.05 : 0)] as const, x: (max[2] + min[2]) / 2, y: (top + 0.03) / 2 },
+    /** the ball sweeper (SWEEP_CLEAR): the bumper's footprint, from under the ground to the bumper's top */
+    sweep: { half: [(max[2] - min[2]) / 2, (top + RIDE - SWEEP_CLEAR) / 2, Math.max(max[0], -min[0], bike ? BIKE_TRACK + 0.05 : 0)] as const, x: (max[2] + min[2]) / 2, y: (top - RIDE + SWEEP_CLEAR) / 2 },
     steerAxis: new THREE.Vector3(...def.steerAxis),
     /** the wheels' contact points (chassis frame), for the powers' dust */
     dust: wheels.map((w) => ({ x: w.pos.x, z: w.pos.z })),
-    tune: tuneOf(def),
+    tune: tuneOf(def, S),
   };
 }
 type Spec = ReturnType<typeof specOf>;
@@ -176,6 +201,76 @@ const tmpV = new THREE.Vector3();
 const tmpP = new THREE.Vector3();
 const tmpF = new THREE.Vector3();
 const prevPos = new THREE.Vector3();
+const sweepP = new THREE.Vector3();
+const sweepQ = new THREE.Quaternion();
+/** The wheels' rays ignore balls (they're kicked by the sweeper, not driven over). */
+const notBall = (c: { handle: number }) => !sweepable.has(c.handle);
+
+/**
+ * Against a wall the car used to climb it: the drive pushes at the tyres, under the centre of mass,
+ * and the wall pushes back on the bumper, 0.3-0.5 m above it, so pressing on tipped the nose up the
+ * wall (a door at 15 km/h stood the Atlas 40-50 degrees up; OVERTAKE rode the TH-18 3 m up the pit
+ * building). wall.n is the wall the chassis or bumper touches (the last step's contacts with
+ * anything that isn't a knock-about prop, floors left out), flat, pointing from the car into it.
+ * While it touches, the drive into it is cut, and after the powers have moved the body nothing is
+ * left going into the wall nor turning to lift the end against it. A wall the bumper will meet
+ * during this step (a shape cast along the velocity) takes the speed into it away at the centre of
+ * mass, so the car arrives against it flat instead of being kicked up by the impact. So the car
+ * just stops there, at any speed and with any power.
+ */
+const wall = { on: false, n: new THREE.Vector3(), /** last step's shape cast met a wall (its normal) */ cast: false, cn: new THREE.Vector3() };
+/** Nose up past this with both front wheels off and the rear still on: a wheelie (see Drive's guard). */
+const WHEELIE = 0.14;
+const _cast = new THREE.Vector3();
+/** The last bumper cast, for window.__wallLog: time of impact over the step (-1: none), the wall normal's y. */
+const castDbg = { toi: -1, ny: 0 };
+/** Dev A/B checks: window.__noWallGuard = true turns the wall guard and the wheelie limit off. */
+const noGuard = () => process.env.NODE_ENV !== "production" && !!(window as unknown as { __noWallGuard?: boolean }).__noWallGuard;
+const _castN = new THREE.Vector3();
+/** Both front wheels off the ground and a rear one on it. */
+function wheelie(v: VehicleController, wheels: { front: boolean }[]) {
+  let front = false;
+  let rear = false;
+  for (let i = 0; i < wheels.length; i++) {
+    if (!v.wheelIsInContact(i)) continue;
+    if (wheels[i].front) front = true;
+    else rear = true;
+  }
+  return rear && !front;
+}
+/** Spin about axis (n x up) lifts the end of the car that faces flat direction n: take it away. */
+function dropLift(b: RapierRigidBody, nx: number, nz: number) {
+  const av = b.angvel();
+  const lift = av.x * -nz + av.z * nx;
+  if (lift > 0) b.setAngvel({ x: av.x + nz * lift, y: av.y, z: av.z - nx * lift }, true);
+}
+function wallTouch(world: ReturnType<typeof useRapier>["world"], colliders: (RapierCollider | null)[]) {
+  wall.on = false;
+  wall.n.set(0, 0, 0);
+  for (const c of colliders) {
+    if (!c) continue;
+    world.contactPairsWith(c, (other) => {
+      if (other.parent()?.isDynamic()) return;
+      world.contactPair(c, other, (m, flipped) => {
+        if (m.numSolverContacts() === 0) return;
+        const n = m.normal();
+        if (Math.abs(n.y) > 0.7) return;
+        const k = flipped ? -1 : 1;
+        wall.n.x += n.x * k;
+        wall.n.z += n.z * k;
+      });
+    });
+  }
+  if (wall.n.lengthSq() > 1e-6) {
+    wall.n.normalize();
+    wall.on = true;
+  } else if (wall.cast) {
+    // not touching yet, but last step's cast arrived at it: count it, so the drive stays off
+    wall.n.copy(wall.cn);
+    wall.on = true;
+  }
+  wall.cast = false;
+}
 let snapWheels = true; // set by place(): put the wheel visuals straight at rest
 // carState.pos holds a real pose once a vehicle has run a frame. Before that (StrictMode's dev
 // remount runs the mount effect twice before any frame) it is still the origin.
@@ -210,13 +305,18 @@ export default function Vehicle() {
 
 function Drive({ def }: { def: VehicleDef }) {
   const spec = specFor(def);
-  const { wheels: WHEELS, tune, chassis, bumper } = spec;
+  const { wheels: WHEELS, tune, chassis, bumper, scale: S } = spec;
   const liveryName = useWorld((s) => s.livery);
   const livery = liveryOf(def.code, liveryName);
   const body = useRef<RapierRigidBody>(null);
   const model = useRef<THREE.Group>(null);
   const lean = useRef<THREE.Group>(null);
   const controller = useRef<VehicleController | null>(null);
+  const sweeper = useRef<RapierRigidBody>(null);
+  const sweepCollider = useRef<RapierCollider | null>(null);
+  // the chassis and bumper colliders, for the wall contacts (wallTouch)
+  const shell = useRef<(RapierCollider | null)[]>([null, null]);
+  const bumperShape = useRef<InstanceType<ReturnType<typeof useRapier>["rapier"]["Cuboid"]> | null>(null);
   // the model's wheel groups, per visible wheel (WheelSlot), and the TH-18's DRS flap
   const parts = useRef({ steer: [] as (THREE.Group | null)[], swap: [] as (THREE.Group | null)[], spin: [] as (THREE.Group | null)[], drs: null as THREE.Group | null });
   const lamps = useRef<{ mesh: THREE.Mesh; mat: THREE.MeshStandardMaterial; base: number }[]>([]);
@@ -224,6 +324,7 @@ function Drive({ def }: { def: VehicleDef }) {
   // Tyres: slicks in the dry, wets in the rain. `t` runs 0..1 through a swap.
   const tyres = useRef({ wet: null as boolean | null, to: false, t: 1 });
   const flipped = useRef(0);
+  const heading = useRef(SPAWN[2]); // the way it was going while upright (a flip rights it facing that way)
   const wet = useRef(0);
   const buried = useRef(0);
   const lastHud = useRef(0);
@@ -232,7 +333,7 @@ function Drive({ def }: { def: VehicleDef }) {
   const brakeHeld = useRef(0); // seconds the brake has been held
   // The original stuck test: on the throttle, but under 0.5 m covered in the last 3 s.
   const stuck = useRef({ items: [] as [number, number][], told: false });
-  const { world } = useRapier();
+  const { world, rapier } = useRapier();
 
   const rig = useMemo<VehicleRig>(() => {
     const keep = (list: "steer" | "swap" | "spin") => (i: number) => (el: THREE.Group | null) => {
@@ -339,8 +440,11 @@ function Drive({ def }: { def: VehicleDef }) {
   // Dev and headless checks: window.__placeT(t) drops the car on the track at t;
   // window.__placeXZ(x, z, heading) drops it anywhere on the ground; window.__car is carState.
   useEffect(() => {
-    const w = window as unknown as { __placeT: (t: number) => void; __placeXZ: (x: number, z: number, h?: number) => void; __car: typeof carState };
+    const w = window as unknown as { __placeT: (t: number) => void; __placeXZ: (x: number, z: number, h?: number) => void; __car: typeof carState; __track: object };
     w.__car = carState;
+    // the lap for scripted drives in headless checks: nearest t (3D) and a point and tangent at t
+    w.__track = { nearestT3, trackPoint, trackTangent, pitRoads: () => pitRoadCurves().map((c) => c.getSpacedPoints(120)), PIT };
+    (window as unknown as { __wall: typeof wall }).__wall = wall;
     w.__placeT = (t: number) => {
       if (!body.current) return;
       const p = trackPoint(t);
@@ -352,7 +456,117 @@ function Drive({ def }: { def: VehicleDef }) {
       place(body.current, x, z, h);
       prevPos.copy(body.current.translation() as THREE.Vector3);
     };
+    // window.__flip() turns the car onto its roof where it stands (checks the flip recovery)
+    (window as unknown as { __flip: () => void }).__flip = () => {
+      const b = body.current;
+      if (!b) return;
+      const t = b.translation();
+      const r = b.rotation();
+      const q = new THREE.Quaternion(r.x, r.y, r.z, r.w).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI));
+      parked.on = false;
+      b.setTranslation({ x: t.x, y: t.y + 0.8, z: t.z }, true);
+      b.setRotation(q, true);
+    };
   }, []);
+
+  // Dev and headless checks: window.__wheels() measures each visible wheel: the tyre's lowest point
+  // (the drawn mesh), the drawn surface under it (a ray down onto the scene, the car left out) and
+  // the physics wheels behind it (contact point, suspension length, what the ray hit).
+  const scene = useThree((s) => s.scene);
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    const ray = new THREE.Raycaster();
+    const box = new THREE.Box3();
+    const c = new THREE.Vector3();
+    const mine = (o: THREE.Object3D | null) => {
+      for (; o; o = o.parent) if (o === model.current) return true;
+      return false;
+    };
+    (window as unknown as { __wheels: () => unknown }).__wheels = () => {
+      const v = controller.current;
+      if (!v) return null;
+      const ground: THREE.Object3D[] = [];
+      scene.traverseVisible((o) => {
+        if (o instanceof THREE.Mesh && !(o instanceof THREE.InstancedMesh) && !mine(o)) ground.push(o);
+      });
+      return spec.slots.map((slots, i) => {
+        const s = parts.current.spin[i];
+        if (!s) return null;
+        box.setFromObject(s, true);
+        box.getCenter(c);
+        ray.set(new THREE.Vector3(c.x, c.y + 0.5, c.z), new THREE.Vector3(0, -1, 0));
+        ray.far = 3;
+        const hit = ray.intersectObjects(ground, false)[0];
+        const r3 = (x: number | undefined) => (x === undefined ? null : +x.toFixed(3));
+        const mat = hit && (hit.object as THREE.Mesh).material;
+        const col = mat && !Array.isArray(mat) && "color" in mat ? `#${(mat.color as THREE.Color).getHexString()}` : "";
+        return {
+          x: r3(c.x),
+          z: r3(c.z),
+          tyre: r3(box.min.y),
+          surface: r3(hit?.point.y),
+          on: hit ? `${(hit.object as THREE.Mesh).geometry?.type ?? ""}${col}${hit.object.name ? ":" + hit.object.name : ""}` : "",
+          physics: slots.map((j) => ({
+            contact: v.wheelIsInContact(j),
+            len: r3(v.wheelSuspensionLength(j) ?? undefined),
+            y: r3(v.wheelContactPoint(j)?.y),
+            ground: v.wheelGroundObject(j)?.shape.type ?? null,
+          })),
+        };
+      });
+    };
+  }, [scene, spec]);
+
+  // Dev and headless checks: window.__groundAudit([[x, z], ...]) compares, at each point, the drawn
+  // ground (a ray down onto the scene's meshes, the car and instanced meshes left out) with the
+  // physics ground (a ray down onto the fixed colliders): [x, z, drawn y, physics y, what was drawn].
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    const ray = new THREE.Raycaster();
+    const down = new THREE.Vector3(0, -1, 0);
+    // the drawn land: Island.tsx's terrain mesh, its cells split on the (i+1, j)-(i, j+1) diagonal
+    // (too many triangles to raycast, so it is evaluated here instead)
+    const landY = (x: number, z: number) => {
+      const h = heightGrid();
+      const n = GRID + 1;
+      const fx = (x / EXTENT + 0.5) * GRID;
+      const fz = (z / EXTENT + 0.5) * GRID;
+      const i = THREE.MathUtils.clamp(Math.floor(fx), 0, GRID - 1);
+      const j = THREE.MathUtils.clamp(Math.floor(fz), 0, GRID - 1);
+      const u = fx - i;
+      const v = fz - j;
+      const h00 = h[j * n + i], h10 = h[j * n + i + 1], h01 = h[(j + 1) * n + i], h11 = h[(j + 1) * n + i + 1];
+      return u + v <= 1 ? h00 + u * (h10 - h00) + v * (h01 - h00) : h11 + (1 - u) * (h01 - h11) + (1 - v) * (h10 - h11);
+    };
+    // window.__castRay(origin, dir, max): the first fixed collider along a ray [distance, its shape type]
+    (window as unknown as { __castRay: (o: number[], d: number[], max: number) => unknown }).__castRay = (o, d, max) => {
+      const hit = world.castRay(new rapier.Ray({ x: o[0], y: o[1], z: o[2] }, { x: d[0], y: d[1], z: d[2] }), max, true, rapier.QueryFilterFlags.ONLY_FIXED);
+      return hit ? [+hit.timeOfImpact.toFixed(3), hit.collider.shape.type] : null;
+    };
+    (window as unknown as { __groundAudit: (pts: [number, number][]) => unknown }).__groundAudit = (pts) => {
+      const meshes: THREE.Object3D[] = [];
+      scene.traverseVisible((o) => {
+        if (!(o instanceof THREE.Mesh) || o instanceof THREE.InstancedMesh) return;
+        const pos = (o.geometry as THREE.BufferGeometry).getAttribute("position");
+        if (pos && pos.count > 60000) return; // the land (evaluated by landY)
+        for (let p: THREE.Object3D | null = o; p; p = p.parent) if (p === model.current) return;
+        meshes.push(o);
+      });
+      return pts.map(([x, z]) => {
+        const top = heightAt(x, z) + 6;
+        const hit = world.castRay(new rapier.Ray({ x, y: top, z }, { x: 0, y: -1, z: 0 }), 20, true, rapier.QueryFilterFlags.ONLY_FIXED);
+        const py = hit ? top - hit.timeOfImpact : NaN;
+        ray.set(new THREE.Vector3(x, py + 0.6, z), down);
+        ray.far = 2;
+        const h = ray.intersectObjects(meshes, false)[0];
+        const land = landY(x, z);
+        const mat = h && (h.object as THREE.Mesh).material;
+        const col = mat && !Array.isArray(mat) && "color" in mat ? `#${(mat.color as THREE.Color).getHexString()}` : "";
+        const drawn = h && h.point.y > land ? h.point.y : land;
+        return [+x.toFixed(2), +z.toFixed(2), +drawn.toFixed(3), +py.toFixed(3), h && h.point.y > land ? `${(h.object as THREE.Mesh).geometry.type}${col}` : "land", hit?.collider.shape.type ?? null];
+      });
+    };
+  }, [scene, world, rapier]);
 
   // Pre-physics: the original PhysicsVehicle.updatePrePhysics.
   useBeforePhysicsStep(() => {
@@ -425,6 +639,15 @@ function Drive({ def }: { def: VehicleDef }) {
 
     const overflow = Math.max(0, speed.current - tune.topSpeed);
     let engine = ((accelerating * tune.engine) / (1 + overflow)) * dts;
+    // pressing on into a wall drives nothing (the tyres would only spin): see `wall`. Nor does the
+    // throttle in a wheelie: the rear tyres alone would lift the nose further.
+    wallTouch(world, shell.current);
+    if (b && accelerating !== 0 && !noGuard()) {
+      const r = b.rotation();
+      const f = tmpF.set(1, 0, 0).applyQuaternion(tmpQ.set(r.x, r.y, r.z, r.w));
+      if (wall.on && (f.x * wall.n.x + f.z * wall.n.z) * Math.sign(accelerating) > 0.3) engine = 0;
+      if (f.y > Math.sin(WHEELIE) && wheelie(v, WHEELS)) engine = 0;
+    }
 
     brakeHeld.current = braking ? brakeHeld.current + dts / 2 : 0; // dts runs at 2x
     let brake = 0;
@@ -456,11 +679,98 @@ function Drive({ def }: { def: VehicleDef }) {
       v.setWheelEngineForce(i, engine);
       v.setWheelSideFrictionStiffness(i, braking && !WHEELS[i].front ? HANDBRAKE_REAR_GRIP * (tune.sideFriction / SIDE_FRICTION) : sideK);
     }
-    // SPLIT: the wheels' rays skip the props it's passing through, so it doesn't ride up on them
-    v.updateVehicle(1 / 60, undefined, power.through ? CAR_GROUPS : undefined);
+    // The wheels' rays carry the car's groups: they skip the sweeper, and in SPLIT the props it's
+    // passing through, so it doesn't ride up on them; and they never climb onto a ball.
+    v.updateVehicle(1 / 60, undefined, CAR_GROUPS, notBall);
+
+    // The sweeper goes where the chassis will be at the end of this step (its kinematic velocity is
+    // what kicks the ball); after a teleport it jumps there.
+    const sw = sweeper.current;
+    if (sw && b) {
+      const t = b.translation();
+      const r = b.rotation();
+      const lv = b.linvel();
+      const av = b.angvel();
+      sweepP.set(t.x + lv.x * dts, t.y + lv.y * dts, t.z + lv.z * dts);
+      sweepQ.set(r.x, r.y, r.z, r.w);
+      const w = Math.hypot(av.x, av.y, av.z);
+      if (w > 1e-6) sweepQ.premultiply(tmpQ.setFromAxisAngle(tmpV.set(av.x / w, av.y / w, av.z / w), w * dts));
+      const st = sw.translation();
+      if ((st.x - t.x) ** 2 + (st.y - t.y) ** 2 + (st.z - t.z) ** 2 > 4) {
+        sw.setTranslation(t, false);
+        sw.setRotation(r, false);
+      }
+      sw.setNextKinematicTranslation(sweepP);
+      sw.setNextKinematicRotation(sweepQ);
+    }
+  });
+  // Only balls get the sweeper's contacts (impulses); everything else passes through it.
+  useFilterContactPair((c1, c2) => {
+    const me = sweepCollider.current?.handle;
+    if (me === undefined || (c1 !== me && c2 !== me)) return null;
+    return sweepable.has(c1 === me ? c2 : c1) ? rapier.SolverFlags.COMPUTE_IMPULSE : rapier.SolverFlags.EMPTY;
   });
   // the powers move the body after the controller (this registers its step second)
   usePowers({ code: def.code, body, model, lean, box: bumper, wheels: spec.dust, grounded: () => WHEELS.some((_, i) => !!controller.current?.wheelIsInContact(i)) });
+  // After the powers (registered after them): against a wall, nothing goes into it and nothing turns
+  // to lift the end touching it (see `wall`).
+  useBeforePhysicsStep(() => {
+    const b = body.current;
+    if (b && !noGuard()) {
+      // the bumper swept along this step's velocity: a wall it meets takes the speed into it away
+      const lv = b.linvel();
+      const r = b.rotation();
+      const t = b.translation();
+      tmpQ.set(r.x, r.y, r.z, r.w);
+      const pos = _cast.set(bumper.x, bumper.y, 0).applyQuaternion(tmpQ).add(tmpP.set(t.x, t.y, t.z));
+      bumperShape.current ??= new rapier.Cuboid(bumper.half[0], bumper.half[1], bumper.half[2]);
+      const dts = ticker.deltaScaled;
+      const hit = world.castShape(pos, r, lv, bumperShape.current, 0, dts, false, rapier.QueryFilterFlags.ONLY_FIXED | rapier.QueryFilterFlags.EXCLUDE_SENSORS);
+      castDbg.toi = hit ? hit.time_of_impact / dts : -1;
+      castDbg.ny = hit ? hit.normal2.y : 0;
+      if (hit) {
+        // normal2 is on the cast shape (the bumper), in its own frame, pointing out of it at the wall
+        const n = _castN.set(hit.normal2.x, hit.normal2.y, hit.normal2.z).applyQuaternion(tmpQ);
+        const flat = Math.hypot(n.x, n.z);
+        if (Math.abs(n.y) < 0.7 && flat > 1e-3) {
+          const nx = n.x / flat;
+          const nz = n.z / flat;
+          const into = lv.x * nx + lv.z * nz;
+          // keep just enough to arrive at the wall by the end of the step
+          const cut = into - into * Math.min(1, hit.time_of_impact / dts);
+          if (into > 0 && cut > 0) b.setLinvel({ x: lv.x - nx * cut, y: lv.y, z: lv.z - nz * cut }, true);
+          dropLift(b, nx, nz);
+          wall.cast = true;
+          wall.cn.set(nx, 0, nz);
+        }
+      }
+    }
+    // Dev and headless checks: window.__wallLog = [] records every step [pitch (deg), height, forward
+    // speed, vertical speed, touching a wall, spin lifting its end, wheels down, bumper cast time of
+    // impact / step (-1 none), its normal's y, front wheels down].
+    const wlog = process.env.NODE_ENV !== "production" ? (window as unknown as { __wallLog?: number[][] }).__wallLog : undefined;
+    if (wlog && b && wlog.length < 5000) {
+      const r = b.rotation();
+      const f = tmpF.set(1, 0, 0).applyQuaternion(tmpQ.set(r.x, r.y, r.z, r.w));
+      const lv = b.linvel();
+      const av = b.angvel();
+      wlog.push([+(Math.asin(f.y) * 57.3).toFixed(1), +b.translation().y.toFixed(2), +(lv.x * f.x + lv.z * f.z).toFixed(2), +lv.y.toFixed(2), wall.on ? 1 : 0, +(av.x * -wall.n.z + av.z * wall.n.x).toFixed(2), WHEELS.filter((_, i) => controller.current?.wheelIsInContact(i)).length, +castDbg.toi.toFixed(2), +castDbg.ny.toFixed(2), WHEELS.filter((w, i) => w.front && controller.current?.wheelIsInContact(i)).length]);
+    }
+    if (!b || noGuard()) return;
+    // a wheelie (both front wheels off, nose up, a rear wheel on) stops rising: gravity brings it down
+    const v = controller.current;
+    if (v) {
+      const r = b.rotation();
+      const f = tmpF.set(1, 0, 0).applyQuaternion(tmpQ.set(r.x, r.y, r.z, r.w));
+      const flat = Math.hypot(f.x, f.z);
+      if (f.y > Math.sin(WHEELIE) && flat > 1e-3 && wheelie(v, WHEELS)) dropLift(b, f.x / flat, f.z / flat);
+    }
+    if (!wall.on) return;
+    const lv = b.linvel();
+    const into = lv.x * wall.n.x + lv.z * wall.n.z;
+    if (into > 0) b.setLinvel({ x: lv.x - wall.n.x * into, y: lv.y, z: lv.z - wall.n.z * into }, true);
+    dropLift(b, wall.n.x, wall.n.z);
+  });
 
   useFrame((_, dt) => {
     const v = controller.current;
@@ -595,17 +905,28 @@ function Drive({ def }: { def: VehicleDef }) {
 
     // Recover from flips and falls.
     tmpV.set(0, 1, 0).applyQuaternion(tmpQ);
+    if (tmpV.y > 0.7) heading.current = Math.atan2(-carState.forward.z, carState.forward.x);
     flipped.current = tmpV.y < 0.25 ? flipped.current + dt : 0;
     // In deep water (past the shallows) for a second: back onto the road, like the original respawn.
     wet.current = SEA_Y - heightAt(t.x, t.z) > 0.7 && t.y < SEA_Y + 0.4 ? wet.current + dt : 0;
     buried.current = t.y < heightAt(t.x, t.z) - BURIED ? buried.current + dt : 0;
     if (input.reset || flipped.current > 1.6 || wet.current > 1 || buried.current > 0.1 || t.y < heightAt(t.x, t.z) - 4) {
+      const flip = !input.reset && flipped.current > 1.6 && wet.current <= 1 && buried.current <= 0.1;
       input.reset = false;
       flipped.current = 0;
       wet.current = 0;
       buried.current = 0;
       if (t.y < heightAt(t.x, t.z) - 4) place(b, SPAWN[0], SPAWN[1], SPAWN[2]);
-      else {
+      else if (flip) {
+        // A flip rights the vehicle where it lies: upright on the same spot, backed a metre off the
+        // wall it was against, facing the way it was going, on whatever is under it (road, deck or
+        // ground). It used to go back to the nearest bit of road, which could be across the island.
+        const x = t.x - (wall.on ? wall.n.x * 1.2 : 0);
+        const z = t.z - (wall.on ? wall.n.z * 1.2 : 0);
+        const top = t.y + 0.6;
+        const hit = world.castRay(new rapier.Ray({ x, y: top, z }, { x: 0, y: -1, z: 0 }), 8, true, rapier.QueryFilterFlags.ONLY_FIXED);
+        place(b, x, z, heading.current, Math.max(hit ? top - hit.timeOfImpact : -Infinity, heightAt(x, z)) + REST_Y);
+      } else {
         // Back onto the nearest bit of road, facing the way you were going (the original R).
         const rt = nearestT3(t.x, t.y, t.z);
         const p = trackPoint(rt);
@@ -650,13 +971,16 @@ function Drive({ def }: { def: VehicleDef }) {
             and the mass box only spans the axles, so a vehicle never beaches on a crest or
             a bank; a body may dip into the grass a little, which reads as cartoony. */}
         <CuboidCollider
+          ref={(c) => {
+            shell.current[0] = c;
+          }}
           args={[...chassis.half]}
           position={[chassis.x, 0.19, 0]}
           collisionGroups={CAR_GROUPS}
           friction={0.4}
           massProperties={{
             mass: 2.5,
-            centerOfMass: { x: chassis.x, y: -0.5, z: 0 },
+            centerOfMass: { x: chassis.x, y: COM_HEIGHT - RIDE, z: 0 },
             principalAngularInertia: { x: inertia[0], y: inertia[1], z: inertia[2] },
             angularInertiaLocalFrame: { x: 0, y: 0, z: 0, w: 1 },
           }}
@@ -665,6 +989,9 @@ function Drive({ def }: { def: VehicleDef }) {
             so walls push the vehicle along instead of catching a tyre, and no wheel
             ever pokes into a wall or a building. */}
         <CuboidCollider
+          ref={(c) => {
+            shell.current[1] = c;
+          }}
           args={[...bumper.half]}
           position={[bumper.x, bumper.y, 0]}
           density={0}
@@ -682,6 +1009,21 @@ function Drive({ def }: { def: VehicleDef }) {
             {def.code === "V03" && <Thrusters />}
           </group>
         </group>
+      </RigidBody>
+      {/* soft CCD: predictive contacts along its path, so at speed it meets a ball instead of
+          stepping 0.2 m into it (the overlap shot the ball 15 m up) */}
+      <RigidBody ref={sweeper} type="kinematicPosition" colliders={false} softCcdPrediction={1} position={[SPAWN[0], heightAt(SPAWN[0], SPAWN[1]) + REST_Y, SPAWN[1]]}>
+        <CuboidCollider
+          ref={(c) => {
+            sweepCollider.current = c;
+            c?.setActiveHooks(rapier.ActiveHooks.FILTER_CONTACT_PAIRS);
+          }}
+          args={[...spec.sweep.half]}
+          position={[spec.sweep.x, spec.sweep.y, 0]}
+          collisionGroups={SWEEP_GROUPS}
+          friction={0.3}
+          restitution={0.3}
+        />
       </RigidBody>
     </>
   );
