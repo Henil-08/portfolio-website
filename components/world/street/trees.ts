@@ -3,7 +3,7 @@
 // scatter, read by both, so they can never drift apart. It grows after every structure is placed
 // and keeps off all of them (./reserved.ts) and off the run-off (./common.ts onRunoff), so a
 // stand, floodlight, marshal post or building never loses its spot to a tree.
-import { GRANDSTAND, LETTERS, MAX_R, PIT, SECTORS, TIMELINE, TRACK_WIDTH, inLand, shoreDist, trackCurve, zoneById } from "../layout";
+import { GRANDSTAND, LETTERS, MAX_R, PIT, PIT_LANE_WIDTH, SECTORS, TIMELINE, TRACK_WIDTH, inLand, pitRoadCurves, shoreDist, trackCurve, zoneById } from "../layout";
 import { nearGarden } from "../garden/layout";
 import { nearPromenade } from "../waterfront/layout";
 import { inTownBelt, onRunoff } from "./common";
@@ -54,9 +54,15 @@ export const NATURE: NatureItem[] = (() => {
     const kind: NatureKind = beach ? (roll < 0.7 ? "cypress" : "rock") : roll < 0.4 ? "round" : roll < 0.7 ? "cypress" : roll < 0.88 ? "bush" : "rock";
     out.push({ kind, x, z, s: 0.85 + r() * 0.5, rot: r() * Math.PI * 2, seed: Math.floor(r() * 1000) });
   }
-  // none crowding a contact monument (the cypress behind C04 Résumé); dropped after the scatter, so
-  // every other tree keeps its spot
-  return out.filter((it) => !nearMonument(it.x, it.z, it.kind === "round" || it.kind === "cypress" ? TREE_R : LOW_R));
+  // none crowding a contact monument (the cypress behind C04 Résumé) and none on the pit entry or
+  // exit lanes (a round tree stood on the entry's edge); dropped after the scatter, so every other
+  // tree keeps its spot
+  const pitRoads = pitRoadCurves().flatMap((c) => c.getSpacedPoints(80));
+  const onPitRoad = (x: number, z: number, r: number) => pitRoads.some((p) => Math.hypot(p.x - x, p.z - z) < PIT_LANE_WIDTH / 2 + r);
+  return out.filter((it) => {
+    const r = it.kind === "round" || it.kind === "cypress" ? TREE_R : LOW_R;
+    return !nearMonument(it.x, it.z, r) && !onPitRoad(it.x, it.z, r);
+  });
 })();
 
 /** [x, z, clear radius] of every scattered tree, bush and rock. */
