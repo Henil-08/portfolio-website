@@ -52,6 +52,12 @@ small, verified with headless screenshots, and committed on its own
      `eval:window.__placeT(0.3)` drops the car at track t; `eval:window.__placeXZ(x,z,heading)` anywhere; `eval:window.__world.teleport('garage-agents')`;
      `eval:window.__world.setState({scene:{time:'night',weather:'clear'}})`; `eval:window.__world.openZone('podium')`.
    - Physics runs in slow motion headless (low fps). Judge looks, not speed.
+   - `GPU=1 node scripts/shoot.mjs ...` draws on the Mac's GPU (ANGLE Metal, audio still muted): 60 fps
+     instead of 1-2, so real driving checks work. With `eval:window.__realtime = true`, load the
+     in-page driver with `evalfile:scripts/drive.js`, then `eval:window.__qa.lap(220)` (a lap from
+     where the car stands) or `eval:window.__qa.path([[x, z], ...])`; read `window.__qa` (`i`/`pts`,
+     `done`, `stuckAt`, `air`, `maxSpeed`). It steers like the keyboard (-1/0/1, throttle on/off).
+     `evalfile:` runs any file's JavaScript in the page (no `|` limits).
    - `?skip` skips the opening entirely. Without it the loader waits for shader compiles (~30 s
      headless) and the animation runs ~10x slow: wait ~130 s before the circle is open.
    - `eval:window.__movables()` counts knock-about props out of place.

@@ -4,15 +4,18 @@
 // e.g. node scripts/shoot.mjs /tmp/shots/a "wait:16000|shot:spawn" 1400 850 "http://localhost:3100/?skip"
 // Shots land at <outPrefix>-<name>.jpg. Physics runs slow here (low fps): judge looks, not speed.
 // Env DPR (pixel ratio, default 1) and QUALITY (jpeg 0-100, default 72) for sharp exports.
+// Env GPU=1 draws on the Mac's GPU (ANGLE Metal) instead of software GL: 60 fps instead of 1-2, so
+// window.__realtime physics and scripts/drive.js can really drive. Audio stays muted either way.
+// evalfile:path runs a file's JavaScript in the page (no "|" limits), e.g. evalfile:scripts/drive.js
 import { spawn } from "node:child_process";
-import { writeFileSync, mkdtempSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 const [out, script, w = "1280", h = "800", url = "http://localhost:3100/"] = process.argv.slice(2);
 const port = 9400 + Math.floor(Math.random() * 500);
 const prof = mkdtempSync(join(tmpdir(), "world-"));
 const chrome = spawn("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-  ["--headless=new", `--remote-debugging-port=${port}`, "--hide-scrollbars", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--autoplay-policy=no-user-gesture-required", "--mute-audio", `--user-data-dir=${prof}`, "about:blank"], { stdio: "ignore" });
+  ["--headless=new", `--remote-debugging-port=${port}`, "--hide-scrollbars", ...(process.env.GPU === "1" ? ["--use-angle=metal", "--enable-gpu"] : ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"]), "--ignore-gpu-blocklist", "--autoplay-policy=no-user-gesture-required", "--mute-audio", `--user-data-dir=${prof}`, "about:blank"], { stdio: "ignore" });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let ws;
 for (let i = 0; i < 60 && !ws; i++) {
@@ -41,6 +44,7 @@ for (const step of script.split("|")) {
   if (op === "down") await key("keyDown", arg);
   if (op === "up") await key("keyUp", arg);
   if (op === "key") { await key("keyDown", arg); await sleep(60); await key("keyUp", arg); }
+  if (op === "evalfile") { const r = await send("Runtime.evaluate", { expression: readFileSync(arg, "utf8"), returnByValue: true }); console.log("evalfile", JSON.stringify(r.result?.value ?? r.exceptionDetails?.text)); }
   if (op === "eval") { const r = await send("Runtime.evaluate", { expression: arg, returnByValue: true }); console.log("eval", JSON.stringify(r.result?.value ?? r.exceptionDetails?.text)); }
   if (op === "shot") {
     await send("Runtime.evaluate", { expression: "document.querySelectorAll('nextjs-portal').forEach(e=>e.remove())" });
