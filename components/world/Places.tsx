@@ -45,6 +45,7 @@ import Social from "./social";
 import Waterfront from "./waterfront";
 import { HomeBody } from "./Movables";
 import { carState } from "./carState";
+import { STAND_GAME, STAND_SCALE, STAND_Z, grandstandFrame } from "./kit/builtTrackside";
 import Bridge from "./Bridge";
 import { AHMEDABAD_BOXES, AhmedabadSector, BOSTON_BOXES, BostonSector, HYPERLAB_BOXES, HyperlabSector, WATERS_BOXES, WatersSector } from "./models/sectors";
 import ZoneDebug from "./ui3d/ZoneDebug";
@@ -372,6 +373,14 @@ function Buildings() {
       <group position={[GRANDSTAND.pos[0], heightAt(GRANDSTAND.pos[0], GRANDSTAND.pos[1]), GRANDSTAND.pos[1]]} rotation={[0, GRANDSTAND.rot, 0]}>
         <Grandstand cheer />
       </group>
+      {/* solid like the trackside stands (street/Trackside.tsx): a car drove through this one */}
+      <RigidBody type="fixed" colliders={false}>
+        <CuboidCollider
+          args={[(STAND_GAME.w ?? 13.3) * STAND_SCALE / 2 + 0.2, 1.2, (MAIN_STAND.front - MAIN_STAND.back) / 2]}
+          position={[GRANDSTAND.pos[0] + Math.sin(GRANDSTAND.rot) * MAIN_STAND.mid, heightAt(GRANDSTAND.pos[0], GRANDSTAND.pos[1]) + 1.2, GRANDSTAND.pos[1] + Math.cos(GRANDSTAND.rot) * MAIN_STAND.mid]}
+          rotation={[0, GRANDSTAND.rot, 0]}
+        />
+      </RigidBody>
 
       <group position={[start.x, start.y, start.z]} rotation={[0, sRot, 0]}>
         <Gantry lights={0} />
@@ -379,6 +388,14 @@ function Buildings() {
     </>
   );
 }
+
+/** The main grandstand's depth in its own frame (front and back z, and their middle), as Trackside's stands. */
+const MAIN_STAND = (() => {
+  const f = grandstandFrame(STAND_GAME);
+  const front = f.front * STAND_SCALE + STAND_Z;
+  const back = f.back * STAND_SCALE + STAND_Z - 0.3;
+  return { front, back, mid: (front + back) / 2 };
+})();
 
 // The pit building's bays, one per project domain, coded like their zones (Z05…).
 const BAYS: Bay[] = GARAGES.map((g) => ({
