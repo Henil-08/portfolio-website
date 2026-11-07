@@ -23,6 +23,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { getState, openZone } from "../store";
 import { garageView } from "../garage/state";
+import { wiping } from "../Overlay";
 import { SECTORS, zoneMarker, zones, type ZoneId } from "../layout";
 import { heightAt } from "../terrain";
 import { LINKS, LINK_SPOTS, openLink } from "../social";
@@ -299,6 +300,10 @@ export default function InteractivePoints({ views }: { views?: () => PromptView[
     const now = performance.now();
     // HIDDEN until the opening has swept out; the garage sequence hides every one
     const hide = !s.revealed || garageView.dom !== null;
+    // a map teleport's wipe covers the world: every tag and sticker goes under it with the world
+    // (opacity, not visibility: an open sticker sets its own visibility, which would show through)
+    const under = wiping() ? "0" : "";
+    for (const l of layers.current.values()) if (l.el.style.opacity !== under) l.el.style.opacity = under;
     if (s.revealed) st.current.forEach((p, i) => p.state === HIDDEN && conceal(i));
     // the open one: the link the car is at, else the place; a place's sheet open steps it back
     const want = hide || s.zone ? null : s.nearLink ? `link-${s.nearLink}` : s.near;

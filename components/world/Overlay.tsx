@@ -14,7 +14,7 @@ import { swoosh } from "./sound";
 const SHOW = 2; // s
 const HIDE = 4; // s
 
-const wipe = { progress: 0, inverted: false, from: 0, to: 0, t: 1, dur: 1, done: null as null | (() => void), busy: false };
+const wipe = { progress: 0, inverted: false, from: 0, to: 0, t: 1, dur: 1, done: null as null | (() => void), busy: false, zone: null as ZoneId | null };
 
 const ease = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2; // power1.inOut
 
@@ -27,14 +27,22 @@ function run(to: number, dur: number, inverted: boolean, done: () => void) {
   wipe.done = done;
 }
 
+/** True while the wipe covers any of the screen: the in-world prompts hide under it. */
+export const wiping = () => wipe.busy || wipe.progress > 0.01;
+
 /** Close the map, wipe the screen, move the car to `zone` behind it, then clear. */
 export function wipeTo(zone: ZoneId) {
   setState({ menuOpen: false });
-  if (wipe.busy) return;
+  // a second pick while the screen still fills goes to the new place; one while it clears winds
+  // the clearing back over the screen and goes there (it used to be dropped until the 6 s wipe
+  // had finished)
+  wipe.zone = zone;
+  if (wipe.busy && !wipe.inverted) return;
+  const again = wipe.busy;
   wipe.busy = true;
   swoosh("in");
-  run(1, SHOW, false, () => {
-    teleport(zone);
+  run(1, SHOW * (1 - wipe.progress), again, () => {
+    if (wipe.zone) teleport(wipe.zone);
     swoosh("out");
     run(0, HIDE, true, () => {
       wipe.busy = false;
