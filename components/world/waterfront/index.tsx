@@ -22,6 +22,7 @@ import { lampModel } from "../kit/street";
 import { BOAT, addPierBollard, addPierHead, addPierSegment, boatModel } from "../kit/water";
 import { compose } from "../street/common";
 import { WORLD_SCALE } from "../scale";
+import { Solid, trimeshOf } from "../solid";
 import { batch, Instances } from "../street/Instances";
 import { benchParts } from "../districts/furniture";
 
@@ -65,6 +66,8 @@ const RAIL = { h: 1.1 * WORLD_SCALE, mid: 0.6 * WORLD_SCALE, post: 0.08 * WORLD_
 
 function Promenade() {
   const g = useMemo(() => promenadeGeometry(), []);
+  // the walk is drawn 5 cm (its edge 9 cm) over the land: solid as drawn, so tyres ride on it
+  const solid = useMemo(() => trimeshOf(g.pave, g.edge), [g]);
   const parts = useMemo(() => {
     const posts = batch();
     const rails = batch();
@@ -109,6 +112,7 @@ function Promenade() {
     <>
       <mesh geometry={g.pave} material={mat(STONE, { r: 0.9, side: THREE.DoubleSide })} receiveShadow />
       <mesh geometry={g.edge} material={mat(STONE_EDGE, { r: 0.85, side: THREE.DoubleSide })} receiveShadow />
+      <Solid args={solid} />
       <Instances geometry={unitBox()} material={mat(C.ink, { r: 0.6 })} batch={parts.posts} />
       <Instances geometry={unitBox()} material={mat(C.ink, { r: 0.6 })} batch={parts.rails} />
       <Instances geometry={unitBox()} material={mat(C.paper, { r: 0.8 })} batch={parts.tops} />

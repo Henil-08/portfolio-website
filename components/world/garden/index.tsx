@@ -12,6 +12,7 @@ import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { heightAt } from "../terrain";
+import { Solid, trimeshOf } from "../solid";
 import { dayNight } from "../daynight";
 import { C } from "../palette";
 import { geo, mat, unitBox } from "../models/props/shared";
@@ -111,10 +112,13 @@ function pathGeometries() {
 
 function Paths() {
   const g = useMemo(() => pathGeometries(), []);
+  // drawn PATH_Y (the edging EDGE_Y) over the land: solid as drawn, so tyres ride on the gravel
+  const solid = useMemo(() => trimeshOf(g.sand, g.edge), [g]);
   return (
     <>
       <mesh geometry={g.sand} material={mat("#ffffff", { r: 0.95, vc: true })} receiveShadow />
       <mesh geometry={g.edge} material={mat(EDGE, { r: 0.85, side: THREE.DoubleSide })} receiveShadow />
+      <Solid args={solid} />
     </>
   );
 }

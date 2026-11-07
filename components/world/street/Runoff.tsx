@@ -1,6 +1,8 @@
 "use client";
 
+import { useMemo } from "react";
 import * as THREE from "three";
+import { Solid, trimeshOf } from "../solid";
 import { heightAt } from "../terrain";
 import { C } from "../palette";
 import { CANALS, canalDist, onBridge } from "../layout";
@@ -8,6 +10,9 @@ import { FRAMES, HALF, N_FRAMES, RUNOFF, barrierOffset } from "./common";
 
 // W05: a gravel trap straight behind the kerb (Island.tsx `KERB_W` 1 m) out to the barrier.
 const KERB = 1.0;
+// across the trap, so it follows the ground between the kerb and the barrier (two edges alone bridged
+// the dips, up to 0.27 m over the land at the S2 corner)
+const COLS = 8;
 
 /** Variable-width flat ribbons on the outside of the tight corners. */
 function build(inner: (i: number) => number, outer: (i: number) => number, y: number) {
@@ -29,11 +34,12 @@ function build(inner: (i: number) => number, outer: (i: number) => number, y: nu
     side = s;
     const a = inner(j);
     const b = Math.max(a + 0.01, outer(j));
-    const pa = f.p.clone().addScaledVector(f.n, s * a);
-    const pb = f.p.clone().addScaledVector(f.n, s * b);
     const k = pos.length / 3;
-    pos.push(pa.x, heightAt(pa.x, pa.z) + y, pa.z, pb.x, heightAt(pb.x, pb.z) + y, pb.z);
-    if (prev >= 0) idx.push(prev, prev + 1, k, k, prev + 1, k + 1);
+    for (let c = 0; c <= COLS; c++) {
+      const q = f.p.clone().addScaledVector(f.n, s * (a + ((b - a) * c) / COLS));
+      pos.push(q.x, heightAt(q.x, q.z) + y, q.z);
+    }
+    if (prev >= 0) for (let c = 0; c < COLS; c++) idx.push(prev + c, prev + c + 1, k + c, k + c, prev + c + 1, k + c + 1);
     prev = k;
   }
   const g = new THREE.BufferGeometry();
@@ -54,5 +60,12 @@ const GRAVEL_GEO = build(
 const gravel = new THREE.MeshStandardMaterial({ color: C.gravel, roughness: 1 }); // plain matte gravel, as the proposal
 
 export function Runoff() {
-  return <mesh geometry={GRAVEL_GEO} material={gravel} receiveShadow />;
+  // solid as drawn: the tyres ride on the gravel, not the land 5 cm under it
+  const solid = useMemo(() => trimeshOf(GRAVEL_GEO), []);
+  return (
+    <>
+      <mesh geometry={GRAVEL_GEO} material={gravel} receiveShadow />
+      <Solid args={solid} />
+    </>
+  );
 }
