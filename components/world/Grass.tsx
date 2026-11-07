@@ -18,6 +18,7 @@ import { paintWaterfront } from "./waterfront/layout";
 import { TYRE_WALLS } from "./street/layoutStreet";
 import { paintPark } from "./park/layout";
 import { paintParkSlabs } from "./districts/park";
+import { MONUMENT_SPOTS, PLINTH_R } from "./contactRing";
 import { START_PLANTERS } from "./start";
 
 // The original grass: one triangle per blade (tip + two base corners), laid out on a
@@ -116,6 +117,12 @@ function makeMask() {
   // Garden paths, beds and the pond.
   paintGarden(g, tx, s);
   paintParkSlabs(g, tx, s);
+  // the contact monuments' plinths: no blades up through their steps
+  for (const [mx, mz] of MONUMENT_SPOTS) {
+    g.beginPath();
+    g.arc(tx(mx), tx(mz), (PLINTH_R + 0.2) * s, 0, Math.PI * 2);
+    g.fill();
+  }
   // the start's concrete planters (StartGarden.tsx)
   for (const [px, pz] of START_PLANTERS) g.fillRect(tx(px - 0.9), tx(pz - 0.9), 1.8 * s, 1.8 * s);
   paintWaterfront(g, tx, s);

@@ -14,6 +14,7 @@ import { FENCE_BAY, FENCE_SY } from "./furniture";
 import { ISLANDS, islandDist } from "../park/layout";
 import { BUSHES } from "../park/bushes";
 import { C } from "../palette";
+import { inRing, nearMonument } from "../contactRing";
 
 // concrete stepping slabs (Concrete & Ink), a few tones from concrete to concrete dark
 const TONES = [C.concrete, "#cfccc3", "#c6c2b8", C.concreteDark].map((c) => new THREE.Color(c));
@@ -39,6 +40,8 @@ const LINKS: [[number, number], [number, number]][] = [
 /** Free for a path: on land, clear of the road, the garden and every place's footprint. */
 function onSand(x: number, z: number) {
   if (!inLand(x, z, 1) || nearestT(x, z).dist < TRACK_WIDTH / 2 + 3 || nearGarden(x, z, 0.6)) return false;
+  // the contact monuments' half ring: a path stops at its edge, between the plinths
+  if (inRing(x, z, 0.6)) return false;
   return !zones.some((zn) => {
     if (zn.id.startsWith("sector") || zn.id.startsWith("garage")) return false;
     const pad = zn.id === "contact" ? 2.5 : 1.2;
@@ -56,6 +59,9 @@ export const PARK = (() => {
   const lamps: [number, number][] = [];
   const lamp = (x: number, z: number) => {
     if (lamps.some(([lx, lz]) => Math.hypot(lx - x, lz - z) < 5)) return;
+    // none on the contact monuments' ring: from the drive-in a lamp there stands in front of, or
+    // rises behind, a monument
+    if (inRing(x, z, 2.5)) return;
     lamps.push([x, z]);
     lanterns.push(compose(x, heightAt(x, z), z, r() * 6));
   };
@@ -64,7 +70,7 @@ export const PARK = (() => {
     for (let j = 3 + Math.floor(r() * 5); j > 0; j--) {
       const fx = x + (r() - 0.5) * 2.2;
       const fz = z + (r() - 0.5) * 2.2;
-      if (nearestT(fx, fz).dist < TRACK_WIDTH / 2 + 3) continue;
+      if (nearestT(fx, fz).dist < TRACK_WIDTH / 2 + 3 || nearMonument(fx, fz, 0.4)) continue;
       const s = 0.6 + r() * 0.4;
       flowers.m.push(compose(fx, heightAt(fx, fz) + 0.1 * s, fz, r() * Math.PI * 2, s, s, s));
       flowers.c.push(tint);

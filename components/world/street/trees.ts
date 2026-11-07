@@ -8,6 +8,7 @@ import { nearGarden } from "../garden/layout";
 import { nearPromenade } from "../waterfront/layout";
 import { inTownBelt, onRunoff } from "./common";
 import { onStructure } from "./reserved";
+import { nearMonument } from "../contactRing";
 
 export type NatureKind = "round" | "cypress" | "bush" | "rock";
 export type NatureItem = { kind: NatureKind; x: number; z: number; s: number; rot: number; seed: number };
@@ -53,7 +54,9 @@ export const NATURE: NatureItem[] = (() => {
     const kind: NatureKind = beach ? (roll < 0.7 ? "cypress" : "rock") : roll < 0.4 ? "round" : roll < 0.7 ? "cypress" : roll < 0.88 ? "bush" : "rock";
     out.push({ kind, x, z, s: 0.85 + r() * 0.5, rot: r() * Math.PI * 2, seed: Math.floor(r() * 1000) });
   }
-  return out;
+  // none crowding a contact monument (the cypress behind C04 Résumé); dropped after the scatter, so
+  // every other tree keeps its spot
+  return out.filter((it) => !nearMonument(it.x, it.z, it.kind === "round" || it.kind === "cypress" ? TREE_R : LOW_R));
 })();
 
 /** [x, z, clear radius] of every scattered tree, bush and rock. */
