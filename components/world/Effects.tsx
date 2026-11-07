@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { BallCollider, CuboidCollider, CylinderCollider, RigidBody } from "@react-three/rapier";
+import { CuboidCollider, CylinderCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { carState } from "./carState";
 import { getState, setState, subscribe, useWorld } from "./store";
 import { dayNight } from "./daynight";
 import { studio } from "./bloom/state";
 import { heightAt } from "./terrain";
-import { BALL_R, Cone, Football, TYRE_H, TYRE_R, Tyre } from "./models/props";
+import { Cone, FootballBody, TYRE_H, TYRE_R, Tyre } from "./models/props";
 import { nightGlow } from "./models/props/shared";
 
 // Lighting keyframes, Concrete & Ink (docs/BRAND.md "World"). The day/night cycle blends
@@ -259,15 +259,7 @@ export function Spawns() {
             const px = s.at[0] + Math.cos(a) * r;
             const pz = s.at[1] + Math.sin(a) * r;
             const pos: [number, number, number] = [px, heightAt(px, pz) + 6 + i * 0.6, pz];
-            if (s.thing === "footballs")
-              return (
-                <RigidBody key={`${s.id}-${i}`} colliders={false} position={pos} mass={0.35} restitution={0.7}>
-                  <BallCollider args={[BALL_R]} />
-                  <group position={[0, -BALL_R, 0]}>
-                    <Football />
-                  </group>
-                </RigidBody>
-              );
+            if (s.thing === "footballs") return <FootballBody key={`${s.id}-${i}`} position={pos} />;
             if (s.thing === "tyres")
               return (
                 <RigidBody key={`${s.id}-${i}`} colliders={false} position={pos} mass={0.6}>

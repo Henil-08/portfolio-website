@@ -16,6 +16,12 @@ export const carState = {
 // The original ticker: real delta capped at 1/30 s, simulation runs at 2x.
 export const ticker = { delta: 1 / 60, deltaScaled: 1 / 30, scale: 2 };
 
+/**
+ * Collider handles of the balls (the football, the engineer's footballs): the car's sweeper kicks
+ * these and its wheels never drive up onto them (Vehicle.tsx SWEEP_CLEAR).
+ */
+export const sweepable = new Set<number>();
+
 // Leader of the autopilot run, so the camera can watch it while you're hands-off.
 export const ghostLeader = { pos: new THREE.Vector3(), active: false };
 

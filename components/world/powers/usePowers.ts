@@ -32,6 +32,11 @@ import { ghostLook } from "./ghost";
 /** The player's vehicle is in collision group 1; every other collider keeps the default (all). */
 export const CAR_GROUPS = 0x0002ffff;
 const CAR_BIT = 0x0002;
+/**
+ * The vehicle's ball sweeper (Vehicle.tsx): in the car's group, colliding with everything but the car
+ * itself. So a prop SPLIT has turned ghost (its filter drops the car's bit) passes through it too.
+ */
+export const SWEEP_GROUPS = ((CAR_BIT << 16) | (0xffff & ~CAR_BIT)) >>> 0;
 
 const clamp01 = (k: number) => Math.min(1, Math.max(0, k));
 const smooth = (a: number, b: number, x: number) => {

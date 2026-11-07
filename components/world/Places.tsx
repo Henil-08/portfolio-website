@@ -3,7 +3,6 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
-  BallCollider,
   CuboidCollider,
   CylinderCollider,
   RigidBody,
@@ -16,7 +15,7 @@ import {
   Bush,
   Cone,
   CricketPitch,
-  Football,
+  FootballBody,
   Gantry,
   Goal,
   Grandstand,
@@ -197,6 +196,8 @@ function FootballPitch() {
   useFrame(({ clock }) => {
     const b = ball.current;
     if (!b) return;
+    // Dev and headless checks: window.__ball is the football's body.
+    if (process.env.NODE_ENV !== "production") (window as unknown as { __ball: RapierRigidBody }).__ball = b;
     const p = b.translation();
     // Goal: ball inside the mouth volume.
     if (Math.abs(p.x - x) < 1.9 && p.z < goalZ + 0.6 && p.z > goalZ - 0.9 && p.y < gy + 1.8) {
@@ -246,12 +247,7 @@ function FootballPitch() {
         <CuboidCollider args={[0.05, 0.75, 0.75]} position={[2, 0.75, 0]} />
       </RigidBody>
 
-      <RigidBody ref={ball} colliders={false} position={home} mass={0.35} linearDamping={0.35} angularDamping={0.6}>
-        <BallCollider args={[BALL_R]} restitution={0.75} friction={0.6} />
-        <group position={[0, -BALL_R, 0]}>
-          <Football />
-        </group>
-      </RigidBody>
+      <FootballBody ref={ball} position={home} />
     </>
   );
 }
@@ -317,6 +313,7 @@ function Cricket() {
               colliders={false}
               position={[x + ex, gy + STUMP_H / 2, z + k * STUMP_GAP]}
               mass={0.15}
+              ccd
             >
               <CylinderCollider args={[STUMP_H / 2, STUMP_R]} friction={0.5} />
               <group position={[0, -STUMP_H / 2, 0]}>
@@ -334,6 +331,7 @@ function Cricket() {
               position={[x + ex, gy + STUMP_H + 0.04, z + k * STUMP_GAP]}
               rotation={[0, Math.PI / 2, 0]}
               mass={0.03}
+              ccd
             >
               <CuboidCollider args={[0.13, 0.03, 0.03]} />
               <Bail />

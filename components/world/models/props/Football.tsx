@@ -1,11 +1,25 @@
-// bounds: ball r=0.35 (origin at ground contact; the ball center is at y=0.35)
+// bounds: ball r=BALL_R (origin at ground contact; the ball centre is at y=BALL_R)
 "use client";
 
+import type { Ref } from "react";
 import * as THREE from "three";
+import { BallCollider, RigidBody, type RapierRigidBody } from "@react-three/rapier";
 import { C } from "../../palette";
+import { sweepable } from "../../carState";
 import { geo, mat, type GroupProps } from "./shared";
 
-export const BALL_R = 0.35;
+/**
+ * The ball's radius. It was 0.35 m, a beach ball two fifths of the goal's height; a real size-5 ball
+ * is 0.11 m, which at the world's 2/3 (scale.ts) would be a speck from the chase camera. At 0.16 m it
+ * stands a sixth of the 1.8 m goal and two thirds of a TH-18 tyre: a football next to the cars.
+ */
+export const BALL_R = 0.16;
+/**
+ * The ball's physics. A real ball is 0.45 kg against the car's ~750: in the game's masses (the car is
+ * 2.5, a cone 0.25) that's about 0.1, light enough to fly off the car's nose, heavy enough to stay
+ * stable. Bouncy, grippy enough to roll rather than slide, a little drag so it stops on the grass.
+ */
+export const BALL = { mass: 0.1, restitution: 0.6, friction: 0.8, linearDamping: 0.25, angularDamping: 0.4 };
 
 function ballGeo() {
   return geo("football", () => {
@@ -74,11 +88,39 @@ function ballGeo() {
   });
 }
 
-/** Ink and paper football, r=0.35, faceted, matte. */
+/** Ink and paper football, r=BALL_R, faceted, matte. */
 export function Football(props: GroupProps) {
   return (
     <group {...props}>
       <mesh geometry={ballGeo()} material={mat("#ffffff", { r: 0.6, vc: true, flat: true })} castShadow receiveShadow />
     </group>
+  );
+}
+
+/**
+ * A football that plays: a dynamic sphere (continuous collision, so a fast car can't skip it) that the
+ * car's sweeper kicks (carState `sweepable`, Vehicle.tsx SWEEP_CLEAR). `position` is its centre.
+ */
+export function FootballBody({ ref, position }: { ref?: Ref<RapierRigidBody>; position: [number, number, number] }) {
+  return (
+    <RigidBody ref={ref} colliders={false} position={position} ccd softCcdPrediction={0.5} linearDamping={BALL.linearDamping} angularDamping={BALL.angularDamping}>
+      <BallCollider
+        ref={(c) => {
+          if (!c) return;
+          const h = c.handle;
+          sweepable.add(h);
+          return () => {
+            sweepable.delete(h);
+          };
+        }}
+        args={[BALL_R]}
+        mass={BALL.mass}
+        friction={BALL.friction}
+        restitution={BALL.restitution}
+      />
+      <group position={[0, -BALL_R, 0]}>
+        <Football />
+      </group>
+    </RigidBody>
   );
 }
