@@ -20,9 +20,11 @@ export default function RadioMessages() {
   // The line plays as a place's sheet opens: keep it beside the sheet, never under it. A side sheet
   // (Hud.tsx Sheet, 440 px from sm; the garage's reading panel, Panels.tsx useSheetBox) leaves the
   // radio the screen to its left; a bottom sheet (phones, a portrait garage) sends it up under the tabs.
+  // `near` is the open place (the store's zone).
   const box = useSheetBox(near);
   const side = box && "width" in box ? { paddingRight: Number(box.width) + Number(box.right ?? 0) + 24 } : undefined;
-  const place = !near ? "bottom-[96px]" : box ? (side ? "bottom-[96px]" : "top-[64px]") : "max-sm:top-[60px] sm:bottom-[96px] sm:pr-[484px]";
+  // (on a phone the bottom is the power meter and the pedals, so it always sits under the tabs)
+  const place = !near ? "max-sm:top-[60px] sm:bottom-[96px]" : box ? (side ? "bottom-[96px]" : "top-[64px]") : "max-sm:top-[60px] sm:bottom-[96px] sm:pr-[484px]";
 
   useEffect(() => {
     // Nothing plays behind the start screen.
