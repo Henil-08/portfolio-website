@@ -23,6 +23,7 @@ import Street from "./street";
 import { bindKeyboard } from "./input";
 import { useWorld } from "./store";
 import Overlay from "./Overlay";
+import { PERF, PerfProbe } from "./perf";
 
 export default function World() {
   // Phones get the light version from the start. This component only renders on the client.
@@ -78,6 +79,7 @@ export default function World() {
       <Autopilot />
       <EnvLight />
       <Overlay />
+      {PERF && <PerfProbe />}
       {fancy && (
         <EffectComposer multisampling={0} enableNormalPass={false}>
           <N8AO halfRes aoRadius={1.6} intensity={1.6} distanceFalloff={0.7} color="#151515" />
