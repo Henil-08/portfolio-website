@@ -253,17 +253,83 @@ Before (round 1) → after (round 2):
   sees that far. The per-copy culling above takes what is off screen without any popping.
 
 
+## Round 3: the vehicle in few meshes, the teardown's switch frame
+
+Same harness, production build of commit 95497d5. Before is round 2 above.
+
+| config | cond | fps | mean | p95 | p99 | max | cpu (mean/p95) | >33 | calls | tris | GPU MB | DPR | tier |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| chrome | day | 60 | 16.7 | 17.4 | 17.7 | 18.1 | 4.4 / 5 | 0 | 350 | 0.78 M | 123 | 1.75 | High |
+| chrome | night | 60 | 16.7 | 17 | 17.5 | 18.2 | 4.4 / 5.1 | 0 | 332 | 0.75 M | 123 | 1.75 | High |
+| chrome | rain | 60 | 16.7 | 17.5 | 17.7 | 18 | 4.2 / 4.9 | 0 | 345 | 0.77 M | 123 | 1.75 | High |
+| chrome | garage | 60 | 16.7 | 16.9 | 17.3 | 20.8 | 2.9 / 3.5 | 0 | 245 | 0.20 M | 147 | 1.75 | High |
+| chrome4x | day | 56.8 | 17.6 | 21.2 | 24.2 | 28.9 | 15.7 / 19.2 | 0 | 349 | 0.78 M | 123 | 1.75 | High |
+| chrome4x | night | 54.8 | 18.2 | 23 | 25.8 | 33.1 | 16.3 / 20.7 | 0 | 332 | 0.75 M | 123 | 1.75 | High |
+| chrome4x | rain | 52 | 19.2 | 25.8 | 30.7 | 130.4 | 17.5 / 23.6 | 7 | 346 | 0.71 M | 113 | 1.5 | Balanced |
+| chrome4x | garage | 59.9 | 16.7 | 17.7 | 19.8 | 33.8 | 8.2 / 11.8 | 1 | 245 | 0.20 M | 137 | 1.5 | Balanced |
+| mobile | day | 59.2 | 16.9 | 19.1 | 21.3 | 27.1 | 12.5 / 17.3 | 0 | 308 | 0.66 M | 97 | 1.25 | Low (light) |
+| mobile | night | 59.9 | 16.7 | 17.6 | 18.7 | 35.9 | 10.9 / 14.4 | 1 | 288 | 0.62 M | 97 | 1.25 | Low (light) |
+| mobile | rain | 56.9 | 17.6 | 21.5 | 25.5 | 30.7 | 13.9 / 19.4 | 0 | 301 | 0.64 M | 97 | 1.25 | Low (light) |
+| mobile | garage | 60 | 16.7 | 17.7 | 18.3 | 31.8 | 5.6 / 7.7 | 0 | 187 | 0.19 M | 122 | 1.25 | Low (light) |
+| webkit | day | 60 | 16.7 | 18 | 18 | 24 | 5.2 / 6 | 0 | 352 | 0.79 M | 123 | 1.75 | High |
+| webkit | night | 60 | 16.7 | 17 | 18 | 27 | 5.2 / 6 | 0 | 332 | 0.75 M | 123 | 1.75 | High |
+| webkit | rain | 59.6 | 16.8 | 18 | 25 | 79 | 5.4 / 6 | 6 | 346 | 0.77 M | 123 | 1.75 | High |
+| webkit | garage | 59.7 | 16.7 | 17 | 19 | 40 | 3.6 / 4 | 8 | 245 | 0.20 M | 147 | 1.75 | High |
+
+Round 2 → round 3:
+
+- **Draw calls while driving**: 413-433 → 332-350 on desktop, 370-390 → 288-308 on the phone
+  emulation (all passes: shadow, scene, AO transparency, post). At the pinned chase pose in dev,
+  304 → 225. The 300 budget is met on phones and at that pose; a full lap's average on desktop
+  is 330-350, the remainder being the town's plain meshes and ~30 post-chain draws.
+- **Main thread**: this run read 0.3-2 ms a frame higher than round 2 on every config, which is the
+  machine (other agents' browsers were running; the 4x configs swing the most). A direct A/B in one
+  page, same pose, bake on and off alternated four times at 4x throttle: 11.7 ms on, 12.2 ms off.
+  The bake saves main-thread time, slightly.
+- **Teardown switch on WebKit**: worst main-thread frame 22-27 → 14 ms over eight switches (dev,
+  measured directly); in the lap harness the WebKit garage now has no frame over 40 ms (it had
+  frames of 42-53 ms every switch), 8 frames of 34-40 ms in 40 s, which are the GPU side of the one
+  sheet that goes up that frame (the main thread is under 5 ms in them).
+- **Look**: pinned stills of this build against the baseline, chase and wide, day, night and rain:
+  mean difference 0.27-0.89/255, 0.01-0.35 % of pixels off by more than 24 (rain particles in the
+  0.89), the same as rounds 1 and 2.
+
+
+### What changed
+
+1. **The player's vehicle baked per rigid part** (`components/world/vehicles/merge.ts`, run from
+   `Vehicle.tsx`). Each model is built from 60-70 small meshes, every one a draw call in the view
+   and another in the shadow map. Once the vehicle has settled (mounted, any swap finished, about
+   0.75 s), the meshes that move together are baked into one mesh per material on the group that
+   moves them: the body, each wheel's spin, steer and swap groups, the TH-18's DRS flap. The baked
+   mesh uses the same material and hangs on the same group, so it moves, lights, shades and casts
+   exactly like the parts, which are hidden, not removed. Left as they are: the brake lamps and the
+   wet-tyre bands (their materials are swapped at run time), anything textured or transparent, the
+   Atlas's thrusters. A new vehicle or livery puts the parts back in the same commit (a layout
+   effect), before the swap reads them, so the swap's part-by-part rise is unchanged; the bake comes
+   back after it. A watchdog compares every hidden part's place on its group with where it was
+   baked every 30 frames and undoes the bake for good if one moved on its own.
+   Checked: four vehicles x five liveries, baked against unbaked at the same pose (the car shows no
+   difference; what differs is grass wind, leaves and a radio card), the swap frozen mid-rise with
+   and without the bake (same picture), a livery swap (0 baked meshes during it, back after).
+   Draw calls at a close pose: TH-18 585 → 503, E14 695 → 509, Atlas 597 → 496, Apollo 592 → 514
+   (10-17 baked meshes in place of 54-71).
+2. **The teardown's switch frame** (`components/world/garage/teardown/studio.tsx`). Measured on
+   WebKit: reading a project (`analyse`, 0-4 ms) and drawing its three sheets (1-6 ms) were cheap;
+   the frame was the three canvas textures (4.6 Mpx with mipmaps) going to the GPU together. Now
+   the wipe's paper is held over the sheets two frames longer while they go up one a frame, and the
+   first drawing as the bay opens goes up one a frame too. WebKit, eight switches: the worst
+   main-thread frame 27 → 14 ms, frames over 40 ms 4 → 1.
+
 ## Left, and why
 
 - **Firefox**: unmeasured here (sandbox, above). Code review found nothing engine-specific: WebGL 2
   only, no OffscreenCanvas, no fullscreen API, long-task timing guarded.
-- **Draw calls**: ~415-430 a frame while driving, of which ~30 are the post chain and ~290 the main
-  and shadow passes (art-direction.md 2.11 budgets 300). Triangles are well under the 1.5 M budget.
-  Next: the player's vehicle as fewer meshes (about 106 draws with its shadow), then the town's
-  small plain meshes merged per material.
-- **WebKit hitches**: the teardown's project switch (above), and one to three frames of 45-49 ms per
-  40 s lap with 33-37 ms of main thread, the same count as the baseline's (a garbage collection, by
-  the look of it; Chrome shows none). One rain lap also had a single 472 ms frame with an idle main
-  thread; a rerun of three laps (rain, night, rain) had none.
+- **Draw calls**: 330-350 a frame while driving on desktop (budget 300), of which ~30 are the post
+  chain. Next: the town's small plain meshes merged per material, the way the vehicle is.
+- **WebKit hitches**: the teardown's switch is down to one GPU-side frame of 34-40 ms (the largest
+  sheet, 2048 x 1268 with mipmaps, going up); moving that upload off the main path would take
+  ImageBitmaps, which older Safari handles unevenly. While driving, one to three frames of 45-79 ms
+  per lap with an idle or 35 ms main thread, the same as the baseline's.
 - `THREE.Clock` deprecation and Rapier's "deprecated parameters" init warnings come from
   @react-three/fiber and @react-three/rapier; they are warnings, not errors.

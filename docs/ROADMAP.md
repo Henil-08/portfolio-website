@@ -40,7 +40,7 @@ small, verified with headless screenshots, and committed on its own
 | Car parking at rest (no jitter) | components/world/Vehicle.tsx (`parked`, `REPARK_*`, `SUSPENSION`) |
 | Places review page | app/docs/brand/places/* (every interactable place, live world views, the real sheets) |
 | Knock-about props (tyres, rocks, benches...) | components/world/Movables.tsx (`Movables`, `kindFromMatrices`, `HomeBody`) |
-| Performance, quality tiers, perf harness | components/world/quality.ts (tiers, Auto governor; Settings → Quality in components/ui/Hud.tsx), perf.tsx (`?perf`, `window.__perf`), aoTransparency.ts (N8AO patch), smooth.ts (`ease`), instanceCull.ts (per-copy culling of island-wide instanced meshes), indoor.ts (the world left out behind a parked garage bay), wireAA.ts (fence wires), scripts/perf.mjs; numbers in docs/research/performance.md |
+| Performance, quality tiers, perf harness | components/world/quality.ts (tiers, Auto governor; Settings → Quality in components/ui/Hud.tsx), perf.tsx (`?perf`, `window.__perf`), aoTransparency.ts (N8AO patch), smooth.ts (`ease`), instanceCull.ts (per-copy culling of island-wide instanced meshes), indoor.ts (the world left out behind a parked garage bay), wireAA.ts (fence wires), vehicles/merge.ts (the player's vehicle baked per rigid part), scripts/perf.mjs; numbers in docs/research/performance.md |
 
 ## Working rules
 
