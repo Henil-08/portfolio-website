@@ -8,9 +8,10 @@
 //   PW=<dir> node scripts/perf.mjs <out.json> [configs] [url]
 //
 // configs (comma-separated, default all): chrome, chrome4x, mobile, firefox, webkit
-// Env: SECS (seconds per condition, default 40), CONDS (default day,night,rain), QUALITY (sets
-// the Settings quality before the run: auto, high, balanced, low), SHOTS=<prefix> (a still per
-// condition at a pinned camera).
+// Env: SECS (seconds per condition, default 40), CONDS (default day,night,rain,garage; garage is
+// the teardown garage, flipping to the next project every 4 s), QUALITY (sets the Settings quality
+// before the run: auto, high, balanced, low), SHOTS=<prefix> (stills per condition at two pinned
+// cameras, the same poses every run, for before/after comparisons).
 // Browser rules (AGENTS.md): headless, muted, 1280x800, one browser per engine reused across its
 // configs and always closed. Motion stays on (no reducedMotion): this measures smoothness.
 import { createRequire } from "node:module";
@@ -21,7 +22,7 @@ const [out = "perf.json", which = "chrome,chrome4x,mobile,firefox,webkit", base 
 const require = createRequire(join(process.env.PW ?? process.cwd(), "node_modules", "x.js"));
 const { chromium, firefox, webkit } = require("playwright");
 const SECS = +(process.env.SECS ?? 40);
-const CONDS = (process.env.CONDS ?? "day,night,rain").split(",");
+const CONDS = (process.env.CONDS ?? "day,night,rain,garage").split(",");
 const drive = readFileSync(new URL("./drive.js", import.meta.url), "utf8");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -99,6 +100,26 @@ async function run(name) {
   await sleep(2500);
   await page.evaluate(drive);
   for (const c of CONDS) {
+    if (c === "garage") {
+      // the teardown garage: in, then a new project every 4 s (as a visitor flips through them)
+      await page.evaluate(() => { window.__qa.stop(); window.__perf.scene("day", "clear"); window.__perf.zone("garage-agents"); });
+      await sleep(3500);
+      await page.evaluate(() => window.__perf.open("garage-agents"));
+      await sleep(7000);
+      await page.evaluate(() => window.__perf.start());
+      const end = Date.now() + SECS * 1000;
+      while (Date.now() < end) {
+        await sleep(4000);
+        await page.keyboard.press("ArrowRight");
+      }
+      const st = await page.evaluate(() => window.__perf.stop());
+      res.conds[c] = st;
+      if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}-${name}-${c}.jpg`, type: "jpeg", quality: 80 });
+      await page.keyboard.press("Escape");
+      await sleep(4000);
+      console.log(name, c, JSON.stringify(st));
+      continue;
+    }
     const [time, weather] = c === "rain" ? ["day", "rain"] : c === "night" ? ["night", "clear"] : ["day", "clear"];
     await page.evaluate(([t, wx]) => window.__perf.scene(t, wx), [time, weather]);
     await page.evaluate(() => { window.__qa.stop(); window.__placeT(0.02); });
@@ -110,7 +131,14 @@ async function run(name) {
     if (process.env.SHOTS) {
       await page.evaluate(() => { window.__qa.stop(); window.__placeT(0.3); });
       await sleep(3000);
-      await page.screenshot({ path: `${process.env.SHOTS}-${name}-${c}.jpg`, type: "jpeg", quality: 80 });
+      // the chase pose over the car where it stands, and a wide one over the pit and the park
+      await page.evaluate(() => { const p = window.__car.pos; window.__cam = [+(p.x + 10.5).toFixed(1), +(p.y + 12.5).toFixed(1), +(p.z + 14).toFixed(1), +p.x.toFixed(1), +p.y.toFixed(1), +p.z.toFixed(1)]; });
+      await sleep(1200);
+      await page.screenshot({ path: `${process.env.SHOTS}-${name}-${c}-chase.jpg`, type: "jpeg", quality: 85 });
+      await page.evaluate(() => { window.__cam = [30, 40, 60, 0, 0, 0]; });
+      await sleep(1200);
+      await page.screenshot({ path: `${process.env.SHOTS}-${name}-${c}-wide.jpg`, type: "jpeg", quality: 85 });
+      await page.evaluate(() => { window.__cam = null; });
     }
     console.log(name, c, JSON.stringify(st));
   }

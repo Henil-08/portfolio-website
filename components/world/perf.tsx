@@ -12,7 +12,7 @@
 import { useEffect } from "react";
 import { addAfterEffect, addEffect, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { getState, setState } from "./store";
+import { getState, openZone, setState, teleport } from "./store";
 import { opening } from "./bloom/state";
 import { quality } from "./quality";
 import { carState } from "./carState";
@@ -116,6 +116,9 @@ function setup(gl: THREE.WebGLRenderer, scene: THREE.Scene) {
       if (!rec.worldMs && getState().revealed) rec.worldMs = performance.now();
       return { stage: opening.get().stage, phase: getState().phase, revealed: getState().revealed, bootMs: Math.round(rec.bootMs), worldMs: Math.round(rec.worldMs) };
     },
+    // a place: drive there (the map's teleport), then open it (E)
+    zone: (id: Parameters<typeof teleport>[0]) => teleport(id),
+    open: (id: Parameters<typeof openZone>[0]) => openZone(id),
     scene: (time: "day" | "golden" | "night", weather: "clear" | "rain" | "snow") => setState({ scene: { time, weather } }),
     start: () => {
       rec.samples = [];
