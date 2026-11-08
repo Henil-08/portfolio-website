@@ -56,6 +56,8 @@ const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 const OVERTAKE = { gain: (k: number) => 12 + 16 * k, max: 62, accel: 60, rateIn: 7, rateOut: 5 };
 /** SPLIT: the ghost fades in over 0.2 s and out over 0.35 s after release, with a lighter dash (8..14 real m/s on top). */
 const SPLIT = { gain: (k: number) => 7 + 7 * k, max: 48, accel: 40, fadeIn: 0.2, fadeOut: 0.35, settle: 4 };
+/** SPLIT ghosts the props within this many metres of the vehicle (more than a quarter second's dash at its top speed, 12 m). */
+const GHOST_REACH = 20;
 /**
  * SEND IT: a 0.14 s crouch, then a jump 2.3..3.2 m high with at least 10..16 real m/s forward;
  * held in the air, lift carries 45% of its weight (a hang, up to ~5.8 m), released it just falls.
@@ -158,11 +160,19 @@ export function usePowers({
     };
   }, [world]);
 
-  /** SPLIT: every knock-about prop (a dynamic body that isn't us) stops colliding with the vehicle. */
+  /**
+   * SPLIT: every knock-about prop near the vehicle (a dynamic body that isn't us) stops colliding
+   * with it. Only near ones: a collider whose groups change wakes its body, and waking every prop
+   * on the island let a hundred of them settle out of place each time SPLIT started. This runs
+   * again every quarter second while it's held, so props the dash reaches are picked up in time.
+   */
   const ghostProps = (b: RapierRigidBody) => {
+    const at = b.translation();
     world.forEachCollider((c) => {
       const p = c.parent();
       if (!p || p.handle === b.handle || !p.isDynamic() || ghosted.current.has(c.handle)) return;
+      const t = p.translation();
+      if ((t.x - at.x) ** 2 + (t.z - at.z) ** 2 > GHOST_REACH * GHOST_REACH) return;
       const g = c.collisionGroups();
       ghosted.current.set(c.handle, g);
       c.setCollisionGroups((g & ~CAR_BIT) >>> 0);
@@ -273,7 +283,8 @@ export function usePowers({
     if (R?.on && (!input.power || chargeOf(P, power.clock) <= 0)) letGo(R);
     // SPLIT's leftovers: props still inside the vehicle get their collisions back once clear
     // (all of them after SPLIT.settle s, whatever: a prop then simply gets pushed out)
-    if ((!R || R.code !== "V04" || R.ghost === 0) && ghosted.current.size && b) {
+    // (not on the press's own step: the ghost is still 0 there, and the props it just ghosted stay so)
+    if ((!R || R.code !== "V04" || (!R.on && R.ghost === 0)) && ghosted.current.size && b) {
       leftover.current += dt;
       solidProps(b, leftover.current > SPLIT.settle);
     } else leftover.current = 0;
