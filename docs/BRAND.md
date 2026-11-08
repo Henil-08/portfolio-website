@@ -194,7 +194,15 @@ Hover and keyboard focus share one signal, the orange corner brackets (`x-sel` +
     bottom sheet, 70 % of the height on a phone and 58 % on a tablet. The driver's view is framed in
     what it leaves (under the tabs), with a lens that keeps the whole pit wall in view (anim.ts
     `cockpitFov`).
-- **S03 Garage:** the datasheet project card (parts.tsx `DsCard`) over the garage, with an Esc sticker.
+- **S03 Garage (built, 2026-11-07): Teardown** (components/world/garage/teardown). Every bay is a drafting
+  studio in the world's own kit materials (a paper-topped concrete table with rulers and a datum ring,
+  two lamps, floor tape, three sheets on the back wall). E sends the stand-in in through the rolled-up
+  door to park beside the table; the camera rises into the drawing view, fitted to the object. The
+  project comes apart along its axes, part by part, then callouts draw in (part number and a
+  datasheet line; hover marks the line in the sheet); ← → reassembles it, lowers it through the
+  table's hatch and raises the next (about 1.2 s). The wall drawings (general arrangement, exploded
+  isometric, parts list) are drawn from the project's own geometry and wiped over on a switch.
+  Shut bays show the table with the last project standing. The sheet beside it is the datasheet card:
   ← → step through projects and each one boots in. The card has:
   - header bar `HG-08 / Pxx`
   - 1 Features

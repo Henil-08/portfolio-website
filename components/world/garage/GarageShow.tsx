@@ -1,11 +1,13 @@
 "use client";
 
-// Garage experience · Cockpit + pit wall, in the game (owner, approved 2026-11-05). Every bay
-// carries its pit wall of screens and its stage (Bay.tsx). Open a garage (E at Z05–Z09) and a
-// stand-in for your vehicle, in your livery, leaves from exactly where yours stands, drives into
-// the bay and stops facing the wall, while the camera follows it in and settles at the driver's
-// eye (Rig.tsx reads garageView). ← → or a click on a screen switch project (store garageSel);
-// Esc backs the stand-in out along the same path to where you were, and you drive on.
+// Garage experience · Teardown, in the game (owner's pick, 2026-11-07; it replaces the cockpit
+// and pit wall). Every bay is a drafting studio with a project on its table (teardown/studio.tsx).
+// Open a garage (E at Z05–Z09) and a stand-in for your vehicle, in your livery, leaves from
+// exactly where yours stands, drives into the bay through its rolled-up door and pulls aside to
+// park by the table, while the camera follows it in and rises into the drawing view (Rig.tsx reads
+// garageView); the project comes apart into its parts with callouts (the overlay is Panels.tsx's).
+// ← → switch project (store garageSel); Esc backs the stand-in out along the same path to where
+// you were, and you drive on.
 import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -15,10 +17,10 @@ import { carState } from "../carState";
 import { CI } from "../buildings/concrete";
 import { liveryOf, vehicleByCode } from "../vehicles";
 import type { Domain } from "@/content/projects";
-import { GarageBay } from "./Bay";
 import { ShowCar } from "./ShowCar";
-import { STAGE_Z, bayOrigin, cockpitPoses, garageList, glanceOf, inOut, lerp, parkZ, seg, stepDrive, useSlide } from "./anim";
-import { garageView } from "./state";
+import { bayOrigin, cockpitPoses, garageList, inOut, lerp, seg, stepDrive } from "./anim";
+import { garageSheet, garageView } from "./state";
+import { PARK, Standing, Studio, TZ, Table, VIEW, projectCallouts, td, teardownView } from "./teardown/studio";
 
 /** The player's model group, by name (Vehicle.tsx PLAYER_MODEL). */
 const PLAYER_MODEL = "player-vehicle";
@@ -49,30 +51,45 @@ function along(p: Path, s: number, pos: THREE.Vector3) {
   return Math.atan2(b.x - a.x, b.z - a.z);
 }
 
-/** One bay's wall and stage, following the store while its garage is open. */
-function GameBay({ domain }: { domain: Domain }) {
+/** The project each bay last showed, so a shut bay keeps what you left on its table. */
+const lastShown = new Map<Domain, string>();
+
+/**
+ * One bay: the drafting studio, and on its table either the garage's teardown (its bay is the
+ * one open, or still backing out: `active`) or the project left there, standing whole.
+ */
+function GameBay({ domain, active }: { domain: Domain; active: boolean }) {
   const zid = `garage-${domain}` as ZoneId;
   const list = useMemo(() => garageList(domain), [domain]);
   const live = useWorld((s) => (s.zone === zid ? Math.min(s.garageSel, list.length - 1) : null));
-  // closing keeps the project on show where it is, so nothing slides while you back out
+  // backing out keeps the project on show, so nothing changes on the table while you leave
   const [sel, setSel] = useState(0);
   if (live !== null && live !== sel) setSel(live);
-  const slide = useSlide(sel, undefined, list.length);
+  const inside = live !== null;
+  // reopened: back to the project you left on the table
+  const [was, setWas] = useState(false);
+  if (inside !== was) {
+    setWas(inside);
+    const last = list.findIndex((x) => x.p.slug === lastShown.get(domain));
+    if (inside && last > 0 && live === 0) setState({ garageSel: last });
+  }
   const drive = useMemo(() => ({ get current() { return garageView.dom === domain ? garageView.k : 0; } }), [domain]);
   useFrame(() => {
-    if (garageView.dom === domain) garageView.slide = slide.current;
+    if (active && td.shown) lastShown.set(domain, td.shown);
   });
   const origin = useMemo(() => bayOrigin(domain), [domain]);
+  const standing = list.find((x) => x.p.slug === lastShown.get(domain)) ?? list[0];
   return (
     <group position={origin.toArray()}>
       {/* no colliders: the bay is shut (buildings/PitBuilding.tsx pitSolids), only the stand-in comes in */}
-      <GarageBay list={list} drive={drive} slide={slide} onPick={(i) => getState().zone === zid && setState({ garageSel: i })} />
+      <Studio drawings={active} />
+      {active ? <Table key={list.map((x) => x.p.slug).join()} list={list} sel={sel} inside={inside} drive={drive} up /> : <Standing key={standing.p.slug} item={standing} />}
     </group>
   );
 }
 
 export default function GarageShow() {
-  const { scene } = useThree();
+  const { scene, camera, size } = useThree();
   const code = useWorld((s) => s.vehicle);
   const lname = useWorld((s) => s.livery);
   const v = vehicleByCode[code];
@@ -84,8 +101,9 @@ export default function GarageShow() {
   const light = useRef<THREE.SpotLight>(null!);
   const lightAt = useMemo(() => new THREE.Object3D(), []);
   const run = useRef({ path: null as Path | null, origin: new THREE.Vector3(), world: new THREE.Vector3(), q: new THREE.Quaternion(), f: new THREE.Vector3(), p: new THREE.Vector3() });
+  const view = useRef({ pos: new THREE.Vector3(), look: new THREE.Vector3(), fit: { dist: 4, look: new THREE.Vector3(0, 1, TZ) } });
 
-  useFrame((_, dt) => {
+  useFrame((s, dt) => {
     const r = run.current;
     const open = garageOf(getState().zone);
     // a garage opens: start from exactly where the player's vehicle stands
@@ -98,7 +116,8 @@ export default function GarageShow() {
         m.getWorldPosition(r.world);
         m.getWorldQuaternion(r.q);
         r.f.set(0, 0, 1).applyQuaternion(r.q);
-        r.path = makePath(r.world.clone().sub(r.origin), Math.atan2(r.f.x, r.f.z), new THREE.Vector3(0, 0, parkZ(code)));
+        // in through the door and aside, to park by the drafting table (teardown/studio.tsx)
+        r.path = makePath(r.world.clone().sub(r.origin), Math.atan2(r.f.x, r.f.z), PARK.clone());
       } else r.path = null; // no player here (the places page): the bay alone follows the store
       if (dom !== open) setDom(open);
     }
@@ -116,19 +135,29 @@ export default function GarageShow() {
       g.rotation.y = yaw;
       g.visible = k > 0;
       r.p.copy(g.position).add(r.origin);
-      cockpitPoses(garageView.poses, k, code, r.p, yaw, garageView.slide ? glanceOf(garageView.slide) : 0, r.origin);
-      inCab.current = garageView.poses.b > 0.8;
+      // the chase behind the stand-in as it parks, then up out of it into the drawing view,
+      // fitted to the part of the screen the garage's sheet leaves (Rig.tsx frames it there)
+      const P = garageView.poses;
+      cockpitPoses(P, k, code, r.p, yaw, 0, r.origin);
+      const v2 = view.current;
+      const free = garageSheet(size.width, size.height).free;
+      teardownView(v2, v2.fit, free.w / Math.max(1, free.h), free.w, s.clock.elapsedTime, dt);
+      P.eye.copy(v2.pos).add(r.origin);
+      P.look.copy(v2.look).add(r.origin);
+      P.fov = VIEW.fov;
+      inCab.current = false;
     }
-    // the bay's showroom light, on as you arrive
-    lightAt.position.set(r.origin.x, r.origin.y + 1.2, r.origin.z + STAGE_Z);
-    light.current.position.set(r.origin.x + 0.9, r.origin.y + 3.4, r.origin.z + STAGE_Z + 1.8);
-    light.current.intensity = lerp(0, 26, inOut(seg(k, 0.5, 0.9)));
+    // the callouts' parts on screen, for the sheet's overlay (Panels.tsx)
+    if (garageView.car) projectCallouts(camera, r.origin);
+    // the bay's light over the table, on as you arrive
+    lightAt.position.set(r.origin.x, r.origin.y + 0.9, r.origin.z + TZ);
+    light.current.position.set(r.origin.x + 0.9, r.origin.y + 4.2, r.origin.z + TZ + 2.2);
+    light.current.intensity = lerp(0, 22, inOut(seg(k, 0.5, 0.9)));
 
     if (k === 0 && !open) {
       garageView.dom = null;
       garageView.car = false;
       r.path = null;
-      garageView.slide = null;
       if (dom) setDom(null);
     }
   });
@@ -136,7 +165,7 @@ export default function GarageShow() {
   return (
     <>
       {GARAGES.map((g) => (
-        <GameBay key={g.domain} domain={g.domain} />
+        <GameBay key={g.domain} domain={g.domain} active={dom === g.domain} />
       ))}
       {/* one showroom light, moved to the bay in use (a constant light count: no shader rebuilds) */}
       <primitive object={lightAt} />

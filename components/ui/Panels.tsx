@@ -4,6 +4,7 @@
 // on white, mono codes, rows that invert, one orange. The frame around it is Hud.tsx `Sheet`.
 import Image from "next/image";
 import { useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { SECTORS, garageLabel, zones, type ZoneId } from "@/components/world/layout";
 import { setState, useWorld } from "@/components/world/store";
 import { profile, story, offTrack } from "@/content/profile";
@@ -14,6 +15,7 @@ import { playbook, playbookIntro } from "@/content/playbook";
 import { DsCard } from "@/components/brand/sheets";
 import { Figures, pad } from "@/components/brand/tokens";
 import { garageSheet } from "@/components/world/garage/state";
+import { FOCUS_CSS, TeardownCallouts } from "@/components/world/garage/teardown/studio";
 
 // Which roles belong to each place, matched by company and title.
 const SECTOR_ROLES: Record<number, (r: (typeof experience)[number]) => boolean> = {
@@ -234,8 +236,18 @@ function GarageSheet({ domain }: { domain: Domain }) {
   const list = projects.map((p, i) => [p, i] as const).filter(([p]) => p.domain === domain);
   const sel = Math.min(useWorld((s) => s.garageSel), list.length - 1);
   const go = (dir: -1 | 1) => setState({ garageSel: (sel + dir + list.length) % list.length });
+  // the teardown's callouts over the bay, in the part of the screen this sheet leaves (portalled:
+  // the sheet's frame is transformed while it draws in); only in the game, not the places page
+  const inWorld = useWorld((s) => s.phase === "world");
+  const host = useSyncExternalStore(
+    noop,
+    () => document.body,
+    () => null,
+  );
   return (
-    <div className="space-y-4">
+    <div id="garage-sheet" className="space-y-4">
+      <style>{FOCUS_CSS}</style>
+      {inWorld && host && createPortal(<TeardownCallouts inside fixed region={calloutRegion} />, host)}
       {domain === "hardware" && (
         <p className="text-[14px] leading-relaxed text-graphite">
           I started in electronics, writing Verilog and Embedded C before I ever trained a model. Chip verification eats most of a hardware team&apos;s time and looks a lot like the agent problems I solve at
@@ -252,6 +264,12 @@ function GarageSheet({ domain }: { domain: Domain }) {
     </div>
   );
 }
+
+/** Where the teardown's callouts may go: the bay's picture beside or above the sheet, clear of the HUD's corners. */
+const calloutRegion = (W: number, H: number) => {
+  const f = garageSheet(W, H).free;
+  return f.y > 0 ? { x: 0, y: f.y, w: f.w, h: f.h } : { x: 0, y: 50, w: f.w, h: H - 50 - 70 };
+};
 
 /** A project in a list (the engineer's picks): code and figure, name, three points, stack. */
 export function ProjectItem({ p }: { p: (typeof projects)[number] }) {
