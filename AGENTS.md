@@ -24,3 +24,5 @@ The UI language is approved and documented in docs/BRAND.md (live reference: /do
 - At the end of a task, check for leftover chrome/node processes you spawned
   and kill them.
 - Every browser you launch is muted (`--mute-audio`; scripts/shoot.mjs does this).
+- scripts/shoot.mjs reuses one shared headless Chrome (a tab per run, closed after; the browser
+  quits itself after 3 idle minutes). Run `node scripts/shoot.mjs --close` when you finish a task.
