@@ -5,6 +5,7 @@
 // Units are metres, y up, origin on the ground at the footprint's centre, front faces +z.
 import { createElement } from "react";
 import * as THREE from "three";
+import { wireAA } from "../wireAA";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { ConvexGeometry } from "three/examples/jsm/geometries/ConvexGeometry.js";
 
@@ -38,7 +39,7 @@ function wireMat(vertical = false) {
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.anisotropy = 4;
-  return new THREE.MeshStandardMaterial({ color: B.ink, alphaMap: t, alphaTest: 0.4, side: THREE.DoubleSide, roughness: 0.6, metalness: 0.2 });
+  return wireAA(new THREE.MeshStandardMaterial({ color: B.ink, alphaMap: t, alphaTest: 0.4, side: THREE.DoubleSide, roughness: 0.6, metalness: 0.2 }), vertical ? "bars" : "grid");
 }
 
 const MAKERS = {

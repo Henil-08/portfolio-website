@@ -2,6 +2,7 @@
 // matte concrete, ink steel, paper paint and one orange per object.
 import * as THREE from "three";
 import { geo, mat } from "../models/props/shared";
+import { wireAA } from "../wireAA";
 
 export const K = {
   concrete: "#d9d6ce",
@@ -46,7 +47,7 @@ export function debrisFenceMat() {
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.anisotropy = 4;
-  return new THREE.MeshStandardMaterial({ color: K.ink, alphaMap: t, alphaTest: 0.35, side: THREE.DoubleSide, roughness: 0.6, metalness: 0.2 });
+  return wireAA(new THREE.MeshStandardMaterial({ color: K.ink, alphaMap: t, alphaTest: 0.35, side: THREE.DoubleSide, roughness: 0.6, metalness: 0.2 }), "debris");
 }
 
 /**
