@@ -24,6 +24,7 @@ import AutopilotHud from "./AutopilotHud";
 import FitPanel, { LapChip } from "./FitPanel";
 import RadioMessages from "./RadioMessages";
 import EasterEggs from "./EasterEggs";
+import { quality, useQuality, type QualityMode } from "@/components/world/quality";
 
 // the vehicle section and the quick garage load the vehicles' data (and their models) with the world, not before
 const VehicleSettings = dynamic(() => import("./garageParts").then((m) => m.VehicleSettings), { ssr: false });
@@ -229,8 +230,39 @@ function Settings() {
       </p>
       <Toggle label="Sound" on={!muted} set={(v) => setState({ muted: !v })} />
       <Toggle label="Engineer's voice" on={voice} set={(v) => setState({ voice: v })} />
-      <VehicleSettings n={2} />
+      <QualitySettings n={2} />
+      <VehicleSettings n={3} />
     </Modal>
+  );
+}
+
+const QUALITY: { mode: QualityMode; label: string }[] = [
+  { mode: "auto", label: "Auto" },
+  { mode: "high", label: "High" },
+  { mode: "balanced", label: "Balanced" },
+  { mode: "low", label: "Low" },
+];
+
+/** I03 tabs: Auto follows the frame rate (world/quality.ts); the others pin a tier. */
+function QualitySettings({ n }: { n: number }) {
+  const mode = useQuality((s) => s.mode);
+  const tier = useQuality((s) => s.tier);
+  const i = QUALITY.findIndex((q) => q.mode === mode);
+  return (
+    <div className="pt-4">
+      <p className="mb-2 flex items-baseline gap-3 border-b border-ink pb-1.5 text-[12.5px] font-semibold uppercase tracking-[0.06em]">
+        <span className="font-mono text-signal">{n}</span>Quality
+      </p>
+      <div role="radiogroup" aria-label="Quality" className="relative grid grid-cols-4 border-2 border-ink bg-white">
+        <span className="absolute inset-y-0 w-1/4 bg-ink transition-transform duration-200 ease-[cubic-bezier(.6,0,.2,1)]" style={{ transform: `translateX(${i * 100}%)` }} />
+        {QUALITY.map((q) => (
+          <button key={q.mode} type="button" role="radio" aria-checked={q.mode === mode} onClick={() => quality.setMode(q.mode)} className={`relative px-1 py-2 font-mono text-[12px] uppercase tracking-[0.06em] transition-colors ${q.mode === mode ? "text-white" : "text-ink"}`}>
+            {q.label}
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-[12.5px] text-graphite">{mode === "auto" ? `Follows the frame rate. Running ${tier[0].toUpperCase() + tier.slice(1)} now.` : "Lower it if the island stutters."}</p>
+    </div>
   );
 }
 

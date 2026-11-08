@@ -48,6 +48,8 @@ const CONFIGS = {
 const browsers = new Map();
 async function browserFor(cfg) {
   const key = cfg.engine.name();
+  // one browser at a time: the last engine's closes before the next one starts
+  for (const [k, b] of browsers) if (k !== key) { await b.close(); browsers.delete(k); }
   if (!browsers.has(key)) browsers.set(key, await cfg.engine.launch(cfg.launch));
   return browsers.get(key);
 }
@@ -129,6 +131,6 @@ for (const n of which.split(",")) {
 for (const b of browsers.values()) await b.close();
 for (const r of all) {
   console.log(`\n${r.name}: boot ${r.bootMs} ms, world ${r.worldMs} ms ${r.fail ?? ""}`);
-  for (const [c, s] of Object.entries(r.conds ?? {})) console.log(`  ${c.padEnd(6)} fps ${s.fps} mean ${s.mean} p95 ${s.p95} p99 ${s.p99} max ${s.max} cpu ${s.cpu}/${s.cpu95}/${s.cpuMax} >33ms ${s.over33} calls ${s.calls} tris ${s.tris} heap ${s.heapMb} gpu~${s.gpu.mb}MB dpr ${s.dpr}`);
+  for (const [c, s] of Object.entries(r.conds ?? {})) console.log(`  ${c.padEnd(6)} fps ${s.fps} mean ${s.mean} p95 ${s.p95} p99 ${s.p99} max ${s.max} cpu ${s.cpu}/${s.cpu95}/${s.cpuMax} >33ms ${s.over33} calls ${s.calls} tris ${s.tris} heap ${s.heapMb} gpu~${s.gpu.mb}MB dpr ${s.dpr} ${s.quality ? s.quality.mode + '/' + s.quality.tier : ''}`);
   console.log(`  errors: ${r.errors?.length ? [...new Set(r.errors)].slice(0, 8).join(" | ") : "none"}`);
 }

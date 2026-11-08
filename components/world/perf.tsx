@@ -14,6 +14,8 @@ import { addAfterEffect, addEffect, useFrame, useThree } from "@react-three/fibe
 import * as THREE from "three";
 import { getState, setState } from "./store";
 import { opening } from "./bloom/state";
+import { quality } from "./quality";
+import { carState } from "./carState";
 
 export const PERF = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("perf");
 
@@ -27,6 +29,9 @@ const rec = {
   cpu: 0,
   samples: [] as Sample[],
   longTasks: [] as number[],
+  /** frames over 40 ms: when (s into the run), how long, where the car was */
+  hitches: [] as number[][],
+  t0: 0,
   bootMs: 0,
   worldMs: 0,
 };
@@ -107,7 +112,10 @@ function setup(gl: THREE.WebGLRenderer, scene: THREE.Scene) {
   const w = window as unknown as { __perf: object };
   w.__perf = {
     t0,
-    stage: () => ({ stage: opening.get().stage, phase: getState().phase, revealed: getState().revealed, bootMs: Math.round(rec.bootMs), worldMs: Math.round(rec.worldMs) }),
+    stage: () => {
+      if (!rec.worldMs && getState().revealed) rec.worldMs = performance.now();
+      return { stage: opening.get().stage, phase: getState().phase, revealed: getState().revealed, bootMs: Math.round(rec.bootMs), worldMs: Math.round(rec.worldMs) };
+    },
     scene: (time: "day" | "golden" | "night", weather: "clear" | "rain" | "snow") => setState({ scene: { time, weather } }),
     start: () => {
       rec.samples = [];
@@ -145,9 +153,40 @@ function setup(gl: THREE.WebGLRenderer, scene: THREE.Scene) {
         programs: gl.info.programs?.length ?? 0,
         gpu: gpuEstimate(gl, scene),
         dpr: gl.getPixelRatio(),
+        quality: { ...quality.get() },
       };
     },
-    info: () => ({ geometries: gl.info.memory.geometries, textures: gl.info.memory.textures, programs: gl.info.programs?.length ?? 0, gpu: gpuEstimate(gl, scene), dpr: gl.getPixelRatio(), renderer: rendererName(gl) }),
+    // the heaviest visible draws: triangles x instances, with the name and where it hangs
+    top: (n = 25) => {
+      const rows: [number, string, number, boolean][] = [];
+      scene.traverseVisible((o) => {
+        const m = o as THREE.Mesh;
+        if (!m.isMesh || !m.geometry) return;
+        const g = m.geometry;
+        const range = Number.isFinite(g.drawRange.count) ? g.drawRange.count : g.index ? g.index.count : (g.attributes.position?.count ?? 0);
+        const per = Math.min(range, g.index ? g.index.count : (g.attributes.position?.count ?? 0)) / 3;
+        const inst = (m as THREE.InstancedMesh).isInstancedMesh ? (m as THREE.InstancedMesh).count : 1;
+        let path = m.name || m.type;
+        for (let p = m.parent, k = 0; p && k < 3; p = p.parent, k++) path = (p.name || p.type) + "/" + path;
+        rows.push([Math.round(per * inst), path, inst, m.castShadow]);
+      });
+      const total = rows.reduce((a, r) => a + r[0], 0);
+      return { meshes: rows.length, total, shadowCasters: rows.filter((r) => r[3]).length, top: rows.sort((a, b) => b[0] - a[0]).slice(0, n) };
+    },
+    // what is drawn transparent (N8AO's transparency pass redraws the scene for these)
+    transparent: () => {
+      const rows: string[] = [];
+      scene.traverse((o) => {
+        const m = o as THREE.Mesh;
+        const mat = m.material as THREE.Material | undefined;
+        if (!mat || Array.isArray(mat) || !mat.transparent) return;
+        let path = m.name || m.type;
+        for (let p = m.parent, k = 0; p && k < 3; p = p.parent, k++) path = (p.name || p.type) + "/" + path;
+        rows.push(`${path} ${mat.type} dw=${mat.depthWrite} vis=${m.visible}`);
+      });
+      return rows;
+    },
+    info: () => ({ geometries: gl.info.memory.geometries, textures: gl.info.memory.textures, programs: gl.info.programs?.length ?? 0, gpu: gpuEstimate(gl, scene), dpr: gl.getPixelRatio(), quality: { ...quality.get() }, renderer: rendererName(gl) }),
   };
   return () => {
     obs?.disconnect();
@@ -167,6 +206,7 @@ export function PerfProbe() {
   useFrame(() => {
     const now = performance.now();
     if (rec.on) {
+      if (rec.last && now - rec.last > 40 && rec.hitches.length < 40) rec.hitches.push([r1((now - rec.t0) / 1000), r1(now - rec.last), r1(rec.cpu), Math.round(carState.pos.x), Math.round(carState.pos.z)]);
       if (rec.last) rec.samples.push({ dt: now - rec.last, cpu: rec.cpu, calls: gl.info.render.calls, tris: gl.info.render.triangles });
       rec.last = now;
     }

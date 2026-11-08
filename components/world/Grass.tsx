@@ -20,6 +20,7 @@ import { paintPark } from "./park/layout";
 import { paintParkSlabs } from "./districts/park";
 import { MONUMENT_SPOTS, PLINTH_R } from "./contactRing";
 import { START_PLANTERS } from "./start";
+import { TIERS, useQuality } from "./quality";
 
 // The original grass: one triangle per blade (tip + two base corners), laid out on a
 // jittered grid that loops around the car so the field never runs out. Every
@@ -34,13 +35,13 @@ import { START_PLANTERS } from "./start";
 // patched in onBeforeCompile, a 56 m field around the car (the original sizes it to the
 // view), and our palette instead of the original's yellow-green.
 
-const COARSE = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
 // A real lawn at the world's scale (./scale.ts, docs/research/model-fidelity.md "World scale"):
 // blades of 5 to 38 cm, most 15-25 cm, tufts at the top end. The original's sizing gave blades
 // up to 1.2 m here (a real 1.7 m), taller than the car; real grass is a hand high. Blades that
 // short need a finer field to read as grass, so the field is smaller and denser than the
-// original's (160k blades on desktop, 40k on phones).
-const SUBDIVISIONS = COARSE ? 200 : 400;
+// original's: 160k blades on High, 80k on Balanced, 40k on Low (quality.ts `grass`; phones start
+// on Low, the same 200 x 200 field as before). Each is the full jittered grid at its own spacing.
+const FULL = 400;
 const SIZE = 44; // field width in metres
 const MASK_RES = 1024;
 const WORLD = (MAX_R + 6) * 2;
@@ -153,7 +154,7 @@ function fullMask() {
   return t;
 }
 
-function makeBlades() {
+function makeBlades(SUBDIVISIONS: number) {
   // The original layout: one blade per cell of a grid, jittered inside its cell; the
   // three vertices of a blade share its centre and the shader builds the shape.
   const r = seeded(280);
@@ -297,25 +298,32 @@ function makeMaterial(mask: THREE.Texture) {
  * Wind-blown grass around the car. `mask={false}` grows grass everywhere (labs).
  */
 export default function Grass({ mask = true }: { mask?: boolean }) {
+  const share = useQuality((s) => TIERS[s.tier].grass);
   const mesh = useRef<THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>>(null);
 
   // Built once on mount (canvas + seeded layout), disposed on unmount.
   useEffect(() => {
     const m = mesh.current;
     if (!m) return;
-    const geometry = makeBlades();
     const tex = mask ? makeMask() : fullMask();
     const material = makeMaterial(tex);
     tracksTarget();
-    m.geometry = geometry;
     m.material = material;
     m.visible = true;
     return () => {
-      geometry.dispose();
       material.dispose();
       tex.dispose();
     };
   }, [mask]);
+
+  // the blades for the tier: rebuilt only when the tier's share changes
+  useEffect(() => {
+    const m = mesh.current;
+    if (!m) return;
+    const geometry = makeBlades(Math.round(FULL * Math.sqrt(share)));
+    m.geometry = geometry;
+    return () => geometry.dispose();
+  }, [share]);
 
   useFrame(({ clock }, dt) => {
     updateWind(clock.elapsedTime, dt);
