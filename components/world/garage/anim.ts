@@ -151,7 +151,7 @@ export const parkZ = (code: VehicleCode) => EYE_Z + EYE[code][2] * S(code);
 /* ------------------------------------------------------------------ the camera */
 
 /** The poses the cockpit camera blends through, worked out from where the car is. */
-export type CockpitPoses = { chase: THREE.Vector3; chaseLook: THREE.Vector3; eye: THREE.Vector3; look: THREE.Vector3; a: number; b: number };
+export type CockpitPoses = { chase: THREE.Vector3; chaseLook: THREE.Vector3; eye: THREE.Vector3; look: THREE.Vector3; a: number; b: number; fov?: number };
 export const newPoses = (): CockpitPoses => ({ chase: new THREE.Vector3(), chaseLook: new THREE.Vector3(), eye: new THREE.Vector3(), look: new THREE.Vector3(), a: 0, b: 0 });
 
 /**
@@ -193,7 +193,8 @@ export const cockpitFov = (aspect: number) => Math.min(80, Math.max(36, THREE.Ma
 export function blendCamera(p: CockpitPoses, fromPos: THREE.Vector3, fromLook: THREE.Vector3, fromFov: number, pos: THREE.Vector3, look: THREE.Vector3, aspect?: number) {
   pos.lerpVectors(fromPos, p.chase, p.a).lerp(p.eye, p.b);
   look.lerpVectors(fromLook, p.chaseLook, out3(p.a)).lerp(p.look, p.b);
-  return lerp(lerp(fromFov, 46, p.a), aspect ? cockpitFov(aspect) : FOV, p.b);
+  // a fixed lens for the end pose (the teardown's drawing view), else the seat's
+  return lerp(lerp(fromFov, 46, p.a), p.fov ? p.fov : aspect ? cockpitFov(aspect) : FOV, p.b);
 }
 
 /** The glance for a slide clock: the eye turns a little the way the stage moves. */
