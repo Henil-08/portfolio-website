@@ -39,8 +39,11 @@ function bakeable(o: THREE.Object3D): o is THREE.Mesh {
   return plain(m.material);
 }
 
-/** Bakes the static meshes under `root`, each into the nearest of `anchors` (root counts as one). */
-export function merge(root: THREE.Object3D, anchors: Set<THREE.Object3D>): Baked {
+/**
+ * Bakes the static meshes under `root`, each into the nearest of `anchors` (root counts as one).
+ * Meshes in `keep` stay as they are (the garage stand-in swaps their materials itself).
+ */
+export function merge(root: THREE.Object3D, anchors: Set<THREE.Object3D>, keep?: Set<THREE.Object3D>): Baked {
   anchors.add(root);
   root.updateWorldMatrix(true, true);
   const groups = new Map<string, { anchor: THREE.Object3D; mat: THREE.Material; cast: boolean; recv: boolean; color: boolean; parts: THREE.Mesh[] }>();
@@ -48,7 +51,7 @@ export function merge(root: THREE.Object3D, anchors: Set<THREE.Object3D>): Baked
     if (!o.visible) return; // invisible branches stay as they are
     for (const c of o.children) {
       const a = anchors.has(c) ? c : anchor;
-      if (bakeable(c) && !anchors.has(c)) {
+      if (bakeable(c) && !anchors.has(c) && !keep?.has(c)) {
         const mat = c.material as THREE.Material;
         const color = !!(mat as THREE.MeshStandardMaterial).vertexColors && !!c.geometry.attributes.color;
         const key = `${a.id}/${mat.uuid}/${c.castShadow}/${c.receiveShadow}/${color}`;

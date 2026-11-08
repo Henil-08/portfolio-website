@@ -3,12 +3,16 @@
 // Garage experience: the vehicle that drives into the bay, posed by its parent each frame
 // (position and rotation.y on `root`). Its wheels roll with the distance it covers, through the
 // game's own spin hooks; once the camera is in the seat (`inCab`), any glass and any part the
-// eye sits inside turn see-through, so the cabin never hides the stage.
-import { useMemo, useRef, type RefObject } from "react";
+// eye sits inside turn see-through, so the cabin never hides the stage. Like the player's vehicle
+// (Vehicle.tsx), its parts are baked into one mesh per material on the body and on each wheel's
+// spin group once it has mounted (vehicles/merge.ts), so a vehicle of 140 parts costs the bay what
+// one of 60 does; the cabin's parts stay as they are.
+import { useEffect, useMemo, useRef, type RefObject } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { RigContext, type Livery, type VehicleDef, type VehicleRig } from "../vehicles";
 import { K } from "../vehicles/kit";
+import { merge, unmerge, type Baked } from "../vehicles/merge";
 import { EYE, S } from "./anim";
 
 const GHOST = new THREE.MeshBasicMaterial({ color: "#151a1f", transparent: true, opacity: 0.12, depthWrite: false, side: THREE.DoubleSide });
@@ -30,6 +34,14 @@ export function ShowCar({ v, livery, root, inCab }: { v: VehicleDef; livery: Liv
   const glass = useRef<Swap[] | null>(null);
   const ghosted = useRef(false);
   const model = useRef<THREE.Group>(null!);
+  const baked = useRef<{ b: Baked | null; wait: number }>({ b: null, wait: 0 });
+  useEffect(() => {
+    const st = baked.current;
+    return () => {
+      unmerge(st.b);
+      st.b = null;
+    };
+  }, []);
 
   useFrame(() => {
     const g = root.current;
@@ -60,6 +72,16 @@ export function ShowCar({ v, livery, root, inCab }: { v: VehicleDef; livery: Liv
         if (isGlass || box.containsPoint(e)) list.push({ mesh: m, mat: m.material });
       });
       glass.current = list;
+    }
+    // the bake, a few frames after mounting (dev: window.__bakeOff = true keeps the parts)
+    const st = baked.current;
+    const devOff = process.env.NODE_ENV !== "production" && (window as unknown as { __bakeOff?: boolean }).__bakeOff;
+    if (devOff && st.b) {
+      unmerge(st.b);
+      st.b = null;
+    } else if (!devOff && !st.b && ++st.wait > 3) {
+      const anchors = new Set<THREE.Object3D>(spins.current.filter((x): x is THREE.Group => !!x));
+      st.b = merge(model.current, anchors, new Set(glass.current.map((x) => x.mesh)));
     }
     const want = inCab.current;
     if (want !== ghosted.current) {
