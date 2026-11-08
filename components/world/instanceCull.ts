@@ -6,8 +6,8 @@
 // camera and the sun have moved) each registered mesh's copies are tested against the camera's
 // frustum and the sun's shadow frustum, exactly the tests three.js makes for a plain mesh, and
 // only those in either are written to the front of its buffers. What is drawn, and every shadow
-// cast, is the same; the copies nobody can see are skipped. The mesh's bounding sphere then
-// covers what is left, so three culls it whole when nothing of it is in a frustum.
+// cast, is the same; the copies nobody can see are skipped. The mesh itself is never culled
+// whole: its owner may work in its onBeforeRender (the trees' registry does), which must run.
 //
 // Registration is passive: a page without the culler (the docs labs) draws every copy as before.
 import * as THREE from "three";
@@ -22,8 +22,8 @@ type Entry = {
   n: number;
   /** the owner rewrote the buffers: take a new snapshot before culling */
   dirty: boolean;
-  /** the sphere three.js culls the whole mesh by */
-  sphere: THREE.Sphere;
+  /** the mesh's world matrix the spheres were worked out with */
+  at: Float32Array;
 };
 
 const entries = new Map<THREE.InstancedMesh, Entry>();
@@ -32,7 +32,7 @@ const entries = new Map<THREE.InstancedMesh, Entry>();
 export function cullInstances(mesh: THREE.InstancedMesh) {
   // per-copy attributes beyond the matrix and colour would fall out of step when compacted
   for (const a of Object.values(mesh.geometry.attributes)) if ((a as THREE.InstancedBufferAttribute).isInstancedBufferAttribute) return () => {};
-  entries.set(mesh, { mesh, m: null, c: null, s: null, n: 0, dirty: true, sphere: new THREE.Sphere() });
+  entries.set(mesh, { mesh, m: null, c: null, s: null, n: 0, dirty: true, at: new Float32Array(16) });
   return () => {
     const e = entries.get(mesh);
     if (!e) return;
@@ -65,7 +65,6 @@ function restore(e: Entry) {
     e.mesh.instanceColor.needsUpdate = true;
   }
   e.mesh.count = e.n;
-  e.mesh.computeBoundingSphere();
 }
 
 const mi = new THREE.Matrix4();
@@ -82,6 +81,7 @@ function snapshot(e: Entry) {
   const gs = mesh.geometry.boundingSphere!;
   e.s = new Float32Array(n * 4);
   mesh.updateWorldMatrix(true, false);
+  e.at.set(mesh.matrixWorld.elements);
   for (let i = 0; i < n; i++) {
     mi.fromArray(e.m, i * 16);
     mw.multiplyMatrices(mesh.matrixWorld, mi);
@@ -93,8 +93,6 @@ function snapshot(e: Entry) {
 
 const frustum = new THREE.Frustum();
 const pv = new THREE.Matrix4();
-const box = new THREE.Box3();
-const v = new THREE.Vector3();
 
 let paused = false;
 /** Draws every copy again until `cullFrame` runs with culling on (dev A/B, a second view). */
@@ -103,8 +101,7 @@ export function pauseCulling() {
   paused = true;
   for (const e of entries.values()) {
     restore(e);
-    e.mesh.boundingSphere = null;
-    e.mesh.computeBoundingSphere();
+    e.dirty = true;
   }
 }
 
@@ -124,6 +121,16 @@ export function cullFrame(camera: THREE.Camera, light: THREE.DirectionalLight | 
   }
   for (const e of entries.values()) {
     const mesh = e.mesh;
+    // moved since the snapshot (a parent placed late): the spheres are stale
+    if (!e.dirty) {
+      const w = mesh.matrixWorld.elements;
+      for (let j = 0; j < 16; j++)
+        if (w[j] !== e.at[j]) {
+          restore(e);
+          e.dirty = true;
+          break;
+        }
+    }
     if (e.dirty) snapshot(e);
     const S = e.s!;
     const M = e.m!;
@@ -132,15 +139,12 @@ export function cullFrame(camera: THREE.Camera, light: THREE.DirectionalLight | 
     const ic = C && mesh.instanceColor ? (mesh.instanceColor.array as Float32Array) : null;
     const cast = mesh.castShadow && shadow;
     let k = 0;
-    box.makeEmpty();
     for (let i = 0; i < e.n; i++) {
       sp.center.set(S[i * 4], S[i * 4 + 1], S[i * 4 + 2]);
       sp.radius = S[i * 4 + 3];
       if (!frustum.intersectsSphere(sp) && !(cast && shadow!.intersectsSphere(sp))) continue;
       im.set(M.subarray(i * 16, i * 16 + 16), k * 16);
       if (ic) ic.set(C!.subarray(i * 3, i * 3 + 3), k * 3);
-      box.expandByPoint(v.set(sp.center.x - sp.radius, sp.center.y - sp.radius, sp.center.z - sp.radius));
-      box.expandByPoint(v.set(sp.center.x + sp.radius, sp.center.y + sp.radius, sp.center.z + sp.radius));
       k++;
     }
     mesh.count = k;
@@ -152,12 +156,5 @@ export function cullFrame(camera: THREE.Camera, light: THREE.DirectionalLight | 
       mesh.instanceColor.addUpdateRange(0, Math.max(1, k) * 3);
       mesh.instanceColor.needsUpdate = true;
     }
-    // the whole mesh is culled by three when nothing of it is left in a frustum
-    if (k) {
-      box.getBoundingSphere(e.sphere);
-      e.sphere.applyMatrix4(mw.copy(mesh.matrixWorld).invert());
-    } else e.sphere.set(v.set(0, -1e6, 0), 0);
-    mesh.boundingSphere = e.sphere;
-    mesh.frustumCulled = true;
   }
 }

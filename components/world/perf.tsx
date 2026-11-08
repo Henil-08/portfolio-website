@@ -134,6 +134,8 @@ function setup(gl: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera
     start: () => {
       rec.samples = [];
       rec.longTasks = [];
+      rec.hitches = [];
+      rec.t0 = performance.now();
       rec.last = 0;
       rec.on = true;
     },
