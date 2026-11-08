@@ -31,6 +31,8 @@ const TRAILS: Record<string, { lag: number; lines: Line[] }> = {
 const SEG = 28;
 /** frames of history kept (more than the longest lag at any frame rate we draw at) */
 const HIST = 90;
+/** m between two frames: more than any vehicle covers in one, so the car was moved */
+const JUMP = 6;
 
 function ribbonGeo() {
   const g = new THREE.BufferGeometry();
@@ -66,6 +68,12 @@ export function PowerTrail({ code, scale, ride }: { code: string; scale: number;
     const now = power.clock;
     const H = hist.current;
     if (H.n && now - H.t[H.head] < 1e-4) return; // the world hasn't moved since the last frame
+    // a jump (a teleport, a reset, the garage's stand-in swap) starts the trail afresh: drawn
+    // across it, the ribbon was a long straight line from where the car had been
+    if (H.n) {
+      const a = H.head * 6;
+      if (Math.hypot(carState.pos.x - H.p[a], carState.pos.z - H.p[a + 2]) > JUMP) H.n = 0;
+    }
     H.head = (H.head + 1) % HIST;
     H.n = Math.min(HIST, H.n + 1);
     right.crossVectors(carState.forward, up).setY(0).normalize();

@@ -20,6 +20,8 @@ import { dayNight } from "../daynight";
 import { remapClamp } from "./noise";
 import { updateWind, wind } from "./wind";
 import { heightAt, onAsphalt } from "./ground";
+import { garageView } from "../garage/state";
+import { studio } from "../bloom/state";
 
 const POOL = 4;
 const INTERVAL = { min: 300, max: 2000 };
@@ -127,13 +129,17 @@ export function WindLines() {
     if (!s) return;
     updateWind(clock.elapsedTime, dt);
     s.material.uniforms.uOpacity.value = OPACITY * (1 - dayNight.night);
+    // none indoors: in a garage bay (the drive-in, the driver's seat, the teardown) or the boot's
+    // studio a streak 2 m over the floor read as a stray white line across the room
+    const indoors = garageView.k > 0 || garageView.dom !== null || studio.k > 0;
+    mesh.current!.visible = !indoors;
 
     // Display interval
     s.next -= dt;
     if (s.next <= 0) {
       s.next = (INTERVAL.min + Math.random() * (INTERVAL.max - INTERVAL.min)) / 1000;
       const line = s.lines.find((l) => l.available);
-      if (line && dayNight.night < 0.95) {
+      if (line && dayNight.night < 0.95 && !indoors) {
         line.available = false;
         line.t = 0;
         line.duration = remapClamp(wind.weather, 0, 1, 8, 2);
