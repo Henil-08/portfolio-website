@@ -8,6 +8,7 @@ import * as THREE from "three";
 import { perlinTexture, remapClamp, samplePerlin } from "./noise";
 import { heightTexture } from "../terrain";
 import { getState } from "../store";
+import { ease } from "../smooth";
 
 const angle = Math.PI * 0.6;
 
@@ -67,7 +68,7 @@ export function updateWind(frame: number, delta: number) {
   wind.elapsed += deltaScaled;
   // Weather wind, plus a stormy boost when the race engineer sets rain or snow.
   const storm = getState().scene.weather !== "clear" ? 0.35 : 0;
-  wind.boost += (storm - wind.boost) * Math.min(1, delta * 0.5);
+  wind.boost += (storm - wind.boost) * ease(0.5, delta);
   const base = overrideValue ?? weatherNoise(START + wind.elapsed / 2 / DAY) * 0.5 + 0.5;
   wind.weather = THREE.MathUtils.clamp(base + wind.boost, 0, 1);
   wind.strength = remapClamp(wind.weather, 0, 1, 0.1, 1);

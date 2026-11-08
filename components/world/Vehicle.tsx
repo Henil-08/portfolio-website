@@ -28,6 +28,7 @@ import { EXTENT, GRID, heightAt, heightGrid } from "./terrain";
 import { setWheelLocal } from "./alive/ground";
 import { PIT, SEA_Y, SPAWN, headingFromTangent, nearestT3, pitRoadCurves, trackPoint, trackTangent, zoneById } from "./layout";
 import { engineIdle, engineUpdate, honk } from "./sound";
+import { ease } from "./smooth";
 
 // Driving model ported from folio-2025 (MIT, see public/vendor/LICENSE.md),
 // sources/Game/Physics/PhysicsVehicle.js and Player.js: same engine, brake and
@@ -836,12 +837,12 @@ function Drive({ def }: { def: VehicleDef }) {
         steerNow = v.wheelSteering(j) ?? 0;
       }
       const ty = (WHEEL_REST - len) / S; // in the model's (unscaled) space
-      g.position.y = snapWheels ? ty : g.position.y + (ty - g.position.y) * Math.min(1, dt * 50);
+      g.position.y = snapWheels ? ty : g.position.y + (ty - g.position.y) * ease(50, dt);
       const ud = g.userData as { steer?: number };
       const was = ud.steer ?? 0;
       // the bike's bars turn less than the physics wheels: it leans into the corner instead
       const steerVis = (spec.bike ? 0.5 : 1) * steerNow;
-      ud.steer = was + (steerVis - was) * Math.min(1, dt * 32);
+      ud.steer = was + (steerVis - was) * ease(32, dt);
       g.quaternion.setFromAxisAngle(spec.steerAxis, ud.steer);
       const s = P.spin[i];
       if (s && !input.handbrake) s.rotation.x += (carState.speed / (def.wheels[i].r * S)) * dt;
@@ -851,7 +852,7 @@ function Drive({ def }: { def: VehicleDef }) {
     // The bike leans into corners (the chassis stays upright): lean from the sideways pull.
     if (lean.current) {
       const want = spec.bike ? THREE.MathUtils.clamp(-Math.atan((speed.current * b.angvel().y) / 9.81), -BIKE_LEAN_MAX, BIKE_LEAN_MAX) : 0;
-      lean.current.rotation.x += (want - lean.current.rotation.x) * Math.min(1, dt * 6);
+      lean.current.rotation.x += (want - lean.current.rotation.x) * ease(6, dt);
     }
 
     // Rain starts or stops: a quick pit-stop swap, each tyre pops off sideways and the
@@ -903,7 +904,7 @@ function Drive({ def }: { def: VehicleDef }) {
     // DRS (TH-18): the flap opens with OVERTAKE.
     if (P.drs) {
       const want = -0.45 * power.drs;
-      P.drs.rotation.x += (want - P.drs.rotation.x) * Math.min(1, dt * 12);
+      P.drs.rotation.x += (want - P.drs.rotation.x) * ease(12, dt);
     }
 
     // Recover from flips and falls.

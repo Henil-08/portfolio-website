@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { C } from "../../palette";
 import { mat, unitBox, type GroupProps } from "./shared";
 import { updateWind, wind, windAt } from "../../alive/wind";
+import { ease } from "../../smooth";
 
 const POLE = 3.6;
 const FW = 1.3;
@@ -44,7 +45,7 @@ export function Flag({ color = C.orange, speed = 1, ...props }: GroupProps & { c
     const want = Math.atan2(-wind.direction.y, wind.direction.x) - parentYaw;
     let d = want - piv.rotation.y;
     d = Math.atan2(Math.sin(d), Math.cos(d));
-    piv.rotation.y += d * Math.min(1, dt * 1.5);
+    piv.rotation.y += d * ease(1.5, dt);
     phase.current += Math.min(dt, 1 / 30) * (1.4 + 3.4 * g) * speed;
     const t = phase.current * 3.2;
     const amp = 0.05 + 0.15 * g;

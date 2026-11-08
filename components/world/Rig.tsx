@@ -13,6 +13,7 @@ import { studio } from "./bloom/state";
 import { zones, type Zone } from "./layout";
 import { garageSheet, garageView } from "./garage/state";
 import { blendCamera } from "./garage/anim";
+import { ease } from "./smooth";
 
 // The world camera's lens (World.tsx), which the garage's cockpit shot borrows and gives back.
 const FOV = 34;
@@ -40,19 +41,19 @@ export function CameraRig() {
     const phase = getState().phase;
     const portrait = size.height > size.width;
     const zoom = portrait ? 1.45 : 1;
-    const k1 = Math.min(1, dt * 10);
+    const k1 = ease(10, dt);
 
     // Hands off the controls with the autopilot lab running: watch the leading ghost.
     const touching = input.forward || input.back || input.steer;
     idle.current = touching ? 0 : idle.current + dt;
     const follow = ghostLeader.active && idle.current > 1.5 ? ghostLeader.pos : carState.pos;
-    const kf = follow === ghostLeader.pos ? Math.min(1, dt * 4) : k1;
+    const kf = follow === ghostLeader.pos ? ease(4, dt) : k1;
 
     prev.current.set(target.current.x, target.current.z);
     target.current.x += (follow.x - target.current.x) * kf;
     target.current.z += (follow.z - target.current.z) * kf;
     // Follow the car up and down the hills, gently.
-    target.current.y += (follow.y - 0.3 - target.current.y) * Math.min(1, dt * 3);
+    target.current.y += (follow.y - 0.3 - target.current.y) * ease(3, dt);
 
     // Pull back a little at speed.
     const spd = Math.hypot(target.current.x - prev.current.x, target.current.z - prev.current.y) / Math.max(dt, 1e-4);
@@ -131,7 +132,7 @@ export function CameraRig() {
             : sh.style === "chase"
               ? tmp.copy(carState.forward).multiplyScalar(-6).add(c).setY(c.y + 2.2)
               : tmp.set(c.x + Math.cos(ang) * 14, c.y + 7, c.z + Math.sin(ang) * 14);
-      camera.position.lerp(goal, Math.min(1, dt * 3));
+      camera.position.lerp(goal, ease(3, dt));
       camera.lookAt(c.x, c.y + 0.5, c.z);
       return;
     }
@@ -187,7 +188,7 @@ export function Sun() {
 
     const p = sceneParams();
     // the garage studio snaps in (the world is hidden at once); the world's light eases
-    const k = studio.k >= 1 ? 1 : Math.min(1, dt * 3);
+    const k = studio.k >= 1 ? 1 : ease(3, dt);
     l.intensity += (p.sun - l.intensity) * k;
     l.color.lerp(p.sunColor, k);
     if (hemi.current) {
@@ -243,7 +244,7 @@ export function Sky() {
   useFrame((_, dt) => {
     const p = sceneParams();
     // the garage studio snaps in (the world is hidden at once); the world's light eases
-    const k = studio.k >= 1 ? 1 : Math.min(1, dt * 3);
+    const k = studio.k >= 1 ? 1 : ease(3, dt);
     (mat.uniforms.top.value as THREE.Color).lerp(p.top, k);
     (mat.uniforms.mid.value as THREE.Color).lerp(p.mid, k);
     (mat.uniforms.bottom.value as THREE.Color).lerp(p.bottom, k);

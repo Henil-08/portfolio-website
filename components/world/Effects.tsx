@@ -11,6 +11,7 @@ import { studio } from "./bloom/state";
 import { heightAt } from "./terrain";
 import { Cone, FootballBody, TYRE_H, TYRE_R, Tyre } from "./models/props";
 import { nightGlow } from "./models/props/shared";
+import { ease } from "./smooth";
 
 // Lighting keyframes, Concrete & Ink (docs/BRAND.md "World"). The day/night cycle blends
 // between them by sun elevation. Day is the approved proposal's light (app/docs/brand/world
@@ -185,7 +186,7 @@ export function DayNight() {
     const open = 1 - studio.k;
     dayNight.night = THREE.MathUtils.smoothstep(-dayNight.sunElevation, -0.08, 0.2) * open;
     const wet = getState().scene.weather === "rain" ? 1 : 0;
-    rain.current += (wet - rain.current) * Math.min(1, dt * 0.8);
+    rain.current += (wet - rain.current) * ease(0.8, dt);
     dayNight.rain = rain.current * open;
     nightGlow(dayNight.night);
     const now = labelOf(dayNight.sunElevation);

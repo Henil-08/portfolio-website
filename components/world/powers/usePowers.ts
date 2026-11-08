@@ -28,6 +28,7 @@ import { bump, powerCue, powerRefused } from "../sound";
 import { chargeOf, startPower, stopPower } from "./meter";
 import { power } from "./state";
 import { ghostLook } from "./ghost";
+import { ease } from "../smooth";
 
 /** The player's vehicle is in collision group 1; every other collider keeps the default (all). */
 export const CAR_GROUPS = 0x0002ffff;
@@ -277,8 +278,8 @@ export function usePowers({
       solidProps(b, leftover.current > SPLIT.settle);
     } else leftover.current = 0;
     if (!R || !b) {
-      power.trail += (0 - power.trail) * Math.min(1, dt * 4);
-      power.drs += (0 - power.drs) * Math.min(1, dt * 6);
+      power.trail += (0 - power.trail) * ease(4, dt);
+      power.drs += (0 - power.drs) * ease(6, dt);
       power.thrust = 0;
       power.ghost = 0;
       return;
@@ -302,7 +303,7 @@ export function usePowers({
 
     if (R.code === "V01" || R.code === "V04") {
       const N = R.code === "V01" ? OVERTAKE : SPLIT;
-      R.env += ((R.on ? 1 : 0) - R.env) * Math.min(1, dt * (R.on ? OVERTAKE.rateIn : OVERTAKE.rateOut));
+      R.env += ((R.on ? 1 : 0) - R.env) * ease((R.on ? OVERTAKE.rateIn : OVERTAKE.rateOut), dt);
       if (R.code === "V01") power.drs = power.trail = R.env;
       else {
         R.ghost = R.on ? Math.min(1, R.ghost + dt / SPLIT.fadeIn) : Math.max(0, R.ghost - dt / SPLIT.fadeOut);
@@ -340,7 +341,7 @@ export function usePowers({
         const v = b.linvel();
         // held: lift carries part of its weight; let go, it simply falls
         if (R.on) b.setLinvel({ x: v.x, y: v.y + SENDIT.lift * 9.81 * dts, z: v.z }, true);
-        power.squash += (1.06 - power.squash) * Math.min(1, dt * 12); // stretched in the air
+        power.squash += (1.06 - power.squash) * ease(12, dt); // stretched in the air
         // nose up while it climbs, a touch nose down as it falls, to land on all fours
         level(b, THREE.MathUtils.clamp(v.y / 8, -0.4, 1) * 0.16, -input.steer * 1.2, dts);
         if (air > 0.15 && grounded()) {
@@ -377,7 +378,7 @@ export function usePowers({
       const t = b.translation();
       // the ground it flies over, smoothed so a kerb or a bank doesn't jolt it (never below the sea)
       const g = Math.max(SEA_Y, surfaceY(t.x, t.z));
-      R.ground += (g - R.ground) * Math.min(1, dt * (!R.on && R.off > down - 0.5 ? 10 : 3));
+      R.ground += (g - R.ground) * ease((!R.on && R.off > down - 0.5 ? 10 : 3), dt);
       const ride = carState.pos.y - surfaceY(carState.pos.x, carState.pos.z);
       const want = Math.max(R.ground, g) + R.ride + h;
       const v = b.linvel();
