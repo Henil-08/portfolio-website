@@ -118,6 +118,10 @@ function setup(gl: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera
       if (!rec.worldMs && getState().revealed) rec.worldMs = performance.now();
       return { stage: opening.get().stage, phase: getState().phase, revealed: getState().revealed, bootMs: Math.round(rec.bootMs), worldMs: Math.round(rec.worldMs) };
     },
+    // the renderer, scene and camera themselves, for one-off measurements from a script
+    gl,
+    world: scene,
+    camera,
     // the camera's pose as window.__cam takes it (to pin a still where the view is now)
     cam: () => {
       const d = camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(5).add(camera.position);

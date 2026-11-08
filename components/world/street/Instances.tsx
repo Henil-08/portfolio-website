@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import * as THREE from "three";
+import { cullInstances } from "../instanceCull";
 
 export type Batch = { m: THREE.Matrix4[]; c?: THREE.Color[] };
 
@@ -32,7 +33,9 @@ export function Instances({
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.computeBoundingSphere();
-  }, [batch]);
+    // spread over the island: culled copy by copy (world/instanceCull.ts)
+    if (!frustum) return cullInstances(mesh);
+  }, [batch, frustum]);
   if (!batch.m.length) return null;
   return (
     <instancedMesh

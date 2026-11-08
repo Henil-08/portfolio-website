@@ -3,6 +3,7 @@
 // Built parts drawn many times: one InstancedMesh per material, every copy placed by its
 // own matrix (the world's town, floodlights, TecPro walls...).
 import * as THREE from "three";
+import { cullInstances } from "../instanceCull";
 import { bm, type MatKey, type Parts } from "./builtShared";
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -34,6 +35,8 @@ export function BuiltInstances({ parts, matrices, material, shadows = true }: { 
             matrices.forEach((mx, i) => m.setMatrixAt(i, mx));
             m.instanceMatrix.needsUpdate = true;
             m.computeBoundingSphere();
+            // spread over the island: culled copy by copy (world/instanceCull.ts)
+            return cullInstances(m);
           }}
         />
       ))}

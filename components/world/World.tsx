@@ -1,7 +1,7 @@
 "use client";
 
 import { Opening } from "./bloom/Opening";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Physics, useRapier } from "@react-three/rapier";
 import { addEffect, useFrame, useThree } from "@react-three/fiber";
@@ -26,6 +26,7 @@ import Overlay from "./Overlay";
 import { PERF, PerfProbe } from "./perf";
 import "./aoTransparency";
 import { indoor } from "./indoor";
+import { cullFrame, pauseCulling } from "./instanceCull";
 import { COARSE, TIERS, governor, useQuality } from "./quality";
 
 export default function World() {
@@ -85,6 +86,8 @@ export default function World() {
       <EnvLight />
       <Overlay />
       {PERF && <PerfProbe />}
+      {/* last: after the camera and the sun have moved this frame */}
+      <InstanceCuller />
       {/* the post chain: all of it on High and Balanced; Low drops the ambient occlusion and keeps
           the anti-aliasing, glow and vignette, except on a canvas with its own MSAA (phones), where
           Low is the light version with no post at all, as before */}
@@ -129,6 +132,26 @@ function rendererName(c: WebGLRenderingContext | WebGL2RenderingContext) {
     return "";
   }
 }
+
+// Island-wide instanced meshes drawn copy by copy only where a frustum can see them (instanceCull.ts).
+function InstanceCuller() {
+  const scene = useThree((s) => s.scene);
+  const camera = useThree((s) => s.camera);
+  const sun = useRef<THREE.DirectionalLight | null>(null);
+  useFrame(() => {
+    if (process.env.NODE_ENV !== "production" && (window as unknown as { __cullOff?: boolean }).__cullOff) return pauseCulling();
+    if (!sun.current?.parent) sun.current = findSun(scene);
+    cullFrame(camera, sun.current);
+  });
+  return null;
+}
+const findSun = (scene: THREE.Scene) => {
+  let l: THREE.DirectionalLight | null = null;
+  scene.traverse((o) => {
+    if (!l && (o as THREE.DirectionalLight).isDirectionalLight && o.castShadow) l = o as THREE.DirectionalLight;
+  });
+  return l;
+};
 
 // One variable physics step per frame, before anything else reads the world,
 // exactly like the original ticker: delta capped at 1/30 s and time scaled by 2.

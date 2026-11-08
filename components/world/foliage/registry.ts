@@ -9,6 +9,7 @@ import * as THREE from "three";
 import { patchSeeThrough } from "../seeThrough";
 import { withWind } from "../alive/sway";
 import { KINDS, kindGeometry, type TreeKind } from "./species";
+import { cullInstances, recull, uncull } from "../instanceCull";
 
 export type { TreeKind } from "./species";
 
@@ -58,8 +59,10 @@ function ensureMesh(kind: TreeKind, count: number) {
   next.matrixAutoUpdate = false;
   next.count = 0;
   next.onBeforeRender = (renderer) => sync(renderer);
+  cullInstances(next);
   next.onBeforeShadow = (renderer) => sync(renderer);
   if (m) {
+    uncull(m);
     m.removeFromParent();
     m.dispose();
   }
@@ -98,8 +101,13 @@ function rebuild() {
   }
   for (const [kind, m] of meshes) {
     m.count = index.get(kind) ?? 0;
+    m.instanceMatrix.clearUpdateRanges();
     m.instanceMatrix.needsUpdate = true;
-    if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    if (m.instanceColor) {
+      m.instanceColor.clearUpdateRanges();
+      m.instanceColor.needsUpdate = true;
+    }
+    recull(m);
   }
 }
 
