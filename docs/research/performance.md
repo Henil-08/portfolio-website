@@ -70,7 +70,7 @@ What the baseline showed:
 - Smoothing was `Math.min(1, dt * k)` everywhere: right at 60 fps, but a different camera lag and
   ease at 30, 120 or 144 Hz.
 
-## After
+## After, round 1
 
 Same harness, same lap, production build of commit f5d5816 (Auto quality on every config; the tier
 it ran is in the last column).
@@ -115,9 +115,9 @@ channel out of 255, 0.006-0.25 % of pixels off by more than 24; the only differi
 garage slides (their own clock) and the grass's wind. Stills: the scratchpad's `perf/shots/`
 (not committed).
 
-The teardown garage costs twice the draw calls of driving (1,100 vs 525) and about twice the main
-thread (7 vs 4 ms on the Mac; 37-39 fps at 4x throttle, where Auto steps down to Low within a few
-seconds). It is the garage's own scene on top of the world.
+The teardown garage cost twice the draw calls of driving (1,100 vs 525) and about twice the main
+thread (7 vs 4 ms on the Mac; 37-39 fps at 4x throttle, where Auto stepped down to Low within a few
+seconds): the garage's own scene on top of the whole island. Round 2 (below) fixes that.
 
 ## What changed
 
@@ -166,16 +166,104 @@ seconds). It is the garage's own scene on top of the world.
    also restarts after a jump (teleport, reset, the garage's stand-in), where it could draw one straight
    ribbon from where the car had been.
 
+## Round 2: the garage, the draw budget, shimmer
+
+Same harness, production build of commit 48a3442. Before is round 1 above.
+
+| config | cond | fps | mean | p95 | p99 | max | cpu (mean/p95) | >33 | calls | tris | GPU MB | DPR | tier |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| chrome | day | 60 | 16.7 | 17.5 | 17.7 | 18.2 | 4.1 / 4.7 | 0 | 431 | 0.78 M | 123 | 1.75 | High |
+| chrome | night | 60 | 16.7 | 17.4 | 17.6 | 17.9 | 3.9 / 4.5 | 0 | 414 | 0.75 M | 123 | 1.75 | High |
+| chrome | rain | 60 | 16.7 | 17.1 | 17.5 | 17.9 | 4 / 4.6 | 0 | 428 | 0.77 M | 123 | 1.75 | High |
+| chrome | garage | 60 | 16.7 | 17.4 | 17.6 | 22 | 2.8 / 3.2 | 0 | 246 | 0.20 M | 147 | 1.75 | High |
+| chrome4x | day | 58.7 | 17 | 19.4 | 22.4 | 36.3 | 14.9 / 17.5 | 1 | 431 | 0.79 M | 123 | 1.75 | High |
+| chrome4x | night | 58.9 | 17 | 19.3 | 22.1 | 30.2 | 15 / 17.6 | 0 | 413 | 0.75 M | 123 | 1.75 | High |
+| chrome4x | rain | 58.6 | 17.1 | 19.5 | 21.7 | 29.6 | 15.3 / 17.6 | 0 | 427 | 0.77 M | 123 | 1.75 | High |
+| chrome4x | garage | 60 | 16.7 | 18.3 | 19.9 | 30.7 | 7.6 / 9.7 | 0 | 246 | 0.20 M | 147 | 1.75 | High |
+| mobile | day | 60 | 16.7 | 18.1 | 18.9 | 25.5 | 10.3 / 12.5 | 0 | 390 | 0.66 M | 97 | 1.25 | Low (light) |
+| mobile | night | 60 | 16.7 | 18 | 18.7 | 23.2 | 10.2 / 12.4 | 0 | 370 | 0.62 M | 97 | 1.25 | Low (light) |
+| mobile | rain | 60 | 16.7 | 17.7 | 18.4 | 23.4 | 10.9 / 13.5 | 0 | 384 | 0.65 M | 97 | 1.25 | Low (light) |
+| mobile | garage | 60 | 16.7 | 18.2 | 19 | 28 | 5.1 / 6.9 | 0 | 187 | 0.19 M | 122 | 1.25 | Low (light) |
+| webkit | day | 60 | 16.7 | 19 | 19 | 21 | 4.9 / 6 | 0 | 433 | 0.79 M | 123 | 1.75 | High |
+| webkit | night | 59.9 | 16.7 | 19 | 19 | 46 | 4.8 / 6 | 4 | 414 | 0.75 M | 123 | 1.75 | High |
+| webkit | rain | 59.3 | 16.9 | 18 | 19 | 472 | 4.8 / 6 | 1 | 427 | 0.77 M | 123 | 1.75 | High |
+| webkit | garage | 59.7 | 16.7 | 18 | 19 | 53 | 3.4 / 4 | 9 | 246 | 0.20 M | 147 | 1.75 | High |
+
+Before (round 1) → after (round 2):
+
+- **Teardown garage**: Chrome 1,141 → 246 draws, 2.26 M → 0.20 M triangles, main thread 7.2 → 2.8 ms
+  (driving: 3.9-4.1). 4x throttle 37 → 60 fps (main thread 23.6 → 7.6 ms; driving 14.9-15.3), and Auto
+  no longer drops to Low there. Mobile emulation 39 → 60 fps (main thread 23.3 → 5.1 ms, 187 draws).
+  WebKit 1,141 → 246 draws, main thread 7.5 → 3.4 ms. The garage is now cheaper than driving on every
+  config. What is left in it is the teardown's own project switch: on WebKit a flip costs one frame of
+  about 20 ms of main thread (frames of 42-53 ms every 4 s in the run, 9 in 40 s); Chrome absorbs it.
+- **Driving**: draws 515-530 → 413-433 a frame (all passes: shadow, scene, AO transparency, post),
+  triangles 2.08-2.09 M → 0.75-0.79 M (phones 1.96 M → 0.62-0.66 M). Main thread unchanged (the
+  per-copy test costs about what the skipped draws saved on the CPU side; the saving is the GPU's).
+  4x throttle: longest frame 99.5 → 36 ms, p95 19.3-19.5.
+- **Look**: the pinned stills of the final build (6 s runs, so the sun stands where it stood) against
+  the baseline: mean difference 0.26-0.60/255, 0.005-0.25 % of pixels off by more than 24, the same
+  as round 1. (The stills taken after the 40 s laps differ from the baseline's by the sun's move over
+  the lap, so they aren't comparable.)
+
+
+### What changed
+
+1. **The world behind a parked garage bay** (`components/world/indoor.ts`, called from
+   `garage/GarageShow.tsx`). Once the stand-in has parked and the camera is in the drawing view
+   (`garageView.k` = 1) the bay's walls fill the picture, yet the whole island was still drawn
+   behind them and into the shadow map. Now, while it lasts, every subtree whose bounds lie outside
+   the room (the bay frame with a margin; an instanced mesh counts as inside if any copy stands in
+   the room) is left out of each render: the scene's `onBeforeRender` hides it and `onAfterRender`
+   puts every flag back, so no other code ever sees it hidden. Those subtrees' matrices stop
+   updating and the physics stops stepping. Esc starts the back-out, `k` drops below 1 that frame
+   and the world is whole again before it is drawn, so the drive-in and back-out show the world as
+   before. Pinned still in the bay, A/B: mean difference 0.09/255, under the noise of two stills of
+   the same version (0.14/255, a project part that turns).
+2. **Island-wide instanced meshes culled copy by copy** (`components/world/instanceCull.ts`; the
+   town's built parts, the trackside furniture, the trees). They are one InstancedMesh each, spread
+   over the island, so three.js can't cull them: every copy went through the vertex shader twice a
+   frame. Once a frame, after the camera and the sun have moved, each copy's bounding sphere is
+   tested against the camera's frustum and the sun's shadow frustum (the tests three.js makes for a
+   plain mesh) and only those in either are written to the front of the buffers. Every copy and
+   every shadow on screen is drawn as before. A first version also culled a mesh whole when none of
+   its copies were in view; that stopped the trees' registry (it works in the mesh's
+   `onBeforeRender`) and the trees were missing in the production stills, so it was taken out
+   (48a3442) and the stills checked again: chase/wide x day/night/rain vs the baseline, mean
+   difference 0.26-0.60/255, the same as round 1.
+3. **Fence wires without the crawl** (`components/world/wireAA.ts`, the debris fence and the kit's
+   wire panels). A plain alpha test cut each sub-pixel wire on or off per pixel; the same cut, at the
+   same threshold, is now spread over one pixel of the alpha's own gradient and the edge blends.
+   The wires stand where they stood and fade out at the same distance. Stills: mean difference
+   1.3/255 on a crop of the bar fence (softer wire edges), 0.19/255 on the full frame; frame to frame
+   with the camera moved a few millimetres, pixels that flip by more than 24 levels on the fence crop
+   went 10.7 % → 9.7 %. A modest gain: SMAA already caught most of it. Kerbs are geometry, which
+   SMAA handles; nothing to do there without changing the look.
+
+### Measured and not done
+
+- **`matrixAutoUpdate` off for static objects**: the world has 2,726 objects, and a forced update of
+  all their matrices takes 0.15 ms on the Mac. Not worth a risk of frozen props.
+- **Merging the town's meshes**: after the culling, a chase frame is ~160 draws in the main pass and
+  ~130 in the shadow pass, plus ~30 for the post chain. The largest single group left is the player's
+  vehicle, about 54 meshes drawn twice (106 calls): merging them would touch the wheels, steering,
+  liveries, the swap and the reveal patch, so it is left for a change of its own.
+- **Distance LOD / culling with fades**: past the fog's far end things are drawn in the fog colour,
+  while the sky behind them is a gradient, so culling them would show; and the chase camera rarely
+  sees that far. The per-copy culling above takes what is off screen without any popping.
+
+
 ## Left, and why
 
 - **Firefox**: unmeasured here (sandbox, above). Code review found nothing engine-specific: WebGL 2
   only, no OffscreenCanvas, no fullscreen API, long-task timing guarded.
-- **Draw calls ~520, triangles ~2.1 M a frame** (art-direction.md 2.11 budgets 300 and 1.5 M). The
-  Mac doesn't feel it, but a weak GPU would. The biggest costs: island-wide instanced street props and
-  trees (frustum culling off by design, so every instance also goes into the shadow map), 1,070 visible
-  meshes, 596 shadow casters. Next steps: cull instanced shadow casters to the shadow camera's box,
-  merge static town meshes, and stop updating matrices of objects that never move.
-- **The teardown garage**: see the table: twice the draw calls and main-thread time of driving
-  (the garage's own code; reported to its owner).
+- **Draw calls**: ~415-430 a frame while driving, of which ~30 are the post chain and ~290 the main
+  and shadow passes (art-direction.md 2.11 budgets 300). Triangles are well under the 1.5 M budget.
+  Next: the player's vehicle as fewer meshes (about 106 draws with its shadow), then the town's
+  small plain meshes merged per material.
+- **WebKit hitches**: the teardown's project switch (above), and one to three frames of 45-49 ms per
+  40 s lap with 33-37 ms of main thread, the same count as the baseline's (a garbage collection, by
+  the look of it; Chrome shows none). One rain lap also had a single 472 ms frame with an idle main
+  thread; a rerun of three laps (rain, night, rain) had none.
 - `THREE.Clock` deprecation and Rapier's "deprecated parameters" init warnings come from
   @react-three/fiber and @react-three/rapier; they are warnings, not errors.
