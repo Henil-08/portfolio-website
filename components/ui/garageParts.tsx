@@ -129,9 +129,15 @@ export function VehicleSettings({ n }: { n: number }) {
         <span className="font-mono text-signal">{n}</span>Vehicle
       </p>
       <VehiclePick code={code} />
-      <button type="button" onClick={() => toggleGarage(true)} className="mt-4 flex w-full items-center gap-2 border-t border-rule pt-3 text-left text-[13.5px] hover:text-signal">
+      <button type="button" onClick={() => toggleGarage(true)} className="mt-4 flex w-full items-center gap-2 border-t border-rule pt-3 text-left text-[13.5px] hover:text-signal pointer-coarse:hidden">
         <kbd className="x-key">G</kbd> Open the garage
       </button>
+      {/* touch: no key to name, a button to tap */}
+      <div className="mt-4 hidden border-t border-rule pt-3 pointer-coarse:block">
+        <button type="button" onClick={() => toggleGarage(true)} className="x-btn x-secondary w-full justify-between">
+          Open the garage <span className="x-arrow">→</span>
+        </button>
+      </div>
     </div>
   );
 }
