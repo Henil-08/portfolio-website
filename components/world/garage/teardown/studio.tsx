@@ -22,7 +22,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { Kit, bm, partMeshes, type Parts } from "../../kit/builtShared";
+import { Kit, partMeshes, type Parts } from "../../kit/builtShared";
 import { CI } from "../../buildings/concrete";
 import { ProjectObject } from "../../models/projects";
 import { BACK_Z, type Item } from "../anim";
@@ -108,6 +108,8 @@ function room() {
   // the sheets' ink backings and clips on the back wall
   for (const [x, y, w, h] of SHEETS_AT) {
     k.box("ink", [w, h, 0.006], [x + 0.025, y - 0.025, BACK_Z + 0.03]);
+    // blank paper (a shut bay's sheet; the drawn studio's drawings go just in front)
+    k.box("paper", [w, h, 0.004], [x, y, BACK_Z + 0.036]);
     for (const s of [-1, 1]) k.box("ink", [0.1, 0.05, 0.02], [x + s * (w / 2 - 0.12), y + h / 2 - 0.01, BACK_Z + 0.05]);
   }
   roomParts = k.build();
@@ -168,7 +170,6 @@ function makeSheet(w: number, h: number): Sheet {
 /** The drawings, made once in the browser and kept (one studio is drawn at a time). */
 let SHEETS: Sheets | null = null;
 const sheetsOf = () => (SHEETS ??= { iso: makeSheet(1400, 976), ga: makeSheet(2048, 1268), parts: makeSheet(720, 1020) });
-const blankPaper = () => bm("paper");
 /** The wipes' paper masks, one per drawing (only the drawn studio has them). */
 const MASKS: (THREE.Mesh | null)[] = [];
 
@@ -186,19 +187,18 @@ export function Studio({ drawings }: { drawings: boolean }) {
         <mesh key={m.key} geometry={m.geometry} material={m.material} receiveShadow />
       ))}
       <mesh geometry={rulers()} material={rulerMaterial()} receiveShadow />
-      {SHEETS_AT.map(([x, y, w, h], i) => (
-        <group key={i} position={[x, y, BACK_Z + 0.04]}>
-          <mesh material={sheets ? sheets[keys[i]].mat : blankPaper()}>
-            <planeGeometry args={[w, h]} />
-          </mesh>
-          {drawings && (
+      {sheets &&
+        SHEETS_AT.map(([x, y, w, h], i) => (
+          <group key={i} position={[x, y, BACK_Z + 0.042]}>
+            <mesh material={sheets[keys[i]].mat}>
+              <planeGeometry args={[w, h]} />
+            </mesh>
             <mesh ref={(m) => void (MASKS[i] = m)} position={[0, 0, 0.004]} visible={false}>
               <planeGeometry args={[w, h]} />
               <meshBasicMaterial color="#f6f5f0" />
             </mesh>
-          )}
-        </group>
-      ))}
+          </group>
+        ))}
     </>
   );
 }
