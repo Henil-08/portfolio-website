@@ -16,6 +16,7 @@ import { getState, openZone, setState, teleport } from "./store";
 import { opening } from "./bloom/state";
 import { quality } from "./quality";
 import { carState } from "./carState";
+import { indoor } from "./indoor";
 
 export const PERF = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("perf");
 
@@ -83,7 +84,7 @@ function gpuEstimate(gl: THREE.WebGLRenderer, scene: THREE.Scene) {
 }
 
 /** Wires window.__perf to this renderer; returns the teardown. */
-function setup(gl: THREE.WebGLRenderer, scene: THREE.Scene) {
+function setup(gl: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera) {
   // read whole frames (shadow pass, scene and every post pass) instead of the last render call
   gl.info.autoReset = false;
   let obs: PerformanceObserver | null = null;
@@ -116,6 +117,11 @@ function setup(gl: THREE.WebGLRenderer, scene: THREE.Scene) {
       if (!rec.bootMs && (opening.get().stage !== "boot" || getState().phase === "world")) rec.bootMs = performance.now();
       if (!rec.worldMs && getState().revealed) rec.worldMs = performance.now();
       return { stage: opening.get().stage, phase: getState().phase, revealed: getState().revealed, bootMs: Math.round(rec.bootMs), worldMs: Math.round(rec.worldMs) };
+    },
+    // the camera's pose as window.__cam takes it (to pin a still where the view is now)
+    cam: () => {
+      const d = camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(5).add(camera.position);
+      return [camera.position.x, camera.position.y, camera.position.z, d.x, d.y, d.z].map((x) => +x.toFixed(3));
     },
     // a place: drive there (the map's teleport), then open it (E)
     zone: (id: Parameters<typeof teleport>[0]) => teleport(id),
@@ -159,6 +165,7 @@ function setup(gl: THREE.WebGLRenderer, scene: THREE.Scene) {
         gpu: gpuEstimate(gl, scene),
         dpr: gl.getPixelRatio(),
         quality: { ...quality.get() },
+        indoor: indoor.hidden,
       };
     },
     // the heaviest visible draws: triangles x instances, with the name and where it hangs
@@ -205,8 +212,9 @@ function setup(gl: THREE.WebGLRenderer, scene: THREE.Scene) {
 export function PerfProbe() {
   const gl = useThree((s) => s.gl);
   const scene = useThree((s) => s.scene);
+  const camera = useThree((s) => s.camera);
 
-  useEffect(() => setup(gl, scene), [gl, scene]);
+  useEffect(() => setup(gl, scene, camera), [gl, scene, camera]);
 
   useFrame(() => {
     const now = performance.now();

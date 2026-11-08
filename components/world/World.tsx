@@ -25,6 +25,7 @@ import { getState, useWorld } from "./store";
 import Overlay from "./Overlay";
 import { PERF, PerfProbe } from "./perf";
 import "./aoTransparency";
+import { indoor } from "./indoor";
 import { COARSE, TIERS, governor, useQuality } from "./quality";
 
 export default function World() {
@@ -159,6 +160,9 @@ function Stepper() {
     }
     ticker.delta = Math.min(dt, 1 / 30);
     ticker.deltaScaled = ticker.delta * ticker.scale;
+    // parked in a garage's drawing view nothing outside the bay is drawn, and nothing in it is
+    // physical (the stand-in has no body): the world holds still until the back-out (indoor.ts)
+    if (indoor.on) return;
     step(ticker.deltaScaled);
   }, -50);
   return null;

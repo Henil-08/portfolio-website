@@ -20,6 +20,7 @@ import type { Domain } from "@/content/projects";
 import { ShowCar } from "./ShowCar";
 import { bayOrigin, cockpitPoses, garageList, inOut, lerp, seg, stepDrive } from "./anim";
 import { garageSheet, garageView } from "./state";
+import { enterIndoor, indoor, leaveIndoor } from "../indoor";
 import { PARK, Standing, Studio, TZ, Table, VIEW, projectCallouts, td, teardownView } from "./teardown/studio";
 
 /** The player's model group, by name (Vehicle.tsx PLAYER_MODEL). */
@@ -100,6 +101,7 @@ export default function GarageShow() {
   const inCab = useRef(false);
   const light = useRef<THREE.SpotLight>(null!);
   const lightAt = useMemo(() => new THREE.Object3D(), []);
+  const root = useRef<THREE.Group>(null);
   const run = useRef({ path: null as Path | null, origin: new THREE.Vector3(), world: new THREE.Vector3(), q: new THREE.Quaternion(), f: new THREE.Vector3(), p: new THREE.Vector3() });
   const view = useRef({ pos: new THREE.Vector3(), look: new THREE.Vector3(), fit: { dist: 4, look: new THREE.Vector3(0, 1, TZ) } });
 
@@ -154,6 +156,12 @@ export default function GarageShow() {
     light.current.position.set(r.origin.x + 0.9, r.origin.y + 4.2, r.origin.z + TZ + 2.2);
     light.current.intensity = lerp(0, 22, inOut(seg(k, 0.5, 0.9)));
 
+    // parked in the drawing view, the bay fills the picture: the island behind its walls is left
+    // out until the back-out starts (indoor.ts). Dev: window.__indoorOff = true keeps it all.
+    const off = process.env.NODE_ENV !== "production" && (window as unknown as { __indoorOff?: boolean }).__indoorOff;
+    if (k >= 1 && open === d && !indoor.on && !off && root.current) enterIndoor(scene, root.current, r.origin);
+    else if ((k < 1 || off) && indoor.on) leaveIndoor();
+
     if (k === 0 && !open) {
       garageView.dom = null;
       garageView.car = false;
@@ -163,7 +171,7 @@ export default function GarageShow() {
   });
 
   return (
-    <>
+    <group ref={root} name="garage-show">
       {GARAGES.map((g) => (
         <GameBay key={g.domain} domain={g.domain} active={dom === g.domain} />
       ))}
@@ -177,6 +185,6 @@ export default function GarageShow() {
           </group>
         </group>
       )}
-    </>
+    </group>
   );
 }
