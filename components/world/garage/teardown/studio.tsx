@@ -57,10 +57,12 @@ type TD = {
   /** the wall drawings' wipe: 0..1 covering, 1..2 uncovering; redrawn at 1 */
   wipe: number;
   pending: boolean;
+  /** how many of the three sheets the pending redraw has sent to the GPU */
+  upload: number;
   /** dev: what the stress test checks */
   bad: string[];
 };
-export const td: TD = { shown: null, target: null, h: 0, e: 0, c: 0, rig: null, callouts: [], anchors: Array.from({ length: MAX_LABELS }, () => new THREE.Vector3()), centre: new THREE.Vector3(0, 1, TZ), across: 1, up: 1, wipe: 2, pending: false, bad: [] };
+export const td: TD = { shown: null, target: null, h: 0, e: 0, c: 0, rig: null, callouts: [], anchors: Array.from({ length: MAX_LABELS }, () => new THREE.Vector3()), centre: new THREE.Vector3(0, 1, TZ), across: 1, up: 1, wipe: 2, pending: false, upload: 0, bad: [] };
 
 declare global {
   interface Window {
@@ -241,6 +243,8 @@ export function Table({ list, sel, inside, drive, up = false }: { list: Item[]; 
   const hatch = useRef<THREE.Group>(null!);
   const hatchMat = useRef<THREE.MeshBasicMaterial>(null!);
   const [col] = useState(() => ({ ink: new THREE.Color(CI.ink), or: new THREE.Color(CI.orange) }));
+  /** sheets of a redraw without a wipe still to send to the GPU, one a frame (3: none) */
+  const trickle = useRef(3);
 
   useEffect(() => {
     td.shown = null;
@@ -249,6 +253,7 @@ export function Table({ list, sel, inside, drive, up = false }: { list: Item[]; 
     td.e = td.c = 0;
     td.wipe = 2;
     td.pending = false;
+    td.upload = 0;
     if (dev)
       window.__teardown = {
         hold: {},
@@ -267,17 +272,24 @@ export function Table({ list, sel, inside, drive, up = false }: { list: Item[]; 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const redraw = () => {
+  /**
+   * Draws the shown project's three sheets. `upload` says which textures go to the GPU now: all of
+   * them (the fonts landing late), or none, when the wipe sends them one a frame (below): on
+   * WebKit the three uploads in one frame (4.6 Mpx with mipmaps) were a 40-50 ms frame.
+   */
+  const redraw = (upload = true) => {
     const it = list.find((x) => x.p.slug === td.shown);
     const root = it && roots.current.get(it.p.slug);
-    if (!it || !td.rig || !root) return;
+    if (!it || !td.rig || !root) return false;
     const f = fonts();
     const sh = sheetsOf();
     drawIso(sh.iso.c.getContext("2d")!, sh.iso.c.width, sh.iso.c.height, td.rig, it, f);
     drawGA(sh.ga.c.getContext("2d")!, sh.ga.c.width, sh.ga.c.height, td.rig, it, root.scale.x, f);
     drawParts(sh.parts.c.getContext("2d")!, sh.parts.c.width, sh.parts.c.height, td.rig, it, td.callouts, f);
-    for (const s of [sh.iso, sh.ga, sh.parts]) s.tex.needsUpdate = true;
+    if (upload) for (const s of [sh.iso, sh.ga, sh.parts]) s.tex.needsUpdate = true;
+    return true;
   };
+
   // the fonts may land after the first drawing
   useEffect(() => {
     let live = true;
@@ -306,7 +318,7 @@ export function Table({ list, sel, inside, drive, up = false }: { list: Item[]; 
     if (wipe) {
       td.wipe = 0;
       td.pending = true;
-    } else redraw();
+    } else if (redraw(false)) trickle.current = 0; // drawn now, sent one a frame (below)
   };
 
   useFrame((_, dt0) => {
@@ -338,12 +350,25 @@ export function Table({ list, sel, inside, drive, up = false }: { list: Item[]; 
       if (hold.c !== undefined) td.c = hold.c;
     }
 
+    if (trickle.current < 3) {
+      const sh = sheetsOf();
+      [sh.iso, sh.ga, sh.parts][trickle.current++].tex.needsUpdate = true;
+    }
     // the drawings' wipe: cover, redraw, uncover
     if (td.wipe < 2) {
       td.wipe = Math.min(2, td.wipe + dt / 0.3);
       if (td.pending && td.wipe >= 1) {
-        td.pending = false;
-        redraw();
+        // fully covered: the sheets are drawn, then sent to the GPU one a frame, the paper held
+        // over them meanwhile (two frames longer than the wipe's own 0.6 s)
+        td.wipe = 1;
+        const sh = sheetsOf();
+        const order = [sh.iso, sh.ga, sh.parts];
+        if (td.upload === 0 && !redraw(false)) td.upload = 3;
+        if (td.upload < 3) order[td.upload++].tex.needsUpdate = true;
+        if (td.upload >= 3) {
+          td.pending = false;
+          td.upload = 0;
+        }
       }
     }
     MASKS.forEach((m, i) => {
