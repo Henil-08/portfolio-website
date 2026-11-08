@@ -295,7 +295,7 @@ export function drawParts(g: CanvasRenderingContext2D, W: number, H: number, rig
   ["ITEM", "PART NO", "DESCRIPTION", "QTY"].forEach((h, i) => g.fillText(h, cols[i], y));
   g.fillRect(60, y + 22, W - 120, 2);
   y += 64;
-  const rows = rig.labels.map((pi, j) => ({ j, c: callouts[j], qty: 1 + rig.parts.filter((p) => p.rides === pi).length }));
+  const rows = rig.labels.slice(0, callouts.length).map((pi, j) => ({ j, c: callouts[j], qty: 1 + rig.parts.filter((p) => p.rides === pi).length }));
   for (const r of rows) {
     g.fillStyle = r.j === 0 ? ORANGE : INK;
     g.font = `600 22px ${f.mono}`;

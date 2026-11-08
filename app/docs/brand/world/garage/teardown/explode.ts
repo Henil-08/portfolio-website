@@ -228,5 +228,6 @@ export type Callout = { code: string; text: string; kind: "spec" | "stack"; key:
 export function calloutsOf(it: Item, n: number): Callout[] {
   const specs = it.p.specs ?? [[it.p.headline.label.charAt(0).toUpperCase() + it.p.headline.label.slice(1), it.p.headline.value]];
   const lines: Omit<Callout, "code">[] = [...specs.map(([k, v]) => ({ text: `${k} · ${v}`, kind: "spec" as const, key: k })), ...it.p.stack.map((s) => ({ text: s, kind: "stack" as const, key: s }))];
-  return Array.from({ length: n }, (_, j) => ({ code: `P${pad(it.index + 1)}-${pad(j + 1)}`, ...lines[j % lines.length] }));
+  // one callout per line, never the same line twice
+  return Array.from({ length: Math.min(n, lines.length) }, (_, j) => ({ code: `P${pad(it.index + 1)}-${pad(j + 1)}`, ...lines[j] }));
 }
