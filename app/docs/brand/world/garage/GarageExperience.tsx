@@ -39,6 +39,7 @@ const CSS = `
 @keyframes gx-in-r{from{clip-path:inset(0 0 0 100%);transform:translateX(18px)}to{clip-path:inset(0 0 0 0);transform:none}}
 @keyframes gx-in-l{from{clip-path:inset(0 100% 0 0);transform:translateX(-18px)}to{clip-path:inset(0 0 0 0);transform:none}}
 @media (prefers-reduced-motion:reduce){.gx-in-1,.gx-in--1{animation-duration:1ms}}
+.gx-focus{outline:2px solid #ff4f00;outline-offset:3px;background:#fff3ec;transition:background .2s}
 `;
 
 declare global {
@@ -275,7 +276,7 @@ export default function GarageExperience() {
           </div>
 
           {/* the datasheet beside it, scrolling in its own column; outside, the garage's contents */}
-          <div className="max-h-[560px] overflow-y-auto overscroll-contain bg-[#f3f2ed] p-3 md:max-h-none">
+          <div id="garage-sheet" className="max-h-[560px] overflow-y-auto overscroll-contain bg-[#f3f2ed] p-3 md:max-h-none">
             {inside ? (
               <div key={cur.index} className={`gx-in-${dir}`}>
                 <DsCard index={cur.index} motion onNav={list.length > 1 ? step : undefined} list={list.map((x) => x.index)} />
