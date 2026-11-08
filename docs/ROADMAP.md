@@ -40,6 +40,7 @@ small, verified with headless screenshots, and committed on its own
 | Car parking at rest (no jitter) | components/world/Vehicle.tsx (`parked`, `REPARK_*`, `SUSPENSION`) |
 | Places review page | app/docs/brand/places/* (every interactable place, live world views, the real sheets) |
 | Knock-about props (tyres, rocks, benches...) | components/world/Movables.tsx (`Movables`, `kindFromMatrices`, `HomeBody`) |
+| Performance, quality tiers, perf harness | components/world/quality.ts (tiers, Auto governor; Settings → Quality in components/ui/Hud.tsx), perf.tsx (`?perf`, `window.__perf`), aoTransparency.ts (N8AO patch), smooth.ts (`ease`), scripts/perf.mjs; numbers in docs/research/performance.md |
 
 ## Working rules
 
@@ -61,6 +62,9 @@ small, verified with headless screenshots, and committed on its own
    - `?skip` skips the opening entirely. Without it the loader waits for shader compiles (~30 s
      headless) and the animation runs ~10x slow: wait ~130 s before the circle is open.
    - `eval:window.__movables()` counts knock-about props out of place.
+   - Quality (components/world/quality.ts): Auto puts software GL (plain shoot.mjs) on Low, without the AO pass.
+     Add `quality=high` to the URL (`?skip&quality=high`) when a shot judges the look. `?perf` exposes `window.__perf`;
+     `scripts/perf.mjs` measures a lap per browser (docs/research/performance.md).
    - Car feel bugs (vibration, creep, bounce): measure, don't guess. `window.__realtime = true` runs real
      60 fps physics steps in the slow headless browser; `window.__stepLog = []` records every step
      [ground speed, yaw rate, sideways speed, roll, throttle]; `window.__tune` overrides handling numbers

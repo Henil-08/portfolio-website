@@ -113,6 +113,7 @@ function setup(gl: THREE.WebGLRenderer, scene: THREE.Scene) {
   w.__perf = {
     t0,
     stage: () => {
+      if (!rec.bootMs && (opening.get().stage !== "boot" || getState().phase === "world")) rec.bootMs = performance.now();
       if (!rec.worldMs && getState().revealed) rec.worldMs = performance.now();
       return { stage: opening.get().stage, phase: getState().phase, revealed: getState().revealed, bootMs: Math.round(rec.bootMs), worldMs: Math.round(rec.worldMs) };
     },
@@ -149,6 +150,7 @@ function setup(gl: THREE.WebGLRenderer, scene: THREE.Scene) {
         calls: Math.round(s.reduce((a, x) => a + x.calls, 0) / Math.max(1, s.length)),
         tris: Math.round(s.reduce((a, x) => a + x.tris, 0) / Math.max(1, s.length)),
         longTasks: rec.longTasks.length,
+        hitches: rec.hitches,
         longTaskMs: Math.round(rec.longTasks.reduce((a, b) => a + b, 0)),
         heapMb: mem ? r1(mem.usedJSHeapSize / 1048576) : null,
         geometries: gl.info.memory.geometries,
