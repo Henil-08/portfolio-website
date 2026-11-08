@@ -15,7 +15,10 @@ function audio() {
   if (!unlocked) return null;
   try {
     if (!ctx) {
-      ctx = new AudioContext();
+      // older Safari only has the prefixed constructor
+      const A = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!A) return null;
+      ctx = new A();
       master = ctx.createGain();
       master.gain.value = getState().muted ? 0 : 1;
       master.connect(ctx.destination);

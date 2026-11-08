@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { INTRO_MS, begin } from "@/components/world/bloom/load";
+import { NoWorld, WorldGuard, webglOk } from "@/components/ui/NoWorld";
 
 // The boot's dotted floor colour (components/ui/Boot.tsx): painted before the canvas exists, so the page never jumps.
 const FLOOR = "#ebe9e3";
@@ -29,7 +30,13 @@ const Intro = dynamic(() => import("@/components/ui/Intro"), {
 
 export default function Experience() {
   const [load, setLoad] = useState(false);
+  const [gl, setGl] = useState(true);
   useEffect(() => {
+    // no WebGL 2, no world: a card with the same facts instead of a boot that never ends
+    if (!webglOk()) {
+      queueMicrotask(() => setGl(false));
+      return;
+    }
     // ?skip (dev and headless checks) goes straight in
     const skip = new URLSearchParams(window.location.search).has("skip");
     if (!skip) begin("intro");
@@ -46,9 +53,15 @@ export default function Experience() {
   }, []);
   return (
     <main className="fixed inset-0 overflow-hidden" style={{ background: FLOOR }}>
-      {load && <World />}
-      {load && <Hud />}
-      <Intro />
+      {gl ? (
+        <WorldGuard>
+          {load && <World />}
+          {load && <Hud />}
+          <Intro />
+        </WorldGuard>
+      ) : (
+        <NoWorld />
+      )}
     </main>
   );
 }
