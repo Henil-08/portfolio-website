@@ -71,6 +71,9 @@ const scan = (() => {
   return { group, brackets, plane };
 })();
 
+/** True while a swap is drawing the vehicle part by part (vehicles/merge.ts waits for it). */
+export const swapping = () => run.t0 >= 0;
+
 /** The scan's meshes, hidden until a swap; they follow the player's model while one runs. */
 export function SwapScan() {
   return <primitive object={scan.group} />;

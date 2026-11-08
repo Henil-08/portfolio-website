@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
   CoefficientCombineRule,
@@ -16,6 +16,8 @@ import * as THREE from "three";
 import { VEHICLE_DISPLAY, VEHICLE_SCALE, vehicleScale } from "./vehicles/scale";
 import { garageBusy, garageView } from "./garage/state";
 import { RigContext, liveryOf, vehicleByCode, type VehicleDef, type VehicleRig } from "./vehicles";
+import { check, merge, unmerge, type Baked } from "./vehicles/merge";
+import { swapping } from "./bloom/swap";
 import { input } from "./input";
 import { carState, sweepable, ticker } from "./carState";
 import { getState, setState, subscribe, toast, useWorld } from "./store";
@@ -411,6 +413,46 @@ function Drive({ def }: { def: VehicleDef }) {
       }
     };
   }, [livery]);
+
+  // Few draw calls for the vehicle (vehicles/merge.ts): once it has settled (mounted, the swap
+  // done, driving), the parts that move together are baked into one mesh per material on their
+  // own group. A new vehicle or livery puts them back first, before the swap reads them.
+  // Dev: window.__bakeOff = true keeps the parts as they are.
+  const bodyRoot = useRef<THREE.Group>(null);
+  const baked = useRef<{ b: Baked | null; wait: number; off: boolean; tick: number }>({ b: null, wait: 0, off: false, tick: 0 });
+  useLayoutEffect(() => {
+    const st = baked.current;
+    st.wait = 0;
+    return () => {
+      unmerge(st.b);
+      st.b = null;
+    };
+  }, [def.code, livery]);
+  useFrame(() => {
+    const st = baked.current;
+    const root = bodyRoot.current;
+    const devOff = process.env.NODE_ENV !== "production" && (window as unknown as { __bakeOff?: boolean }).__bakeOff;
+    if (st.off || devOff || !root) {
+      if (st.b) {
+        unmerge(st.b);
+        st.b = null;
+      }
+      return;
+    }
+    if (!st.b) {
+      if (swapping() || getState().phase !== "world" || ++st.wait < 45) return;
+      const P = parts.current;
+      const anchors = new Set<THREE.Object3D>([...P.steer, ...P.swap, ...P.spin, P.drs].filter((x): x is THREE.Group => !!x));
+      st.b = merge(root, anchors);
+      return;
+    }
+    // a hidden part that moved on its own: this vehicle keeps its parts as they are
+    if (++st.tick % 30 === 0 && !check(st.b)) {
+      unmerge(st.b);
+      st.b = null;
+      st.off = true;
+    }
+  });
 
   // The tyre bands that turn blue on wets (TH-18), per visible wheel.
   useEffect(() => {
@@ -1024,7 +1066,9 @@ function Drive({ def }: { def: VehicleDef }) {
         <group ref={lean} position={[0, -RIDE, 0]}>
           <group ref={model} name={PLAYER_MODEL} rotation={[0, Math.PI / 2, 0]} scale={S}>
             <RigContext.Provider value={rig}>
-              <def.Model livery={livery} />
+              <group ref={bodyRoot} name="vehicle-body">
+                <def.Model livery={livery} />
+              </group>
             </RigContext.Provider>
             {def.code === "V03" && <Thrusters />}
           </group>
