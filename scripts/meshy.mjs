@@ -83,7 +83,12 @@ if (cmd === "balance") console.log(await balance());
 else if (cmd === "img") {
   if (!id || !prompt) throw new Error('img <id> "<subject>"');
   const before = await balance();
-  const { result: task } = await call("/v1/text-to-image", { method: "POST", body: JSON.stringify({ ai_model: "nano-banana-2", prompt: `${prompt}. ${ART}`, aspect_ratio: "1:1" }) });
+  // flags after the prompt: --pro (nano-banana-pro, 9 credits), --wide (16:9), --raw (no product-render art direction)
+  const f = process.argv.slice(5);
+  const { result: task } = await call("/v1/text-to-image", {
+    method: "POST",
+    body: JSON.stringify({ ai_model: f.includes("--pro") ? "nano-banana-pro" : "nano-banana-2", prompt: f.includes("--raw") ? prompt : `${prompt}. ${ART}`, aspect_ratio: f.includes("--wide") ? "16:9" : "1:1" }),
+  });
   const t = await poll(`/v1/text-to-image/${task}`, id);
   mkdirSync("public/models/concepts", { recursive: true });
   writeFileSync(`public/models/concepts/${id}.png`, Buffer.from(await (await fetch(t.image_urls[0])).arrayBuffer()));

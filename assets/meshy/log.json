@@ -441,5 +441,101 @@
       "credits": 6,
       "at": "2026-11-07T16:07:53.391Z"
     }
+  },
+  "kf-A1": {
+    "concept": {
+      "task": "01a1b8e5-a84e-76b7-a813-e8f649832567",
+      "prompt": "A low chase camera just behind a modern open-wheel race car (white body, black engine cover, orange accents, number 18) on the main straight of a compact street circuit on a small island; black asphalt with white edge lines and black and white kerbs; a long concrete pit building with five glazed garage bays on the left; slim floodlight towers; a grandstand; a small speed readout in the corner. Direction: Engineering Film. Overcast soft daylight, soft studio-like HDRI reflections, clearcoat car paint with crisp reflections, varied material roughness, 50 to 65 mm lens, cool neutral colour grade, subtle film grain, gentle depth of field, premium product launch film. Brand palette: off-white paper #f3f2ed, ink black #111111, warm grey concrete, muted sage green, a single international orange #ff4f00 accent. Any UI overlay is minimal: thin 1px black frames, small IBM Plex Sans and IBM Plex Mono type. Premium, grown-up, real-time 3D WebGL experience, award-winning web design quality, no cartoon, no toy look, no text other than tiny UI labels.",
+      "credits": 9,
+      "at": "2026-11-08T02:04:07.009Z"
+    }
+  },
+  "kf-A2": {
+    "concept": {
+      "task": "01a1b8e6-1184-7549-9cfd-672f3735dbf2",
+      "prompt": "Inside one Formula 1 team garage bay seen from just behind a parked race car: on a drafting-table turntable a product object (an orange shield in front of a document) is exploded into labelled parts with thin leader lines and small datasheet callout labels; large engineering drawings of it pinned on the walls; a datasheet panel on the right edge of the screen. Direction: Engineering Film. Overcast soft daylight, soft studio-like HDRI reflections, clearcoat car paint with crisp reflections, varied material roughness, 50 to 65 mm lens, cool neutral colour grade, subtle film grain, gentle depth of field, premium product launch film. Brand palette: off-white paper #f3f2ed, ink black #111111, warm grey concrete, muted sage green, a single international orange #ff4f00 accent. Any UI overlay is minimal: thin 1px black frames, small IBM Plex Sans and IBM Plex Mono type. Premium, grown-up, real-time 3D WebGL experience, award-winning web design quality, no cartoon, no toy look, no text other than tiny UI labels.",
+      "credits": 9,
+      "at": "2026-11-08T02:04:29.714Z"
+    }
+  },
+  "kf-A3": {
+    "concept": {
+      "task": "01a1b8e6-6a29-73f8-a7bd-2de94bac2c91",
+      "prompt": "A wide aerial view of a whole small island: a winding street circuit with a crossover bridge, a long concrete pit building, a small modern town of concrete blocks, a river and lakes, a park with a football pitch, trees, sea all around. Direction: Engineering Film. Overcast soft daylight, soft studio-like HDRI reflections, clearcoat car paint with crisp reflections, varied material roughness, 50 to 65 mm lens, cool neutral colour grade, subtle film grain, gentle depth of field, premium product launch film. Brand palette: off-white paper #f3f2ed, ink black #111111, warm grey concrete, muted sage green, a single international orange #ff4f00 accent. Any UI overlay is minimal: thin 1px black frames, small IBM Plex Sans and IBM Plex Mono type. Premium, grown-up, real-time 3D WebGL experience, award-winning web design quality, no cartoon, no toy look, no text other than tiny UI labels.",
+      "credits": 9,
+      "at": "2026-11-08T02:04:56.465Z"
+    }
+  },
+  "kf-B1": {
+    "concept": {
+      "task": "01a1b8e6-d205-7647-986d-9f6266bc2493",
+      "prompt": "A low chase camera just behind a modern open-wheel race car (white body, black engine cover, orange accents, number 18) on the main straight of a compact street circuit on a small island; black asphalt with white edge lines and black and white kerbs; a long concrete pit building with five glazed garage bays on the left; slim floodlight towers; a grandstand; a small speed readout in the corner. Direction: Night Race Broadcast. Night race, inky near-black sky, bright white floodlight pools on the track, wet reflective asphalt with light streaks and reflections, telephoto trackside TV camera look, crisp high contrast, minimal ink broadcast graphics. Brand palette: off-white paper #f3f2ed, ink black #111111, warm grey concrete, muted sage green, a single international orange #ff4f00 accent. Any UI overlay is minimal: thin 1px black frames, small IBM Plex Sans and IBM Plex Mono type. Premium, grown-up, real-time 3D WebGL experience, award-winning web design quality, no cartoon, no toy look, no text other than tiny UI labels.",
+      "credits": 9,
+      "at": "2026-11-08T02:05:19.608Z"
+    }
+  },
+  "kf-B2": {
+    "concept": {
+      "task": "01a1b8e7-2d0f-755b-9500-70828e861f39",
+      "prompt": "Inside one Formula 1 team garage bay seen from just behind a parked race car: on a drafting-table turntable a product object (an orange shield in front of a document) is exploded into labelled parts with thin leader lines and small datasheet callout labels; large engineering drawings of it pinned on the walls; a datasheet panel on the right edge of the screen. Direction: Night Race Broadcast. Night race, inky near-black sky, bright white floodlight pools on the track, wet reflective asphalt with light streaks and reflections, telephoto trackside TV camera look, crisp high contrast, minimal ink broadcast graphics. Brand palette: off-white paper #f3f2ed, ink black #111111, warm grey concrete, muted sage green, a single international orange #ff4f00 accent. Any UI overlay is minimal: thin 1px black frames, small IBM Plex Sans and IBM Plex Mono type. Premium, grown-up, real-time 3D WebGL experience, award-winning web design quality, no cartoon, no toy look, no text other than tiny UI labels.",
+      "credits": 9,
+      "at": "2026-11-08T02:05:42.144Z"
+    }
+  },
+  "kf-B3": {
+    "concept": {
+      "task": "01a1b8e7-843d-7651-a235-7e471d8bef03",
+      "prompt": "A wide aerial view of a whole small island: a winding street circuit with a crossover bridge, a long concrete pit building, a small modern town of concrete blocks, a river and lakes, a park with a football pitch, trees, sea all around. Direction: Night Race Broadcast. Night race, inky near-black sky, bright white floodlight pools on the track, wet reflective asphalt with light streaks and reflections, telephoto trackside TV camera look, crisp high contrast, minimal ink broadcast graphics. Brand palette: off-white paper #f3f2ed, ink black #111111, warm grey concrete, muted sage green, a single international orange #ff4f00 accent. Any UI overlay is minimal: thin 1px black frames, small IBM Plex Sans and IBM Plex Mono type. Premium, grown-up, real-time 3D WebGL experience, award-winning web design quality, no cartoon, no toy look, no text other than tiny UI labels.",
+      "credits": 9,
+      "at": "2026-11-08T02:06:06.368Z"
+    }
+  },
+  "kf-C1": {
+    "concept": {
+      "task": "01a1b8e7-e288-733a-9952-5c8a80fa3625",
+      "prompt": "A low chase camera just behind a modern open-wheel race car (white body, black engine cover, orange accents, number 18) on the main straight of a compact street circuit on a small island; black asphalt with white edge lines and black and white kerbs; a long concrete pit building with five glazed garage bays on the left; slim floodlight towers; a grandstand; a small speed readout in the corner. Direction: Architectural Model. A museum-grade architectural maquette of the scene, everything in plaster white, ink black and concrete grey with a single orange accent, low raking sunlight with long soft shadows, high long-lens view with slight tilt-shift, thin dimension-line annotations. Brand palette: off-white paper #f3f2ed, ink black #111111, warm grey concrete, muted sage green, a single international orange #ff4f00 accent. Any UI overlay is minimal: thin 1px black frames, small IBM Plex Sans and IBM Plex Mono type. Premium, grown-up, real-time 3D WebGL experience, award-winning web design quality, no cartoon, no toy look, no text other than tiny UI labels.",
+      "credits": 9,
+      "at": "2026-11-08T02:06:28.624Z"
+    }
+  },
+  "kf-C2": {
+    "concept": {
+      "task": "01a1b8e8-39ba-756b-a4ad-291ff2c921ea",
+      "prompt": "Inside one Formula 1 team garage bay seen from just behind a parked race car: on a drafting-table turntable a product object (an orange shield in front of a document) is exploded into labelled parts with thin leader lines and small datasheet callout labels; large engineering drawings of it pinned on the walls; a datasheet panel on the right edge of the screen. Direction: Architectural Model. A museum-grade architectural maquette of the scene, everything in plaster white, ink black and concrete grey with a single orange accent, low raking sunlight with long soft shadows, high long-lens view with slight tilt-shift, thin dimension-line annotations. Brand palette: off-white paper #f3f2ed, ink black #111111, warm grey concrete, muted sage green, a single international orange #ff4f00 accent. Any UI overlay is minimal: thin 1px black frames, small IBM Plex Sans and IBM Plex Mono type. Premium, grown-up, real-time 3D WebGL experience, award-winning web design quality, no cartoon, no toy look, no text other than tiny UI labels.",
+      "credits": 9,
+      "at": "2026-11-08T02:06:51.460Z"
+    }
+  },
+  "kf-C3": {
+    "concept": {
+      "task": "01a1b8e8-935b-752c-8e6d-66b3475ed0ef",
+      "prompt": "A wide aerial view of a whole small island: a winding street circuit with a crossover bridge, a long concrete pit building, a small modern town of concrete blocks, a river and lakes, a park with a football pitch, trees, sea all around. Direction: Architectural Model. A museum-grade architectural maquette of the scene, everything in plaster white, ink black and concrete grey with a single orange accent, low raking sunlight with long soft shadows, high long-lens view with slight tilt-shift, thin dimension-line annotations. Brand palette: off-white paper #f3f2ed, ink black #111111, warm grey concrete, muted sage green, a single international orange #ff4f00 accent. Any UI overlay is minimal: thin 1px black frames, small IBM Plex Sans and IBM Plex Mono type. Premium, grown-up, real-time 3D WebGL experience, award-winning web design quality, no cartoon, no toy look, no text other than tiny UI labels.",
+      "credits": 9,
+      "at": "2026-11-08T02:07:13.804Z"
+    }
+  },
+  "kf-D1": {
+    "concept": {
+      "task": "01a1b8e8-ea98-74cf-97de-90d7c52c7ba4",
+      "prompt": "A low chase camera just behind a modern open-wheel race car (white body, black engine cover, orange accents, number 18) on the main straight of a compact street circuit on a small island; black asphalt with white edge lines and black and white kerbs; a long concrete pit building with five glazed garage bays on the left; slim floodlight towers; a grandstand; a small speed readout in the corner. Direction: Golden Hour Paddock. Golden hour, low warm 3500 K sun, light haze, long shadows, warm editorial motorsport photography colour grade, low 35 to 50 mm camera, rich but restrained. Brand palette: off-white paper #f3f2ed, ink black #111111, warm grey concrete, muted sage green, a single international orange #ff4f00 accent. Any UI overlay is minimal: thin 1px black frames, small IBM Plex Sans and IBM Plex Mono type. Premium, grown-up, real-time 3D WebGL experience, award-winning web design quality, no cartoon, no toy look, no text other than tiny UI labels.",
+      "credits": 9,
+      "at": "2026-11-08T02:07:36.796Z"
+    }
+  },
+  "kf-D2": {
+    "concept": {
+      "task": "01a1b8e9-4427-75d0-8422-cf8290c5cdfa",
+      "prompt": "Inside one Formula 1 team garage bay seen from just behind a parked race car: on a drafting-table turntable a product object (an orange shield in front of a document) is exploded into labelled parts with thin leader lines and small datasheet callout labels; large engineering drawings of it pinned on the walls; a datasheet panel on the right edge of the screen. Direction: Golden Hour Paddock. Golden hour, low warm 3500 K sun, light haze, long shadows, warm editorial motorsport photography colour grade, low 35 to 50 mm camera, rich but restrained. Brand palette: off-white paper #f3f2ed, ink black #111111, warm grey concrete, muted sage green, a single international orange #ff4f00 accent. Any UI overlay is minimal: thin 1px black frames, small IBM Plex Sans and IBM Plex Mono type. Premium, grown-up, real-time 3D WebGL experience, award-winning web design quality, no cartoon, no toy look, no text other than tiny UI labels.",
+      "credits": 9,
+      "at": "2026-11-08T02:07:59.260Z"
+    }
+  },
+  "kf-D3": {
+    "concept": {
+      "task": "01a1b8e9-9bf9-7356-a96c-cbbd84f981f4",
+      "prompt": "A wide aerial view of a whole small island: a winding street circuit with a crossover bridge, a long concrete pit building, a small modern town of concrete blocks, a river and lakes, a park with a football pitch, trees, sea all around. Direction: Golden Hour Paddock. Golden hour, low warm 3500 K sun, light haze, long shadows, warm editorial motorsport photography colour grade, low 35 to 50 mm camera, rich but restrained. Brand palette: off-white paper #f3f2ed, ink black #111111, warm grey concrete, muted sage green, a single international orange #ff4f00 accent. Any UI overlay is minimal: thin 1px black frames, small IBM Plex Sans and IBM Plex Mono type. Premium, grown-up, real-time 3D WebGL experience, award-winning web design quality, no cartoon, no toy look, no text other than tiny UI labels.",
+      "credits": 9,
+      "at": "2026-11-08T02:08:26.478Z"
+    }
   }
 }
