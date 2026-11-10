@@ -294,6 +294,26 @@ export function relook<M extends THREE.Material>(m: M): M {
 }
 
 /**
+ * A clone of a world material that keeps every shader patch it had (a plain clone drops
+ * onBeforeCompile): the look's, the see-through's (seeThrough.ts), a bay door's cut
+ * (buildings/PitBuilding.tsx), whatever is on it. The patches only edit the shader, so the clone
+ * can share them. For the baked light's per-mesh clones (bake/Baked.tsx, lookWorld.tsx), which
+ * left the walls between the camera and the car solid and an open bay's door shut.
+ */
+export function clonePatched<M extends THREE.Material>(source: M): M {
+  const m = source.clone() as M;
+  if (source.onBeforeCompile !== THREE.Material.prototype.onBeforeCompile) {
+    m.onBeforeCompile = source.onBeforeCompile;
+    m.customProgramCacheKey = source.customProgramCacheKey;
+    const d = (source as THREE.Material & { defaultAttributeValues?: Record<string, number[]> }).defaultAttributeValues;
+    if (d) (m as THREE.Material & { defaultAttributeValues?: Record<string, number[]> }).defaultAttributeValues = d;
+    if (looked.has(source)) looked.add(m);
+    return m;
+  }
+  return relook(m);
+}
+
+/**
  * Car paint (vehicles/kit.tsx): a clearcoat over the livery's own colour and finish. The base
  * coat keeps at least 0.35 roughness so the clear coat carries the sharp reflection.
  */

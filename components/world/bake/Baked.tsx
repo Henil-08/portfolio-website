@@ -12,7 +12,7 @@ import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useRapier } from "@react-three/rapier";
 import * as THREE from "three";
-import { NEXT, bakedLight, relook } from "../look";
+import { NEXT, bakedLight, clonePatched } from "../look";
 import { useWorld } from "../store";
 import { useQuality } from "../quality";
 import { carState } from "../carState";
@@ -237,7 +237,7 @@ function beforeRender(scene: THREE.Scene, fn: () => void) {
 function bakedMaterial(m: THREE.Material, b: Entry) {
   let out = m as THREE.MeshStandardMaterial;
   if (out.aoMap !== b.tex) {
-    out = relook(out.clone());
+    out = clonePatched(out);
     out.aoMap = b.tex;
     out.aoMapIntensity = AO_INTENSITY;
   }

@@ -288,6 +288,10 @@ export function patchBake(m: THREE.Material, bounce: number, fade: { value: numb
       // look.ts's per-vertex AO (the geometry keeps it) hands over to the bake as it fades in
       .replace("float lao = vLookAO;", "float lao = mix( vLookAO, 1.0, uBakeFade );");
   };
-  m.customProgramCacheKey = () => `${prevKey()}|bake`;
+  // a clone of a baked material carries the patch already (look.ts clonePatched): one key for both
+  m.customProgramCacheKey = () => {
+    const k = prevKey();
+    return k.endsWith("|bake") ? k : `${k}|bake`;
+  };
   m.needsUpdate = true;
 }

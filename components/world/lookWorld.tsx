@@ -16,7 +16,7 @@ import { indoor } from "./indoor";
 import { dayNight } from "./daynight";
 import { heightAt } from "./terrain";
 import { sceneParams } from "./Effects";
-import { bakedLight, relook, setLookTier, type BakedLight } from "./look";
+import { bakedLight, clonePatched, setLookTier, type BakedLight } from "./look";
 import { bakeLookAO, stepLookAO, type AoPart } from "./lookAO";
 import { quality, useQuality } from "./quality";
 import { garageView } from "./garage/state";
@@ -357,12 +357,12 @@ function scan(scene: THREE.Scene, queue: Job[], seen: WeakSet<THREE.BufferGeomet
   }
 }
 
-/** Baked maps on a per-mesh clone of its material (the clone keeps the look, look.ts relook). */
+/** Baked maps on a per-mesh clone of its material (the clone keeps its patches, look.ts clonePatched). */
 function applyBaked(mesh: THREE.Mesh, b: BakedLight) {
   const base = mesh.userData.lookBase ?? mesh.material;
   if (Array.isArray(base) || !(base instanceof THREE.MeshStandardMaterial)) return;
   mesh.userData.lookBase = base;
-  const m = relook(base.clone());
+  const m = clonePatched(base);
   if (b.aoMap) {
     m.aoMap = b.aoMap;
     m.aoMapIntensity = b.aoMapIntensity ?? 1;
