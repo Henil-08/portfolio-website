@@ -17,7 +17,8 @@ import { heightAt } from "./terrain";
 import { sceneParams } from "./Effects";
 import { bakedLight, relook, setLookTier, type BakedLight } from "./look";
 import { bakeLookAO, type AoPart } from "./lookAO";
-import { useQuality } from "./quality";
+import { quality, useQuality } from "./quality";
+import { garageView } from "./garage/state";
 import { ownCopies } from "./instanceCull";
 
 /** The vehicle model's name in the scene (Vehicle.tsx PLAYER_MODEL; not imported, to keep this file out of Vehicle's graph). */
@@ -255,6 +256,9 @@ export function StaticAO() {
     }
     aoStats.queued = s.queue.length;
     if (!s.queue.length || s.busy) return;
+    // once driving: never on Low (it costs what the current look costs; what the boot baked stays),
+    // and not while a garage is open (its room mounts then, and the bay's frames stay clean)
+    if (driving && (quality.get().tier === "low" || garageView.dom)) return;
     const job = s.queue.shift()!;
     s.busy = true;
     // the vertex pass takes ~1 ms of a frame once driving, more while the boot's screens are up

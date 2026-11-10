@@ -333,3 +333,47 @@ Round 2 → round 3:
   per lap with an idle or 35 ms main thread, the same as the baseline's.
 - `THREE.Clock` deprecation and Rapier's "deprecated parameters" init warnings come from
   @react-three/fiber and @react-three/rapier; they are warnings, not errors.
+
+
+## look=next (the rendering polish pass)
+
+`?look=next` (components/world/look.ts; docs/BRAND.md 2026-11-09) against the current look, same
+harness, production build of commit 95b33a5 (plus the AO gating below), `SECS=25`, the other agent's
+Blender bake off (`&bake=off`) so only this pass is measured. The machine was busy (Blender and a
+Metal shader compiler at several cores during the runs), so the two looks were run interleaved,
+current, next, current, next, and the comparison is pair by pair. Pair 2 (the quieter one):
+
+| config | cond | current fps | next fps | current p95 | next p95 | current cpu | next cpu | calls (cur / next) | GPU MB (cur / next) | tier (cur / next) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| chrome | day | 59.3 | 60 | 17.7 | 17.4 | 5.0 / 6.9 | 4.2 / 4.9 | 362 / 361 | 122.7 / 123.7 | High / High |
+| chrome | night | 56 | 60 | 26.4 | 17.5 | 5.1 / 7.9 | 4.2 / 4.9 | 343 / 344 | 122.7 / 123.7 | High / High |
+| chrome | rain | 60 | 60 | 17.0 | 17.2 | 4.1 / 4.7 | 4.4 / 5.1 | 361 / 360 | 122.8 / 123.7 | High / High |
+| chrome | garage | 60 | 60 | 17.2 | 16.9 | 2.6 / 3.2 | 2.7 / 3.2 | 180 / 178 | 147.3 / 148.2 | High / High |
+| chrome4x | day | 48 | 50 | 24.0 | 26.2 | 18.8 / 21.7 | 18.0 / 23.5 | 360 / 359 | 112.7 / 106.5 | Balanced / Low |
+| chrome4x | night | 58 | 58.4 | 20.8 | 19.7 | 14.9 / 18.7 | 13.6 / 18.0 | 343 / 330 | 112.7 / 113.7 | Balanced / Balanced |
+| chrome4x | rain | 51.2 | 48.7 | 28.4 | 28.5 | 17.3 / 26.0 | 18.6 / 26.1 | 353 / 355 | 105.6 / 106.5 | Low / Low |
+| chrome4x | garage | 60 | 60 | 17.7 | 17.7 | 7.5 / 10.2 | 6.3 / 8.7 | 166 / 166 | 130.1 / 131 | Low / Low |
+| mobile | day | 60 | 59.8 | 17.7 | 18.0 | 11.0 / 14.6 | 12.2 / 16.0 | 319 / 320 | 97.2 / 98.2 | Low / Low |
+| mobile | night | 59.3 | 59.9 | 18.6 | 17.5 | 12.6 / 16.8 | 11.6 / 15.2 | 300 / 301 | 97.2 / 98.2 | Low / Low |
+
+- **Desktop (Chrome, the Mac's GPU, DPR 1.75):** 60 fps on High in every condition with MSAA x4 on
+  the composer, the HDRI, the clearcoat and the micro-textures; p95 17 ms, main thread 4.2-4.4 ms
+  (current: 4.1-5.1). Draw calls unchanged (the contact shadow is one draw; the bake adds none).
+  GPU memory +1 MB (the four micro-textures and the HDRI's PMREM; the MSAA target is the GPU's).
+- **4x CPU throttle:** both looks stepped down the same way on this loaded machine (round 3 had
+  56.8 fps on High for the current look; today the current look itself ran 48-58 and went to
+  Balanced/Low). Next is within the run-to-run noise of current: 48.7-58.4 vs 48-58 fps, main
+  thread 13.6-18.6 vs 14.9-18.8 ms. Auto steps down cleanly (one switch, no flicker).
+- **Mobile emulation (Low, the light version):** 59.8-60 fps both; main thread +1 ms at 4x in
+  pair 1, -1 ms in pair 2: noise. Low pays for none of the new costs (no MSAA, no micro-texture
+  lookups, no grain; tone mapping is in the renderer's own pass).
+- **Fixed after pair 1:** the baked AO (lookWorld.tsx `StaticAO`) first ran its per-vertex pass in
+  one go, up to tens of ms for a big model, and a few models were left for the first lap on slow
+  machines (chrome day: 95 frames over 33 ms). The pass is now sliced (1 ms a frame once driving,
+  8 ms during the boot), runs on flat arrays, reads the GPU back asynchronously, never runs on Low
+  once driving and never while a garage is open (the bay's room mounts then: pair 1's garage had
+  16-20 frames over 33 ms, pair 2 none). Boot: 129 models, 224k vertices, ~140 ms of main thread
+  in all, done before the select screen on the Mac.
+
+Measured and not done: MSAA at DPR 1.75 is free on the Mac's tile GPU; a discrete GPU at 4K may
+want DPR 1.5 with it. Tier rules are unchanged, so Auto would step down there as before.
