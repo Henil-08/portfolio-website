@@ -6,6 +6,7 @@
 //  - smooth shading (flatShading off) for geometry with creased normals (normals.ts).
 // Every variant is a clone, cached per base material and options: the base is never touched.
 import * as THREE from "three";
+import { relook } from "../look";
 
 export type StudioMat = {
   /** geometry carries a `studioAO` attribute */
@@ -51,10 +52,14 @@ export function studioMaterial<M extends THREE.Material>(base: M, o: StudioMat =
   if (!m) cache.set(base, (m = new Map()));
   const hit = m.get(key);
   if (hit) return hit as M;
-  const mat = (base as THREE.MeshStandardMaterial).clone();
+  // ?look=next: the clone gets the look's shader patch back (look.ts relook), and runs it first
+  const mat = relook((base as THREE.MeshStandardMaterial).clone());
+  const prev = Object.prototype.hasOwnProperty.call(mat, "onBeforeCompile") ? mat.onBeforeCompile.bind(mat) : null;
+  const prevKey = prev ? mat.customProgramCacheKey.bind(mat) : null;
   if (smooth && !base.map) mat.flatShading = false;
   if (ao || grain > 0) {
-    mat.onBeforeCompile = (s) => {
+    mat.onBeforeCompile = (s, r) => {
+      prev?.(s, r);
       s.uniforms.uGrain = { value: grain };
       s.uniforms.uAoDirect = { value: aoDirect };
       s.vertexShader = s.vertexShader
@@ -112,7 +117,7 @@ roughnessFactor = clamp(roughnessFactor + uGrain * sGrain * 0.6, 0.04, 1.0);`,
 }`,
         );
     };
-    mat.customProgramCacheKey = () => `studio|${key}`;
+    mat.customProgramCacheKey = () => `${prevKey ? `${prevKey()}|` : ""}studio|${key}`;
   }
   mat.needsUpdate = true;
   m.set(key, mat);

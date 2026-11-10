@@ -52,6 +52,12 @@ export function recull(mesh: THREE.InstancedMesh) {
   if (e) e.dirty = true;
 }
 
+/** Every copy's matrices as the owner wrote them, while culled (null otherwise): the copies, not this frame's subset. */
+export function ownCopies(mesh: THREE.InstancedMesh): { m: Float32Array; n: number } | null {
+  const e = entries.get(mesh);
+  return e?.m ? { m: e.m, n: e.n } : null;
+}
+
 /** Puts every copy back (unregistered, or the culler stopped). */
 function restore(e: Entry) {
   if (!e.m) return;

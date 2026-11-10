@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useMemo, type ReactNode } from "r
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { Livery } from "./liveries";
+import { NEXT, carPaint, lookMat, type Surface } from "../look";
 
 export type V3 = [number, number, number];
 export type P2 = [number, number];
@@ -17,28 +18,30 @@ export const ORANGE = "#ff4f00";
 
 export const std = (color: string, roughness: number, metalness = 0, extra: THREE.MeshStandardMaterialParameters = {}) =>
   new THREE.MeshStandardMaterial({ color, roughness, metalness, ...extra });
+/** `std` with its surface class under ?look=next (look.ts); never baked: the parts merge at run time. */
+const looked = (s: Surface, color: string, roughness: number, metalness = 0, extra: THREE.MeshStandardMaterialParameters = {}) => lookMat(std(color, roughness, metalness, extra), s);
 
 export const glow = (color: string, k = 2.4) => std(color, 0.3, 0, { emissive: color, emissiveIntensity: k, toneMapped: false });
 
 export const M = {
-  ink: std(INK, 0.55, 0.2),
-  inkMatte: std(INK, 0.8),
-  graphite: std(GRAPHITE, 0.6, 0.3),
-  tyre: std("#101010", 0.9),
+  ink: looked("trim", INK, 0.55, 0.2),
+  inkMatte: looked("rubber", INK, 0.8),
+  graphite: looked("trim", GRAPHITE, 0.6, 0.3),
+  tyre: looked("rubber", "#101010", 0.9),
 };
 
 export const K = {
-  silver: std("#c9c7c0", 0.32, 0.65),
-  steel: std("#8d8c87", 0.4, 0.7),
-  rim: std("#26272a", 0.45, 0.55),
-  spoke: std("#8b8b87", 0.35, 0.6),
+  silver: looked("metal", "#c9c7c0", 0.32, 0.65),
+  steel: looked("metal", "#8d8c87", 0.4, 0.7),
+  rim: looked("metal", "#26272a", 0.45, 0.55),
+  spoke: looked("metal", "#8b8b87", 0.35, 0.6),
   /** tinted glass, a warm smoke like the roadster's canopy */
-  smoke: std("#3b302b", 0.12, 0.35),
-  shell: std("#e9e8e3", 0.34, 0.22),
-  canopy: std("#151a1f", 0.1, 0.6),
+  smoke: looked("glass", "#3b302b", 0.12, 0.35),
+  shell: NEXT ? carPaint("#e9e8e3", 0.34, 0.22) : std("#e9e8e3", 0.34, 0.22),
+  canopy: looked("glass", "#151a1f", 0.1, 0.6),
   /** wheel-arch liners, seen from both sides */
-  liner: std("#121212", 0.9, 0, { side: THREE.DoubleSide }),
-  paperLine: std(PAPER, 0.7),
+  liner: looked("rubber", "#121212", 0.9, 0, { side: THREE.DoubleSide }),
+  paperLine: looked("paper", PAPER, 0.7),
   lampWhite: std("#ffffff", 0.3, 0, { emissive: "#ffffff", emissiveIntensity: 2.2, toneMapped: false }),
   lampOrange: std(ORANGE, 0.3, 0, { emissive: ORANGE, emissiveIntensity: 2.4, toneMapped: false }),
 };
@@ -48,11 +51,12 @@ export function useMats(l: Livery, body: [number, number] = [0.55, 0.2]) {
   const [br, bm] = l.finish ?? body;
   const m = useMemo(
     () => ({
-      body: std(l.body, br, bm),
-      trim: std(l.trim, 0.6, 0.1),
-      accent: std(l.accent, 0.5, 0.1),
-      frame: std(l.frame ?? INK, 0.5, 0.3),
-      spring: std(l.spring ?? ORANGE, 0.35, 0.45),
+      // ?look=next: clearcoat over the livery's own colour and finish (look.ts carPaint)
+      body: NEXT ? carPaint(l.body, br, bm) : std(l.body, br, bm),
+      trim: looked("trim", l.trim, 0.6, 0.1),
+      accent: looked("paint", l.accent, 0.5, 0.1),
+      frame: looked("trim", l.frame ?? INK, 0.5, 0.3),
+      spring: looked("paint", l.spring ?? ORANGE, 0.35, 0.45),
       lamp: glow(l.lamp ?? l.accent),
     }),
     [l, br, bm],

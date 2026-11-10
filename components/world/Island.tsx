@@ -7,6 +7,7 @@ import { CuboidCollider, HeightfieldCollider, RigidBody, TrimeshCollider } from 
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { C } from "./palette";
+import { lookMat } from "./look";
 import { CANALS, LAKES, SEA_Y, canalDist, duneMask, START_T, TRACK_WIDTH, PIT_LANE_WIDTH, pitRoadCurves, lakeDepthDist, shoreDist, trackCurve } from "./layout";
 import Water from "./Water";
 import Embankments from "./Embankments";
@@ -283,19 +284,20 @@ function lit(m: THREE.MeshStandardMaterial, k = 1) {
 // pools, the paper edge lines and the kerbs carry the lap
 const ASPHALT_NIGHT = 0.1;
 
+// ?look=next (look.ts): the same paint, with the asphalt's aggregate and the rain's gloss
 const ROAD = {
-  asphalt: lit(new THREE.MeshStandardMaterial({ color: ASPHALT, roughness: 0.95 }), ASPHALT_NIGHT),
-  kerb: lit(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7 }), 0.25),
+  asphalt: lookMat(lit(new THREE.MeshStandardMaterial({ color: ASPHALT, roughness: 0.95 }), ASPHALT_NIGHT), "asphalt"),
+  kerb: lookMat(lit(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7 }), 0.25), "concrete"),
 };
 /** Paper paint on the asphalt: edge lines, the pit lanes' lines, the start line's paper squares. */
-export const roadPaint = lit(
-  new THREE.MeshStandardMaterial({ color: C.paper, roughness: 0.7, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }),
-  0.25
+export const roadPaint = lookMat(
+  lit(new THREE.MeshStandardMaterial({ color: C.paper, roughness: 0.7, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), 0.25),
+  "paper"
 );
 /** The pit lane and its entry and exit: the same night-lit asphalt, drawn over the track where they meet. */
-export const pitAsphalt = lit(
-  new THREE.MeshStandardMaterial({ color: ASPHALT, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }),
-  ASPHALT_NIGHT
+export const pitAsphalt = lookMat(
+  lit(new THREE.MeshStandardMaterial({ color: ASPHALT, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }), ASPHALT_NIGHT),
+  "asphalt"
 );
 
 function Kerbs() {

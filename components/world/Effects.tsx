@@ -12,6 +12,7 @@ import { heightAt } from "./terrain";
 import { Cone, FootballBody, TYRE_H, TYRE_R, Tyre } from "./models/props";
 import { nightGlow } from "./models/props/shared";
 import { ease } from "./smooth";
+import { NEXT } from "./look";
 
 // Lighting keyframes, Concrete & Ink (docs/BRAND.md "World"). The day/night cycle blends
 // between them by sun elevation. Day is the approved proposal's light (app/docs/brand/world
@@ -24,12 +25,28 @@ export const SCENES = {
   night: { sun: 0.6, sunColor: "#a9bdd6", hemi: 0.9, hemiSky: "#4a5664", hemiGround: "#1a1c20", env: 0.03, top: "#0b0d10", mid: "#16191d", bottom: "#0f1114", fog: "#15181b" },
 } as const;
 
+// The same keyframes for the rendering polish pass (look.ts, `?look=next`): the sky and fog keep
+// their colours; the light changes. The hemisphere fill drops to ~0.12 and the overcast HDRI
+// (World.tsx) carries the fill and the reflections, so shadows take the sky's cool colour and
+// the warm key shapes things. The HDRI's cosine-weighted radiance is ~1.28 (measured), so env
+// 0.16 is a fill of ~0.2 x albedo against the key's ~0.9: about 4:1 on the ground by day, more on
+// walls. Exposure per time of day feeds the filmic tone mapping (lookWorld.tsx LookTone): dusk
+// and night open up a little, as a camera would.
+export const SCENES_NEXT = {
+  day: { ...SCENES.day, sun: 3.1, sunColor: "#ffecd6", hemi: 0.12, hemiSky: "#dde6f0", hemiGround: "#b3ada2", env: 0.16, exposure: 1 },
+  golden: { ...SCENES.golden, sun: 2.7, sunColor: "#ffc896", hemi: 0.14, hemiSky: "#e4e2ea", hemiGround: "#958d82", env: 0.13, exposure: 1.08 },
+  night: { ...SCENES.night, sun: 0.55, sunColor: "#9db4d8", hemi: 0.2, hemiSky: "#3a475a", hemiGround: "#101215", env: 0.025, exposure: 1.35 },
+} as const;
+
 // The garage studio (bloom/state.ts `studio`): the proposal's turntable light (app/docs/brand/world
 // models.tsx `Lights`) under a paper sky, and paper fog, the colour of the dot floor.
-const STUDIO = { sun: 2.4, sunColor: "#fff6ea", hemi: 1.0, hemiSky: "#ffffff", hemiGround: "#b8b4a9", env: 0.2, top: "#ebe9e3", mid: "#ebe9e3", bottom: "#ebe9e3", fog: "#ebe9e3" };
+const STUDIO_NOW = { sun: 2.4, sunColor: "#fff6ea", hemi: 1.0, hemiSky: "#ffffff", hemiGround: "#b8b4a9", env: 0.2, top: "#ebe9e3", mid: "#ebe9e3", bottom: "#ebe9e3", fog: "#ebe9e3", exposure: 1 };
+// look=next: the same turntable key over the HDRI's soft fill instead of a flat white dome
+const STUDIO = NEXT ? { ...STUDIO_NOW, sun: 2.7, hemi: 0.35, hemiSky: "#eef1f4", env: 0.3 } : STUDIO_NOW;
 
 // Rain on top of any of them: the key dims and the sky and fog go concrete grey.
-const RAIN = { sun: 0.45, hemi: 0.85, grey: 0.55, dark: 0.88 };
+// look=next: the HDRI's fill drops with the light, and the key goes further (overcast).
+const RAIN = NEXT ? { sun: 0.32, hemi: 1.2, env: 0.7, grey: 0.55, dark: 0.86, exposure: 1.1 } : { sun: 0.45, hemi: 0.85, env: 1, grey: 0.55, dark: 0.88, exposure: 1 };
 
 const WEATHER_N = 2200;
 
@@ -93,11 +110,11 @@ export function Weather() {
   );
 }
 
-type Params = { sun: number; sunColor: THREE.Color; hemi: number; hemiSky: THREE.Color; hemiGround: THREE.Color; env: number; top: THREE.Color; mid: THREE.Color; bottom: THREE.Color; fog: THREE.Color };
+type Params = { sun: number; sunColor: THREE.Color; hemi: number; hemiSky: THREE.Color; hemiGround: THREE.Color; env: number; exposure: number; top: THREE.Color; mid: THREE.Color; bottom: THREE.Color; fog: THREE.Color };
 const K = Object.fromEntries(
-  Object.entries(SCENES).map(([k, v]) => [
+  Object.entries(NEXT ? SCENES_NEXT : SCENES).map(([k, v]) => [
     k,
-    { ...v, sunColor: new THREE.Color(v.sunColor), hemiSky: new THREE.Color(v.hemiSky), hemiGround: new THREE.Color(v.hemiGround), top: new THREE.Color(v.top), mid: new THREE.Color(v.mid), bottom: new THREE.Color(v.bottom), fog: new THREE.Color(v.fog) },
+    { exposure: 1, ...v, sunColor: new THREE.Color(v.sunColor), hemiSky: new THREE.Color(v.hemiSky), hemiGround: new THREE.Color(v.hemiGround), top: new THREE.Color(v.top), mid: new THREE.Color(v.mid), bottom: new THREE.Color(v.bottom), fog: new THREE.Color(v.fog) },
   ])
 ) as Record<keyof typeof SCENES, Params>;
 const KS: Params = { ...STUDIO, sunColor: new THREE.Color(STUDIO.sunColor), hemiSky: new THREE.Color(STUDIO.hemiSky), hemiGround: new THREE.Color(STUDIO.hemiGround), top: new THREE.Color(STUDIO.top), mid: new THREE.Color(STUDIO.mid), bottom: new THREE.Color(STUDIO.bottom), fog: new THREE.Color(STUDIO.fog) };
@@ -107,6 +124,7 @@ function blend(a: Params, b: Params, k: number) {
   out.sun = THREE.MathUtils.lerp(a.sun, b.sun, k);
   out.hemi = THREE.MathUtils.lerp(a.hemi, b.hemi, k);
   out.env = THREE.MathUtils.lerp(a.env, b.env, k);
+  out.exposure = THREE.MathUtils.lerp(a.exposure, b.exposure, k);
   out.sunColor.lerpColors(a.sunColor, b.sunColor, k);
   out.hemiSky.lerpColors(a.hemiSky, b.hemiSky, k);
   out.hemiGround.lerpColors(a.hemiGround, b.hemiGround, k);
@@ -138,6 +156,8 @@ export function sceneParams() {
   if (w > 0) {
     p.sun *= 1 - w * (1 - RAIN.sun);
     p.hemi *= 1 - w * (1 - RAIN.hemi);
+    p.env *= 1 - w * (1 - RAIN.env);
+    p.exposure *= 1 - w * (1 - RAIN.exposure);
     for (const c of [p.top, p.mid, p.bottom, p.fog, p.sunColor]) wetColor(c, w);
   }
   const k = studio.k;
@@ -145,6 +165,7 @@ export function sceneParams() {
     p.sun = THREE.MathUtils.lerp(p.sun, KS.sun, k);
     p.hemi = THREE.MathUtils.lerp(p.hemi, KS.hemi, k);
     p.env = THREE.MathUtils.lerp(p.env, KS.env, k);
+    p.exposure = THREE.MathUtils.lerp(p.exposure, KS.exposure, k);
     p.sunColor.lerp(KS.sunColor, k);
     p.hemiSky.lerp(KS.hemiSky, k);
     p.hemiGround.lerp(KS.hemiGround, k);
@@ -237,7 +258,8 @@ export function RainCycle() {
 
 // The studio environment (reflections on paint and glass) follows the time of day.
 // No exposure here: the composer turns tone mapping off (@react-three/postprocessing), so
-// World.tsx renders without it everywhere and the light version looks the same.
+// World.tsx renders without it everywhere and the light version looks the same. (?look=next
+// tone maps in the composer and takes `exposure` from sceneParams: lookWorld.tsx LookTone.)
 export function EnvLight() {
   useFrame(({ scene }) => {
     scene.environmentIntensity = sceneParams().env;

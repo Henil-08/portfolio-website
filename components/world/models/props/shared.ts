@@ -1,9 +1,12 @@
 // Shared, cached materials and geometries for the props. Every prop pulls from
 // these so a scene with fifty cones still has one cone material.
-// Look: premium designer-toy diorama. Satin plastic (r ~0.45), painted resin
-// (r ~0.6), gloss (r ~0.25). Small precise bevels, no wobbly blobs.
+// Look (current): satin plastic (r ~0.45), painted resin (r ~0.6), gloss (r ~0.25). Small precise
+// bevels, no wobbly blobs. Under ?look=next (look.ts) the satin retires: roughness by surface
+// class (paper matte, concrete rough, ink semi-matte, glass glossy, metal brushed), micro-texture
+// and baked AO, with the colours unchanged.
 import * as THREE from "three";
 import type { ThreeElements } from "@react-three/fiber";
+import { lookMat } from "../../look";
 
 export type GroupProps = ThreeElements["group"];
 
@@ -60,6 +63,7 @@ export function mat(color: string, o: MatOpts = {}): THREE.MeshStandardMaterial 
       m.opacity = o.o;
       m.depthWrite = false;
     }
+    lookMat(m, undefined, true);
     mats.set(key, m);
   }
   return m;

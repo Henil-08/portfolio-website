@@ -6,7 +6,8 @@ import { Canvas } from "@react-three/fiber";
 import { Physics, useRapier } from "@react-three/rapier";
 import { addEffect, useFrame, useThree } from "@react-three/fiber";
 import { ticker } from "./carState";
-import { Bloom, EffectComposer, N8AO, SMAA, Vignette } from "@react-three/postprocessing";
+import { Bloom, EffectComposer, N8AO, Noise, SMAA, Vignette } from "@react-three/postprocessing";
+import { BlendFunction } from "postprocessing";
 import { Environment, Lightformer, SoftShadows } from "@react-three/drei";
 import * as THREE from "three";
 import Island from "./Island";
@@ -28,6 +29,8 @@ import "./aoTransparency";
 import { indoor } from "./indoor";
 import { cullFrame, pauseCulling } from "./instanceCull";
 import { COARSE, TIERS, governor, useQuality } from "./quality";
+import { LOOK_TIERS, NEXT } from "./look";
+import { ContactShadow, LookEnvironment, LookExposure, LookTier, LookTone, StaticAO } from "./lookWorld";
 
 export default function World() {
   // Phones get the light version from the start (quality.ts: Low, no post, MSAA on the canvas).
@@ -36,6 +39,8 @@ export default function World() {
   const [msaa] = useState(() => COARSE);
   const tier = useQuality((s) => s.tier);
   const T = TIERS[tier];
+  // ?look=next (look.ts): what this tier keeps of the polish pass
+  const L = LOOK_TIERS[tier];
 
   useEffect(() => bindKeyboard(), []);
   const hallucinating = useWorld((s) => s.hallucinating);
@@ -46,19 +51,28 @@ export default function World() {
       shadows="percentage"
       dpr={[1, msaa ? Math.min(T.dpr, TIERS.low.dpr) : T.dpr]}
       camera={{ fov: 34, near: 0.5, far: 1200, position: [90, 60, 40] }}
-      gl={{ antialias: msaa, powerPreference: "high-performance", toneMapping: THREE.NoToneMapping }}
+      // look=next tone maps in the composer (lookWorld.tsx LookTone); the light version, which has
+      // no composer, tone maps in the renderer (fixed for the canvas's life: it is in every program)
+      gl={{ antialias: msaa, powerPreference: "high-performance", toneMapping: NEXT && msaa ? THREE.NeutralToneMapping : THREE.NoToneMapping }}
       className={`!fixed inset-0 ${hallucinating ? "hallucinate" : ""}`}
     >
       <QualityGovernor />
       <fog attach="fog" args={["#e9e7e1", 160, 440]} />
       {!msaa && <SoftShadows size={22} samples={10} focus={0.6} />}
-      {/* Studio environment for reflections on the car paint and glass. No network HDRs. */}
-      <Environment resolution={256} frames={1} environmentIntensity={0.2}>
-        <Lightformer intensity={2.2} position={[0, 12, 0]} rotation-x={Math.PI / 2} scale={[30, 30, 1]} color="#ffffff" />
-        <Lightformer intensity={1.4} position={[-18, 4, 8]} rotation-y={Math.PI / 2} scale={[20, 6, 1]} color="#ffffff" />
-        <Lightformer intensity={1.1} position={[18, 4, -8]} rotation-y={-Math.PI / 2} scale={[20, 6, 1]} color="#eef1f3" />
-        <Lightformer intensity={0.8} position={[0, 3, -20]} scale={[30, 4, 1]} color="#f3f2ed" />
-      </Environment>
+      {NEXT ? (
+        // look=next: a CC0 overcast HDRI (public/env) lights and reflects
+        <Suspense fallback={null}>
+          <LookEnvironment />
+        </Suspense>
+      ) : (
+        // Studio environment for reflections on the car paint and glass. No network HDRs.
+        <Environment resolution={256} frames={1} environmentIntensity={0.2}>
+          <Lightformer intensity={2.2} position={[0, 12, 0]} rotation-x={Math.PI / 2} scale={[30, 30, 1]} color="#ffffff" />
+          <Lightformer intensity={1.4} position={[-18, 4, 8]} rotation-y={Math.PI / 2} scale={[20, 6, 1]} color="#ffffff" />
+          <Lightformer intensity={1.1} position={[18, 4, -8]} rotation-y={-Math.PI / 2} scale={[20, 6, 1]} color="#eef1f3" />
+          <Lightformer intensity={0.8} position={[0, 3, -20]} scale={[30, 4, 1]} color="#f3f2ed" />
+        </Environment>
+      )}
       <Sky />
       <Sun />
       <Suspense fallback={null}>
@@ -70,6 +84,7 @@ export default function World() {
           <Vehicle />
           <StartGarden />
           <Spawns />
+          {NEXT && <ContactShadow />}
         </Physics>
       </Suspense>
       <CameraRig />
@@ -84,6 +99,13 @@ export default function World() {
       <Alive />
       <Autopilot />
       <EnvLight />
+      {NEXT && (
+        <>
+          <StaticAO />
+          <LookTier />
+          {msaa && <LookExposure />}
+        </>
+      )}
       <Overlay />
       {PERF && <PerfProbe />}
       {/* last: after the camera and the sun have moved this frame */}
@@ -91,15 +113,28 @@ export default function World() {
       {/* the post chain: all of it on High and Balanced; Low drops the ambient occlusion and keeps
           the anti-aliasing, glow and vignette, except on a canvas with its own MSAA (phones), where
           Low is the light version with no post at all, as before */}
-      {(T.ao || !msaa) && (
-        <EffectComposer multisampling={0} enableNormalPass={false}>
-          <>{T.ao && <N8AO halfRes aoRadius={1.6} intensity={1.6} distanceFalloff={0.7} color="#151515" />}</>
-          {/* Only emissives pushed past 1.0 bloom (lamps, windows, garage headers, neon). */}
-          <Bloom luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0.55} mipmapBlur />
-          <SMAA />
-          <Vignette offset={0.3} darkness={0.28} />
-        </EffectComposer>
-      )}
+      {(T.ao || !msaa) &&
+        (NEXT ? (
+          // look=next: HDR in, then AO, bloom (only what passes 1.0, at 0.25), the filmic tone map,
+          // then AA on the mapped image: MSAA on the composer's target on High (thin fences and
+          // kerbs hold still), SMAA on Balanced and Low; grain and a slight vignette on High only
+          <EffectComposer multisampling={L.msaa} enableNormalPass={false}>
+            <>{T.ao && <N8AO halfRes aoRadius={1.6} intensity={1.4} distanceFalloff={0.7} color="#151515" />}</>
+            <Bloom luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0.25} mipmapBlur />
+            <LookTone />
+            <>{!L.msaa && <SMAA />}</>
+            <>{L.grain && <Noise premultiply={false} blendFunction={BlendFunction.OVERLAY} opacity={0.045} />}</>
+            <>{L.grain && <Vignette offset={0.3} darkness={0.18} />}</>
+          </EffectComposer>
+        ) : (
+          <EffectComposer multisampling={0} enableNormalPass={false}>
+            <>{T.ao && <N8AO halfRes aoRadius={1.6} intensity={1.6} distanceFalloff={0.7} color="#151515" />}</>
+            {/* Only emissives pushed past 1.0 bloom (lamps, windows, garage headers, neon). */}
+            <Bloom luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0.55} mipmapBlur />
+            <SMAA />
+            <Vignette offset={0.3} darkness={0.28} />
+          </EffectComposer>
+        ))}
     </Canvas>
   );
 }

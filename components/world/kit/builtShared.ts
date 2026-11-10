@@ -6,6 +6,7 @@
 import { createElement } from "react";
 import * as THREE from "three";
 import { wireAA } from "../wireAA";
+import { lookMat, type Surface } from "../look";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { ConvexGeometry } from "three/examples/jsm/geometries/ConvexGeometry.js";
 
@@ -68,11 +69,31 @@ const MAKERS = {
   bars: () => wireMat(true),
 };
 export type MatKey = keyof typeof MAKERS;
+/** Each material's surface class under ?look=next (look.ts). */
+const SURFACE: Record<MatKey, Surface> = {
+  paper: "paper",
+  ink: "ink",
+  inkMatte: "ink",
+  concrete: "concrete",
+  concreteDark: "concrete",
+  graphite: "ink",
+  strap: "rubber",
+  glass: "glass",
+  glassPale: "glass",
+  clear: "glass",
+  inner: "paper",
+  orange: "paint",
+  leaf: "foliage",
+  lens: "glass",
+  lit: "paint",
+  wire: "metal",
+  bars: "metal",
+};
 const cache = new Map<MatKey, THREE.Material>();
 /** The shared material for a key (never dispose: every built model uses the same ones). */
 export function bm(k: MatKey) {
   let m = cache.get(k);
-  if (!m) cache.set(k, (m = MAKERS[k]()));
+  if (!m) cache.set(k, (m = lookMat(MAKERS[k](), SURFACE[k], true)));
   return m;
 }
 

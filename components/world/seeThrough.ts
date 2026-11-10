@@ -8,6 +8,7 @@
 // does); everything else stays solid. Shadows are untouched.
 import * as THREE from "three";
 import { carState } from "./carState";
+import { relook } from "./look";
 
 export const seeUniforms = {
   uSeeCar: { value: new THREE.Vector2(-10, -10) }, // the car on screen, 0..1
@@ -81,7 +82,8 @@ const clones = new Map<THREE.Material, THREE.Material>();
 export function seeThrough<T extends THREE.Material>(source: T): T {
   let m = clones.get(source) as T | undefined;
   if (!m) {
-    m = patchSeeThrough(source.clone() as T);
+    // a clone drops the look's shader patch (look.ts): put it back first, under the see-through
+    m = patchSeeThrough(relook(source.clone() as T));
     clones.set(source, m);
   }
   return m;

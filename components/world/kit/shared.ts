@@ -5,6 +5,7 @@
 import * as THREE from "three";
 import { ConvexGeometry } from "three/examples/jsm/geometries/ConvexGeometry.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { lookMat, type Surface } from "../look";
 
 /** Concrete & Ink palette (docs/BRAND.md "World"). */
 export const KIT = {
@@ -56,6 +57,32 @@ const PAINTS = {
 } satisfies Record<string, PaintDef>;
 
 export type Paint = keyof typeof PAINTS;
+
+/** Each paint's surface class under ?look=next (look.ts). */
+const SURFACE: Record<Paint, Surface> = {
+  paper: "paper",
+  ink: "ink",
+  concrete: "concrete",
+  concreteDark: "concrete",
+  concreteLight: "concrete",
+  graphite: "ink",
+  glass: "glass",
+  gravel: "concrete",
+  leaf: "foliage",
+  leafLight: "foliage",
+  sage: "foliage",
+  sageLeaf: "foliage",
+  sageLeafDark: "foliage",
+  stone: "concrete",
+  orange: "paint",
+  glow: "paper",
+  inkBlade: "ink",
+  paperBlade: "paper",
+  sageBlade: "foliage",
+  sandBlade: "foliage",
+  slat: "ink",
+  net: "ink",
+};
 
 let netTex: THREE.Texture | null = null;
 function netTexture() {
@@ -130,6 +157,7 @@ export function kitMat(p: Paint) {
     m.depthWrite = false;
     m.flatShading = false;
   }
+  lookMat(m, SURFACE[p], true);
   mats.set(p, m);
   return m;
 }
