@@ -95,7 +95,7 @@ export default function Baked() {
   }, [scene, world]);
 
   // look=next: load, match, compile off the main path, then swap in. Meshes that aren't in place
-  // yet (the start's lettering drops in) are looked for again a little later, twice.
+  // yet (the start's lettering drops in) are looked for once more 9 s later.
   useEffect(() => {
     if (!go || done.current) return;
     let dead = false;
@@ -113,8 +113,8 @@ export default function Baked() {
       ref.current.scale = manifest.light.sun;
       const list: Entry[] = [];
       let want: Set<string> | undefined;
-      for (let pass = 0; pass < 3 && !dead; pass++) {
-        await sleep(pass === 0 ? 1500 : pass === 1 ? 5000 : 15000);
+      for (let pass = 0; pass < 2 && !dead; pass++) {
+        await sleep(pass === 0 ? 3000 : 9000);
         if (dead) return;
         scene.updateMatrixWorld(true);
         // one chunk a frame: the geometry copies cost a few ms each
@@ -134,7 +134,7 @@ export default function Baked() {
         done.current = list;
         if (!missing.length) break;
         want = new Set(missing);
-        if (pass === 2 && process.env.NODE_ENV !== "production") {
+        if (pass === 1 && process.env.NODE_ENV !== "production") {
           console.warn(`bake: ${missing.length} baked meshes not found in the world (rebake: node scripts/bake/run.mjs)`);
           (window as unknown as { __bakeMissing?: string[] }).__bakeMissing = missing;
         }
