@@ -25,6 +25,8 @@ import { liveryOf, vehicleByCode, type Livery, type VehicleCode } from "../vehic
 import { revealSound } from "../sound";
 import { ALIGN, STUDIO_OUT, boot, opening, setStage, skipping, stageTime, studio, useOpening } from "./state";
 import { ISLAND, PLAN, buildDots, reachFrom, type Bloom } from "./plan";
+import { CAM_NEXT } from "../look";
+import { CHASE, chaseOffset, nearAngle } from "../chase";
 import { FLOOR, FLOOR_SELECT, SWEEP, SWEEP_LENGTH, sweepAt, GAME_OFFSET as GAME_OFFSET_V, SELECT_AZ, SELECT_CAM, SELECT_EL, SELECT_FOV, SELECT_TARGET_Y, TABLE_SCALE, kOf, selectLens } from "./view";
 import { U, bloomOff, bloomOn, bloomStats, scan } from "./patch";
 import { afterWorldFrame, begin, finish, mark, report, sub } from "./load";
@@ -63,7 +65,8 @@ const FLOOR_BUILD = -0.03; // m
 
 /** The game's chase camera (Rig.tsx): a fixed world offset from the car, looking at it less 0.3 m, fov 34. */
 const GAME_OFFSET = new THREE.Vector3(...GAME_OFFSET_V);
-const GAME_FOV = 34;
+/** ?cam=next (chase.ts) lands on its own chase pose and lens instead. */
+const GAME_FOV = CAM_NEXT ? CHASE.fov : 34;
 type Pose = { tx: number; ty: number; tz: number; r: number; az: number; el: number };
 const END_AZ = Math.atan2(GAME_OFFSET.z, GAME_OFFSET.x);
 /** The bloom's first frame, close on the car (the mock's 12 m round a true-size car, at game scale). */
@@ -72,6 +75,12 @@ const START = { ty: 0.41 * S, r: 12 * S, el: 0.42, az: SELECT_AZ };
 const OVER: Pose = { tx: ISLAND.x, ty: 0, tz: ISLAND.z, r: ISLAND.r * 2.2, az: END_AZ + 0.3, el: 1.05 };
 
 function endPose(portrait: boolean): Pose {
+  if (CAM_NEXT) {
+    // behind the car's nose, looking at its look point (chase.ts), the short way round from the overview
+    const o = chaseOffset(carState.forward, portrait ? 1.45 : 1, new THREE.Vector3());
+    const r = Math.hypot(o.x, o.y - CHASE.lookUp, o.z);
+    return { tx: carState.pos.x, ty: carState.pos.y - 0.3 + CHASE.lookUp, tz: carState.pos.z, r, az: nearAngle(Math.atan2(o.z, o.x), OVER.az), el: Math.asin((o.y - CHASE.lookUp) / r) };
+  }
   const o = GAME_OFFSET.clone().multiplyScalar(portrait ? 1.45 : 1);
   return { tx: carState.pos.x, ty: carState.pos.y - 0.3, tz: carState.pos.z, r: o.length(), az: Math.atan2(o.z, o.x), el: Math.asin(o.y / o.length()) };
 }

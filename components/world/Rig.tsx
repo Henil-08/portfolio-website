@@ -14,6 +14,8 @@ import { zones, type Zone } from "./layout";
 import { garageSheet, garageView } from "./garage/state";
 import { blendCamera } from "./garage/anim";
 import { ease } from "./smooth";
+import { CAM_NEXT } from "./look";
+import { CHASE, chaseOffset, spring } from "./chase";
 
 // The world camera's lens (World.tsx), which the garage's cockpit shot borrows and gives back.
 const FOV = 34;
@@ -23,6 +25,9 @@ const OFFSET = new THREE.Vector3(10.5, 12.5, 14);
 const look = new THREE.Vector3();
 const tmp = new THREE.Vector3();
 const orbit = new THREE.Vector3();
+const off = new THREE.Vector3();
+const goal = new THREE.Vector3();
+const lookGoal = new THREE.Vector3();
 
 // Camera: slow orbit during the intro, then the original follow pattern (MIT,
 // folio-2025): smooth the target's X/Z once, fixed offset, look at the target.
@@ -36,6 +41,8 @@ export function CameraRig() {
   const shot = useRef<{ id: number; style: string; t: number } | null>(null);
   const idle = useRef(0);
   const garageLens = useRef({ on: false });
+  // ?cam=next (chase.ts): the camera and its look target on springs, the smoothed heading, the lens
+  const chase = useRef({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), look: new THREE.Vector3(), lvel: new THREE.Vector3(), fwd: new THREE.Vector3(1, 0, 0), fov: CHASE.fov, init: false });
 
   useFrame((state, dt) => {
     const phase = getState().phase;
@@ -58,7 +65,35 @@ export function CameraRig() {
     // Pull back a little at speed.
     const spd = Math.hypot(target.current.x - prev.current.x, target.current.z - prev.current.y) / Math.max(dt, 1e-4);
     zoomS.current += (THREE.MathUtils.smoothstep(spd, 5, 30) * 0.22 - zoomS.current) * k1;
-    const followPos = tmp.copy(OFFSET).multiplyScalar(zoom * (1 + zoomS.current)).add(target.current);
+    let followPos = tmp.copy(OFFSET).multiplyScalar(zoom * (1 + zoomS.current)).add(target.current);
+    let followLook = target.current;
+    let fovNow = FOV;
+    if (CAM_NEXT) {
+      // behind the nose, on springs: the heading eases round (never with a slide), the camera and
+      // its look target follow critically damped, and the look runs a little ahead of the car
+      const c = chase.current;
+      const f = carState.forward;
+      if (f.x * f.x + f.z * f.z > 0.01) c.fwd.lerp(goal.set(f.x, 0, f.z).normalize(), ease(3, dt)).normalize();
+      const vx = (target.current.x - prev.current.x) / Math.max(dt, 1e-4);
+      const vz = (target.current.z - prev.current.y) / Math.max(dt, 1e-4);
+      const ahead = Math.min(1, CHASE.aheadMax / Math.max(1e-4, Math.hypot(vx, vz) * CHASE.ahead));
+      lookGoal.set(target.current.x + vx * CHASE.ahead * ahead, target.current.y + CHASE.lookUp, target.current.z + vz * CHASE.ahead * ahead);
+      goal.copy(chaseOffset(c.fwd, zoom * (1 + zoomS.current * 0.5), off)).add(target.current);
+      if (!c.init || phase !== "world") {
+        c.pos.copy(goal);
+        c.look.copy(lookGoal);
+        c.vel.set(0, 0, 0);
+        c.lvel.set(0, 0, 0);
+        c.init = true;
+      } else {
+        spring(c.pos, c.vel, goal, 5, dt);
+        spring(c.look, c.lvel, lookGoal, 7, dt);
+      }
+      c.fov += (CHASE.fov + CHASE.fovSpeed * THREE.MathUtils.smoothstep(spd, 5, CHASE.speedFull) - c.fov) * ease(2, dt);
+      followPos = c.pos;
+      followLook = c.look;
+      fovNow = c.fov;
+    }
 
     // Dev and headless checks: window.__cam = [x, y, z, tx, ty, tz] pins the camera.
     const dbg = (window as unknown as { __cam?: number[] }).__cam;
@@ -73,7 +108,7 @@ export function CameraRig() {
       // up to date here so the hand-over when driving starts is the same frame.
       target.current.set(carState.pos.x, carState.pos.y - 0.3, carState.pos.z);
       camera.position.copy(followPos);
-      camera.lookAt(target.current);
+      camera.lookAt(followLook);
       orbit.copy(camera.position);
       blend.current = 1;
       return;
@@ -94,7 +129,7 @@ export function CameraRig() {
         const rw = THREE.MathUtils.lerp(W, free.w, b);
         const rh = THREE.MathUtils.lerp(H, free.h, b);
         const ry = free.y * b;
-        const fov = blendCamera(garageView.poses, followPos, target.current, FOV, camera.position, look, rw / rh);
+        const fov = blendCamera(garageView.poses, followPos, followLook, fovNow, camera.position, look, rw / rh);
         camera.lookAt(look);
         cam.fov = fov;
         cam.near = THREE.MathUtils.lerp(NEAR, 0.04, b);
@@ -108,7 +143,7 @@ export function CameraRig() {
       if (lens.on) {
         const cam = state.camera as THREE.PerspectiveCamera;
         cam.clearViewOffset();
-        cam.fov = FOV;
+        cam.fov = fovNow;
         cam.near = NEAR;
         cam.aspect = size.width / size.height;
         cam.updateProjectionMatrix();
@@ -141,8 +176,15 @@ export function CameraRig() {
     blend.current = Math.min(1, blend.current + dt * 0.7);
     const k = THREE.MathUtils.smootherstep(blend.current, 0, 1);
     camera.position.lerpVectors(orbit, followPos, k);
-    look.copy(target.current);
+    look.copy(followLook);
     camera.lookAt(look);
+    if (CAM_NEXT) {
+      const cam = state.camera as THREE.PerspectiveCamera;
+      if (Math.abs(cam.fov - fovNow) > 0.01) {
+        cam.fov = fovNow;
+        cam.updateProjectionMatrix();
+      }
+    }
   });
 
   // After the camera has moved: where the car is on screen, for the see-through.
