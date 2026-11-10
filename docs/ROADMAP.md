@@ -40,6 +40,7 @@ small, verified with headless screenshots, and committed on its own
 | Car parking at rest (no jitter) | components/world/Vehicle.tsx (`parked`, `REPARK_*`, `SUSPENSION`) |
 | Places review page | app/docs/brand/places/* (every interactable place, live world views, the real sheets) |
 | Knock-about props (tyres, rocks, benches...) | components/world/Movables.tsx (`Movables`, `kindFromMatrices`, `HomeBody`) |
+| Baked light (look=next) | scripts/bake/run.mjs (one command: export.mjs → Blender bake.py per chunk → WebP + manifest in public/bake), components/world/bake/* (ids.ts which meshes and their ids, export.ts the dev export, apply.ts uv + material patch, Baked.tsx in World.tsx; plugs into look.ts `bakedLight`); `?bake=off` shows look=next without it |
 | Performance, quality tiers, perf harness | components/world/quality.ts (tiers, Auto governor; Settings → Quality in components/ui/Hud.tsx), perf.tsx (`?perf`, `window.__perf`), aoTransparency.ts (N8AO patch), smooth.ts (`ease`), instanceCull.ts (per-copy culling of island-wide instanced meshes), indoor.ts (the world left out behind a parked garage bay), wireAA.ts (fence wires), vehicles/merge.ts (the player's vehicle baked per rigid part), scripts/perf.mjs; numbers in docs/research/performance.md |
 
 ## Working rules
@@ -89,6 +90,15 @@ small, verified with headless screenshots, and committed on its own
    "the original" / folio-2025. Credit goes in the main README later.
 5. This is Next 16: read node_modules/next/dist/docs before using Next APIs.
 6. Never commit secrets (.env.local) or the licensed Racero font (public/fonts is gitignored).
+8. Rebake the light when the static world changes (terrain, road, kerbs, buildings, trackside,
+   hardscape, anything placed for good): with the dev server on 3100, `node scripts/bake/run.mjs`
+   (~2 min: the export in the shared headless browser, then headless Blender one chunk at a time,
+   closed after each), check `?look=next` against `?look=next&bake=off` at the same poses, and commit
+   public/bake with the change. A stale bake does no harm: a mesh whose shape or place changed no
+   longer matches its id and draws unbaked (the dev console counts them), so a missed rebake shows
+   as a patch of the old flat look, never as wrong light. `--only=ne,wide` rebakes some chunks;
+   `--skip-export` reuses the last export. The light comes from Effects.tsx SCENES_NEXT (day) and
+   the HDRI in public/env, read by run.mjs: rebake when those change too.
 
 ## Art direction (applies to every step)
 
