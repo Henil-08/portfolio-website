@@ -41,7 +41,8 @@ export const bakeUniforms = {
   uBakeTint: { value: new THREE.Color(1, 1, 1) },
 };
 
-export type Baked = { mesh: THREE.Mesh; geometry: THREE.BufferGeometry; tex: THREE.Texture; bounce: number };
+/** `fade`: how far in the bake is on this mesh (0..1), shared by the meshes swapped in together (Baked.tsx ramps it). */
+export type Baked = { mesh: THREE.Mesh; geometry: THREE.BufferGeometry; tex: THREE.Texture; bounce: number; fade: { value: number } };
 
 export async function loadManifest(): Promise<Manifest | null> {
   try {
@@ -90,6 +91,7 @@ export function match(scene: THREE.Scene, chunks: Loaded, want?: Set<string>) {
   const taken = new Set<THREE.Mesh>();
   const out: (Baked & { id: string })[] = [];
   const missing: string[] = [];
+  const fade = { value: 0 };
   for (const { meta: c, tex, uv } of chunks) {
     let corner = 0;
     for (const [id, corners, verts] of c.receivers) {
@@ -105,7 +107,7 @@ export function match(scene: THREE.Scene, chunks: Loaded, want?: Set<string>) {
       const geometry = c.planar ? planarGeometry(mesh, c.planar) : uv ? splitGeometry(g, uv.subarray(at * 2, (at + corners) * 2)) : null;
       if (!geometry) continue;
       taken.add(mesh);
-      out.push({ id, mesh, geometry, tex, bounce: c.bounce });
+      out.push({ id, mesh, geometry, tex, bounce: c.bounce, fade });
     }
   }
   return { baked: out, missing };
@@ -180,7 +182,6 @@ function splitGeometry(src: THREE.BufferGeometry, uvq: Uint16Array) {
   const total = n + from.length;
   const g = new THREE.BufferGeometry();
   for (const [name, a] of Object.entries(src.attributes)) {
-    if (name === SKIP_ATTR) continue;
     const attr = a as THREE.BufferAttribute;
     const size = attr.itemSize;
     const Arr = (attr.array as Float32Array).constructor as Float32ArrayConstructor;
@@ -207,13 +208,10 @@ function splitGeometry(src: THREE.BufferGeometry, uvq: Uint16Array) {
   return g;
 }
 
-/** look.ts's per-vertex AO: the baked map stands in for it, so it isn't carried over. */
-const SKIP_ATTR = "lookAO";
-
 /** A new geometry over the same attribute buffers (they stay shared on the GPU) and index. */
 function shallow(src: THREE.BufferGeometry) {
   const g = new THREE.BufferGeometry();
-  for (const [name, a] of Object.entries(src.attributes)) if (name !== SKIP_ATTR) g.setAttribute(name, a);
+  for (const [name, a] of Object.entries(src.attributes)) g.setAttribute(name, a);
   g.setIndex(src.index);
   for (const gr of src.groups) g.addGroup(gr.start, gr.count, gr.materialIndex);
   g.boundingBox = src.boundingBox?.clone() ?? null;
@@ -235,6 +233,7 @@ uniform vec2 uBakeFar;
 uniform vec3 uBakeSun;
 uniform vec3 uBakeTint;
 uniform float uBakeBounce;
+uniform float uBakeFade;
 varying vec3 vBakeW;`;
 
 // before the direct lights: the sun's far shadow from the bake
@@ -245,12 +244,14 @@ float bakeSun = 1.0;
   vec3 wn = normalize( ( vec4( nonPerturbedNormal, 0.0 ) * viewMatrix ).xyz );
   float far = smoothstep( uBakeFar.x, uBakeFar.y, distance( vBakeW.xz, uBakeCenter.xz ) );
   float facing = smoothstep( 0.05, 0.3, dot( wn, uBakeSun ) );
-  bakeSun = mix( 1.0, bakeT.g, uBakeDay * far * facing );
+  bakeSun = mix( 1.0, bakeT.g, uBakeDay * far * facing * uBakeFade );
 }`;
 
-// after the AO: the bounce, which the AO already holds (it was baked with the occluders)
+// the AO, faded in (three's aomap_fragment with the intensity scaled), then the bounce, which the
+// AO already holds (it was baked with the occluders)
+const FRAG_AO = THREE.ShaderChunk.aomap_fragment.replaceAll("aoMapIntensity", "( aoMapIntensity * uBakeFade )");
 const FRAG_BOUNCE = /* glsl */ `
-reflectedLight.indirectDiffuse += bakeT.b * uBakeBounce * uBakeDay * uBakeTint * BRDF_Lambert( material.diffuseColor );`;
+reflectedLight.indirectDiffuse += bakeT.b * uBakeBounce * uBakeDay * uBakeFade * uBakeTint * BRDF_Lambert( material.diffuseColor );`;
 
 const LIGHTS = THREE.ShaderChunk.lights_fragment_begin.replace(
   "getDirectionalLightInfo( directionalLight, directLight );",
@@ -260,8 +261,12 @@ const LIGHTS = THREE.ShaderChunk.lights_fragment_begin.replace(
 const patched = new WeakSet<THREE.Material>();
 export const isBakeMaterial = (m: THREE.Material) => patched.has(m);
 
-/** Adds the bake's patch to a (per-mesh) material, after whatever patches it already has. */
-export function patchBake(m: THREE.Material, bounce: number) {
+/**
+ * Adds the bake's patch to a (per-mesh) material, after whatever patches it already has. `fade`
+ * (0..1) brings the whole bake in (AO, far sun shadow, bounce) and hands over from look.ts's
+ * per-vertex AO, which the bake replaces, so it never lands in one frame.
+ */
+export function patchBake(m: THREE.Material, bounce: number, fade: { value: number }) {
   if (patched.has(m)) return;
   patched.add(m);
   const prev = m.onBeforeCompile.bind(m);
@@ -271,7 +276,7 @@ export function patchBake(m: THREE.Material, bounce: number) {
   m.onBeforeCompile = (sh, r) => {
     prev(sh, r);
     if (sh.fragmentShader.includes("uBakeBounce")) return;
-    Object.assign(sh.uniforms, bakeUniforms, { uBakeBounce });
+    Object.assign(sh.uniforms, bakeUniforms, { uBakeBounce, uBakeFade: fade });
     sh.defines = { ...sh.defines, BAKE_LIGHT: "" };
     sh.vertexShader = sh.vertexShader
       .replace("#include <common>", "#include <common>\nvarying vec3 vBakeW;")
@@ -279,7 +284,9 @@ export function patchBake(m: THREE.Material, bounce: number) {
     sh.fragmentShader = sh.fragmentShader
       .replace("#include <common>", `#include <common>\n${FRAG_HEAD}`)
       .replace("#include <lights_fragment_begin>", `${FRAG_SUN}\n${LIGHTS}`)
-      .replace("#include <aomap_fragment>", `#include <aomap_fragment>\n${FRAG_BOUNCE}`);
+      .replace("#include <aomap_fragment>", `${FRAG_AO}\n${FRAG_BOUNCE}`)
+      // look.ts's per-vertex AO (the geometry keeps it) hands over to the bake as it fades in
+      .replace("float lao = vLookAO;", "float lao = mix( vLookAO, 1.0, uBakeFade );");
   };
   m.customProgramCacheKey = () => `${prevKey()}|bake`;
   m.needsUpdate = true;

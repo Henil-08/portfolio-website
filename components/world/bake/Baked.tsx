@@ -145,7 +145,13 @@ export default function Baked() {
     };
   }, [go, scene, gl, camera]);
 
-  useFrame(() => {
+  useFrame((_, dt) => {
+    // each install's bake fades in over FADE_S (apply.ts patchBake), never in one frame
+    for (const f of fading) {
+      f.t = Math.min(1, f.t + Math.min(dt, 0.05) / FADE_S);
+      f.u.value = f.t * f.t * (3 - 2 * f.t);
+      if (f.t >= 1) fading.delete(f);
+    }
     const list = done.current;
     if (!list) return;
     if (!sun.current?.parent) sun.current = findSun(scene);
@@ -168,6 +174,9 @@ export default function Baked() {
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/** Seconds the bake takes to fade in once a batch is swapped in. */
+const FADE_S = 0.9;
+const fading = new Set<{ u: { value: number }; t: number }>();
 const nextFrame = () => new Promise((r) => requestAnimationFrame(r));
 const timing = { match: 0 };
 const owned = new Map<THREE.Mesh, Entry>();
@@ -194,6 +203,8 @@ async function install(baked: Entry[], gl: THREE.WebGLRenderer, camera: THREE.Ca
     await new Promise((r) => requestAnimationFrame(r));
     if (dead()) return;
   }
+  // swapped in at fade 0 (nothing changes on screen), now faded in
+  for (const u of new Set(baked.map((b) => b.fade))) fading.add({ u, t: 0 });
   // look.ts's hook: StaticAO gets these meshes' aoMap and skips its per-vertex AO on them
   bakedLight.resolve = (mesh) => {
     const b = owned.get(mesh);
@@ -230,7 +241,7 @@ function bakedMaterial(m: THREE.Material, b: Entry) {
     out.aoMap = b.tex;
     out.aoMapIntensity = AO_INTENSITY;
   }
-  patchBake(out, b.bounce);
+  patchBake(out, b.bounce, b.fade);
   return out;
 }
 
