@@ -93,10 +93,10 @@ type SurfaceDef = {
 // semi-matte, glass glossy, metal brushed, rubber dead matte. Tiles are world metres at the
 // world's 2/3 scale, so a 2 m concrete tile is 3 m real.
 const SURFACES: Record<Surface, SurfaceDef> = {
-  paper: { r: 0.84, m: 0, fam: "plaster", tile: 1.2, n: 0.3, spread: 0.25, wet: 0.3 },
-  concrete: { r: 0.9, m: 0, fam: "concrete", tile: 2, n: 0.55, spread: 0.35, wet: 0.6 },
-  asphalt: { r: 0.9, m: 0, fam: "asphalt", tile: 1.6, n: 0.45, spread: 0.3, wet: 1 },
-  ink: { r: 0.6, m: 0.05, fam: "plaster", tile: 1, n: 0.18, spread: 0.2, wet: 0.3 },
+  paper: { r: 0.84, m: 0, fam: "plaster", tile: 1.5, n: 0.1, spread: 0.2, wet: 0.3 },
+  concrete: { r: 0.9, m: 0, fam: "concrete", tile: 2.5, n: 0.28, spread: 0.3, wet: 0.6 },
+  asphalt: { r: 0.9, m: 0, fam: "asphalt", tile: 1.6, n: 0.35, spread: 0.3, wet: 1 },
+  ink: { r: 0.6, m: 0.05, fam: "plaster", tile: 1.2, n: 0.1, spread: 0.2, wet: 0.3 },
   /** the vehicles' ink and graphite parts: semi-matte, no texture at that size */
   trim: { r: 0.55, m: 0.08 },
   glass: { r: 0.04, m: 0.1, env: 1.4 },

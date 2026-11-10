@@ -13,6 +13,7 @@ import { Cone, FootballBody, TYRE_H, TYRE_R, Tyre } from "./models/props";
 import { nightGlow } from "./models/props/shared";
 import { ease } from "./smooth";
 import { NEXT } from "./look";
+import { garageView } from "./garage/state";
 
 // Lighting keyframes, Concrete & Ink (docs/BRAND.md "World"). The day/night cycle blends
 // between them by sun elevation. Day is the approved proposal's light (app/docs/brand/world
@@ -33,8 +34,8 @@ export const SCENES = {
 // walls. Exposure per time of day feeds the filmic tone mapping (lookWorld.tsx LookTone): dusk
 // and night open up a little, as a camera would.
 export const SCENES_NEXT = {
-  day: { ...SCENES.day, sun: 3.1, sunColor: "#ffecd6", hemi: 0.12, hemiSky: "#dde6f0", hemiGround: "#b3ada2", env: 0.16, exposure: 1 },
-  golden: { ...SCENES.golden, sun: 2.7, sunColor: "#ffc896", hemi: 0.14, hemiSky: "#e4e2ea", hemiGround: "#958d82", env: 0.13, exposure: 1.08 },
+  day: { ...SCENES.day, sun: 3.1, sunColor: "#fff3e6", hemi: 0.12, hemiSky: "#dde6f0", hemiGround: "#b3ada2", env: 0.16, exposure: 1.1 },
+  golden: { ...SCENES.golden, sun: 2.7, sunColor: "#ffcfa3", hemi: 0.14, hemiSky: "#e4e2ea", hemiGround: "#958d82", env: 0.13, exposure: 1.15 },
   night: { ...SCENES.night, sun: 0.55, sunColor: "#9db4d8", hemi: 0.2, hemiSky: "#3a475a", hemiGround: "#101215", env: 0.025, exposure: 1.35 },
 } as const;
 
@@ -45,6 +46,10 @@ const STUDIO_NOW = { sun: 2.4, sunColor: "#fff6ea", hemi: 1.0, hemiSky: "#ffffff
 const STUDIO = NEXT ? { ...STUDIO_NOW, sun: 2.7, hemi: 0.35, hemiSky: "#eef1f4", env: 0.3 } : STUDIO_NOW;
 
 // Rain on top of any of them: the key dims and the sky and fog go concrete grey.
+// look=next, inside a garage bay (the drawing view): a room has no sky over it, so the open-air
+// balance would leave it dim; the fill comes up to a light, even interior, as the current look's is.
+const INDOOR = { hemi: 0.35, env: 0.4, exposure: 1.02 };
+
 // look=next: the HDRI's fill drops with the light, and the key goes further (overcast).
 const RAIN = NEXT ? { sun: 0.32, hemi: 1.2, env: 0.7, grey: 0.55, dark: 0.86, exposure: 1.1 } : { sun: 0.45, hemi: 0.85, env: 1, grey: 0.55, dark: 0.88, exposure: 1 };
 
@@ -159,6 +164,12 @@ export function sceneParams() {
     p.env *= 1 - w * (1 - RAIN.env);
     p.exposure *= 1 - w * (1 - RAIN.exposure);
     for (const c of [p.top, p.mid, p.bottom, p.fog, p.sunColor]) wetColor(c, w);
+  }
+  const g = NEXT ? garageView.k : 0;
+  if (g > 0) {
+    p.hemi = THREE.MathUtils.lerp(p.hemi, Math.max(p.hemi, INDOOR.hemi), g);
+    p.env = THREE.MathUtils.lerp(p.env, Math.max(p.env, INDOOR.env), g);
+    p.exposure = THREE.MathUtils.lerp(p.exposure, INDOOR.exposure, g);
   }
   const k = studio.k;
   if (k > 0) {
