@@ -202,6 +202,35 @@ export function CameraRig() {
 // The sun follows the car so the shadow map stays sharp where it matters.
 
 const _studio = new THREE.Vector3();
+const _at = new THREE.Vector3();
+const _dir = new THREE.Vector3();
+const _right = new THREE.Vector3();
+const _up = new THREE.Vector3();
+const _shift = new THREE.Vector3();
+const UP = new THREE.Vector3(0, 1, 0);
+
+/**
+ * Moves the sun and its target together, across the light's view, so the shadow camera sits on
+ * whole shadow-map texels. Following the car by any fraction of a texel re-rasterizes every
+ * shadow edge a little differently each frame, and they crawl and sparkle as you drive; on the
+ * texel grid a static shadow is drawn into the same texels every frame. The direction and
+ * everything the light covers are unchanged (at most half a texel, 1.7 cm, of shift).
+ */
+function snapToTexels(l: THREE.DirectionalLight, target: THREE.Vector3) {
+  const cam = l.shadow.camera;
+  const texel = (cam.right - cam.left) / l.shadow.mapSize.x;
+  // the shadow camera's own axes (it looks from the light at the target, up is +y)
+  _dir.subVectors(l.position, target).normalize();
+  _right.crossVectors(UP, _dir);
+  if (_right.lengthSq() < 1e-8) return;
+  _right.normalize();
+  _up.crossVectors(_dir, _right);
+  const u = target.dot(_right);
+  const v = target.dot(_up);
+  _shift.copy(_right).multiplyScalar(Math.round(u / texel) * texel - u).addScaledVector(_up, Math.round(v / texel) * texel - v);
+  target.add(_shift);
+  l.position.add(_shift);
+}
 
 export function Sun() {
   const light = useRef<THREE.DirectionalLight>(null);
@@ -220,8 +249,10 @@ export function Sun() {
   useFrame((_, dt) => {
     const l = light.current;
     if (!l) return;
-    // round the car (before its first frame, the origin)
-    const c = carState.pos;
+    // round the car (before its first frame, the origin); dev and headless checks: window.__sunAt =
+    // [x, y, z] follows that point instead, window.__shadowSnapOff = true follows without the snap
+    const dev = process.env.NODE_ENV !== "production" ? (window as unknown as { __sunAt?: number[]; __shadowSnapOff?: boolean }) : null;
+    const c = dev?.__sunAt ? _at.fromArray(dev.__sunAt) : carState.pos;
     // The sun arcs across the sky with the clock (it stays above the horizon for
     // shadows; at night it becomes a dim, cool moonlight). In the garage it is the studio's
     // fixed key (the proposal's turntable light), easing onto the arc as the world comes in.
@@ -230,6 +261,7 @@ export function Sun() {
     l.position.set(c.x + Math.cos(a) * 40, c.y + 40 * elev + 8, c.z + 14 + Math.sin(a) * 10);
     if (studio.k > 0) l.position.lerp(_studio.set(c.x + 14 * 2, c.y + 22 * 2, c.z + 10 * 2), studio.k);
     tgt.position.set(c.x, c.y, c.z);
+    if (!dev?.__shadowSnapOff) snapToTexels(l, tgt.position);
 
     const p = sceneParams();
     // the garage studio snaps in (the world is hidden at once); the world's light eases
