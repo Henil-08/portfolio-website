@@ -19,7 +19,7 @@ const METER_CSS = `
  * greys out; a press that can't fire flickers it. `read` is polled every animation frame and the
  * DOM is written directly, so nothing re-renders per frame.
  */
-export default function PowerMeter({ label, read, className = "" }: { label: string; read: () => MeterReading | null; className?: string }) {
+export default function PowerMeter({ label, read, className = "", quiet = false }: { label: string; read: () => MeterReading | null; className?: string; /** ?hud=next: a 1 px frame and no shadow */ quiet?: boolean }) {
   const box = useRef<HTMLDivElement>(null);
   const fill = useRef<HTMLDivElement>(null);
   const head = useRef<HTMLDivElement>(null);
@@ -57,7 +57,7 @@ export default function PowerMeter({ label, read, className = "" }: { label: str
   }, [read]);
 
   return (
-    <div ref={box} data-state="busy" className={`pm w-[248px] border-2 border-[#111] bg-white shadow-[3px_3px_0_#111] ${className}`}>
+    <div ref={box} data-state="busy" className={`pm w-[248px] ${quiet ? "border border-[#111] bg-white/90" : "border-2 border-[#111] bg-white shadow-[3px_3px_0_#111]"} ${className}`}>
       <style>{METER_CSS}</style>
       <div className="font-mono flex items-center text-[12px]">
         <span className="pm-key px-2 py-1">SHIFT</span>
@@ -66,7 +66,7 @@ export default function PowerMeter({ label, read, className = "" }: { label: str
           0%
         </span>
       </div>
-      <div className="mx-2 mb-2 mt-1 border-2 border-[#111] bg-[#f3f2ed] p-[2px]">
+      <div className={`mx-2 mb-2 mt-1 ${quiet ? "border" : "border-2"} border-[#111] bg-[#f3f2ed] p-[2px]`}>
         <div className="relative h-[8px]">
           <div ref={fill} className="pm-fill absolute inset-y-0 left-0 bg-[#111]" style={{ width: 0 }} />
           <div ref={head} className="absolute inset-y-0 bg-[#ff4f00]" style={{ width: 0, visibility: "hidden" }} />

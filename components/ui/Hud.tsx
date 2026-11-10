@@ -25,6 +25,8 @@ import FitPanel, { LapChip } from "./FitPanel";
 import RadioMessages from "./RadioMessages";
 import EasterEggs from "./EasterEggs";
 import { quality, useQuality, type QualityMode } from "@/components/world/quality";
+import { HUD_NEXT } from "@/components/world/look";
+import { quietFade, useQuietHud } from "./quiet";
 
 // the vehicle section and the quick garage load the vehicles' data (and their models) with the world, not before
 const VehicleSettings = dynamic(() => import("./garageParts").then((m) => m.VehicleSettings), { ssr: false });
@@ -62,12 +64,14 @@ export default function Hud() {
 function TopBar() {
   const muted = useWorld((s) => s.muted);
   const modal = useWorld((s) => s.menuOpen || s.controlsOpen || s.settingsOpen);
+  // ?hud=next: the tabs fade out while driving (quiet.ts)
+  const quiet = useQuietHud();
   return (
     <motion.nav
       initial={{ y: -60 }}
       animate={{ y: modal ? -90 : 0 }}
       transition={modal ? { duration: 0.15 } : { delay: 0.15, duration: 0.3, ease: [0.4, 1.6, 0.65, 1] }}
-      className="pointer-events-auto fixed right-3 top-3 z-30 flex gap-2 sm:right-5 sm:top-5"
+      className={`pointer-events-auto fixed right-3 top-3 z-30 flex gap-2 sm:right-5 sm:top-5 ${quietFade(quiet)}`}
       aria-label="World controls"
     >
       <Tab label="Map" k="M" onClick={() => setState((s) => ({ menuOpen: !s.menuOpen }))}>
@@ -352,6 +356,7 @@ function Toast() {
 
 function Hints() {
   const [show, setShow] = useState(true);
+  const quiet = useQuietHud();
   const speed = useWorld((s) => s.speed);
   const vehicle = useWorld((s) => s.vehicle);
   useEffect(() => {
@@ -361,7 +366,7 @@ function Hints() {
   return (
     <>
       <AnimatePresence>
-        {show && (
+        {show && !quiet && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -377,7 +382,8 @@ function Hints() {
           </motion.div>
         )}
       </AnimatePresence>
-      <div className="pointer-events-none fixed bottom-5 right-5 z-20 hidden border-2 border-ink bg-white px-3 py-2 shadow-[3px_3px_0_var(--color-ink)] sm:block">
+      {/* ?hud=next: a hairline frame, no shadow (the hard shadow is for sheets and modals) */}
+      <div className={`pointer-events-none fixed bottom-5 right-5 z-20 hidden px-3 py-2 sm:block ${HUD_NEXT ? "border border-ink bg-white/90" : "border-2 border-ink bg-white shadow-[3px_3px_0_var(--color-ink)]"}`}>
         <p className="w-[3ch] text-right font-mono text-[34px] font-semibold leading-none tabular-nums">{speed}</p>
         <p className="mt-1 font-mono text-[11px] text-graphite">km/h</p>
       </div>
@@ -391,7 +397,7 @@ function Power() {
   const zone = useWorld((s) => s.zone);
   return (
     <div className={`pointer-events-none fixed left-5 top-5 z-20 [@media(pointer:coarse)]:bottom-[124px] [@media(pointer:coarse)]:left-auto [@media(pointer:coarse)]:right-6 [@media(pointer:coarse)]:top-auto ${zone ? "[@media(pointer:coarse)]:hidden" : ""}`}>
-      <PowerMeter label={powerName(vehicle)} read={powerReading} />
+      <PowerMeter label={powerName(vehicle)} read={powerReading} quiet={HUD_NEXT} />
     </div>
   );
 }

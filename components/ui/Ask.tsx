@@ -8,6 +8,7 @@ import { radioBeep, radioSpeak } from "@/components/world/sound";
 import { runAction, type Action } from "@/components/world/actions";
 import { usePushToTalk } from "./usePushToTalk";
 import { Decode } from "@/components/brand/motion";
+import { quietFade, useQuietHud } from "./quiet";
 
 type Entry = ChatMessage | { role: "tool"; content: string };
 
@@ -64,6 +65,8 @@ export default function Ask() {
     send(t);
   });
 
+  // ?hud=next: the radio key fades out while driving (quiet.ts); V still works
+  const quiet = useQuietHud();
   const lastAnswer = log.findLastIndex((e) => e.role === "assistant");
   return (
     <>
@@ -73,7 +76,7 @@ export default function Ask() {
           {ptt.state === "listening" ? "Transmitting" : ptt.state === "thinking" ? "Copy, one sec" : "Mic blocked"}
         </div>
       )}
-      <button onClick={() => setState((s) => ({ askOpen: !s.askOpen }))} className="ds-tab fixed left-3 top-3 z-30 sm:bottom-5 sm:left-5 sm:top-auto">
+      <button onClick={() => setState((s) => ({ askOpen: !s.askOpen }))} className={`ds-tab fixed left-3 top-3 z-30 sm:bottom-5 sm:left-5 sm:top-auto ${quietFade(quiet)}`}>
         <span className="x-blink h-2 w-2 rounded-full bg-signal" />
         {open ? "Close radio" : "Team radio"}
         <span className="hidden bg-ink px-1.5 font-mono text-[11px] text-white sm:inline">V</span>
