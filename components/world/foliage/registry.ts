@@ -48,6 +48,11 @@ function ensureMesh(kind: TreeKind, count: number) {
   const next = new THREE.InstancedMesh(kindGeometry(kind), treeMaterial(), cap);
   next.name = `trees-${kind}`;
   next.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  // slots no tree has written stay empty (a zero matrix draws nothing), not three's identity: a
+  // rebuild in sync() runs inside the draw, after this frame's upload, and raises `count` over a
+  // GPU buffer that holds only the culler's front range (instanceCull.ts), so those slots drew a
+  // cypress at the world's origin, the timeline terrace's corner, for a frame (look=next on High)
+  (next.instanceMatrix.array as Float32Array).fill(0);
   // the tint buffer exists before the first draw: added later (by setColorAt), the kind's
   // geometry kept the attribute binding it was first drawn with and its vertex colours read as
   // black (the kit cypress, 2026-11-05)
