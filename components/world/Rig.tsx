@@ -28,6 +28,7 @@ const orbit = new THREE.Vector3();
 const off = new THREE.Vector3();
 const goal = new THREE.Vector3();
 const lookGoal = new THREE.Vector3();
+const lookAt = new THREE.Vector3();
 
 // Camera: slow orbit during the intro, then the original follow pattern (MIT,
 // folio-2025): smooth the target's X/Z once, fixed offset, look at the target.
@@ -41,7 +42,7 @@ export function CameraRig() {
   const shot = useRef<{ id: number; style: string; t: number } | null>(null);
   const idle = useRef(0);
   const garageLens = useRef({ on: false });
-  // ?cam=next (chase.ts): the camera and its look target on springs, the smoothed heading, the lens
+  // ?cam=next (chase.ts): the camera's and the look target's offsets from the car on springs, the smoothed heading, the lens
   const chase = useRef({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), look: new THREE.Vector3(), lvel: new THREE.Vector3(), fwd: new THREE.Vector3(1, 0, 0), fov: CHASE.fov, init: false });
 
   useFrame((state, dt) => {
@@ -77,8 +78,10 @@ export function CameraRig() {
       const vx = (target.current.x - prev.current.x) / Math.max(dt, 1e-4);
       const vz = (target.current.z - prev.current.y) / Math.max(dt, 1e-4);
       const ahead = Math.min(1, CHASE.aheadMax / Math.max(1e-4, Math.hypot(vx, vz) * CHASE.ahead));
-      lookGoal.set(target.current.x + vx * CHASE.ahead * ahead, target.current.y + CHASE.lookUp, target.current.z + vz * CHASE.ahead * ahead);
-      goal.copy(chaseOffset(c.fwd, zoom * (1 + zoomS.current * 0.5), off)).add(target.current);
+      // the springs work on the offsets from the car, not on world positions: a world spring trails
+      // a moving car by 2v/omega (metres at speed); this one only eases the swing round a corner
+      lookGoal.set(vx * CHASE.ahead * ahead, CHASE.lookUp, vz * CHASE.ahead * ahead);
+      chaseOffset(c.fwd, zoom * (1 + zoomS.current * 0.5), goal);
       if (!c.init || phase !== "world") {
         c.pos.copy(goal);
         c.look.copy(lookGoal);
@@ -86,12 +89,12 @@ export function CameraRig() {
         c.lvel.set(0, 0, 0);
         c.init = true;
       } else {
-        spring(c.pos, c.vel, goal, 5, dt);
-        spring(c.look, c.lvel, lookGoal, 7, dt);
+        spring(c.pos, c.vel, goal, 6, dt);
+        spring(c.look, c.lvel, lookGoal, 6, dt);
       }
       c.fov += (CHASE.fov + CHASE.fovSpeed * THREE.MathUtils.smoothstep(spd, 5, CHASE.speedFull) - c.fov) * ease(2, dt);
-      followPos = c.pos;
-      followLook = c.look;
+      followPos = off.copy(c.pos).add(target.current);
+      followLook = lookAt.copy(c.look).add(target.current);
       fovNow = c.fov;
     }
 
