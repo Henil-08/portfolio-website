@@ -46,15 +46,18 @@ export function LookEnvironment() {
 // Khronos PBR Neutral (the studio's choice, studio/StudioStage.tsx STUDIO_TONE): filmic in the
 // highlights, and below the shoulder base colours come out as they went in, so paper stays paper,
 // ink ink and orange orange. AgX was tried for the record: it greys and desaturates the orange.
-// The exposure is ours (a uniform), so it can follow the time of day every frame.
+// The exposure is ours (a uniform), so it can follow the time of day every frame, and so is how
+// much of the toe is kept (`toe`, Effects.tsx SCENES_NEXT): Khronos's offset scaled, the same
+// curve with the same slope where it meets the straight part, so nothing kinks.
 const NEUTRAL = /* glsl */ `
 uniform float exposure;
+uniform float toe;
 vec3 lookNeutral(vec3 color) {
   const float startCompression = 0.8 - 0.04;
   const float desaturation = 0.15;
   color *= exposure;
   float x = min(color.r, min(color.g, color.b));
-  float offset = x < 0.08 ? x - 6.25 * x * x : 0.04;
+  float offset = (x < 0.08 ? x - 6.25 * x * x : 0.04) * toe;
   color -= offset;
   float peak = max(color.r, max(color.g, color.b));
   if (peak < startCompression) return color;
@@ -70,7 +73,13 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
 
 export class LookToneEffect extends Effect {
   constructor() {
-    super("LookToneEffect", NEUTRAL, { blendFunction: BlendFunction.SRC, uniforms: new Map([["exposure", new THREE.Uniform(1)]]) });
+    super("LookToneEffect", NEUTRAL, {
+      blendFunction: BlendFunction.SRC,
+      uniforms: new Map([
+        ["exposure", new THREE.Uniform(1)],
+        ["toe", new THREE.Uniform(1)],
+      ]),
+    });
   }
 }
 
@@ -79,7 +88,9 @@ export function LookTone() {
   const effect = useMemo(() => new LookToneEffect(), []);
   useEffect(() => () => effect.dispose(), [effect]);
   useFrame(() => {
-    effect.uniforms.get("exposure")!.value = sceneParams().exposure;
+    const p = sceneParams();
+    effect.uniforms.get("exposure")!.value = p.exposure;
+    effect.uniforms.get("toe")!.value = p.toe;
   });
   return <primitive object={effect} />;
 }

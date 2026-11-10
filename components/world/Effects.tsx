@@ -32,16 +32,19 @@ export const SCENES = {
 // the warm key shapes things. The HDRI's cosine-weighted radiance is ~1.28 (measured), so env
 // 0.16 is a fill of ~0.2 x albedo against the key's ~0.9: about 4:1 on the ground by day, more on
 // walls. Exposure per time of day feeds the filmic tone mapping (lookWorld.tsx LookTone): dusk
-// and night open up a little, as a camera would.
+// and night open up a little, as a camera would. `toe`: how much of the tone map's toe is kept
+// (lookWorld.tsx LookTone; 1 is Khronos PBR Neutral, which squares everything under ~0.08 and took
+// the ink roofs, the tarmac and a dark livery to pure black). Half of it by day puts ink, tarmac
+// and the car back where the approved world has them; night keeps more of it, so it stays dark.
 export const SCENES_NEXT = {
-  day: { ...SCENES.day, sun: 3.1, sunColor: "#fff3e6", hemi: 0.12, hemiSky: "#dde6f0", hemiGround: "#b3ada2", env: 0.16, exposure: 1.1 },
-  golden: { ...SCENES.golden, sun: 2.7, sunColor: "#ffcfa3", hemi: 0.14, hemiSky: "#e4e2ea", hemiGround: "#958d82", env: 0.13, exposure: 1.15 },
-  night: { ...SCENES.night, sun: 0.55, sunColor: "#9db4d8", hemi: 0.2, hemiSky: "#3a475a", hemiGround: "#101215", env: 0.025, exposure: 1.35 },
+  day: { ...SCENES.day, sun: 3.1, sunColor: "#fff3e6", hemi: 0.12, hemiSky: "#dde6f0", hemiGround: "#b3ada2", env: 0.16, exposure: 1.1, toe: 0.5 },
+  golden: { ...SCENES.golden, sun: 2.7, sunColor: "#ffcfa3", hemi: 0.14, hemiSky: "#e4e2ea", hemiGround: "#958d82", env: 0.13, exposure: 1.15, toe: 0.55 },
+  night: { ...SCENES.night, sun: 0.55, sunColor: "#9db4d8", hemi: 0.2, hemiSky: "#3a475a", hemiGround: "#101215", env: 0.025, exposure: 1.35, toe: 0.75 },
 } as const;
 
 // The garage studio (bloom/state.ts `studio`): the proposal's turntable light (app/docs/brand/world
 // models.tsx `Lights`) under a paper sky, and paper fog, the colour of the dot floor.
-const STUDIO_NOW = { sun: 2.4, sunColor: "#fff6ea", hemi: 1.0, hemiSky: "#ffffff", hemiGround: "#b8b4a9", env: 0.2, top: "#ebe9e3", mid: "#ebe9e3", bottom: "#ebe9e3", fog: "#ebe9e3", exposure: 1 };
+const STUDIO_NOW = { sun: 2.4, sunColor: "#fff6ea", hemi: 1.0, hemiSky: "#ffffff", hemiGround: "#b8b4a9", env: 0.2, top: "#ebe9e3", mid: "#ebe9e3", bottom: "#ebe9e3", fog: "#ebe9e3", exposure: 1, toe: 1 };
 // look=next: the same turntable key over the HDRI's soft fill instead of a flat white dome
 const STUDIO = NEXT ? { ...STUDIO_NOW, sun: 2.7, hemi: 0.35, hemiSky: "#eef1f4", env: 0.3 } : STUDIO_NOW;
 
@@ -115,11 +118,11 @@ export function Weather() {
   );
 }
 
-type Params = { sun: number; sunColor: THREE.Color; hemi: number; hemiSky: THREE.Color; hemiGround: THREE.Color; env: number; exposure: number; top: THREE.Color; mid: THREE.Color; bottom: THREE.Color; fog: THREE.Color };
+type Params = { sun: number; sunColor: THREE.Color; hemi: number; hemiSky: THREE.Color; hemiGround: THREE.Color; env: number; exposure: number; toe: number; top: THREE.Color; mid: THREE.Color; bottom: THREE.Color; fog: THREE.Color };
 const K = Object.fromEntries(
   Object.entries(NEXT ? SCENES_NEXT : SCENES).map(([k, v]) => [
     k,
-    { exposure: 1, ...v, sunColor: new THREE.Color(v.sunColor), hemiSky: new THREE.Color(v.hemiSky), hemiGround: new THREE.Color(v.hemiGround), top: new THREE.Color(v.top), mid: new THREE.Color(v.mid), bottom: new THREE.Color(v.bottom), fog: new THREE.Color(v.fog) },
+    { exposure: 1, toe: 1, ...v, sunColor: new THREE.Color(v.sunColor), hemiSky: new THREE.Color(v.hemiSky), hemiGround: new THREE.Color(v.hemiGround), top: new THREE.Color(v.top), mid: new THREE.Color(v.mid), bottom: new THREE.Color(v.bottom), fog: new THREE.Color(v.fog) },
   ])
 ) as Record<keyof typeof SCENES, Params>;
 const KS: Params = { ...STUDIO, sunColor: new THREE.Color(STUDIO.sunColor), hemiSky: new THREE.Color(STUDIO.hemiSky), hemiGround: new THREE.Color(STUDIO.hemiGround), top: new THREE.Color(STUDIO.top), mid: new THREE.Color(STUDIO.mid), bottom: new THREE.Color(STUDIO.bottom), fog: new THREE.Color(STUDIO.fog) };
@@ -130,6 +133,7 @@ function blend(a: Params, b: Params, k: number) {
   out.hemi = THREE.MathUtils.lerp(a.hemi, b.hemi, k);
   out.env = THREE.MathUtils.lerp(a.env, b.env, k);
   out.exposure = THREE.MathUtils.lerp(a.exposure, b.exposure, k);
+  out.toe = THREE.MathUtils.lerp(a.toe, b.toe, k);
   out.sunColor.lerpColors(a.sunColor, b.sunColor, k);
   out.hemiSky.lerpColors(a.hemiSky, b.hemiSky, k);
   out.hemiGround.lerpColors(a.hemiGround, b.hemiGround, k);
@@ -177,6 +181,7 @@ export function sceneParams() {
     p.hemi = THREE.MathUtils.lerp(p.hemi, KS.hemi, k);
     p.env = THREE.MathUtils.lerp(p.env, KS.env, k);
     p.exposure = THREE.MathUtils.lerp(p.exposure, KS.exposure, k);
+    p.toe = THREE.MathUtils.lerp(p.toe, KS.toe, k);
     p.sunColor.lerp(KS.sunColor, k);
     p.hemiSky.lerp(KS.hemiSky, k);
     p.hemiGround.lerp(KS.hemiGround, k);
