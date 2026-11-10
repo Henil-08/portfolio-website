@@ -377,3 +377,27 @@ current, next, current, next, and the comparison is pair by pair. Pair 2 (the qu
 
 Measured and not done: MSAA at DPR 1.75 is free on the Mac's tile GPU; a discrete GPU at 4K may
 want DPR 1.5 with it. Tier rules are unchanged, so Auto would step down there as before.
+
+## Baked light on look=next (2026-11-09)
+
+scripts/bake/run.mjs bakes AO, sun visibility and bounce for 230 static meshes (terrain, road,
+kerbs, buildings, trackside, hardscape) into six maps (components/world/bake/*). Production build,
+`?look=next` against `?look=next&bake=off`, same harness (25 s laps, day and night):
+
+| config | cond | fps | mean | p95 | p99 | max | calls | GPU MB |
+|---|---|---|---|---|---|---|---|---|
+| chrome, bake=off | day | 60 | 16.7 | 17.2 | 17.5 | 18.1 | 361 | 124 |
+| chrome, bake | day | 60 | 16.7 | 17.5 | 17.8 | 19.1 | 362 | 164 |
+| chrome, bake | night | 60 | 16.7 | 17.1 | 17.5 | 18.4 | 344 | 164 |
+| chrome4x, bake=off | day | 48 | 20.8 | 27.6 | 30.8 | 116 | 351 | 107 |
+| chrome4x, bake | day | 54.3 | 18.4 | 25 | 28.8 | 79 | 350 | 147 |
+| mobile, bake | day | 58.7 | 17 | 19.6 | 21.4 | 24 | 320 | 98 |
+
+- Frame cost: none measurable (one texture read and a few multiplies on the baked meshes; no
+  extra draw calls, a few more programs).
+- GPU memory: +40 MB (7.5 Mpx of maps with mipmaps, RGBA8). Low tier (phones) never loads it.
+  An Auto drop to Low after it has loaded (chrome4x above) keeps it.
+- Download: 4.6 MB (WebP maps 3.6 MB, light-map uv 1.2 MB), fetched 3 s after the reveal.
+- Coming in: matched and swapped one chunk a frame, programs compiled in parallel first, maps
+  uploaded one a frame. The first version's 730 ms frame (StaticAO re-cloning baked materials,
+  which then compiled unpatched) is gone: no frame over 33 ms from it on chrome.
