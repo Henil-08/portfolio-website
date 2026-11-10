@@ -20,6 +20,7 @@ import { paintPark } from "./park/layout";
 import { paintParkSlabs } from "./districts/park";
 import { MONUMENT_SPOTS, PLINTH_R } from "./contactRing";
 import { START_PLANTERS } from "./start";
+import { JOURNEY_FOOT, paintJourney } from "./journey/footprint";
 import { TIERS, useQuality } from "./quality";
 
 // The original grass: one triangle per blade (tip + two base corners), laid out on a
@@ -106,7 +107,9 @@ function makeMask() {
   g.fillRect(tx(-35), tx(PIT.garageZ - 5), 62 * s, (PIT.z - 3 - (PIT.garageZ - 5)) * s);
   // Plaza and the places.
   // (the timeline's planters stand just outside the pad's long sides)
-  g.fillRect(tx(TIMELINE.pos[0] - TIMELINE.hx), tx(TIMELINE.pos[1] - TIMELINE.hz - 1.6), TIMELINE.hx * 2 * s, (TIMELINE.hz + 1.6) * 2 * s);
+  if (!JOURNEY_FOOT) g.fillRect(tx(TIMELINE.pos[0] - TIMELINE.hx), tx(TIMELINE.pos[1] - TIMELINE.hz - 1.6), TIMELINE.hx * 2 * s, (TIMELINE.hz + 1.6) * 2 * s);
+  // a journey under review (?journey=a|b|c) covers its own ground
+  paintJourney(g, tx, s);
   for (const z of zones) g.fillRect(tx(z.pos[0] - z.size[0] / 2), tx(z.pos[1] - z.size[1] / 2), z.size[0] * s, z.size[1] * s);
   for (const sc of SECTORS) {
     g.save();

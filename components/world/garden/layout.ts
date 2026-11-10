@@ -8,6 +8,7 @@
 // run around it and out to each place.
 import * as THREE from "three";
 import { nearCrossing, nearestT, TIMELINE, TRACK_WIDTH } from "../layout";
+import { JOURNEY_FOOT } from "../journey/footprint";
 
 export type Path = { pts: [number, number][]; w: number };
 
@@ -17,9 +18,10 @@ export const PATHS: Path[] = [
   // West: past the pond, down to the cricket ground.
   { pts: [[-42, 14.5], [-41, 6], [-38.5, -2.5]], w: 2 },
   // From the terrace's west end out to the west path.
-  { pts: [[TIMELINE.pos[0] - TIMELINE.hx - 0.3, 3], [-31, 3.4], [-40.8, 4]], w: 2 },
+  // (a journey under review, ?journey=a|b|c, moves both ends to its own edges)
+  { pts: [[(JOURNEY_FOOT?.minX ?? TIMELINE.pos[0] - TIMELINE.hx) - 0.3, 3], [-31, 3.4], [-40.8, 4]], w: 2 },
   // From the terrace's east end, along the tyre wall, out to the east path.
-  { pts: [[TIMELINE.pos[0] + TIMELINE.hx + 0.3, 3], [19, 3.4], [31, 3]], w: 2 },
+  { pts: [[(JOURNEY_FOOT?.maxX ?? TIMELINE.pos[0] + TIMELINE.hx) + 0.3, 3], [19, 3.4], [31, 3]], w: 2 },
   // East: from the promenade, down past the letters and out to the park.
   { pts: [[27, 14.2], [31, 6], [31.2, -2], [25.5, -10]], w: 2 },
   // The way to the circuit (owner: a sandy road, no paving): from the promenade's

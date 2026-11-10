@@ -38,7 +38,7 @@ import {
 import { LETTER_WIDTH, type LetterChar } from "./models/props/Letter";
 import PitRoads from "./PitRoads";
 import PitWallRun from "./PitWallRun";
-import Timeline from "./Timeline";
+import Journey from "./journey";
 import Groves from "./Groves";
 import Garden from "./garden";
 import Social from "./social";
@@ -56,7 +56,6 @@ import {
   GRANDSTAND,
   inLand,
   LETTERS,
-  TIMELINE,
   PIT,
   pitWallZ,
   SECTORS,
@@ -550,7 +549,8 @@ export default function Places() {
       <PitLane />
       <PitRoads />
       <PitWallRun />
-      <Timeline position={[TIMELINE.pos[0], heightAt(TIMELINE.pos[0], TIMELINE.pos[1]), TIMELINE.pos[1]]} rotation={TIMELINE.rot} />
+      {/* the career journey: the current terrace, or a redesign under review (?journey=a|b|c) */}
+      <Journey />
       <Sectors />
       <Signposts />
       <Letters />
