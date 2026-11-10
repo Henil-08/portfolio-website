@@ -107,7 +107,7 @@ export default function LookPage() {
           </div>
         </section>
 
-        <div className="sticky top-[58px] z-20 -mx-4 mt-12 flex items-center gap-2 border-b-2 border-ink bg-paper px-4 py-3">
+        <div className="sticky top-[42px] z-20 -mx-4 mt-12 flex items-center gap-2 border-b-2 border-ink bg-paper px-4 py-3">
           <span className="mr-2 font-mono text-[12px] text-graphite">Condition</span>
           {CONDS.map((c) => (
             <button key={c.id} onClick={() => setCond(c.id)} className={`ds-tab ${cond === c.id ? "bg-ink text-white" : ""}`} aria-pressed={cond === c.id}>
