@@ -32,7 +32,6 @@ export default function Baked() {
   const go = NEXT && !OFF && revealed && tier !== "low";
   const done = useRef<Entry[] | null>(null);
   const sun = useRef<THREE.DirectionalLight | null>(null);
-  const tick = useRef(0);
   const ref = useRef({ scale: 3.1 });
   const cam = useRef(camera);
   useEffect(() => {
@@ -58,7 +57,7 @@ export default function Baked() {
         return { stats: r.stats, chunks: r.chunks.map((c) => ({ ...c, glb: c.glb.length })) };
       },
       chunk: (i: number) => last?.chunks[i].glb ?? null,
-      stats: () => ({ baked: done.current?.length ?? 0, matchMs: Math.round(timing.match) }),
+      stats: () => ({ baked: done.current?.length ?? 0, worstMatchMs: Math.round(timing.match) }),
       ids: async () => [...(await import("./ids")).receivers(scene).keys()],
       // meshes (and instanced copies) whose world box holds a point
       at: (x: number, y: number, z: number) => {
@@ -118,9 +117,18 @@ export default function Baked() {
         await sleep(pass === 0 ? 1500 : pass === 1 ? 5000 : 15000);
         if (dead) return;
         scene.updateMatrixWorld(true);
-        const t0 = performance.now();
-        const { baked, missing } = match(scene, chunks, want);
-        timing.match += performance.now() - t0;
+        // one chunk a frame: the geometry copies cost a few ms each
+        const baked: Entry[] = [];
+        const missing: string[] = [];
+        for (const c of chunks) {
+          const t0 = performance.now();
+          const r = match(scene, [c], want);
+          timing.match = Math.max(timing.match, performance.now() - t0);
+          baked.push(...r.baked);
+          missing.push(...r.missing);
+          await nextFrame();
+          if (dead) return;
+        }
         await install(baked, gl, camera, scene, () => dead);
         list.push(...baked);
         done.current = list;
@@ -150,9 +158,11 @@ export default function Baked() {
       u.uBakeFar.value.set(half * 0.62, half * 0.9);
       u.uBakeTint.value.copy(s.color).multiplyScalar(s.intensity / ref.current.scale);
     }
-    // a later clone of the material (StaticAO, a livery of the look) drops the patch: put it back
-    if (++tick.current % 30 === 0) keepPatched(list);
   });
+
+  // a later clone of a baked mesh's material (StaticAO's, on every bakedLight.version) drops the
+  // patch: it goes back on just before the scene draws, so no frame draws (or compiles) without it
+  useEffect(() => (NEXT ? beforeRender(scene, keepPatched) : undefined), [scene]);
 
   return null;
 }
@@ -173,11 +183,17 @@ async function install(baked: Entry[], gl: THREE.WebGLRenderer, camera: THREE.Ca
   } catch {}
   stage.clear();
   if (dead()) return;
-  baked.forEach((b, i) => {
-    b.mesh.geometry = b.geometry;
-    b.mesh.material = mats[i];
-    owned.set(b.mesh, b);
-  });
+  // one chunk a frame: their buffers go up to the GPU over a few frames, not all in one
+  for (const tex of new Set(baked.map((b) => b.tex))) {
+    baked.forEach((b, i) => {
+      if (b.tex !== tex) return;
+      b.mesh.geometry = b.geometry;
+      b.mesh.material = mats[i];
+      owned.set(b.mesh, b);
+    });
+    await new Promise((r) => requestAnimationFrame(r));
+    if (dead()) return;
+  }
   // look.ts's hook: StaticAO gets these meshes' aoMap and skips its per-vertex AO on them
   bakedLight.resolve = (mesh) => {
     const b = owned.get(mesh);
@@ -187,11 +203,23 @@ async function install(baked: Entry[], gl: THREE.WebGLRenderer, camera: THREE.Ca
 }
 
 /** Puts the bake back on any mesh whose material was swapped for one without it (kept out of the hook). */
-function keepPatched(list: Entry[]) {
-  for (const b of list) {
-    const m = b.mesh.material as THREE.Material;
-    if (!isBakeMaterial(m)) b.mesh.material = bakedMaterial(m, b);
+function keepPatched() {
+  for (const [mesh, b] of owned) {
+    const m = mesh.material as THREE.Material;
+    if (!isBakeMaterial(m)) mesh.material = bakedMaterial(m, b);
   }
+}
+
+/** Runs `fn` at the start of every render of `scene` (after every useFrame); returns the undo. */
+function beforeRender(scene: THREE.Scene, fn: () => void) {
+  const prev = scene.onBeforeRender;
+  scene.onBeforeRender = function (...args) {
+    prev.apply(this, args);
+    fn();
+  };
+  return () => {
+    scene.onBeforeRender = prev;
+  };
 }
 
 /** The mesh's own material (cloned unless it already carries this bake) with the bake on it. */
