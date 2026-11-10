@@ -2,7 +2,8 @@
 // fixed poses, rendered in the current look and in ?look=next at day, dusk, night and rain,
 // then laid side by side. Writes every still to <out>/<look>-<pose>-<cond>.jpg, one contact sheet
 // per condition (<out>/sheet-<cond>.jpg, current left, next right) and, with PUBLIC=1, the
-// review page's images (public/look/<pose>-<cond>-<look>.webp, /docs/brand/look).
+// review page's images (public/look/<pose>-<cond>-<look>.webp, /docs/brand/look). The next look
+// is shot with the Blender baked light on (components/world/bake/*; BAKE=off shoots it without).
 //
 //   PW=<dir with node_modules/playwright> node scripts/look/compare.mjs <out dir> [base url]
 //   base defaults to http://localhost:3100/ (a running dev server or `next start`).
@@ -53,14 +54,22 @@ async function shoot(browser, look) {
   page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
   page.on("console", (m) => m.type() === "error" && errors.push(m.text().slice(0, 200)));
   const sep = base.includes("?") ? "&" : "?";
-  await page.goto(`${base}${sep}skip&perf&quality=high&look=${look}&cam=current&hud=current&bake=off`, { waitUntil: "load", timeout: 120000 });
+  const bake = process.env.BAKE === "off" ? "&bake=off" : "";
+  await page.goto(`${base}${sep}skip&perf&quality=high&look=${look}&cam=current&hud=current${bake}`, { waitUntil: "load", timeout: 120000 });
   for (let i = 0; i < 240; i++) {
     if (await page.evaluate(() => window.__perf?.stage().revealed && window.__car).catch(() => false)) break;
     await sleep(500);
   }
   await page.addStyleTag({ content: HIDE_HUD });
-  // let the boot's AO bake (look=next) and the shaders settle
+  // let the boot's AO bake and the baked light land and fade in (look=next), and the shaders settle
   await sleep(6000);
+  if (look === "next")
+    for (let i = 0; i < 60; i++) {
+      const ready = await page.evaluate(() => (window.__lookAO?.queued ?? 0) === 0 && (!!window.__bake?.stats?.().baked || location.search.includes("bake=off"))).catch(() => true);
+      if (ready) break;
+      await sleep(500);
+    }
+  await sleep(2000);
   const spawn = await page.evaluate(() => [__car.pos.x, __car.pos.z, Math.atan2(-__car.forward.z, __car.forward.x)]);
   for (const [cond, time, weather] of CONDS) {
     await page.evaluate(([t, w]) => { window.__clockStop = false; window.__perf.scene(t, w); }, [time, weather]);
@@ -107,7 +116,7 @@ async function sheets() {
     }
     const top = 40;
     const rowH = H + 30;
-    const comp = [{ input: label(`Look comparison · ${cond} · left: current · right: ?look=next`, W * 2 + 10, 40), left: 0, top: 0 }];
+    const comp = [{ input: label(`Look comparison · ${cond} · left: current · right: ?look=next${process.env.BAKE === "off" ? " (bake off)" : " (baked light on)"}`, W * 2 + 10, 40), left: 0, top: 0 }];
     rows.forEach(({ pose, tiles }, i) => {
       const y = top + i * rowH;
       comp.push({ input: label(`${pose.name} · current`, W), left: 0, top: y });

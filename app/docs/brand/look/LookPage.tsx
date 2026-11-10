@@ -26,10 +26,11 @@ const POSES = [
 ];
 
 const CHANGES = [
-  ["HDR and tone mapping", "Filmic Khronos PBR Neutral at the end of the post chain, with an exposure per time of day. Highlights roll off instead of clipping; paper, ink and orange stay true below the shoulder."],
-  ["Light", "The flat hemisphere fill drops from 0.7 to about 0.15. A CC0 overcast sky (Poly Haven) lights and reflects through a prefiltered environment map, under a warmer key. Shadows take the sky's cool colour and are never black. Night and rain have their own keys and exposures."],
+  ["HDR and tone mapping", "Filmic Khronos PBR Neutral at the end of the post chain, with an exposure per time of day and a softened toe, so ink roofs, the tarmac and a dark car keep their form instead of going pure black. Highlights roll off instead of clipping; paper, ink and orange stay true below the shoulder."],
+  ["Light", "The flat hemisphere fill drops from 0.7 to about 0.15. A CC0 overcast sky (Poly Haven) lights and reflects through a prefiltered environment map, under a warmer key. Shadows take the sky's cool colour and are never black. Night and rain have their own keys and exposures; at night a warm lamp over the car's tail keeps it readable on the dark tarmac."],
   ["Materials", "Uniform satin plastic is retired: roughness by surface (paper matte, concrete and asphalt rough, ink semi-matte, glass glossy, metal brushed), clearcoat on the car paint over the livery's own colours, and small CC0 micro-textures (normal and roughness only, no colour) mapped in world space, so no model needs UVs. Rain glosses the tarmac."],
-  ["Contact and occlusion", "A soft contact shadow under the car, and ambient occlusion baked once at load onto the static kit models (done during the boot, nothing per frame)."],
+  ["Contact and occlusion", "A soft contact shadow under the car, and ambient occlusion baked once at load onto the static kit models (done during the boot, nothing per frame), easing in model by model."],
+  ["Baked light", "Ambient occlusion, far sun shadows and bounce light baked in Blender for the static world (terrain, road, kerbs, buildings), fetched after the opening and faded in over a second. The stills on the right include it; &bake=off turns it off."],
   ["Anti-aliasing", "MSAA on the composer on High, so fences, kerbs and thin lines stop crawling; SMAA stays on Balanced and Low."],
   ["Post", "Bloom only past 1.0, at 0.25. Light grain and a slight vignette on High only."],
 ] as const;
@@ -82,6 +83,12 @@ export default function LookPage() {
                 <span className="text-graphite">back to the current look</span>
               </li>
               <li className="flex flex-wrap items-baseline gap-x-3 px-3 py-2.5">
+                <Link href="/?look=next&bake=off" className="x-link font-semibold">
+                  &amp;bake=off
+                </Link>
+                <span className="text-graphite">the polish pass without the baked light</span>
+              </li>
+              <li className="flex flex-wrap items-baseline gap-x-3 px-3 py-2.5">
                 <Link href="/?look=next&cam=next" className="x-link font-semibold">
                   &amp;cam=next
                 </Link>
@@ -114,7 +121,7 @@ export default function LookPage() {
               {c.name}
             </button>
           ))}
-          <span className="ml-auto hidden font-mono text-[12px] text-graphite sm:inline">left: current · right: next</span>
+          <span className="ml-auto hidden font-mono text-[12px] text-graphite sm:inline">left: current · right: next, baked light on</span>
         </div>
 
         {POSES.map((p, i) => (
@@ -129,7 +136,7 @@ export default function LookPage() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={`/look/${p.id}-${cond}-${l}.webp`} alt={`${p.name}, ${cond}, ${l} look`} loading="lazy" className="aspect-[8/5] w-full object-cover" />
                   <figcaption className="border-t-2 border-ink px-2 py-1.5 font-mono text-[12px]">
-                    {l === "current" ? "Current" : "?look=next"} · {CONDS.find((c) => c.id === cond)!.name}
+                    {l === "current" ? "Current" : "?look=next · baked light"} · {CONDS.find((c) => c.id === cond)!.name}
                   </figcaption>
                 </figure>
               ))}
