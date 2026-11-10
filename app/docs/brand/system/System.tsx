@@ -966,6 +966,9 @@ export default function System() {
           <Link href="/docs/brand/places" className={`font-mono ml-auto text-[12px] text-[#5d5d58] hover:text-[#111] md:ml-0`}>
             Places ↗
           </Link>
+          <Link href="/docs/brand/journey" className={`font-mono text-[12px] text-[#5d5d58] hover:text-[#111]`}>
+            Journey ↗
+          </Link>
           <Link href="/docs/brand/logo/motion" className={`font-mono text-[12px] text-[#5d5d58] hover:text-[#111]`}>
             Logo ↗
           </Link>
