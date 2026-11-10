@@ -401,3 +401,25 @@ kerbs, buildings, trackside, hardscape) into six maps (components/world/bake/*).
 - Coming in: matched and swapped one chunk a frame, programs compiled in parallel first, maps
   uploaded one a frame. The first version's 730 ms frame (StaticAO re-cloning baked materials,
   which then compiled unpatched) is gone: no frame over 33 ms from it on chrome.
+
+### look=next polish fixes (2026-11-09, later)
+
+The bake and the per-vertex AO now ease in (0.9 s and 0.6 s), the tone map keeps part of its
+toe, a night lamp rides over the car (one point light, always present, 0 by day) and the trees'
+unwritten instance slots are empty matrices. Production build, `?look=next` with the bake,
+`SECS=25`:
+
+| config | cond | fps | p95 | p99 | max | cpu | calls | GPU MB | tier |
+|---|---|---|---|---|---|---|---|---|---|
+| chrome | day | 60 | 17.5 | 17.7 | 20.3 | 4.3 | 362 | 165 | High |
+| chrome | night | 60 | 17.4 | 17.7 | 17.9 | 4.1 | 343 | 165 | High |
+| chrome4x | day | 48.9-50.5 | 23.5-26.1 | 28-33 | 42-43 | 18.1-18.7 | 358-360 | 165 | High |
+| chrome4x | night | 51.8-56.5 | 20.5-23 | 22.6-26.6 | 31-35 | 16.2-17.7 | 340-344 | 155-165 | High / Balanced |
+| mobile | day | 59.9 | 17.8 | 18.7 | 21.5 | 12.3 | 322 | 98 | Low |
+| mobile | night | 60 | 18.5 | 19.2 | 21.9 | 11.5 | 301 | 98 | Low |
+
+- Same as before the fixes (chrome p95 17.1-17.5, 362/344 calls, 164 MB; mobile 58.7 fps): the
+  night lamp costs nothing measurable and the AO ramp's re-uploads stay inside the frame.
+- One of four chrome4x day runs had a single 1.9 s long task as Auto stepped down to Balanced;
+  the other three had none over 43 ms. A forced High to Balanced switch at 4x measures 176 ms on
+  look=next against 81 ms on the current look (the post chain is rebuilt); left as it is.
