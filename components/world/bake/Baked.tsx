@@ -58,7 +58,7 @@ export default function Baked() {
         return { stats: r.stats, chunks: r.chunks.map((c) => ({ ...c, glb: c.glb.length })) };
       },
       chunk: (i: number) => last?.chunks[i].glb ?? null,
-      stats: () => ({ baked: done.current?.length ?? 0 }),
+      stats: () => ({ baked: done.current?.length ?? 0, matchMs: Math.round(timing.match) }),
       ids: async () => [...(await import("./ids")).receivers(scene).keys()],
       // meshes (and instanced copies) whose world box holds a point
       at: (x: number, y: number, z: number) => {
@@ -104,6 +104,12 @@ export default function Baked() {
       const manifest = await loadManifest();
       if (!manifest || dead) return;
       const chunks = await loadChunks(manifest);
+      // the maps go up to the GPU one a frame now, not all in the frame that first draws them
+      for (const c of chunks) {
+        if (dead) return;
+        gl.initTexture(c.tex);
+        await nextFrame();
+      }
       bakeUniforms.uBakeSun.value.fromArray(manifest.sun).normalize();
       ref.current.scale = manifest.light.sun;
       const list: Entry[] = [];
@@ -112,7 +118,9 @@ export default function Baked() {
         await sleep(pass === 0 ? 1500 : pass === 1 ? 5000 : 15000);
         if (dead) return;
         scene.updateMatrixWorld(true);
+        const t0 = performance.now();
         const { baked, missing } = match(scene, chunks, want);
+        timing.match += performance.now() - t0;
         await install(baked, gl, camera, scene, () => dead);
         list.push(...baked);
         done.current = list;
@@ -150,6 +158,8 @@ export default function Baked() {
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const nextFrame = () => new Promise((r) => requestAnimationFrame(r));
+const timing = { match: 0 };
 const owned = new Map<THREE.Mesh, Entry>();
 
 /** Compiles the baked materials in parallel (KHR_parallel_shader_compile), then swaps them in. */
