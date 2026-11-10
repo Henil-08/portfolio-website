@@ -19,6 +19,7 @@ import { DayNight, EnvLight, RainCycle, Spawns, Weather } from "./Effects";
 import Autopilot from "./autopilot/Autopilot";
 import Grass from "./Grass";
 import StartGarden from "./StartGarden";
+import Baked from "./bake/Baked";
 import Alive from "./alive";
 import Street from "./street";
 import { bindKeyboard } from "./input";
@@ -85,6 +86,7 @@ export default function World() {
           <StartGarden />
           <Spawns />
           {NEXT && <ContactShadow />}
+          <Baked />
         </Physics>
       </Suspense>
       <CameraRig />
