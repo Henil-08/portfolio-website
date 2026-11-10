@@ -31,7 +31,7 @@ import { indoor } from "./indoor";
 import { cullFrame, pauseCulling } from "./instanceCull";
 import { COARSE, TIERS, governor, useQuality } from "./quality";
 import { LOOK_TIERS, NEXT } from "./look";
-import { ContactShadow, LookEnvironment, LookExposure, LookTier, LookTone, StaticAO } from "./lookWorld";
+import { CarFill, ContactShadow, LookEnvironment, LookExposure, LookTier, LookTone, StaticAO } from "./lookWorld";
 
 export default function World() {
   // Phones get the light version from the start (quality.ts: Low, no post, MSAA on the canvas).
@@ -104,6 +104,7 @@ export default function World() {
       {NEXT && (
         <>
           <StaticAO />
+          <CarFill />
           <LookTier />
           {msaa && <LookExposure />}
         </>

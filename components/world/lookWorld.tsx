@@ -13,6 +13,7 @@ import { carState } from "./carState";
 import { getState } from "./store";
 import { studio } from "./bloom/state";
 import { indoor } from "./indoor";
+import { dayNight } from "./daynight";
 import { heightAt } from "./terrain";
 import { sceneParams } from "./Effects";
 import { bakedLight, relook, setLookTier, type BakedLight } from "./look";
@@ -214,6 +215,31 @@ export function ContactShadow() {
       <meshBasicMaterial map={tex} color="#15181d" transparent opacity={0} depthWrite={false} polygonOffset polygonOffsetFactor={-4} polygonOffsetUnits={-4} />
     </mesh>
   );
+}
+
+/* ------------------------------------------------------------------ the car at night */
+
+/**
+ * At night the car's own light: a warm lamp over its tail, so the car and a pool of tarmac round
+ * it read under the chase camera (an ink livery on dark asphalt was lost), the rest of the night
+ * untouched (it reaches ~9 m). Always in the scene, at 0 by day, so the light count never changes
+ * and nothing recompiles; off in the garage studio and indoors.
+ */
+export function CarFill() {
+  const light = useRef<THREE.PointLight>(null);
+  const k = useRef(0);
+  useFrame((_, dt) => {
+    const l = light.current;
+    if (!l) return;
+    const g = getState();
+    const want = g.phase === "world" && !indoor.on ? dayNight.night * (1 - studio.k) : 0;
+    k.current += (want - k.current) * Math.min(1, dt * 3);
+    l.intensity = k.current * 7;
+    const p = carState.pos;
+    const f = carState.forward;
+    l.position.set(p.x - f.x * 1.4, p.y + 2.6, p.z - f.z * 1.4);
+  });
+  return <pointLight ref={light} color="#fff3dc" intensity={0} distance={9} decay={1.6} />;
 }
 
 /* ------------------------------------------------------------------ baked AO and baked light */
