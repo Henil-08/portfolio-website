@@ -13,14 +13,19 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useRapier } from "@react-three/rapier";
 import * as THREE from "three";
 import { NEXT, bakedLight, clonePatched } from "../look";
+import { JOURNEY } from "../journey/choice";
 import { useWorld } from "../store";
 import { useQuality } from "../quality";
 import { carState } from "../carState";
 import { dayNight } from "../daynight";
 import { AO_INTENSITY, bakeUniforms, isBakeMaterial, loadChunks, loadManifest, match, patchBake, type Baked as Entry } from "./apply";
 
-/** `?bake=off`: look=next without the bake, for side-by-side checks. */
-const OFF = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("bake") === "off";
+/**
+ * `?bake=off`: look=next without the bake, for side-by-side checks. Off too under a journey
+ * redesign (`?journey=a|b|c`, ../journey/choice.ts): the bake holds the current terrace, whose
+ * shadow and AO would stay on the grass round the new one (rebake once one is chosen).
+ */
+const OFF = (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("bake") === "off") || JOURNEY !== "current";
 
 export default function Baked() {
   const scene = useThree((s) => s.scene);
