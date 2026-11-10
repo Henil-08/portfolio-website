@@ -16,7 +16,7 @@ import { indoor } from "./indoor";
 import { heightAt } from "./terrain";
 import { sceneParams } from "./Effects";
 import { bakedLight, relook, setLookTier, type BakedLight } from "./look";
-import { bakeLookAO, type AoPart } from "./lookAO";
+import { bakeLookAO, stepLookAO, type AoPart } from "./lookAO";
 import { quality, useQuality } from "./quality";
 import { garageView } from "./garage/state";
 import { ownCopies } from "./instanceCull";
@@ -242,7 +242,8 @@ export function StaticAO() {
   const scene = useThree((s) => s.scene);
   const st = useRef({ queue: [] as Job[], last: 0, seen: new WeakSet<THREE.BufferGeometry>(), lit: new WeakSet<THREE.Mesh>(), version: -1, busy: false });
 
-  useFrame(() => {
+  useFrame((_, dt) => {
+    stepLookAO(dt);
     const s = st.current;
     const now = performance.now();
     const g = getState();

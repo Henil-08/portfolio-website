@@ -6,7 +6,7 @@
 // fence, not a stall: during the boot the GPU is busy compiling, and a synchronous read waited
 // seconds for it). The result goes in the geometry's
 // `lookAO` attribute, which every looked material reads (1 where there is none), so a bake
-// recompiles nothing: the attribute appears and the next frame draws with it.
+// recompiles nothing: the attribute appears at 1 and eases to the baked values over a few frames.
 import * as THREE from "three";
 
 /** One part of a model: its geometry and where it sits in the model's frame. */
@@ -43,6 +43,23 @@ function hemisphere(n: number) {
     out.push(new THREE.Vector3(Math.cos(i * ga) * r, y, Math.sin(i * ga) * r));
   }
   return out;
+}
+
+/** Seconds a model's AO takes to come in once baked. */
+export const AO_FADE_S = 0.6;
+const ramps: { attr: THREE.BufferAttribute; to: Float32Array; t: number }[] = [];
+
+/** Eases the AO that has just landed toward its baked values (lookWorld.tsx StaticAO, every frame). */
+export function stepLookAO(dt: number) {
+  for (let i = ramps.length - 1; i >= 0; i--) {
+    const r = ramps[i];
+    r.t = Math.min(1, r.t + Math.min(dt, 0.05) / AO_FADE_S);
+    const k = r.t * r.t * (3 - 2 * r.t);
+    const a = r.attr.array as Float32Array;
+    for (let j = 0; j < a.length; j++) a[j] = 1 - (1 - r.to[j]) * k;
+    r.attr.needsUpdate = true;
+    if (r.t >= 1) ramps.splice(i, 1);
+  }
 }
 
 let rt: THREE.WebGLRenderTarget | null = null;
@@ -182,7 +199,11 @@ export async function bakeLookAO(gl: THREE.WebGLRenderer, parts: AoPart[], o: Lo
       const vis = total > 0 ? seen / total : 1;
       ao[i] = 1 - strength * (1 - Math.pow(vis, curve));
     }
-    g.setAttribute("lookAO", new THREE.BufferAttribute(ao, 1));
+    // lands at 1 (no AO) and eases to the bake over AO_FADE_S (stepLookAO), so a model never pops
+    const attr = new THREE.BufferAttribute(new Float32Array(pos.count).fill(1), 1);
+    attr.setUsage(THREE.DynamicDrawUsage);
+    g.setAttribute("lookAO", attr);
+    ramps.push({ attr, to: ao, t: 0 });
     count += pos.count;
   }
   ms += performance.now() - slice;
