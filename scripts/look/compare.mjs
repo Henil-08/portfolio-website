@@ -30,7 +30,7 @@ const CONDS = [
 const POSES = [
   { id: "chase", name: "Chase start", car: "spawn", cam: `(() => { const p = __car.pos; return [p.x + 10.5, p.y + 12.5, p.z + 14, p.x, p.y - 0.3, p.z]; })()` },
   { id: "straight", name: "Main straight", car: "__placeT(0.02)", cam: `(() => { const p = __car.pos, f = __car.forward; return [p.x - f.x * 9, p.y + 3.2, p.z - f.z * 9, p.x + f.x * 8, p.y + 0.4, p.z + f.z * 8]; })()` },
-  { id: "garage", name: "Garage bay, outside", car: `__world.teleport("garage-agents")`, cam: `(() => { const p = __car.pos, f = __car.forward; return [p.x - f.x * 5.5 + f.z * 3, p.y + 2.6, p.z - f.z * 5.5 - f.x * 3, p.x + f.x * 3, p.y + 1.6, p.z + f.z * 3]; })()` },
+  { id: "garage", name: "Garage bay, outside", car: `__perf.zone("garage-agents")`, cam: `(() => { const p = __car.pos, f = __car.forward; return [p.x - f.x * 5.5 + f.z * 3, p.y + 2.6, p.z - f.z * 5.5 - f.x * 3, p.x + f.x * 3, p.y + 1.6, p.z + f.z * 3]; })()` },
   { id: "teardown", name: "Teardown, inside", car: "garage" },
   { id: "town", name: "Town", car: "spawn", cam: `[64, 20, -52, 30, 4, -86]` },
   { id: "waterfront", name: "Waterfront", car: "spawn", cam: `[-48, 6, 64, -5, 1.2, 77]` },
@@ -67,6 +67,9 @@ async function shoot(browser, look) {
     await sleep(weather === "rain" ? 6000 : 2500);
     await page.evaluate(() => { window.__clockStop = true; });
     for (const pose of POSES) {
+      // the clock can't be held in a production build: jump back to the condition's time before each pose
+      await page.evaluate(([t, w]) => window.__perf.scene(t, w), [time, weather]);
+      await sleep(1500);
       if (pose.car === "garage") {
         await page.evaluate(() => { window.__cam = null; window.__perf.zone("garage-agents"); });
         await sleep(3000);

@@ -48,7 +48,7 @@ const STUDIO = NEXT ? { ...STUDIO_NOW, sun: 2.7, hemi: 0.35, hemiSky: "#eef1f4",
 // Rain on top of any of them: the key dims and the sky and fog go concrete grey.
 // look=next, inside a garage bay (the drawing view): a room has no sky over it, so the open-air
 // balance would leave it dim; the fill comes up to a light, even interior, as the current look's is.
-const INDOOR = { hemi: 0.35, env: 0.4, exposure: 1.02 };
+const INDOOR = { hemi: 0.3, env: 0.3, exposure: 1 };
 
 // look=next: the HDRI's fill drops with the light, and the key goes further (overcast).
 const RAIN = NEXT ? { sun: 0.32, hemi: 1.2, env: 0.7, grey: 0.55, dark: 0.86, exposure: 1.1 } : { sun: 0.45, hemi: 0.85, env: 1, grey: 0.55, dark: 0.88, exposure: 1 };

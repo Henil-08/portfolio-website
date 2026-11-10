@@ -11,7 +11,14 @@ import * as THREE from "three";
 
 /** One part of a model: its geometry and where it sits in the model's frame. */
 export type AoPart = { geometry: THREE.BufferGeometry; matrix: THREE.Matrix4 };
-export type LookAoOpts = { dirs?: number; res?: number; strength?: number; curve?: number };
+export type LookAoOpts = {
+  dirs?: number;
+  res?: number;
+  strength?: number;
+  curve?: number;
+  /** main-thread ms the vertex pass may take per frame before it waits for the next (asked as it goes) */
+  budget?: () => number;
+};
 
 const depthMat = new THREE.ShaderMaterial({
   side: THREE.DoubleSide,
@@ -43,7 +50,8 @@ let px: Uint8Array | null = null;
 
 /**
  * Bakes `lookAO` onto every part's geometry (in place). Draws now; the attribute lands when the
- * GPU has handed the atlas back. Resolves with the vertices it baked and the main thread's time on it (ms). One at a time: the atlas is shared.
+ * GPU has handed the atlas back. Resolves with the vertices it baked and the main thread's time on it (ms). The vertex pass is
+ * sliced over frames by `o.budget`, so a big model never stalls one. One at a time: the atlas is shared.
  */
 export async function bakeLookAO(gl: THREE.WebGLRenderer, parts: AoPart[], o: LookAoOpts = {}): Promise<{ verts: number; ms: number }> {
   const t0 = performance.now();
@@ -115,7 +123,6 @@ export async function bakeLookAO(gl: THREE.WebGLRenderer, parts: AoPart[], o: Lo
   floor.geometry.dispose();
   let ms = performance.now() - t0;
   await gl.readRenderTargetPixelsAsync(rt, 0, 0, W, W, px!);
-  const t1 = performance.now();
 
   // depth bias: a couple of texels of the map, in NDC depth (range 4R mapped to 0..1)
   const texel = (2 * R) / res;
@@ -124,9 +131,17 @@ export async function bakeLookAO(gl: THREE.WebGLRenderer, parts: AoPart[], o: Lo
   const p = new THREE.Vector3();
   const n = new THREE.Vector3();
   const nm = new THREE.Matrix3();
-  const v = new THREE.Vector4();
   const buf = px!;
+  // the views as flat rows (orthographic: no divide), the directions as flat xyz
+  const E = new Float32Array(dirs.length * 12);
+  const D = new Float32Array(dirs.length * 3);
+  dirs.forEach((d, k) => {
+    const e = vps[k].elements;
+    E.set([e[0], e[4], e[8], e[12], e[1], e[5], e[9], e[13], e[2], e[6], e[10], e[14]], k * 12);
+    D.set([d.x, d.y, d.z], k * 3);
+  });
   let count = 0;
+  let slice = performance.now();
   for (const part of parts) {
     const g = part.geometry;
     const pos = g.attributes.position as THREE.BufferAttribute;
@@ -134,6 +149,12 @@ export async function bakeLookAO(gl: THREE.WebGLRenderer, parts: AoPart[], o: Lo
     nm.getNormalMatrix(part.matrix);
     const ao = new Float32Array(pos.count);
     for (let i = 0; i < pos.count; i++) {
+      // a slice of the main thread per frame (`o.budget`), then wait for the next one
+      if ((i & 127) === 0 && performance.now() - slice > (o.budget?.() ?? Infinity)) {
+        ms += performance.now() - slice;
+        await new Promise((r) => requestAnimationFrame(r));
+        slice = performance.now();
+      }
       p.fromBufferAttribute(pos, i).applyMatrix4(part.matrix);
       if (nor) n.fromBufferAttribute(nor, i).applyMatrix3(nm).normalize();
       else n.set(0, 1, 0);
@@ -141,19 +162,22 @@ export async function bakeLookAO(gl: THREE.WebGLRenderer, parts: AoPart[], o: Lo
       let seen = 0;
       let total = 0;
       for (let k = 0; k < dirs.length; k++) {
-        const w = n.dot(dirs[k]);
+        const w = n.x * D[k * 3] + n.y * D[k * 3 + 1] + n.z * D[k * 3 + 2];
         if (w <= 0) continue;
         total += w;
-        v.set(p.x, p.y, p.z, 1).applyMatrix4(vps[k]);
-        const x = Math.floor((v.x * 0.5 + 0.5) * res);
-        const y = Math.floor((v.y * 0.5 + 0.5) * res);
+        const b = k * 12;
+        const vx = E[b] * p.x + E[b + 1] * p.y + E[b + 2] * p.z + E[b + 3];
+        const vy = E[b + 4] * p.x + E[b + 5] * p.y + E[b + 6] * p.z + E[b + 7];
+        const vz = E[b + 8] * p.x + E[b + 9] * p.y + E[b + 10] * p.z + E[b + 11];
+        const x = Math.floor((vx * 0.5 + 0.5) * res);
+        const y = Math.floor((vy * 0.5 + 0.5) * res);
         if (x < 0 || y < 0 || x >= res || y >= res) {
           seen += w;
           continue;
         }
         const j = ((Math.floor(k / cols) * res + y) * W + (k % cols) * res + x) * 4;
         const depth = buf[j] / 255 + buf[j + 1] / (255 * 255) + buf[j + 2] / (255 * 65025);
-        if (v.z * 0.5 + 0.5 <= depth + bias) seen += w;
+        if (vz * 0.5 + 0.5 <= depth + bias) seen += w;
       }
       const vis = total > 0 ? seen / total : 1;
       ao[i] = 1 - strength * (1 - Math.pow(vis, curve));
@@ -161,6 +185,6 @@ export async function bakeLookAO(gl: THREE.WebGLRenderer, parts: AoPart[], o: Lo
     g.setAttribute("lookAO", new THREE.BufferAttribute(ao, 1));
     count += pos.count;
   }
-  ms += performance.now() - t1;
+  ms += performance.now() - slice;
   return { verts: count, ms };
 }

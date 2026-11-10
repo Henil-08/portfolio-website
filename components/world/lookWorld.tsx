@@ -141,7 +141,7 @@ export function ContactShadow() {
   const mesh = useRef<THREE.Mesh>(null);
   const tex = useMemo(() => blobTexture(), []);
   const rayRef = useRef<InstanceType<typeof rapier.Ray> | null>(null);
-  const st = useRef({ l: 3.2, w: 1.6, measured: 0, rest: -1, fade: 0 });
+  const st = useRef({ l: 3.2, w: 1.6, measured: 0, rest: -1, fade: 0, root: null as THREE.Object3D | null });
   useEffect(() => () => tex.dispose(), [tex]);
 
   useFrame((_, dt) => {
@@ -152,7 +152,11 @@ export function ContactShadow() {
     // the vehicle's footprint in its body's frame (+x forward), measured once a second
     if (now - s.measured > 1000) {
       s.measured = now;
-      const root = scene.getObjectByName(PLAYER);
+      // the player's model, found again only when it has left the scene (a new vehicle)
+      let at: THREE.Object3D | null = s.root;
+      while (at && at !== scene) at = at.parent;
+      if (!at) s.root = scene.getObjectByName(PLAYER) ?? null;
+      const root = s.root;
       const body = root?.parent;
       if (root && body) {
         body.updateWorldMatrix(true, true);
@@ -230,7 +234,7 @@ const _t = new THREE.Box3();
  * model (a kit model's paints, a built model's instanced parts over the same copies) bake together
  * in their parent's frame, so their parts shade each other; a geometry is baked once wherever it
  * is reused. The work is spread over frames: freely during the boot (the select screen), and only
- * small models a frame once driving, so a frame never pays for more than a few milliseconds.
+ * a millisecond or so a frame once driving (lookAO.ts slices the vertex pass), so no frame pays for a model.
  */
 export function StaticAO() {
   const gl = useThree((s) => s.gl);
@@ -240,7 +244,10 @@ export function StaticAO() {
   useFrame(() => {
     const s = st.current;
     const now = performance.now();
-    if (now - s.last > 2000) {
+    const g = getState();
+    const driving = g.phase === "world" && g.revealed;
+    // new static meshes show up with the places as they mount: look often during the boot, rarely after
+    if (now - s.last > (driving && !s.queue.length ? 8000 : 2000)) {
       s.last = now;
       const relight = bakedLight.version !== s.version;
       s.version = bakedLight.version;
@@ -248,16 +255,10 @@ export function StaticAO() {
     }
     aoStats.queued = s.queue.length;
     if (!s.queue.length || s.busy) return;
-    // once driving, a big model waits for a stop (or the garage) rather than spend a frame on it
-    const g = getState();
-    let i = 0;
-    if (g.phase === "world" && g.revealed && g.speed > 1) {
-      i = s.queue.findIndex((j) => j.reduce((n, p) => n + p.geometry.attributes.position.count, 0) <= 6000);
-      if (i < 0) return;
-    }
-    const [job] = s.queue.splice(i, 1);
+    const job = s.queue.shift()!;
     s.busy = true;
-    bakeLookAO(gl, job, { dirs: 36, res: 128 })
+    // the vertex pass takes ~1 ms of a frame once driving, more while the boot's screens are up
+    bakeLookAO(gl, job, { dirs: 36, res: 128, budget: () => (getState().revealed ? 1 : 8) })
       .then((r) => {
         aoStats.verts += r.verts;
         aoStats.models++;
